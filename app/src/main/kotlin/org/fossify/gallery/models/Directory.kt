@@ -7,6 +7,7 @@ import org.fossify.commons.extensions.formatDate
 import org.fossify.commons.extensions.formatSize
 import org.fossify.commons.helpers.*
 import org.fossify.gallery.helpers.RECYCLE_BIN
+import org.fossify.gallery.helpers.TransformedMedia
 
 @Entity(tableName = "directories", indices = [Index(value = ["path"], unique = true)])
 data class Directory(
@@ -43,5 +44,7 @@ data class Directory(
 
     fun isRecycleBin() = path == RECYCLE_BIN
 
-    fun getKey() = ObjectKey("$path-$modified")
+    // the cover is a media file in its own right, so transforming it has to change this key too -
+    // the folder's own modified time doesn't move when the app rewrites a file's Exif in place
+    fun getKey() = ObjectKey("$path-$modified${TransformedMedia.cacheKeySuffixFor(tmb)}")
 }

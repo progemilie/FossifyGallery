@@ -105,7 +105,7 @@ data class Medium(
             File(path).lastModified()
         }
 
-        return "$path-$lastModified-$size"
+        return "$path-$lastModified-$size${TransformedMedia.cacheKeySuffixFor(path)}"
     }
 
     fun getKey() = ObjectKey(getSignature())

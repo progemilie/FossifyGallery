@@ -87,6 +87,7 @@ import org.fossify.gallery.helpers.ROUNDED_CORNERS_SMALL
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_FAVORITES
 import org.fossify.gallery.helpers.SHOW_RECYCLE_BIN
+import org.fossify.gallery.helpers.TransformedMedia
 import org.fossify.gallery.helpers.TYPE_GIFS
 import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.interfaces.MediaOperationsListener
@@ -115,6 +116,7 @@ class MediaAdapter(
     private val isListViewType = viewType == VIEW_TYPE_LIST
     private var transformedImagePaths = ArrayList<String>()
     private var currentMediaHash = media.hashCode()
+    private var currentTransformGeneration = TransformedMedia.generation
     private val hasOTGConnected = activity.hasOTGConnected()
 
     private var scrollHorizontally = config.scrollHorizontally
@@ -453,17 +455,16 @@ class MediaAdapter(
 
     private fun handleMirror(paths: List<String>) {
         var fileCnt = paths.size
-        transformedImagePaths.clear()
         activity.toast(org.fossify.commons.R.string.saving)
         ensureBackgroundThread {
             paths.forEach {
-                transformedImagePaths.add(it)
                 activity.saveMirroredImageToFile(it, it, true) {
                     fileCnt--
                     if (fileCnt == 0) {
                         activity.runOnUiThread {
-                            // the mirrored file is unchanged in size/modified time, so updateMedia()'s
-                            // hashcode-based diffing won't detect anything to rebind - force it directly
+                            // rebind right away rather than waiting for refreshItems()' requery -
+                            // the mirrored items already carry a fresh cache key by now, so this
+                            // decodes them anew, unlike rotate no memory cache skipping is needed
                             paths.forEach { path ->
                                 val position = media.indexOfFirst { item -> (item as? Medium)?.path == path }
                                 if (position != -1) {
@@ -672,8 +673,12 @@ class MediaAdapter(
 
     fun updateMedia(newMedia: ArrayList<ThumbnailItem>) {
         val thumbnailItems = newMedia.clone() as ArrayList<ThumbnailItem>
-        if (thumbnailItems.hashCode() != currentMediaHash) {
+        // an in-place transform (see TransformedMedia) leaves every field this hashcode is built
+        // from untouched, so also rebind whenever one happened while this screen was off top
+        val transformGeneration = TransformedMedia.generation
+        if (thumbnailItems.hashCode() != currentMediaHash || transformGeneration != currentTransformGeneration) {
             currentMediaHash = thumbnailItems.hashCode()
+            currentTransformGeneration = transformGeneration
             media = thumbnailItems
             notifyDataSetChanged()
             finishActMode()

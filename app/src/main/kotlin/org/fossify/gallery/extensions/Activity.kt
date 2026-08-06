@@ -48,6 +48,7 @@ import org.fossify.gallery.dialogs.ResizeWithPathDialog
 import org.fossify.gallery.helpers.DIRECTORY
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.TEMP_FOLDER_NAME
+import org.fossify.gallery.helpers.TransformedMedia
 import org.fossify.gallery.models.DateTaken
 import java.io.*
 import java.text.SimpleDateFormat
@@ -738,8 +739,8 @@ fun Activity.tryRotateByExif(path: String, degrees: Int, showToasts: Boolean, ca
     }
 }
 
-fun Activity.fileTransformedSuccessfully(path: String, lastModified: Long, restoreLastModified: Boolean = true) {
-    if (restoreLastModified && config.keepLastModified && lastModified != 0L) {
+fun Activity.fileTransformedSuccessfully(path: String, lastModified: Long) {
+    if (config.keepLastModified && lastModified != 0L) {
         File(path).setLastModified(lastModified)
         updateLastModified(path, lastModified)
     }
@@ -782,8 +783,10 @@ fun BaseSimpleActivity.saveMirroredImageToFile(oldPath: String, newPath: String,
             }
 
             copyFile(tmpPath, newPath)
-            // see tryMirrorByExif for why the last-modified date is deliberately not restored here
-            fileTransformedSuccessfully(newPath, oldLastModified, restoreLastModified = false)
+            TransformedMedia.onTransformed(newPath)
+            // restore the last-modified date before rescanning, so MediaStore's DATE_MODIFIED
+            // picks up the restored value rather than the one this write just produced
+            fileTransformedSuccessfully(newPath, oldLastModified)
             rescanPaths(arrayListOf(newPath)) {
                 updateDirectoryPath(newPath.getParentPath())
             }
@@ -810,15 +813,13 @@ fun BaseSimpleActivity.tryMirrorByExif(path: String, showToasts: Boolean, callba
         val file = File(path)
         val oldLastModified = file.lastModified()
         if (saveImageMirror(path)) {
-            // deliberately NOT restoring the original last-modified date here, unlike rotate does.
-            // Every cache key in the app collapses to this one timestamp: Medium.getSignature()
-            // ("path-modified-size", the Glide key for grid thumbnails and the fullscreen image),
-            // Directory.getKey() ("path-modified", the Glide key for album covers) and
-            // MediaAdapter.updateMedia()'s hashcode gate. Those values all come from MediaStore's
-            // DATE_MODIFIED, which MediaStore derives from the file's own mtime - so restoring the
-            // mtime leaves every one of them byte-identical to before the edit, and every screen
-            // keeps serving its cached pre-mirror bitmap until the app is restarted
-            fileTransformedSuccessfully(path, oldLastModified, restoreLastModified = false)
+            // record the transform before touching any cache: with "Keep last modified" enabled the
+            // file comes out of this byte-identical in every respect the caches can see, so this is
+            // the only thing that makes their keys move (see TransformedMedia)
+            TransformedMedia.onTransformed(path)
+            // restore the last-modified date before rescanning, so MediaStore's DATE_MODIFIED
+            // picks up the restored value rather than the one the EXIF write just produced
+            fileTransformedSuccessfully(path, oldLastModified)
             rescanPaths(arrayListOf(path)) {
                 updateDirectoryPath(path.getParentPath())
             }
