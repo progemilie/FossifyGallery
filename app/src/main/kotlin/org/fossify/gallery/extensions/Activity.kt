@@ -2,7 +2,6 @@ package org.fossify.gallery.extensions
 
 import android.app.Activity
 import android.content.ContentProviderOperation
-import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
@@ -739,8 +738,8 @@ fun Activity.tryRotateByExif(path: String, degrees: Int, showToasts: Boolean, ca
     }
 }
 
-fun Activity.fileTransformedSuccessfully(path: String, lastModified: Long) {
-    if (config.keepLastModified && lastModified != 0L) {
+fun Activity.fileTransformedSuccessfully(path: String, lastModified: Long, restoreLastModified: Boolean = true) {
+    if (restoreLastModified && config.keepLastModified && lastModified != 0L) {
         File(path).setLastModified(lastModified)
         updateLastModified(path, lastModified)
     }
@@ -783,8 +782,11 @@ fun BaseSimpleActivity.saveMirroredImageToFile(oldPath: String, newPath: String,
             }
 
             copyFile(tmpPath, newPath)
-            rescanPaths(arrayListOf(newPath))
-            fileTransformedSuccessfully(newPath, oldLastModified)
+            // see tryMirrorByExif for why the last-modified date is deliberately not restored here
+            fileTransformedSuccessfully(newPath, oldLastModified, restoreLastModified = false)
+            rescanPaths(arrayListOf(newPath)) {
+                updateDirectoryPath(newPath.getParentPath())
+            }
 
             it.flush()
             it.close()
@@ -808,16 +810,18 @@ fun BaseSimpleActivity.tryMirrorByExif(path: String, showToasts: Boolean, callba
         val file = File(path)
         val oldLastModified = file.lastModified()
         if (saveImageMirror(path)) {
-            fileTransformedSuccessfully(path, oldLastModified)
-
-            // Medium.getSignature() (the Glide cache key everywhere in the app) is derived from
-            // MediaStore's DATE_MODIFIED column, which mirrors the file's own mtime - and that mtime
-            // was just restored to its old value above, so a plain rescan wouldn't change it. Bump
-            // MediaStore's DATE_MODIFIED directly instead, without touching the file itself, so every
-            // screen's next query gets a fresh cache signature while the file's real mtime stays intact
-            bumpMediaStoreModified(path)
-            updateDirectoryPath(path.getParentPath())
-            addPathToDB(path)
+            // deliberately NOT restoring the original last-modified date here, unlike rotate does.
+            // Every cache key in the app collapses to this one timestamp: Medium.getSignature()
+            // ("path-modified-size", the Glide key for grid thumbnails and the fullscreen image),
+            // Directory.getKey() ("path-modified", the Glide key for album covers) and
+            // MediaAdapter.updateMedia()'s hashcode gate. Those values all come from MediaStore's
+            // DATE_MODIFIED, which MediaStore derives from the file's own mtime - so restoring the
+            // mtime leaves every one of them byte-identical to before the edit, and every screen
+            // keeps serving its cached pre-mirror bitmap until the app is restarted
+            fileTransformedSuccessfully(path, oldLastModified, restoreLastModified = false)
+            rescanPaths(arrayListOf(path)) {
+                updateDirectoryPath(path.getParentPath())
+            }
 
             callback.invoke()
             if (showToasts) {
@@ -833,32 +837,6 @@ fun BaseSimpleActivity.tryMirrorByExif(path: String, showToasts: Boolean, callba
             showErrorToast(e)
         }
         false
-    }
-}
-
-// best-effort: this can throw (e.g. RecoverableSecurityException) for images this app didn't insert
-// into MediaStore itself; the mirror was already written to disk successfully regardless of this call
-fun Context.bumpMediaStoreModified(path: String) {
-    val id = getImageMediaStoreId(path) ?: return
-    try {
-        val uri = ContentUris.withAppendedId(Images.Media.EXTERNAL_CONTENT_URI, id)
-        val values = ContentValues().apply {
-            put(Images.Media.DATE_MODIFIED, System.currentTimeMillis() / 1000L)
-        }
-        contentResolver.update(uri, values, null, null)
-    } catch (e: Exception) {
-    }
-}
-
-private fun Context.getImageMediaStoreId(path: String): Long? {
-    val projection = arrayOf(Images.Media._ID)
-    val selection = "${Images.Media.DATA} = ?"
-    return try {
-        contentResolver.query(Images.Media.EXTERNAL_CONTENT_URI, projection, selection, arrayOf(path), null)?.use {
-            if (it.moveToFirst()) it.getLong(it.getColumnIndexOrThrow(Images.Media._ID)) else null
-        }
-    } catch (e: Exception) {
-        null
     }
 }
 
