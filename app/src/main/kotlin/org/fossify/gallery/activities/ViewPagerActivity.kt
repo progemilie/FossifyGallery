@@ -416,6 +416,16 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         outState.putString(SAVED_PATH, getCurrentPath())
     }
 
+    // let the caller scroll its grid to whatever we ended up on after swiping around. finish() is
+    // reached from the toolbar, the back gesture and the swipe down to close one, so hook it here
+    override fun finish() {
+        if (!isExternalIntent()) {
+            setResult(RESULT_OK, Intent().putExtra(PATH, getCurrentPath()))
+        }
+
+        super.finish()
+    }
+
     private fun initViewPager(savedPath: String) {
         val uri = intent.data
         if (uri != null) {

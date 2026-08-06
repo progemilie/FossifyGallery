@@ -268,6 +268,13 @@ const val FOLDER_STYLE_ROUNDED_CORNERS = 2
 // animations
 const val THUMBNAIL_FADE_DURATION_MS = 150
 
+// brief accent border pulsed over the thumbnail the user just came back from
+const val HIGHLIGHT_FADE_IN_DURATION_MS = 150L
+const val HIGHLIGHT_HOLD_DURATION_MS = 500L
+const val HIGHLIGHT_FADE_OUT_DURATION_MS = 250L
+const val HIGHLIGHT_BORDER_WIDTH_FRACTION = 0.08f
+const val HIGHLIGHT_BORDER_OPAQUE_ALPHA = 255
+
 fun getPermissionToRequest() = if (isTiramisuPlus()) PERMISSION_READ_MEDIA_IMAGES else PERMISSION_WRITE_STORAGE
 
 fun getPermissionsToRequest(): Collection<Int> {
