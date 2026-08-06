@@ -157,6 +157,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         private const val PICK_MEDIA = 2
         private const val PICK_WALLPAPER = 3
         private const val LAST_MEDIA_CHECK_PERIOD = 3000L
+        private const val ADAPTER_REFRESH_INTERVAL = 500L
     }
 
     private var mIsPickImageIntent = false
@@ -174,6 +175,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     private var mWasMediaManagementPromptShown = false
     private var mLatestMediaId = 0L
     private var mLatestMediaDateId = 0L
+    private var mLastAdapterRefresh = 0L
 
     // used at "Group direct subfolders" for navigation
     private var mCurrentPathPrefix = ""
@@ -1244,7 +1246,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
                     sortValue = getDirectorySortingValue(curMedia, path, name, size, mediaCnt)
                 }
 
-                setupAdapter(dirs)
+                setupAdapterThrottled(dirs)
 
                 // update directories and media files in the local db, delete invalid items. Intentionally creating a new thread
                 updateDBDirectory(directory)
@@ -1258,15 +1260,16 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
                 }
 
                 if (!directory.isRecycleBin()) {
+                    // by path, not by whole item - a scan that only refreshed a file's metadata
+                    // would otherwise look like a removal and race the insert above into deleting
+                    // the row it had just written. hashed so this stays linear in the folder size
+                    val curPaths = curMedia.mapTo(HashSet(curMedia.size)) { it.path }
                     getCachedMedia(directory.path, getVideosOnly, getImagesOnly) {
                         val mediaToDelete = ArrayList<Medium>()
                         it.forEach {
-                            if (!curMedia.contains(it)) {
-                                val medium = it as? Medium
-                                val path = medium?.path
-                                if (path != null) {
-                                    mediaToDelete.add(medium)
-                                }
+                            val medium = it as? Medium
+                            if (medium != null && !curPaths.contains(medium.path)) {
+                                mediaToDelete.add(medium)
                             }
                         }
                         mediaDB.deleteMedia(*mediaToDelete.toTypedArray())
@@ -1358,7 +1361,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
                 noMediaFolders = noMediaFolders
             )
             dirs.add(newDir)
-            setupAdapter(dirs)
+            setupAdapterThrottled(dirs)
 
             // make sure to create a new thread for these operations, dont just use the common bg thread
             Thread {
@@ -1371,6 +1374,9 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
                 }
             }.start()
         }
+
+        // the throttle above may be holding the last folders back, so always finish on a full one
+        setupAdapter(dirs)
 
         mLoadedInitialPhotos = true
         if (config.appRunCount > 1) {
@@ -1468,6 +1474,23 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
 
         binding.directoriesEmptyPlaceholder2.underlineText()
         binding.directoriesFastscroller.beVisibleIf(binding.directoriesEmptyPlaceholder.isGone())
+    }
+
+    /**
+     * Pushes the grid mid scan, at most [ADAPTER_REFRESH_INTERVAL] apart. The scan revisits folders
+     * one at a time and used to hand the whole list over after every single one - each handover
+     * being a notifyDataSetChanged() that rebinds every visible cover and restarts its image
+     * request, so on a large library the covers flickered through dozens of reloads on the way in.
+     * Callers must still finish with a plain [setupAdapter] so nothing held back gets lost.
+     */
+    private fun setupAdapterThrottled(dirs: ArrayList<Directory>) {
+        val now = System.currentTimeMillis()
+        if (now - mLastAdapterRefresh < ADAPTER_REFRESH_INTERVAL) {
+            return
+        }
+
+        mLastAdapterRefresh = now
+        setupAdapter(dirs)
     }
 
     private fun setupAdapter(

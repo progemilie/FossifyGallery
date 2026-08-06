@@ -55,14 +55,17 @@ class MediaFetcher(val context: Context) {
             }
 
             if (curMedia.isEmpty()) {
+                // the maps are read, never drained, so every folder can share the caller's copies -
+                // cloning them per folder meant copying every known path once per folder scanned
                 val newMedia = getMediaInFolder(
                     curPath, isPickImage, isPickVideo, filterMedia, getProperDateTaken, getProperLastModified, getProperFileSize,
-                    favoritePaths, getVideoDurations, lastModifieds.clone() as HashMap<String, Long>, dateTakens.clone() as HashMap<String, Long>
+                    favoritePaths, getVideoDurations, lastModifieds, dateTakens
                 )
 
                 if (curPath == FAVORITES && isRPlus() && !isExternalStorageManager()) {
-                    val files =
-                        getAndroid11FolderMedia(isPickImage, isPickVideo, favoritePaths, true, getProperDateTaken, dateTakens.clone() as HashMap<String, Long>)
+                    val files = getAndroid11FolderMedia(
+                        isPickImage, isPickVideo, favoritePaths, true, getProperDateTaken, dateTakens
+                    )
                     newMedia.forEach { newMedium ->
                         for ((folder, media) in files) {
                             media.forEach { medium ->
@@ -303,6 +306,8 @@ class MediaFetcher(val context: Context) {
         val showHidden = config.shouldShowHidden
         val showPortraits = filterMedia and TYPE_PORTRAITS != 0
         val fileSizes = if (checkProperFileSize || checkFileExistence) getFolderSizes(folder) else HashMap()
+        // hashed once instead of scanning the list again for every single file below
+        val favorites = favoritePaths.toHashSet()
 
         val files = when (folder) {
             FAVORITES -> favoritePaths.filter { showHidden || !it.contains("/.") }.map { File(it) }.toMutableList() as ArrayList<File>
@@ -382,7 +387,7 @@ class MediaFetcher(val context: Context) {
                 }
             } else {
                 var lastModified: Long
-                var newLastModified = lastModifieds.remove(path)
+                var newLastModified = lastModifieds[path]
                 if (newLastModified == null) {
                     newLastModified = if (getProperLastModified) {
                         file.lastModified()
@@ -396,7 +401,7 @@ class MediaFetcher(val context: Context) {
                 val videoDuration = if (getVideoDurations && isVideo) context.getDuration(path) ?: 0 else 0
 
                 if (getProperDateTaken) {
-                    var newDateTaken = dateTakens.remove(path)
+                    var newDateTaken = dateTakens[path]
                     if (newDateTaken == null) {
                         newDateTaken = if (getProperLastModified) {
                             lastModified
@@ -416,7 +421,7 @@ class MediaFetcher(val context: Context) {
                     else -> TYPE_IMAGES
                 }
 
-                val isFavorite = favoritePaths.contains(path)
+                val isFavorite = favorites.contains(path)
                 val medium = Medium(null, filename, path, file.parent, lastModified, dateTaken, size, type, videoDuration, isFavorite, 0L, 0L)
                 media.add(medium)
             }
@@ -440,6 +445,8 @@ class MediaFetcher(val context: Context) {
 
         val filterMedia = context.config.filterMedia
         val showHidden = context.config.shouldShowHidden
+        // hashed once instead of scanning the list again for every MediaStore row below
+        val favorites = favoritePaths.toHashSet()
 
         val projection = arrayOf(
             Images.Media._ID,
@@ -462,7 +469,7 @@ class MediaFetcher(val context: Context) {
                 val mediaStoreId = cursor.getLongValue(Images.Media._ID)
                 val filename = cursor.getStringValue(Images.Media.DISPLAY_NAME)
                 val path = cursor.getStringValue(Images.Media.DATA)
-                if (getFavoritePathsOnly && !favoritePaths.contains(path)) {
+                if (getFavoritePathsOnly && !favorites.contains(path)) {
                     return@queryCursor
                 }
 
@@ -513,7 +520,7 @@ class MediaFetcher(val context: Context) {
                 var dateTaken = cursor.getLongValue(Images.Media.DATE_TAKEN)
 
                 if (getProperDateTaken) {
-                    dateTaken = dateTakens.remove(path) ?: lastModified
+                    dateTaken = dateTakens[path] ?: lastModified
                 }
 
                 if (dateTaken == 0L) {
@@ -547,6 +554,8 @@ class MediaFetcher(val context: Context) {
         val checkFileExistence = context.config.fileLoadingPriority == PRIORITY_VALIDITY
         val showHidden = context.config.shouldShowHidden
         val OTGPath = context.config.OTGPath
+        // hashed once instead of scanning the list again for every single file below
+        val favorites = favoritePaths.toHashSet()
 
         for (file in files) {
             if (shouldStop) {
@@ -600,7 +609,7 @@ class MediaFetcher(val context: Context) {
                 file.uri.toString().replaceFirst("${context.config.OTGTreeUri}/document/${context.config.OTGPartition}%3A", "${context.config.OTGPath}/")
             )
             val videoDuration = if (getVideoDurations) context.getDuration(path) ?: 0 else 0
-            val isFavorite = favoritePaths.contains(path)
+            val isFavorite = favorites.contains(path)
             val medium = Medium(null, filename, path, folder, dateModified, dateTaken, size, type, videoDuration, isFavorite, 0L, 0L)
             media.add(medium)
         }
@@ -800,6 +809,16 @@ class MediaFetcher(val context: Context) {
             if (sorting and SORT_DESCENDING != 0) {
                 result *= -1
             }
+
+            // files that tie on the sort key - a burst of shots sharing a timestamp, or a whole
+            // folder with no Exif dates at all - would otherwise keep whatever order the MediaStore
+            // cursor happened to return, which is not the same from one scan to the next. that
+            // moves items around the grid and, since a folder's cover is simply its first item,
+            // swaps album covers for no reason. the path is unique, so it settles every tie
+            if (result == 0) {
+                result = o1.path.compareTo(o2.path)
+            }
+
             result
         }
     }
@@ -817,7 +836,12 @@ class MediaFetcher(val context: Context) {
             return
         }
 
-        media.sortWith(compareBy { positions[it.path.lowercase(Locale.getDefault())] ?: Int.MAX_VALUE })
+        media.sortWith(
+            compareBy<Medium> { positions[it.path.lowercase(Locale.getDefault())] ?: Int.MAX_VALUE }
+                // everything the saved order does not cover ties on the line above, so give the
+                // tail a fixed order of its own rather than the scan's incidental one
+                .thenBy { it.path }
+        )
     }
 
     fun groupMedia(media: ArrayList<Medium>, path: String): ArrayList<ThumbnailItem> {
