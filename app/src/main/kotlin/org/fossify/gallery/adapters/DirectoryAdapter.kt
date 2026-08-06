@@ -98,6 +98,7 @@ import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_NONE
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_SMALL
+import org.fossify.gallery.helpers.TransformedMedia
 import org.fossify.gallery.helpers.TYPE_GIFS
 import org.fossify.gallery.helpers.TYPE_IMAGES
 import org.fossify.gallery.helpers.TYPE_RAWS
@@ -129,6 +130,7 @@ class DirectoryAdapter(
     private var cropThumbnails = config.cropThumbnails
     private var groupDirectSubfolders = config.groupDirectSubfolders
     private var currentDirectoriesHash = dirs.hashCode()
+    private var currentTransformGeneration = TransformedMedia.generation
     private var lockedFolderPaths = ArrayList<String>()
     private var isDragAndDropping = false
     private var startReorderDragListener: StartReorderDragListener? = null
@@ -813,8 +815,12 @@ class DirectoryAdapter(
 
     fun updateDirs(newDirs: ArrayList<Directory>) {
         val directories = newDirs.clone() as ArrayList<Directory>
-        if (directories.hashCode() != currentDirectoriesHash) {
+        // a cover transformed in place (see TransformedMedia) changes nothing this hashcode is
+        // built from, so also rebind whenever one happened while this screen was off top
+        val transformGeneration = TransformedMedia.generation
+        if (directories.hashCode() != currentDirectoriesHash || transformGeneration != currentTransformGeneration) {
             currentDirectoriesHash = directories.hashCode()
+            currentTransformGeneration = transformGeneration
             dirs = directories
             fillLockedFolders()
             notifyDataSetChanged()

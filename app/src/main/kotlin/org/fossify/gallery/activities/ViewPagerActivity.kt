@@ -856,8 +856,8 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             saveMirroredImageToFile(path, path, true) {
                 runOnUiThread {
                     refreshMenuItems()
-                    // with "Keep last modified" enabled the file keeps its modified time, so the
-                    // Glide/Picasso cache keys are unchanged - reload past the caches explicitly
+                    // nothing requeries the pager for an in-place edit, so tell the fragment
+                    // showing the mirrored file to draw itself again
                     getCurrentPhotoFragment()?.reloadImageIgnoringCache()
                 }
             }

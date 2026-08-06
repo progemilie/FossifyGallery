@@ -48,6 +48,7 @@ import org.fossify.gallery.dialogs.ResizeWithPathDialog
 import org.fossify.gallery.helpers.DIRECTORY
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.TEMP_FOLDER_NAME
+import org.fossify.gallery.helpers.TransformedMedia
 import org.fossify.gallery.models.DateTaken
 import java.io.*
 import java.text.SimpleDateFormat
@@ -782,6 +783,7 @@ fun BaseSimpleActivity.saveMirroredImageToFile(oldPath: String, newPath: String,
             }
 
             copyFile(tmpPath, newPath)
+            TransformedMedia.onTransformed(newPath)
             // restore the last-modified date before rescanning, so MediaStore's DATE_MODIFIED
             // picks up the restored value rather than the one this write just produced
             fileTransformedSuccessfully(newPath, oldLastModified)
@@ -811,12 +813,12 @@ fun BaseSimpleActivity.tryMirrorByExif(path: String, showToasts: Boolean, callba
         val file = File(path)
         val oldLastModified = file.lastModified()
         if (saveImageMirror(path)) {
+            // record the transform before touching any cache: with "Keep last modified" enabled the
+            // file comes out of this byte-identical in every respect the caches can see, so this is
+            // the only thing that makes their keys move (see TransformedMedia)
+            TransformedMedia.onTransformed(path)
             // restore the last-modified date before rescanning, so MediaStore's DATE_MODIFIED
-            // picks up the restored value rather than the one the EXIF write just produced.
-            // With "Keep last modified" on, every mtime-derived cache key (Medium.getSignature(),
-            // Directory.getKey(), MediaAdapter.updateMedia()'s hashcode gate) therefore stays
-            // identical to its pre-mirror value - the callers force their own redraw instead of
-            // relying on that diff, see MediaAdapter.handleMirror()/ViewPagerActivity.commitMirror()
+            // picks up the restored value rather than the one the EXIF write just produced
             fileTransformedSuccessfully(path, oldLastModified)
             rescanPaths(arrayListOf(path)) {
                 updateDirectoryPath(path.getParentPath())
