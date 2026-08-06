@@ -9,6 +9,7 @@ import androidx.exifinterface.media.ExifInterface
 import androidx.fragment.app.Fragment
 import org.fossify.commons.extensions.*
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.extensions.getReadableOrientation
 import org.fossify.gallery.helpers.*
 import org.fossify.gallery.models.Medium
 import java.io.File
@@ -91,6 +92,10 @@ abstract class ViewPagerFragment : Fragment() {
 
         if (detailsFlag and EXT_GPS != 0) {
             getLatLonAltitude(medium.path).let { if (it.isNotEmpty()) details.appendLine(it) }
+        }
+
+        if (detailsFlag and EXT_ORIENTATION != 0) {
+            exif.getReadableOrientation(context).let { if (it.isNotEmpty()) details.appendLine(it) }
         }
         return details.toString().trim()
     }

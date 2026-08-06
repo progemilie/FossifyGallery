@@ -109,6 +109,16 @@
     <string name="rotate_left">Rotate left</string>
     <string name="rotate_right">Rotate right</string>
     <string name="rotate_one_eighty">Rotate by 180º</string>
+    <string name="mirror">Mirror</string>
+    <string name="orientation">Orientation</string>
+    <string name="orientation_normal">Normal</string>
+    <string name="orientation_mirrored_horizontal">Mirrored horizontally</string>
+    <string name="orientation_mirrored_vertical">Mirrored vertically</string>
+    <string name="orientation_rotated_90">Rotated 90°</string>
+    <string name="orientation_rotated_180">Rotated 180°</string>
+    <string name="orientation_rotated_270">Rotated 270°</string>
+    <string name="orientation_mirrored_horizontal_rotated_90">Mirrored horizontally, rotated 90°</string>
+    <string name="orientation_mirrored_horizontal_rotated_270">Mirrored horizontally, rotated 270°</string>
     <string name="transform">Transform</string>
     <string name="crop">Crop</string>
     <string name="draw">Draw</string>

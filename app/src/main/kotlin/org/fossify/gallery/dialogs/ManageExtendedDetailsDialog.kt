@@ -22,6 +22,7 @@ class ManageExtendedDetailsDialog(val activity: BaseSimpleActivity, val callback
             manageExtendedDetailsCamera.isChecked = details and EXT_CAMERA_MODEL != 0
             manageExtendedDetailsExif.isChecked = details and EXT_EXIF_PROPERTIES != 0
             manageExtendedDetailsGpsCoordinates.isChecked = details and EXT_GPS != 0
+            manageExtendedDetailsOrientation.isChecked = details and EXT_ORIENTATION != 0
         }
 
         activity.getAlertDialogBuilder()
@@ -53,6 +54,8 @@ class ManageExtendedDetailsDialog(val activity: BaseSimpleActivity, val callback
                 result += EXT_EXIF_PROPERTIES
             if (manageExtendedDetailsGpsCoordinates.isChecked)
                 result += EXT_GPS
+            if (manageExtendedDetailsOrientation.isChecked)
+                result += EXT_ORIENTATION
         }
 
         activity.config.extendedDetails = result
