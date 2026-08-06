@@ -24,6 +24,8 @@ import androidx.core.graphics.drawable.toBitmapOrNull
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat.Type
 import androidx.core.view.updateLayoutParams
+import androidx.exifinterface.media.ExifInterface.ORIENTATION_FLIP_HORIZONTAL
+import androidx.exifinterface.media.ExifInterface.ORIENTATION_FLIP_VERTICAL
 import androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_180
 import androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_270
 import androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_90
@@ -396,12 +398,20 @@ class PhotoFragment : ViewPagerFragment() {
         }
     }
 
+    // Exif's mirrored orientations are "rotate, then mirror horizontally" combinations:
+    // TRANSPOSE is 90° mirrored and TRANSVERSE is 270° mirrored, so their rotation halves are
+    // the same way round as ROTATE_90/ROTATE_270 - not swapped, as this used to have them
     private fun degreesForRotation(orientation: Int) = when (orientation) {
-        ORIENTATION_ROTATE_270, ORIENTATION_TRANSPOSE -> 270
-        ORIENTATION_ROTATE_180 -> 180
-        ORIENTATION_ROTATE_90, ORIENTATION_TRANSVERSE -> 90
+        ORIENTATION_ROTATE_270, ORIENTATION_TRANSVERSE -> 270
+        ORIENTATION_ROTATE_180, ORIENTATION_FLIP_VERTICAL -> 180
+        ORIENTATION_ROTATE_90, ORIENTATION_TRANSPOSE -> 90
         else -> 0
     }
+
+    private fun isFlippedOrientation(orientation: Int) = orientation == ORIENTATION_FLIP_HORIZONTAL ||
+        orientation == ORIENTATION_FLIP_VERTICAL ||
+        orientation == ORIENTATION_TRANSPOSE ||
+        orientation == ORIENTATION_TRANSVERSE
 
     private fun rotateViaMatrix(original: Bitmap, orientation: Int): Bitmap {
         val degrees = degreesForRotation(orientation).toFloat()
@@ -750,13 +760,14 @@ class PhotoFragment : ViewPagerFragment() {
 
     private fun addZoomableView() {
         val rotation = degreesForRotation(mImageOrientation)
+        val isFlipped = isFlippedOrientation(mImageOrientation)
         mIsSubsamplingVisible = true
         val config = requireContext().config
         val showHighestQuality = config.showHighestQuality
         val minTileDpi = if (showHighestQuality) -1 else getMinTileDpi()
 
         val bitmapDecoder = object : DecoderFactory<ImageDecoder> {
-            override fun make() = MyGlideImageDecoder(rotation, mMedium.getKey())
+            override fun make() = MyGlideImageDecoder(rotation, mMedium.getKey(), isFlipped)
         }
 
         val regionDecoder = object : DecoderFactory<ImageRegionDecoder> {
@@ -779,6 +790,10 @@ class PhotoFragment : ViewPagerFragment() {
             rotationEnabled = config.allowRotatingWithGestures
             isOneToOneZoomEnabled = config.allowOneToOneZoom
             orientation = newOrientation
+            // SubsamplingScaleImageView can only rotate, so mirror the view itself for the
+            // flipped Exif orientations - it renders after the rotation, which is the order
+            // Exif defines. Always assign, the view gets reused across images
+            scaleX = if (isFlipped) -1f else 1f
             setImage(getFilePathToShow())
 
             onImageEventListener = object : SubsamplingScaleImageView.OnImageEventListener {
@@ -791,8 +806,10 @@ class PhotoFragment : ViewPagerFragment() {
                         }
                     )
 
-                    val useWidth = if (mImageOrientation == ORIENTATION_ROTATE_90 || mImageOrientation == ORIENTATION_ROTATE_270) sHeight else sWidth
-                    val useHeight = if (mImageOrientation == ORIENTATION_ROTATE_90 || mImageOrientation == ORIENTATION_ROTATE_270) sWidth else sHeight
+                    // covers TRANSPOSE/TRANSVERSE too, which are quarter turns like ROTATE_90/270
+                    val isQuarterTurned = rotation == 90 || rotation == 270
+                    val useWidth = if (isQuarterTurned) sHeight else sWidth
+                    val useHeight = if (isQuarterTurned) sWidth else sHeight
                     doubleTapZoomScale = getDoubleTapZoomScale(useWidth, useHeight)
                 }
 

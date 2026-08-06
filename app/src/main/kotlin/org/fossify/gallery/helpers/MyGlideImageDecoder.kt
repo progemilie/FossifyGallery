@@ -10,7 +10,11 @@ import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.signature.ObjectKey
 import com.davemorrissey.labs.subscaleview.ImageDecoder
 
-class MyGlideImageDecoder(val degrees: Int, val signature: ObjectKey) : ImageDecoder {
+class MyGlideImageDecoder(
+    val degrees: Int,
+    val signature: ObjectKey,
+    private val isFlipped: Boolean = false
+) : ImageDecoder {
 
     override fun decode(context: Context, uri: Uri): Bitmap {
         val options = RequestOptions()
@@ -22,7 +26,10 @@ class MyGlideImageDecoder(val degrees: Int, val signature: ObjectKey) : ImageDec
             .asBitmap()
             .load(uri.toString().substringAfter("file://"))
             .apply(options)
-            .transform(RotateTransformation(-degrees))
+            // Glide has already baked the full Exif transform into the bitmap, but the
+            // SubsamplingScaleImageView applies its own orientation (and mirroring) on top, so undo
+            // both here to hand it the raw image - matching what the region decoder produces
+            .transform(RotateTransformation(-degrees, isFlipped))
             .submit(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
 
         return builder.get()
