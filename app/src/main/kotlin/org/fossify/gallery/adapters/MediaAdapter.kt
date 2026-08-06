@@ -1,8 +1,12 @@
 package org.fossify.gallery.adapters
 
+import android.animation.Animator
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.content.Intent
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
+import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.Icon
 import android.view.Menu
 import android.view.View
@@ -10,7 +14,10 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.animation.doOnEnd
 import androidx.core.view.allViews
+import androidx.core.view.children
+import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
 import org.fossify.commons.activities.BaseSimpleActivity
@@ -48,6 +55,7 @@ import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isRPlus
 import org.fossify.commons.helpers.sumByLong
 import org.fossify.commons.models.FileDirItem
+import org.fossify.commons.views.MyGridLayoutManager
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.gallery.R
 import org.fossify.gallery.activities.ViewPagerActivity
@@ -79,6 +87,11 @@ import org.fossify.gallery.extensions.tryCopyMoveFilesTo
 import org.fossify.gallery.extensions.updateDBMediaPath
 import org.fossify.gallery.extensions.updateFavorite
 import org.fossify.gallery.extensions.updateFavoritePaths
+import org.fossify.gallery.helpers.HIGHLIGHT_BORDER_OPAQUE_ALPHA
+import org.fossify.gallery.helpers.HIGHLIGHT_BORDER_WIDTH_FRACTION
+import org.fossify.gallery.helpers.HIGHLIGHT_FADE_IN_DURATION_MS
+import org.fossify.gallery.helpers.HIGHLIGHT_FADE_OUT_DURATION_MS
+import org.fossify.gallery.helpers.HIGHLIGHT_HOLD_DURATION_MS
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
@@ -118,6 +131,8 @@ class MediaAdapter(
     private var currentMediaHash = media.hashCode()
     private var currentTransformGeneration = TransformedMedia.generation
     private val hasOTGConnected = activity.hasOTGConnected()
+
+    private var highlightAnimator: Animator? = null
 
     private var scrollHorizontally = config.scrollHorizontally
     private var animateGifs = config.animateGifs
@@ -259,6 +274,8 @@ class MediaAdapter(
             val tmb = itemView.allViews.firstOrNull { it.id == R.id.medium_thumbnail }
             if (tmb != null) {
                 Glide.with(activity).clear(tmb)
+                // drop a leftover highlight border, it would otherwise show up on another item
+                tmb.foreground = null
             }
         }
     }
@@ -705,6 +722,116 @@ class MediaAdapter(
         notifyDataSetChanged()
     }
 
+    /**
+     * Scrolls the item at [path] into view if needed and briefly pulses a border over it, so it is
+     * obvious which thumbnail the fullscreen viewer was just left from. Returns false if the item
+     * is not in the grid (deleted, filtered out), letting the caller retry after a refresh.
+     */
+    fun revealItem(path: String): Boolean {
+        val position = getItemKeyPosition(path.hashCode())
+        if (position == -1) {
+            return false
+        }
+
+        // scroll on the next pass so the grid is laid out, then highlight once that scroll settled
+        recyclerView.post {
+            scrollToItemIfNeeded(position)
+            recyclerView.post { highlightItem(position) }
+        }
+
+        return true
+    }
+
+    private fun scrollToItemIfNeeded(position: Int) {
+        val layoutManager = recyclerView.layoutManager as? MyGridLayoutManager ?: return
+        val isHorizontal = layoutManager.orientation == RecyclerView.HORIZONTAL
+        val itemView = layoutManager.findViewByPosition(position)
+        if (itemView != null && isFullyVisible(itemView, isHorizontal)) {
+            return
+        }
+
+        val available = if (isHorizontal) {
+            recyclerView.width - recyclerView.paddingLeft - recyclerView.paddingRight
+        } else {
+            recyclerView.height - recyclerView.paddingTop - recyclerView.paddingBottom
+        }
+
+        val itemSize = getItemSize(isHorizontal) ?: (available / layoutManager.spanCount)
+        layoutManager.scrollToPositionWithOffset(position, ((available - itemSize) / 2).coerceAtLeast(0))
+    }
+
+    private fun isFullyVisible(itemView: View, isHorizontal: Boolean) = if (isHorizontal) {
+        itemView.left >= recyclerView.paddingLeft && itemView.right <= recyclerView.width - recyclerView.paddingRight
+    } else {
+        itemView.top >= recyclerView.paddingTop && itemView.bottom <= recyclerView.height - recyclerView.paddingBottom
+    }
+
+    // all media items share a size, section titles do not, so measure any visible medium
+    private fun getItemSize(isHorizontal: Boolean): Int? {
+        return recyclerView.children
+            .firstOrNull {
+                val position = recyclerView.getChildAdapterPosition(it)
+                position != RecyclerView.NO_POSITION && !isASectionTitle(position)
+            }?.let {
+                if (isHorizontal) it.width else it.height
+            }
+    }
+
+    private fun highlightItem(position: Int) {
+        val thumbnail = recyclerView.findViewHolderForAdapterPosition(position)
+            ?.itemView
+            ?.findViewById<ImageView>(R.id.medium_thumbnail) ?: return
+
+        highlightAnimator?.cancel()
+
+        val strokeWidth = (thumbnail.width * HIGHLIGHT_BORDER_WIDTH_FRACTION).coerceIn(
+            activity.resources.getDimension(R.dimen.highlight_border_min_width),
+            activity.resources.getDimension(R.dimen.highlight_border_max_width)
+        )
+
+        val border = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = getThumbnailCornerRadius()
+            setStroke(strokeWidth.toInt(), properPrimaryColor)
+            alpha = 0
+        }
+
+        // setForeground makes the view the drawables callback, so changing the alpha repaints it
+        thumbnail.foreground = border
+        highlightAnimator = AnimatorSet().apply {
+            val fadeIn = ObjectAnimator.ofInt(border, "alpha", 0, HIGHLIGHT_BORDER_OPAQUE_ALPHA)
+                .setDuration(HIGHLIGHT_FADE_IN_DURATION_MS)
+
+            val fadeOut = ObjectAnimator.ofInt(border, "alpha", HIGHLIGHT_BORDER_OPAQUE_ALPHA, 0)
+                .setDuration(HIGHLIGHT_FADE_OUT_DURATION_MS)
+                .apply { startDelay = HIGHLIGHT_HOLD_DURATION_MS }
+
+            playSequentially(fadeIn, fadeOut)
+            doOnEnd {
+                thumbnail.foreground = null
+                highlightAnimator = null
+            }
+
+            start()
+        }
+    }
+
+    private fun getRoundedCorners() = when {
+        isListViewType -> ROUNDED_CORNERS_SMALL
+        config.fileRoundedCorners -> ROUNDED_CORNERS_BIG
+        else -> ROUNDED_CORNERS_NONE
+    }
+
+    private fun getThumbnailCornerRadius(): Float {
+        val radiusId = when (getRoundedCorners()) {
+            ROUNDED_CORNERS_SMALL -> org.fossify.commons.R.dimen.rounded_corner_radius_small
+            ROUNDED_CORNERS_BIG -> org.fossify.commons.R.dimen.rounded_corner_radius_big
+            else -> return 0f
+        }
+
+        return activity.resources.getDimension(radiusId)
+    }
+
     private fun setupThumbnail(view: View, medium: Medium) {
         val isSelected = selectedKeys.contains(medium.path.hashCode())
         bindItem(view, medium).apply {
@@ -774,12 +901,7 @@ class MediaAdapter(
                 path = path.getOTGPublicPath(root.context)
             }
 
-            val roundedCorners = when {
-                isListViewType -> ROUNDED_CORNERS_SMALL
-                config.fileRoundedCorners -> ROUNDED_CORNERS_BIG
-                else -> ROUNDED_CORNERS_NONE
-            }
-
+            val roundedCorners = getRoundedCorners()
             mediumThumbnail.setBackgroundResource(
                 when (roundedCorners) {
                     ROUNDED_CORNERS_SMALL -> R.drawable.placeholder_rounded_small

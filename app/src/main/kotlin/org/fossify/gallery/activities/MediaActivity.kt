@@ -128,6 +128,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private var mLoadedInitialPhotos = false
     private var mShowLoadingIndicator = true
     private var mWasFullscreenViewOpen = false
+    private var mLastViewedPath = ""
+    private var mHighlightPending = false
     private var mLastSearchedText = ""
     private var mLatestMediaId = 0L
     private var mLatestMediaDateId = 0L
@@ -149,6 +151,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private val binding by viewBinding(ActivityMediaBinding::inflate)
 
     companion object {
+        private const val REQUEST_VIEW_MEDIA = 1
+
         var mMedia = ArrayList<ThumbnailItem>()
     }
 
@@ -263,6 +267,9 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                     }
                 }
             }
+        } else {
+            // the grid is kept as is, so setupAdapter() will not run to reveal the item for us
+            revealLastViewedItem()
         }
     }
 
@@ -323,6 +330,12 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             if (resultCode == RESULT_OK && resultData != null) {
                 mMedia.clear()
                 refreshItems()
+            }
+        } else if (requestCode == REQUEST_VIEW_MEDIA) {
+            // the viewer tells us what it ended up on after swiping, keep the tapped path otherwise
+            val viewedPath = resultData?.getStringExtra(PATH).orEmpty()
+            if (viewedPath.isNotEmpty()) {
+                mLastViewedPath = viewedPath
             }
         }
         super.onActivityResult(requestCode, resultCode, resultData)
@@ -407,7 +420,10 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 putExtra(PATH, item.path)
                 putExtra(SHOW_ALL, mShowAll)
                 putExtra(SLIDESHOW_START_ON_ENTER, true)
-                startActivity(this)
+                putExtra(IS_FROM_GALLERY, true)
+                mLastViewedPath = item.path
+                mHighlightPending = true
+                startActivityForResult(this, REQUEST_VIEW_MEDIA)
             }
         }
     }
@@ -534,6 +550,20 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         }
 
         setupScrollDirection()
+        revealLastViewedItem()
+    }
+
+    // point out the thumbnail the fullscreen viewer was just left from, it is easy to lose track of
+    // it after swiping through a bunch of media
+    private fun revealLastViewedItem() {
+        if (!mHighlightPending) {
+            return
+        }
+
+        // keep the request around if the item is not there yet, a pending refresh may still bring it
+        if (getMediaAdapter()?.revealItem(mLastViewedPath) == true) {
+            mHighlightPending = false
+        }
     }
 
     private fun setupScrollDirection() {
@@ -966,6 +996,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             finish()
         } else {
             mWasFullscreenViewOpen = true
+            mLastViewedPath = path
+            mHighlightPending = true
             if (!path.isVideoFast()) {
                 openInViewPager(path)
                 return
@@ -987,7 +1019,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             putExtra(SHOW_FAVORITES, mPath == FAVORITES)
             putExtra(SHOW_RECYCLE_BIN, mPath == RECYCLE_BIN)
             putExtra(IS_FROM_GALLERY, true)
-            startActivity(this)
+            startActivityForResult(this, REQUEST_VIEW_MEDIA)
         }
     }
 

@@ -7,6 +7,7 @@ import android.widget.RelativeLayout
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import org.fossify.commons.extensions.*
+import org.fossify.commons.helpers.IS_FROM_GALLERY
 import org.fossify.commons.helpers.VIEW_TYPE_GRID
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.models.FileDirItem
@@ -29,13 +30,20 @@ import java.io.File
 
 class SearchActivity : SimpleActivity(), MediaOperationsListener {
     override var isSearchBarEnabled = true
-    
+
     private var mLastSearchedText = ""
+
+    private var mLastViewedPath = ""
+    private var mHighlightPending = false
 
     private var mCurrAsyncTask: GetMediaAsynctask? = null
     private var mAllMedia = ArrayList<ThumbnailItem>()
 
     private val binding by viewBinding(ActivitySearchBinding::inflate)
+
+    companion object {
+        private const val REQUEST_VIEW_MEDIA = 1
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,6 +61,30 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
     override fun onResume() {
         super.onResume()
         updateMenuColors()
+        revealLastViewedItem()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
+        if (requestCode == REQUEST_VIEW_MEDIA) {
+            // the viewer tells us what it ended up on after swiping, keep the tapped path otherwise
+            val viewedPath = resultData?.getStringExtra(PATH).orEmpty()
+            if (viewedPath.isNotEmpty()) {
+                mLastViewedPath = viewedPath
+            }
+        }
+        super.onActivityResult(requestCode, resultCode, resultData)
+    }
+
+    // point out the thumbnail the fullscreen viewer was just left from, it is easy to lose track of
+    // it after swiping through a bunch of media
+    private fun revealLastViewedItem() {
+        if (!mHighlightPending) {
+            return
+        }
+
+        if (getMediaAdapter()?.revealItem(mLastViewedPath) == true) {
+            mHighlightPending = false
+        }
     }
 
     override fun onDestroy() {
@@ -160,6 +192,8 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
     }
 
     private fun itemClicked(path: String) {
+        mLastViewedPath = path
+        mHighlightPending = true
         if (!path.isVideoFast()) {
             openInViewPager(path)
             return
@@ -176,7 +210,8 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
         Intent(this, ViewPagerActivity::class.java).apply {
             putExtra(PATH, path)
             putExtra(SHOW_ALL, false)
-            startActivity(this)
+            putExtra(IS_FROM_GALLERY, true)
+            startActivityForResult(this, REQUEST_VIEW_MEDIA)
         }
     }
 
