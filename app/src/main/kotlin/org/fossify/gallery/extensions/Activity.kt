@@ -2,6 +2,7 @@ package org.fossify.gallery.extensions
 
 import android.app.Activity
 import android.content.ContentProviderOperation
+import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
@@ -809,14 +810,14 @@ fun BaseSimpleActivity.tryMirrorByExif(path: String, showToasts: Boolean, callba
         if (saveImageMirror(path)) {
             fileTransformedSuccessfully(path, oldLastModified)
 
-            // the EXIF-only write barely changes file size and (with "Keep last modified date" on)
-            // doesn't change the file's mtime either, so a MediaStore rescan alone may not detect
-            // a meaningful difference and skip notifying observers - update the app's own DB
-            // directly so every screen's cached Medium.modified (and therefore its Glide cache
-            // signature, see Medium.getSignature()) picks up a fresh value on its next requery
+            // Medium.getSignature() (the Glide cache key everywhere in the app) is derived from
+            // MediaStore's DATE_MODIFIED column, which mirrors the file's own mtime - and that mtime
+            // was just restored to its old value above, so a plain rescan wouldn't change it. Bump
+            // MediaStore's DATE_MODIFIED directly instead, without touching the file itself, so every
+            // screen's next query gets a fresh cache signature while the file's real mtime stays intact
+            bumpMediaStoreModified(path)
             updateDirectoryPath(path.getParentPath())
             addPathToDB(path)
-            rescanPaths(arrayListOf(path)) {}
 
             callback.invoke()
             if (showToasts) {
@@ -832,6 +833,32 @@ fun BaseSimpleActivity.tryMirrorByExif(path: String, showToasts: Boolean, callba
             showErrorToast(e)
         }
         false
+    }
+}
+
+// best-effort: this can throw (e.g. RecoverableSecurityException) for images this app didn't insert
+// into MediaStore itself; the mirror was already written to disk successfully regardless of this call
+fun Context.bumpMediaStoreModified(path: String) {
+    val id = getImageMediaStoreId(path) ?: return
+    try {
+        val uri = ContentUris.withAppendedId(Images.Media.EXTERNAL_CONTENT_URI, id)
+        val values = ContentValues().apply {
+            put(Images.Media.DATE_MODIFIED, System.currentTimeMillis() / 1000L)
+        }
+        contentResolver.update(uri, values, null, null)
+    } catch (e: Exception) {
+    }
+}
+
+private fun Context.getImageMediaStoreId(path: String): Long? {
+    val projection = arrayOf(Images.Media._ID)
+    val selection = "${Images.Media.DATA} = ?"
+    return try {
+        contentResolver.query(Images.Media.EXTERNAL_CONTENT_URI, projection, selection, arrayOf(path), null)?.use {
+            if (it.moveToFirst()) it.getLong(it.getColumnIndexOrThrow(Images.Media._ID)) else null
+        }
+    } catch (e: Exception) {
+        null
     }
 }
 
