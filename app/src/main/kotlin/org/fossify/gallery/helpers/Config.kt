@@ -10,6 +10,7 @@ import org.fossify.commons.helpers.PROTECTION_PATTERN
 import org.fossify.commons.helpers.SORT_BY_DATE_MODIFIED
 import org.fossify.commons.helpers.SORT_DESCENDING
 import org.fossify.commons.helpers.VIEW_TYPE_GRID
+import org.fossify.gallery.BuildConfig
 import org.fossify.gallery.R
 import org.fossify.gallery.models.AlbumCover
 import java.util.Arrays
@@ -374,7 +375,7 @@ class Config(context: Context) : BaseConfig(context) {
         set(viewTypeFiles) = prefs.edit().putInt(VIEW_TYPE_FILES, viewTypeFiles).apply()
 
     var showExtendedDetails: Boolean
-        get() = prefs.getBoolean(SHOW_EXTENDED_DETAILS, false)
+        get() = prefs.getBoolean(SHOW_EXTENDED_DETAILS, BuildConfig.DEBUG)
         set(showExtendedDetails) = prefs.edit().putBoolean(SHOW_EXTENDED_DETAILS, showExtendedDetails).apply()
 
     var hideExtendedDetails: Boolean
@@ -382,7 +383,10 @@ class Config(context: Context) : BaseConfig(context) {
         set(hideExtendedDetails) = prefs.edit().putBoolean(HIDE_EXTENDED_DETAILS, hideExtendedDetails).apply()
 
     var extendedDetails: Int
-        get() = prefs.getInt(EXTENDED_DETAILS, EXT_RESOLUTION or EXT_LAST_MODIFIED or EXT_EXIF_PROPERTIES)
+        get() = prefs.getInt(
+            EXTENDED_DETAILS,
+            if (BuildConfig.DEBUG) DEBUG_EXTENDED_DETAILS else DEFAULT_EXTENDED_DETAILS
+        )
         set(extendedDetails) = prefs.edit().putInt(EXTENDED_DETAILS, extendedDetails).apply()
 
     var wasNewAppShown: Boolean
