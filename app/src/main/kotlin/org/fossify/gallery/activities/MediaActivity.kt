@@ -6,7 +6,7 @@ import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Handler
 import android.view.ViewGroup
-import android.widget.RelativeLayout
+import android.widget.LinearLayout
 import androidx.core.net.toUri
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -27,6 +27,7 @@ import org.fossify.commons.extensions.getFilenameFromPath
 import org.fossify.commons.extensions.getIsPathDirectory
 import org.fossify.commons.extensions.getLatestMediaByDateId
 import org.fossify.commons.extensions.getLatestMediaId
+import org.fossify.commons.extensions.getProperBackgroundColor
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.extensions.getProperTextColor
 import org.fossify.commons.extensions.getTimeFormat
@@ -45,6 +46,7 @@ import org.fossify.commons.extensions.viewBinding
 import org.fossify.commons.helpers.FAVORITES
 import org.fossify.commons.helpers.IS_FROM_GALLERY
 import org.fossify.commons.helpers.REQUEST_EDIT_IMAGE
+import org.fossify.commons.helpers.SORT_BY_CUSTOM
 import org.fossify.commons.helpers.SORT_BY_RANDOM
 import org.fossify.commons.helpers.VIEW_TYPE_GRID
 import org.fossify.commons.helpers.VIEW_TYPE_LIST
@@ -81,7 +83,9 @@ import org.fossify.gallery.extensions.mediaDB
 import org.fossify.gallery.extensions.movePathsInRecycleBin
 import org.fossify.gallery.extensions.openPath
 import org.fossify.gallery.extensions.openRecycleBin
+import org.fossify.gallery.extensions.removeCustomMediaOrder
 import org.fossify.gallery.extensions.restoreRecycleBinPaths
+import org.fossify.gallery.extensions.saveCustomMediaOrder
 import org.fossify.gallery.extensions.showRecycleBinEmptyingDialog
 import org.fossify.gallery.extensions.showRestoreConfirmationDialog
 import org.fossify.gallery.extensions.tryDeleteFileDirItem
@@ -131,6 +135,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private var mLastViewedPath = ""
     private var mHighlightPending = false
     private var mLastSearchedText = ""
+    private var mIsReordering = false
     private var mLatestMediaId = 0L
     private var mLatestMediaDateId = 0L
     private var mLastMediaHandler = Handler()
@@ -177,11 +182,12 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         }
 
         setupOptionsMenu()
+        setupReorderBar()
         refreshMenuItems()
         storeStateVariables()
         setupEdgeToEdge(
             padTopSystem = listOf(binding.mediaMenu),
-            padBottomImeAndSystem = listOf(binding.mediaGrid)
+            padBottomImeAndSystem = listOf(binding.mediaGrid, binding.mediaReorderBar.root)
         )
 
         if (mShowAll) {
@@ -313,7 +319,10 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     }
 
     override fun onBackPressedCompat(): Boolean {
-        return if (binding.mediaMenu.isSearchOpen) {
+        return if (mIsReordering) {
+            cancelReordering()
+            true
+        } else if (binding.mediaMenu.isSearchOpen) {
             binding.mediaMenu.closeSearch()
             true
         } else {
@@ -345,8 +354,24 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         val isDefaultFolder = !config.defaultFolder.isEmpty()
                 && File(config.defaultFolder).compareTo(File(mPath)) == 0
 
-        binding.mediaMenu.requireToolbar().menu.apply {
+        val menu = binding.mediaMenu.requireToolbar().menu
+        // nothing in here should be reachable mid drag, every entry would pull the grid out from
+        // under the arrangement the user is in the middle of making. the entries the rules below
+        // never touch are always meant to be there, so put everything back before applying them
+        val isVisibleByDefault = !mIsReordering
+        for (index in 0 until menu.size()) {
+            menu.getItem(index).isVisible = isVisibleByDefault
+        }
+
+        if (mIsReordering) {
+            return
+        }
+
+        menu.apply {
             findItem(R.id.group).isVisible = !config.scrollHorizontally
+            findItem(R.id.custom_order).isVisible = mPath != RECYCLE_BIN
+            findItem(R.id.reset_custom_order).isVisible =
+                mPath != RECYCLE_BIN && config.hasCustomMediaOrder(getPathToUse())
 
             findItem(R.id.empty_recycle_bin).isVisible = mPath == RECYCLE_BIN
             findItem(R.id.empty_disable_recycle_bin).isVisible = mPath == RECYCLE_BIN
@@ -395,6 +420,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 R.id.folder_view -> switchToFolderView()
                 R.id.change_view_type -> changeViewType()
                 R.id.group -> showGroupByDialog()
+                R.id.custom_order -> startReordering()
+                R.id.reset_custom_order -> resetCustomOrder()
                 R.id.create_new_folder -> createNewFolder()
                 R.id.open_recycle_bin -> openRecycleBin()
                 R.id.temporarily_show_hidden -> tryToggleTemporarilyShowHidden()
@@ -430,6 +457,114 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
     private fun updateMenuColors() {
         binding.mediaMenu.updateColors()
+    }
+
+    // the folder a custom order is keyed by, matching what the fetching and grouping code uses
+    private fun getPathToUse() = (if (mShowAll) SHOW_ALL else mPath).ifEmpty { SHOW_ALL }
+
+    private fun setupReorderBar() {
+        binding.mediaReorderBar.apply {
+            root.setBackgroundColor(getProperBackgroundColor())
+            reorderHint.setTextColor(getProperTextColor())
+            reorderCancel.setTextColor(getProperTextColor())
+            reorderSave.setTextColor(getProperPrimaryColor())
+            reorderCancel.setOnClickListener { cancelReordering() }
+            reorderSave.setOnClickListener { saveReordering() }
+        }
+    }
+
+    /**
+     * Puts the grid into drag-to-reorder mode. The list is flattened first - grouping headers have
+     * no place in a hand made order - and the search is closed so the arrangement covers the whole
+     * folder rather than whatever was filtered into view.
+     */
+    private fun startReordering() {
+        if (mIsReordering) {
+            return
+        }
+
+        hideKeyboard()
+        if (binding.mediaMenu.isSearchOpen) {
+            binding.mediaMenu.closeSearch()
+        }
+
+        val flatMedia = mMedia.filterIsInstance<Medium>().toMutableList() as ArrayList<ThumbnailItem>
+        if (flatMedia.size < 2) {
+            toast(R.string.reorder_needs_more_items)
+            return
+        }
+
+        mIsReordering = true
+        binding.mediaRefreshLayout.isEnabled = false
+        binding.mediaReorderBar.root.beVisible()
+        getMediaAdapter()?.setReordering(true, flatMedia)
+        handleGridSpacing(flatMedia)
+        setupLayoutManager()
+        refreshMenuItems()
+    }
+
+    private fun cancelReordering() {
+        if (!mIsReordering) {
+            return
+        }
+
+        stopReordering()
+        // hand the untouched list back, whatever was dragged around only ever lived in the adapter
+        getMediaAdapter()?.setReordering(false, mMedia)
+        handleGridSpacing()
+        setupLayoutManager()
+    }
+
+    private fun saveReordering() {
+        val orderedPaths = getMediaAdapter()?.getReorderedPaths()
+        if (orderedPaths.isNullOrEmpty()) {
+            cancelReordering()
+            return
+        }
+
+        val pathToUse = getPathToUse()
+        stopReordering()
+        // keep the dragged order on screen, reloadMedia() below replaces it with the saved one
+        getMediaAdapter()?.setReordering(false)
+
+        ensureBackgroundThread {
+            saveCustomMediaOrder(pathToUse, orderedPaths)
+            runOnUiThread {
+                // a folder that was just arranged should come up in that order from now on
+                config.saveCustomSorting(pathToUse, SORT_BY_CUSTOM)
+                toast(R.string.custom_order_saved)
+                reloadMedia()
+            }
+        }
+    }
+
+    private fun stopReordering() {
+        mIsReordering = false
+        binding.mediaReorderBar.root.beGone()
+        binding.mediaRefreshLayout.isEnabled = config.enablePullToRefresh
+        refreshMenuItems()
+    }
+
+    private fun resetCustomOrder() {
+        val pathToUse = getPathToUse()
+        ensureBackgroundThread {
+            removeCustomMediaOrder(pathToUse)
+            runOnUiThread {
+                if (config.getFolderSorting(pathToUse) and SORT_BY_CUSTOM != 0) {
+                    config.removeCustomSorting(pathToUse)
+                }
+
+                toast(R.string.custom_order_reset)
+                refreshMenuItems()
+                reloadMedia()
+            }
+        }
+    }
+
+    private fun reloadMedia() {
+        mLoadedInitialPhotos = false
+        binding.mediaGrid.adapter = null
+        getMedia()
     }
 
     private fun storeStateVariables() {
@@ -515,6 +650,12 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             return
         }
 
+        // a background refresh must not disturb an arrangement in progress, the adapter holds the
+        // only copy of it and updateMedia() ignores us anyway
+        if (mIsReordering) {
+            return
+        }
+
         val currAdapter = binding.mediaGrid.adapter
         if (currAdapter == null) {
             initZoomListener()
@@ -525,7 +666,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 isAGetIntent = mIsGetImageIntent || mIsGetVideoIntent || mIsGetAnyIntent,
                 allowMultiplePicks = mAllowPickingMultiple,
                 path = mPath,
-                recyclerView = binding.mediaGrid
+                recyclerView = binding.mediaGrid,
+                swipeRefreshLayout = binding.mediaRefreshLayout
             ) {
                 if (it is Medium && !isFinishing) {
                     itemClicked(it.path)
@@ -597,9 +739,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
     private fun showSortingDialog() {
         ChangeSortingDialog(this, false, true, mPath) {
-            mLoadedInitialPhotos = false
-            binding.mediaGrid.adapter = null
-            getMedia()
+            reloadMedia()
         }
     }
 
@@ -663,9 +803,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
     private fun showGroupByDialog() {
         ChangeGroupingDialog(this, mPath) {
-            mLoadedInitialPhotos = false
-            binding.mediaGrid.adapter = null
-            getMedia()
+            reloadMedia()
         }
     }
 
@@ -822,15 +960,13 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         val layoutManager = binding.mediaGrid.layoutManager as MyGridLayoutManager
         if (config.scrollHorizontally) {
             layoutManager.orientation = RecyclerView.HORIZONTAL
-            binding.mediaRefreshLayout.layoutParams = RelativeLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
+            binding.mediaRefreshLayout.layoutParams = fillRemainingHeightParams(
+                width = ViewGroup.LayoutParams.WRAP_CONTENT
             )
         } else {
             layoutManager.orientation = RecyclerView.VERTICAL
-            binding.mediaRefreshLayout.layoutParams = RelativeLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
+            binding.mediaRefreshLayout.layoutParams = fillRemainingHeightParams(
+                width = ViewGroup.LayoutParams.MATCH_PARENT
             )
         }
 
@@ -851,12 +987,14 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         val layoutManager = binding.mediaGrid.layoutManager as MyGridLayoutManager
         layoutManager.spanCount = 1
         layoutManager.orientation = RecyclerView.VERTICAL
-        binding.mediaRefreshLayout.layoutParams = RelativeLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
+        binding.mediaRefreshLayout.layoutParams = fillRemainingHeightParams(
+            width = ViewGroup.LayoutParams.MATCH_PARENT
         )
         mZoomListener = null
     }
+
+    // the grid shares a column with the reorder bar, so it takes the height that bar leaves over
+    private fun fillRemainingHeightParams(width: Int) = LinearLayout.LayoutParams(width, 0, 1f)
 
     private fun handleGridSpacing(media: ArrayList<ThumbnailItem> = mMedia) {
         val viewType = config.getFolderViewType(if (mShowAll) SHOW_ALL else mPath)

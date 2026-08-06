@@ -17,7 +17,9 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.animation.doOnEnd
 import androidx.core.view.allViews
 import androidx.core.view.children
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
 import org.fossify.commons.activities.BaseSimpleActivity
@@ -54,6 +56,8 @@ import org.fossify.commons.helpers.VIEW_TYPE_LIST
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isRPlus
 import org.fossify.commons.helpers.sumByLong
+import org.fossify.commons.interfaces.ItemMoveCallback
+import org.fossify.commons.interfaces.ItemTouchHelperContract
 import org.fossify.commons.models.FileDirItem
 import org.fossify.commons.views.MyGridLayoutManager
 import org.fossify.commons.views.MyRecyclerView
@@ -107,6 +111,7 @@ import org.fossify.gallery.interfaces.MediaOperationsListener
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
 import org.fossify.gallery.models.ThumbnailSection
+import java.util.Collections
 
 class MediaAdapter(
     activity: BaseSimpleActivity,
@@ -116,8 +121,9 @@ class MediaAdapter(
     val allowMultiplePicks: Boolean,
     val path: String,
     recyclerView: MyRecyclerView,
+    val swipeRefreshLayout: SwipeRefreshLayout? = null,
     itemClick: (Any) -> Unit
-) : MyRecyclerViewAdapter(activity, recyclerView, itemClick),
+) : MyRecyclerViewAdapter(activity, recyclerView, itemClick), ItemTouchHelperContract,
     RecyclerViewFastScroller.OnPopupTextUpdate {
 
     private val ITEM_SECTION = 0
@@ -133,6 +139,9 @@ class MediaAdapter(
     private val hasOTGConnected = activity.hasOTGConnected()
 
     private var highlightAnimator: Animator? = null
+
+    private var isReordering = false
+    private var itemTouchHelper: ItemTouchHelper? = null
 
     private var scrollHorizontally = config.scrollHorizontally
     private var animateGifs = config.animateGifs
@@ -173,14 +182,24 @@ class MediaAdapter(
 
     override fun onBindViewHolder(holder: MyRecyclerViewAdapter.ViewHolder, position: Int) {
         val tmbItem = media.getOrNull(position) ?: return
-        val allowLongPress = (!isAGetIntent || allowMultiplePicks) && tmbItem is Medium
-        holder.bindView(tmbItem, tmbItem is Medium, allowLongPress) { itemView, adapterPosition ->
+        val allowLongPress = !isReordering && (!isAGetIntent || allowMultiplePicks) && tmbItem is Medium
+        holder.bindView(tmbItem, !isReordering && tmbItem is Medium, allowLongPress) { itemView, adapterPosition ->
             if (tmbItem is Medium) {
                 setupThumbnail(itemView, tmbItem)
             } else {
                 setupSection(itemView, tmbItem as ThumbnailSection)
             }
         }
+
+        // while reordering the grid is flat and unselectable, bindView cleared both listeners above
+        // so a long press is free to mean "pick this thumbnail up" instead
+        if (isReordering) {
+            holder.itemView.setOnLongClickListener {
+                itemTouchHelper?.startDrag(holder)
+                true
+            }
+        }
+
         bindViewHolder(holder)
     }
 
@@ -688,7 +707,39 @@ class MediaAdapter(
 
     private fun getItemWithKey(key: Int): Medium? = media.firstOrNull { (it as? Medium)?.path?.hashCode() == key } as? Medium
 
+    /**
+     * Swaps the grid over to [newMedia] - which the caller flattens, sections cannot take part in a
+     * hand made order - and lets a long press start a drag rather than a selection. Leaving the
+     * mode restores whatever list the caller passes back in, or keeps the dragged one when the
+     * caller passes none.
+     */
+    fun setReordering(reordering: Boolean, newMedia: ArrayList<ThumbnailItem>? = null) {
+        isReordering = reordering
+        if (reordering) {
+            finishActMode()
+            if (itemTouchHelper == null) {
+                itemTouchHelper = ItemTouchHelper(ItemMoveCallback(this, true))
+            }
+            itemTouchHelper?.attachToRecyclerView(recyclerView)
+        } else {
+            itemTouchHelper?.attachToRecyclerView(null)
+        }
+
+        if (newMedia != null) {
+            media = newMedia.clone() as ArrayList<ThumbnailItem>
+        }
+
+        currentMediaHash = media.hashCode()
+        notifyDataSetChanged()
+    }
+
+    fun getReorderedPaths() = media.mapNotNull { (it as? Medium)?.path }
+
     fun updateMedia(newMedia: ArrayList<ThumbnailItem>) {
+        if (isReordering) {
+            return
+        }
+
         val thumbnailItems = newMedia.clone() as ArrayList<ThumbnailItem>
         // an in-place transform (see TransformedMedia) leaves every field this hashcode is built
         // from untouched, so also rebind whenever one happened while this screen was off top
@@ -938,6 +989,28 @@ class MediaAdapter(
             thumbnailSection.text = section.title
             thumbnailSection.setTextColor(textColor)
         }
+    }
+
+    override fun onRowMoved(fromPosition: Int, toPosition: Int) {
+        if (fromPosition < toPosition) {
+            for (i in fromPosition until toPosition) {
+                Collections.swap(media, i, i + 1)
+            }
+        } else {
+            for (i in fromPosition downTo toPosition + 1) {
+                Collections.swap(media, i, i - 1)
+            }
+        }
+
+        notifyItemMoved(fromPosition, toPosition)
+    }
+
+    override fun onRowSelected(myViewHolder: ViewHolder?) {
+        swipeRefreshLayout?.isEnabled = false
+    }
+
+    override fun onRowClear(myViewHolder: ViewHolder?) {
+        swipeRefreshLayout?.isEnabled = !isReordering && config.enablePullToRefresh
     }
 
     override fun onChange(position: Int): String {

@@ -77,7 +77,7 @@ class MediaFetcher(val context: Context) {
             }
         }
 
-        sortMedia(curMedia, context.config.getFolderSorting(curPath))
+        sortMedia(curMedia, context.config.getFolderSorting(curPath), curPath)
         return curMedia
     }
 
@@ -761,9 +761,14 @@ class MediaFetcher(val context: Context) {
         return sizes
     }
 
-    fun sortMedia(media: ArrayList<Medium>, sorting: Int) {
+    fun sortMedia(media: ArrayList<Medium>, sorting: Int, path: String = "") {
         if (sorting and SORT_BY_RANDOM != 0) {
             media.shuffle()
+            return
+        }
+
+        if (sorting and SORT_BY_CUSTOM != 0) {
+            sortMediaByCustomOrder(media, path)
             return
         }
 
@@ -799,10 +804,28 @@ class MediaFetcher(val context: Context) {
         }
     }
 
+    /**
+     * Arranges [media] the way the user last dragged the items of [path] into. Anything the saved
+     * order does not know about - typically media added after the ordering was made - keeps its
+     * relative order and lands at the end, the sort being stable. Media stays untouched when the
+     * folder has no saved order, there is nothing better to fall back to than what it came in as.
+     */
+    private fun sortMediaByCustomOrder(media: ArrayList<Medium>, path: String) {
+        val pathToUse = path.ifEmpty { SHOW_ALL }
+        val positions = context.getCustomMediaOrder(pathToUse)
+        if (positions.isEmpty()) {
+            return
+        }
+
+        media.sortWith(compareBy { positions[it.path.lowercase(Locale.getDefault())] ?: Int.MAX_VALUE })
+    }
+
     fun groupMedia(media: ArrayList<Medium>, path: String): ArrayList<ThumbnailItem> {
         val pathToCheck = if (path.isEmpty()) SHOW_ALL else path
         val currentGrouping = context.config.getFolderGrouping(pathToCheck)
-        if (currentGrouping and GROUP_BY_NONE != 0) {
+        // a hand made order cuts across whatever groups would be formed, show it as the flat list it is
+        val isCustomSorting = context.config.getFolderSorting(pathToCheck) and SORT_BY_CUSTOM != 0
+        if (currentGrouping and GROUP_BY_NONE != 0 || isCustomSorting) {
             return media as ArrayList<ThumbnailItem>
         }
 

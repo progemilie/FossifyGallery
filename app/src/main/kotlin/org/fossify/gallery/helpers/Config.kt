@@ -591,6 +591,28 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getString(CUSTOM_FOLDERS_ORDER, "")!!
         set(customFoldersOrder) = prefs.edit().putString(CUSTOM_FOLDERS_ORDER, customFoldersOrder).apply()
 
+    // the arranged media paths themselves live in the media_order table, this is only an index of
+    // the folders that have one - it is needed on the main thread, where Room queries would throw
+    var customMediaOrderFolders: Set<String>
+        get() = prefs.getStringSet(CUSTOM_MEDIA_ORDER_FOLDERS, HashSet())!!
+        set(folders) = prefs.edit().remove(CUSTOM_MEDIA_ORDER_FOLDERS)
+            .putStringSet(CUSTOM_MEDIA_ORDER_FOLDERS, folders).apply()
+
+    fun hasCustomMediaOrder(path: String) =
+        customMediaOrderFolders.contains(path.lowercase(Locale.getDefault()))
+
+    fun addCustomMediaOrderFolder(path: String) {
+        customMediaOrderFolders = HashSet(customMediaOrderFolders).apply {
+            add(path.lowercase(Locale.getDefault()))
+        }
+    }
+
+    fun removeCustomMediaOrderFolder(path: String) {
+        customMediaOrderFolders = HashSet(customMediaOrderFolders).apply {
+            remove(path.lowercase(Locale.getDefault()))
+        }
+    }
+
     var avoidShowingAllFilesPrompt: Boolean
         get() = prefs.getBoolean(AVOID_SHOWING_ALL_FILES_PROMPT, false)
         set(avoidShowingAllFilesPrompt) = prefs.edit().putBoolean(AVOID_SHOWING_ALL_FILES_PROMPT, avoidShowingAllFilesPrompt).apply()

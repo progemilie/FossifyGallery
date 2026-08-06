@@ -69,6 +69,16 @@
         android:title="@string/group_by"
         app:showAsAction="never" />
     <item
+        android:id="@+id/custom_order"
+        android:showAsAction="never"
+        android:title="@string/custom_order"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/reset_custom_order"
+        android:showAsAction="never"
+        android:title="@string/reset_custom_order"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/set_as_default_folder"
         android:showAsAction="never"
         android:title="@string/set_as_default_folder"
