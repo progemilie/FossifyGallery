@@ -106,6 +106,7 @@ import org.fossify.gallery.helpers.TYPE_VIDEOS
 import org.fossify.gallery.interfaces.DateTakensDao
 import org.fossify.gallery.interfaces.DirectoryDao
 import org.fossify.gallery.interfaces.FavoritesDao
+import org.fossify.gallery.interfaces.MediaOrderDao
 import org.fossify.gallery.interfaces.MediumDao
 import org.fossify.gallery.interfaces.WidgetsDao
 import org.fossify.gallery.models.AlbumCover
@@ -145,7 +146,60 @@ val Context.favoritesDB: FavoritesDao
 val Context.dateTakensDB: DateTakensDao
     get() = GalleryDatabase.getInstance(applicationContext).DateTakensDao()
 
+val Context.mediaOrderDB: MediaOrderDao
+    get() = GalleryDatabase.getInstance(applicationContext).MediaOrderDao()
+
 val Context.recycleBin: File get() = filesDir
+
+/**
+ * Persists the order the user arranged [paths] in for [path], and marks the folder as custom
+ * ordered so [Config.hasCustomMediaOrder] can answer without touching the database. Blocking, call
+ * it off the main thread.
+ */
+fun Context.saveCustomMediaOrder(path: String, paths: List<String>) {
+    val folderPath = path.lowercase(Locale.getDefault())
+    mediaOrderDB.replaceFolderOrder(folderPath, paths)
+    config.addCustomMediaOrderFolder(folderPath)
+}
+
+/**
+ * The saved order of [path] as a path -> position map, empty if the folder has none. Blocking,
+ * call it off the main thread.
+ */
+fun Context.getCustomMediaOrder(path: String): Map<String, Int> {
+    val folderPath = path.lowercase(Locale.getDefault())
+    if (!config.hasCustomMediaOrder(folderPath)) {
+        return emptyMap()
+    }
+
+    val positions = HashMap<String, Int>()
+    try {
+        mediaOrderDB.getOrderedPaths(folderPath).forEachIndexed { index, mediumPath ->
+            positions[mediumPath.lowercase(Locale.getDefault())] = index
+        }
+    } catch (ignored: Exception) {
+    }
+
+    // the index and the table drifted apart somehow, do not keep claiming an order that is not there
+    if (positions.isEmpty()) {
+        config.removeCustomMediaOrderFolder(folderPath)
+    }
+
+    return positions
+}
+
+/**
+ * Drops the custom order of [path], leaving the folder to be sorted as any other. Blocking, call it
+ * off the main thread.
+ */
+fun Context.removeCustomMediaOrder(path: String) {
+    val folderPath = path.lowercase(Locale.getDefault())
+    config.removeCustomMediaOrderFolder(folderPath)
+    try {
+        mediaOrderDB.deleteFolderOrder(folderPath)
+    } catch (ignored: Exception) {
+    }
+}
 
 fun Context.movePinnedDirectoriesToFront(dirs: ArrayList<Directory>): ArrayList<Directory> {
     val foundFolders = ArrayList<Directory>()
@@ -981,7 +1035,7 @@ fun Context.getCachedMedia(
         }) as ArrayList<Medium>
 
         val pathToUse = path.ifEmpty { SHOW_ALL }
-        mediaFetcher.sortMedia(media, config.getFolderSorting(pathToUse))
+        mediaFetcher.sortMedia(media, config.getFolderSorting(pathToUse), pathToUse)
         val grouped = mediaFetcher.groupMedia(media, pathToUse)
         callback(grouped.clone() as ArrayList<ThumbnailItem>)
         val OTGPath = config.OTGPath

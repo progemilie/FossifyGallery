@@ -26,7 +26,7 @@
     <RelativeLayout
         android:id="@+id/media_holder"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <org.fossify.commons.views.MyTextView
@@ -55,27 +55,38 @@
             android:textSize="@dimen/bigger_text_size"
             android:visibility="gone" />
 
-        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-            android:id="@+id/media_refresh_layout"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="match_parent"
+            android:orientation="vertical">
 
-            <com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
-                android:id="@+id/media_fastscroller"
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/media_refresh_layout"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:supportSwipeToRefresh="true">
+                android:layout_height="0dp"
+                android:layout_weight="1">
 
-                <org.fossify.commons.views.MyRecyclerView
-                    android:id="@+id/media_grid"
+                <com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
+                    android:id="@+id/media_fastscroller"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layoutAnimation="@anim/layout_animation"
-                    android:scrollbars="none"
-                    app:layoutManager="org.fossify.commons.views.MyGridLayoutManager"
-                    app:spanCount="@integer/media_columns_vertical_scroll" />
+                    android:layout_height="wrap_content"
+                    app:supportSwipeToRefresh="true">
 
-            </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
-        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+                    <org.fossify.commons.views.MyRecyclerView
+                        android:id="@+id/media_grid"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layoutAnimation="@anim/layout_animation"
+                        android:scrollbars="none"
+                        app:layoutManager="org.fossify.commons.views.MyGridLayoutManager"
+                        app:spanCount="@integer/media_columns_vertical_scroll" />
+
+                </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+            <include
+                android:id="@+id/media_reorder_bar"
+                layout="@layout/media_reorder_bar" />
+        </LinearLayout>
     </RelativeLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -93,7 +93,7 @@
     <ID>LargeClass:EditActivity.kt$EditActivity : BaseCropActivity</ID>
     <ID>LargeClass:MainActivity.kt$MainActivity : SimpleActivityDirectoryOperationsListener</ID>
     <ID>LargeClass:MediaActivity.kt$MediaActivity : SimpleActivityMediaOperationsListener</ID>
-    <ID>LargeClass:MediaAdapter.kt$MediaAdapter : MyRecyclerViewAdapterOnPopupTextUpdate</ID>
+    <ID>LargeClass:MediaAdapter.kt$MediaAdapter : MyRecyclerViewAdapterItemTouchHelperContractOnPopupTextUpdate</ID>
     <ID>LargeClass:MediaFetcher.kt$MediaFetcher</ID>
     <ID>LargeClass:PhotoFragment.kt$PhotoFragment : ViewPagerFragment</ID>
     <ID>LargeClass:SettingsActivity.kt$SettingsActivity : SimpleActivity</ID>
@@ -103,7 +103,7 @@
     <ID>LongMethod:MainActivity.kt$MainActivity$private fun gotDirectories(newDirs: ArrayList&lt;Directory&gt;)</ID>
     <ID>LongMethod:SettingsActivity.kt$SettingsActivity$private fun parseFile(inputStream: InputStream?)</ID>
     <ID>LongMethod:VideoFragment.kt$VideoFragment$override fun onCreateView( inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle? ): View</ID>
-    <ID>LongParameterList:MediaAdapter.kt$MediaAdapter$( activity: BaseSimpleActivity, var media: ArrayList&lt;ThumbnailItem&gt;, val listener: MediaOperationsListener?, val isAGetIntent: Boolean, val allowMultiplePicks: Boolean, val path: String, recyclerView: MyRecyclerView, itemClick: (Any) -&gt; Unit )</ID>
+    <ID>LongParameterList:MediaAdapter.kt$MediaAdapter$( activity: BaseSimpleActivity, var media: ArrayList&lt;ThumbnailItem&gt;, val listener: MediaOperationsListener?, val isAGetIntent: Boolean, val allowMultiplePicks: Boolean, val path: String, recyclerView: MyRecyclerView, val swipeRefreshLayout: SwipeRefreshLayout? = null, itemClick: (Any) -&gt; Unit )</ID>
     <ID>LongParameterList:MediaFetcher.kt$MediaFetcher$( curPath: String, isPickImage: Boolean, isPickVideo: Boolean, getProperDateTaken: Boolean, getProperLastModified: Boolean, getProperFileSize: Boolean, favoritePaths: ArrayList&lt;String&gt;, getVideoDurations: Boolean, lastModifieds: HashMap&lt;String, Long&gt;, dateTakens: HashMap&lt;String, Long&gt;, android11Files: HashMap&lt;String, ArrayList&lt;Medium&gt;&gt;? )</ID>
     <ID>LongParameterList:MediaFetcher.kt$MediaFetcher$( folder: String, isPickImage: Boolean, isPickVideo: Boolean, filterMedia: Int, getProperDateTaken: Boolean, getProperLastModified: Boolean, getProperFileSize: Boolean, favoritePaths: ArrayList&lt;String&gt;, getVideoDurations: Boolean, lastModifieds: HashMap&lt;String, Long&gt;, dateTakens: HashMap&lt;String, Long&gt; )</ID>
     <ID>LoopWithTooManyJumpStatements:Activity.kt$for</ID>
@@ -143,6 +143,7 @@
     <ID>MagicNumber:EditorDrawCanvas.kt$EditorDrawCanvas$40f</ID>
     <ID>MagicNumber:FilterThumbnailsManager.kt$FilterThumbnailsManager$10</ID>
     <ID>MagicNumber:GalleryDatabase.kt$GalleryDatabase.Companion.&lt;no name provided&gt;$10</ID>
+    <ID>MagicNumber:GalleryDatabase.kt$GalleryDatabase.Companion.&lt;no name provided&gt;$11</ID>
     <ID>MagicNumber:GalleryDatabase.kt$GalleryDatabase.Companion.&lt;no name provided&gt;$4</ID>
     <ID>MagicNumber:GalleryDatabase.kt$GalleryDatabase.Companion.&lt;no name provided&gt;$5</ID>
     <ID>MagicNumber:GalleryDatabase.kt$GalleryDatabase.Companion.&lt;no name provided&gt;$6</ID>
@@ -515,7 +516,7 @@
     <ID>TooManyFunctions:ManageFoldersAdapter.kt$ManageFoldersAdapter : MyRecyclerViewAdapter</ID>
     <ID>TooManyFunctions:ManageHiddenFoldersAdapter.kt$ManageHiddenFoldersAdapter : MyRecyclerViewAdapter</ID>
     <ID>TooManyFunctions:MediaActivity.kt$MediaActivity : SimpleActivityMediaOperationsListener</ID>
-    <ID>TooManyFunctions:MediaAdapter.kt$MediaAdapter : MyRecyclerViewAdapterOnPopupTextUpdate</ID>
+    <ID>TooManyFunctions:MediaAdapter.kt$MediaAdapter : MyRecyclerViewAdapterItemTouchHelperContractOnPopupTextUpdate</ID>
     <ID>TooManyFunctions:MediaFetcher.kt$MediaFetcher</ID>
     <ID>TooManyFunctions:Medium.kt$Medium : SerializableThumbnailItem</ID>
     <ID>TooManyFunctions:MediumDao.kt$MediumDao</ID>

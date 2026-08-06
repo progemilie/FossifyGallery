@@ -35,6 +35,10 @@ class ChangeSortingDialog(
     private var pathToUse = if (!isDirectorySorting && path.isEmpty()) SHOW_ALL else path
     private val binding: DialogChangeSortingBinding
 
+    // sorting media by hand only means something once the user arranged that folder, offering it
+    // beforehand would be an option that does nothing
+    private val canSortMediaCustomly = !isDirectorySorting && config.hasCustomMediaOrder(pathToUse)
+
     init {
         currSorting = if (isDirectorySorting) {
             config.directorySorting
@@ -59,7 +63,7 @@ class ChangeSortingDialog(
             sortingDialogUseForThisFolder.beVisibleIf(showFolderCheckbox)
             sortingDialogUseForThisFolder.isChecked = config.hasCustomSorting(pathToUse)
             sortingDialogBottomNote.beVisibleIf(!isDirectorySorting)
-            sortingDialogRadioCustom.beVisibleIf(isDirectorySorting)
+            sortingDialogRadioCustom.beVisibleIf(isDirectorySorting || canSortMediaCustomly)
         }
 
         activity.getAlertDialogBuilder()
@@ -76,22 +80,7 @@ class ChangeSortingDialog(
     private fun setupSortRadio() {
         val sortingRadio = binding.sortingDialogRadioSorting
         sortingRadio.setOnCheckedChangeListener { _, checkedId ->
-            val isSortingByNameOrPath =
-                checkedId == binding.sortingDialogRadioName.id
-                        || checkedId == binding.sortingDialogRadioPath.id
-
-            binding.sortingDialogNumericSorting.beVisibleIf(isSortingByNameOrPath)
-            binding.sortingDialogOrderDivider.beVisibleIf(
-                binding.sortingDialogNumericSorting.isVisible()
-                        || binding.sortingDialogUseForThisFolder.isVisible()
-            )
-
-            val hideSortOrder =
-                checkedId == binding.sortingDialogRadioCustom.id
-                        || checkedId == binding.sortingDialogRadioRandom.id
-
-            binding.sortingDialogRadioOrder.beGoneIf(hideSortOrder)
-            binding.sortingDialogSortingDivider.beGoneIf(hideSortOrder)
+            sortingChanged(checkedId)
         }
 
         val sortBtn = when {
@@ -107,6 +96,35 @@ class ChangeSortingDialog(
         sortBtn.isChecked = true
     }
 
+    private fun sortingChanged(checkedId: Int) {
+        val isSortingByNameOrPath =
+            checkedId == binding.sortingDialogRadioName.id
+                    || checkedId == binding.sortingDialogRadioPath.id
+
+        binding.sortingDialogNumericSorting.beVisibleIf(isSortingByNameOrPath)
+        binding.sortingDialogOrderDivider.beVisibleIf(
+            binding.sortingDialogNumericSorting.isVisible()
+                    || binding.sortingDialogUseForThisFolder.isVisible()
+        )
+
+        val hideSortOrder =
+            checkedId == binding.sortingDialogRadioCustom.id
+                    || checkedId == binding.sortingDialogRadioRandom.id
+
+        binding.sortingDialogRadioOrder.beGoneIf(hideSortOrder)
+        binding.sortingDialogSortingDivider.beGoneIf(hideSortOrder)
+
+        // a hand made order belongs to the one folder it was made in, it can never be the global sorting
+        val isCustomMediaSorting =
+            canSortMediaCustomly && checkedId == binding.sortingDialogRadioCustom.id
+        binding.sortingDialogUseForThisFolder.apply {
+            if (isCustomMediaSorting) {
+                isChecked = true
+            }
+            isEnabled = !isCustomMediaSorting
+        }
+    }
+
     private fun setupOrderRadio() {
         var orderBtn = binding.sortingDialogRadioAscending
 
@@ -116,18 +134,19 @@ class ChangeSortingDialog(
         orderBtn.isChecked = true
     }
 
+    private fun getCheckedSorting() = when (binding.sortingDialogRadioSorting.checkedRadioButtonId) {
+        R.id.sorting_dialog_radio_name -> SORT_BY_NAME
+        R.id.sorting_dialog_radio_path -> SORT_BY_PATH
+        R.id.sorting_dialog_radio_size -> SORT_BY_SIZE
+        R.id.sorting_dialog_radio_number_of_items -> SORT_BY_COUNT
+        R.id.sorting_dialog_radio_last_modified -> SORT_BY_DATE_MODIFIED
+        R.id.sorting_dialog_radio_random -> SORT_BY_RANDOM
+        R.id.sorting_dialog_radio_custom -> SORT_BY_CUSTOM
+        else -> SORT_BY_DATE_TAKEN
+    }
+
     override fun onClick(dialog: DialogInterface, which: Int) {
-        val sortingRadio = binding.sortingDialogRadioSorting
-        var sorting = when (sortingRadio.checkedRadioButtonId) {
-            R.id.sorting_dialog_radio_name -> SORT_BY_NAME
-            R.id.sorting_dialog_radio_path -> SORT_BY_PATH
-            R.id.sorting_dialog_radio_size -> SORT_BY_SIZE
-            R.id.sorting_dialog_radio_number_of_items -> SORT_BY_COUNT
-            R.id.sorting_dialog_radio_last_modified -> SORT_BY_DATE_MODIFIED
-            R.id.sorting_dialog_radio_random -> SORT_BY_RANDOM
-            R.id.sorting_dialog_radio_custom -> SORT_BY_CUSTOM
-            else -> SORT_BY_DATE_TAKEN
-        }
+        var sorting = getCheckedSorting()
 
         if (binding.sortingDialogRadioOrder.checkedRadioButtonId == R.id.sorting_dialog_radio_descending) {
             sorting = sorting or SORT_DESCENDING
@@ -140,7 +159,7 @@ class ChangeSortingDialog(
         if (isDirectorySorting) {
             config.directorySorting = sorting
         } else {
-            if (binding.sortingDialogUseForThisFolder.isChecked) {
+            if (binding.sortingDialogUseForThisFolder.isChecked || sorting and SORT_BY_CUSTOM != 0) {
                 config.saveCustomSorting(pathToUse, sorting)
             } else {
                 config.removeCustomSorting(pathToUse)
