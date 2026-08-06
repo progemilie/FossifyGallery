@@ -27,6 +27,7 @@ JPEG, JPEG XL, PNG, MP4, MKV, RAW, SVG, GIF, AVIF, videos, and more – we've go
 **✨ MATERIAL DESIGN WITH DYNAMIC THEMES:**  
 Experience the beauty of intuitive material design with dynamic themes. Want more? Dive into custom themes and make your gallery truly unique.
 
+➡️ Report a bug or request a feature: https://github.com/FossifyOrg/Gallery/issues<br>
 ➡️ Explore more Fossify apps: https://www.fossify.org<br>
 ➡️ Open-Source Code: https://www.github.com/FossifyOrg<br>
 ➡️ Join the community on Reddit: https://www.reddit.com/r/Fossify<br>
