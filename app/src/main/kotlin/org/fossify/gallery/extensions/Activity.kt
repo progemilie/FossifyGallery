@@ -3,6 +3,7 @@ package org.fossify.gallery.extensions
 import android.app.Activity
 import android.content.ContentProviderOperation
 import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Bitmap.CompressFormat
@@ -695,7 +696,7 @@ fun BaseSimpleActivity.saveRotatedImageToFile(oldPath: String, newPath: String, 
 
             copyFile(tmpPath, newPath)
             rescanPaths(arrayListOf(newPath))
-            fileRotatedSuccessfully(newPath, oldLastModified)
+            fileTransformedSuccessfully(newPath, oldLastModified)
 
             it.flush()
             it.close()
@@ -719,7 +720,7 @@ fun Activity.tryRotateByExif(path: String, degrees: Int, showToasts: Boolean, ca
         val file = File(path)
         val oldLastModified = file.lastModified()
         if (saveImageRotation(path, degrees)) {
-            fileRotatedSuccessfully(path, oldLastModified)
+            fileTransformedSuccessfully(path, oldLastModified)
             callback.invoke()
             if (showToasts) {
                 toast(org.fossify.commons.R.string.file_saved)
@@ -737,7 +738,7 @@ fun Activity.tryRotateByExif(path: String, degrees: Int, showToasts: Boolean, ca
     }
 }
 
-fun Activity.fileRotatedSuccessfully(path: String, lastModified: Long) {
+fun Activity.fileTransformedSuccessfully(path: String, lastModified: Long) {
     if (config.keepLastModified && lastModified != 0L) {
         File(path).setLastModified(lastModified)
         updateLastModified(path, lastModified)
@@ -749,6 +750,97 @@ fun Activity.fileRotatedSuccessfully(path: String, lastModified: Long) {
     glide.clearDiskCache()
     runOnUiThread {
         glide.clearMemory()
+    }
+}
+
+fun BaseSimpleActivity.saveMirroredImageToFile(oldPath: String, newPath: String, showToasts: Boolean, callback: () -> Unit) {
+    if (oldPath == newPath && oldPath.isJpg()) {
+        if (tryMirrorByExif(oldPath, showToasts, callback)) {
+            return
+        }
+    }
+
+    val tmpPath = "$recycleBinPath/.tmp_${newPath.getFilenameFromPath()}"
+    val tmpFileDirItem = FileDirItem(tmpPath, tmpPath.getFilenameFromPath())
+    try {
+        getFileOutputStream(tmpFileDirItem) {
+            if (it == null) {
+                if (showToasts) {
+                    toast(org.fossify.commons.R.string.unknown_error_occurred)
+                }
+                return@getFileOutputStream
+            }
+
+            val oldLastModified = File(oldPath).lastModified()
+            if (oldPath.isJpg()) {
+                copyFile(oldPath, tmpPath)
+                saveExifMirror(ExifInterface(tmpPath))
+            } else {
+                val inputstream = getFileInputStreamSync(oldPath)
+                val bitmap = BitmapFactory.decodeStream(inputstream)
+                saveFile(tmpPath, bitmap, it as FileOutputStream, flipHorizontal = true)
+            }
+
+            copyFile(tmpPath, newPath)
+            rescanPaths(arrayListOf(newPath))
+            fileTransformedSuccessfully(newPath, oldLastModified)
+
+            it.flush()
+            it.close()
+            callback.invoke()
+        }
+    } catch (e: OutOfMemoryError) {
+        if (showToasts) {
+            toast(org.fossify.commons.R.string.out_of_memory_error)
+        }
+    } catch (e: Exception) {
+        if (showToasts) {
+            showErrorToast(e)
+        }
+    } finally {
+        tryDeleteFileDirItem(tmpFileDirItem, false, true)
+    }
+}
+
+fun Activity.tryMirrorByExif(path: String, showToasts: Boolean, callback: () -> Unit): Boolean {
+    return try {
+        val file = File(path)
+        val oldLastModified = file.lastModified()
+        if (saveImageMirror(path)) {
+            fileTransformedSuccessfully(path, oldLastModified)
+            callback.invoke()
+            if (showToasts) {
+                toast(org.fossify.commons.R.string.file_saved)
+            }
+            true
+        } else {
+            false
+        }
+    } catch (e: Exception) {
+        // lets not show IOExceptions, mirroring is saved just fine even with them
+        if (showToasts && e !is IOException) {
+            showErrorToast(e)
+        }
+        false
+    }
+}
+
+fun saveExifMirror(exif: ExifInterface) {
+    val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+    exif.setAttribute(ExifInterface.TAG_ORIENTATION, orientation.mirroredOrientation().toString())
+    exif.saveAttributes()
+}
+
+fun Context.saveImageMirror(path: String): Boolean {
+    return if (!needsStupidWritePermissions(path)) {
+        saveExifMirror(ExifInterface(path))
+        true
+    } else {
+        val documentFile = getSomeDocumentFile(path) ?: return false
+        contentResolver.openFileDescriptor(documentFile.uri, "rw")?.use { pfd ->
+            saveExifMirror(ExifInterface(pfd.fileDescriptor))
+        }
+        true
     }
 }
 
@@ -893,9 +985,14 @@ fun BaseSimpleActivity.rescanPathsAndUpdateLastModified(paths: ArrayList<String>
     rescanPaths(paths, callback)
 }
 
-fun saveFile(path: String, bitmap: Bitmap, out: FileOutputStream, degrees: Int) {
+fun saveFile(path: String, bitmap: Bitmap, out: FileOutputStream, degrees: Int = 0, flipHorizontal: Boolean = false) {
     val matrix = Matrix()
-    matrix.postRotate(degrees.toFloat())
+    if (degrees != 0) {
+        matrix.postRotate(degrees.toFloat())
+    }
+    if (flipHorizontal) {
+        matrix.postScale(-1f, 1f, bitmap.width / 2f, bitmap.height / 2f)
+    }
     val bmp = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     bmp.compress(path.getCompressionFormat(), 90, out)
 }

@@ -115,6 +115,7 @@ import org.fossify.gallery.extensions.movePathsInRecycleBin
 import org.fossify.gallery.extensions.openEditor
 import org.fossify.gallery.extensions.openPath
 import org.fossify.gallery.extensions.restoreRecycleBinPath
+import org.fossify.gallery.extensions.saveMirroredImageToFile
 import org.fossify.gallery.extensions.saveRotatedImageToFile
 import org.fossify.gallery.extensions.setAs
 import org.fossify.gallery.extensions.shareMediumPath
@@ -296,6 +297,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 findItem(R.id.menu_edit).isVisible = visibleBottomActions and BOTTOM_ACTION_EDIT == 0 && !currentMedium.isSVG()
                 findItem(R.id.menu_rename).isVisible = visibleBottomActions and BOTTOM_ACTION_RENAME == 0 && !currentMedium.getIsInRecycleBin()
                 findItem(R.id.menu_rotate).isVisible = currentMedium.isImage() && visibleBottomActions and BOTTOM_ACTION_ROTATE == 0
+                findItem(R.id.menu_mirror).isVisible = currentMedium.isImage() && rotationDegrees == 0
                 findItem(R.id.menu_set_as).isVisible = visibleBottomActions and BOTTOM_ACTION_SET_AS == 0
                 findItem(R.id.menu_copy_to_clipboard).isVisible = currentMedium.isImage()
                 findItem(R.id.menu_copy_to).isVisible = visibleBottomActions and BOTTOM_ACTION_COPY == 0
@@ -364,6 +366,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 R.id.menu_rotate_right -> rotateImage(90)
                 R.id.menu_rotate_left -> rotateImage(-90)
                 R.id.menu_rotate_one_eighty -> rotateImage(180)
+                R.id.menu_mirror -> mirrorImage()
                 R.id.menu_add_to_favorites -> toggleFavorite()
                 R.id.menu_remove_from_favorites -> toggleFavorite()
                 R.id.menu_restore_file -> restoreFile()
@@ -832,6 +835,31 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     private fun rotateBy(degrees: Int) {
         getCurrentPhotoFragment()?.rotateImageViewBy(degrees)
         refreshMenuItems()
+    }
+
+    private fun mirrorImage() {
+        val currentPath = getCurrentPath()
+        if (needsStupidWritePermissions(currentPath)) {
+            handleSAFDialog(currentPath) {
+                if (it) {
+                    commitMirror(currentPath)
+                }
+            }
+        } else {
+            commitMirror(currentPath)
+        }
+    }
+
+    private fun commitMirror(path: String) {
+        toast(org.fossify.commons.R.string.saving)
+        ensureBackgroundThread {
+            saveMirroredImageToFile(path, path, true) {
+                runOnUiThread {
+                    refreshMenuItems()
+                    refreshViewPager()
+                }
+            }
+        }
     }
 
     private fun toggleOrientation(orientation: Int) {

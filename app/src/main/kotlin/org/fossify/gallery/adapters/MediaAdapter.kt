@@ -68,6 +68,7 @@ import org.fossify.gallery.extensions.openEditor
 import org.fossify.gallery.extensions.openPath
 import org.fossify.gallery.extensions.rescanFolderMedia
 import org.fossify.gallery.extensions.restoreRecycleBinPaths
+import org.fossify.gallery.extensions.saveMirroredImageToFile
 import org.fossify.gallery.extensions.saveRotatedImageToFile
 import org.fossify.gallery.extensions.setAs
 import org.fossify.gallery.extensions.shareMediaPaths
@@ -112,7 +113,7 @@ class MediaAdapter(
     private val config = activity.config
     private val viewType = config.getFolderViewType(if (config.showAll) SHOW_ALL else path)
     private val isListViewType = viewType == VIEW_TYPE_LIST
-    private var rotatedImagePaths = ArrayList<String>()
+    private var transformedImagePaths = ArrayList<String>()
     private var currentMediaHash = media.hashCode()
     private val hasOTGConnected = activity.hasOTGConnected()
 
@@ -195,6 +196,7 @@ class MediaAdapter(
             findItem(R.id.cab_edit).isVisible = isOneItemSelected
             findItem(R.id.cab_set_as).isVisible = isOneItemSelected
             findItem(R.id.cab_resize).isVisible = canResize(selectedItems)
+            findItem(R.id.cab_mirror).isVisible = selectedItems.any { it.isImage() }
             findItem(R.id.cab_confirm_selection).isVisible = isAGetIntent && allowMultiplePicks && selectedKeys.isNotEmpty()
             findItem(R.id.cab_restore_recycle_bin_files).isVisible = selectedPaths.all { it.startsWith(activity.recycleBinPath) }
             findItem(R.id.cab_create_shortcut).isVisible = isOneItemSelected
@@ -223,6 +225,7 @@ class MediaAdapter(
             R.id.cab_rotate_right -> rotateSelection(90)
             R.id.cab_rotate_left -> rotateSelection(270)
             R.id.cab_rotate_one_eighty -> rotateSelection(180)
+            R.id.cab_mirror -> mirrorSelection()
             R.id.cab_copy_to -> checkMediaManagementAndCopy(true)
             R.id.cab_move_to -> moveFilesTo()
             R.id.cab_create_shortcut -> createShortcut()
@@ -416,11 +419,11 @@ class MediaAdapter(
 
     private fun handleRotate(paths: List<String>, degrees: Int) {
         var fileCnt = paths.size
-        rotatedImagePaths.clear()
+        transformedImagePaths.clear()
         activity.toast(org.fossify.commons.R.string.saving)
         ensureBackgroundThread {
             paths.forEach {
-                rotatedImagePaths.add(it)
+                transformedImagePaths.add(it)
                 activity.saveRotatedImageToFile(it, it, degrees, true) {
                     fileCnt--
                     if (fileCnt == 0) {
@@ -445,6 +448,40 @@ class MediaAdapter(
             }
         } else {
             handleRotate(paths, degrees)
+        }
+    }
+
+    private fun handleMirror(paths: List<String>) {
+        var fileCnt = paths.size
+        transformedImagePaths.clear()
+        activity.toast(org.fossify.commons.R.string.saving)
+        ensureBackgroundThread {
+            paths.forEach {
+                transformedImagePaths.add(it)
+                activity.saveMirroredImageToFile(it, it, true) {
+                    fileCnt--
+                    if (fileCnt == 0) {
+                        activity.runOnUiThread {
+                            listener?.refreshItems()
+                            finishActMode()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun mirrorSelection() {
+        val paths = getSelectedPaths().filter { it.isImageFast() }
+
+        if (paths.any { activity.needsStupidWritePermissions(it) }) {
+            activity.handleSAFDialog(paths.first { activity.needsStupidWritePermissions(it) }) {
+                if (it) {
+                    handleMirror(paths)
+                }
+            }
+        } else {
+            handleMirror(paths)
         }
     }
 
@@ -747,7 +784,7 @@ class MediaAdapter(
                 cropThumbnails = cropThumbnails,
                 roundCorners = roundedCorners,
                 signature = medium.getKey(),
-                skipMemoryCacheAtPaths = rotatedImagePaths,
+                skipMemoryCacheAtPaths = transformedImagePaths,
                 onError = {
                     mediumThumbnail.scaleType = ImageView.ScaleType.CENTER
                     mediumThumbnail.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_vector_warning_colored))
