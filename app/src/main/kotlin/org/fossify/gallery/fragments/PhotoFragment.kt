@@ -114,6 +114,7 @@ class PhotoFragment : ViewPagerFragment() {
     )
 
     var mCurrentRotationDegrees = 0
+    private var mBypassImageCache = false
     private var mIsFragmentVisible = false
     private var mIsFullscreen = false
     private var mWasInit = false
@@ -505,6 +506,8 @@ class PhotoFragment : ViewPagerFragment() {
 
     private fun loadWithGlide(path: String, addZoomableView: Boolean) {
         val priority = if (mIsFragmentVisible) Priority.IMMEDIATE else Priority.NORMAL
+        val bypassCache = mBypassImageCache
+        mBypassImageCache = false
         val options = RequestOptions()
             .signature(mMedium.getKey())
             .format(DecodeFormat.PREFER_ARGB_8888)
@@ -515,6 +518,13 @@ class PhotoFragment : ViewPagerFragment() {
                 if (mCurrentRotationDegrees != 0) {
                     transform(Rotate(mCurrentRotationDegrees))
                         .diskCacheStrategy(DiskCacheStrategy.NONE)
+                } else {
+                    this
+                }
+            }
+            .run {
+                if (bypassCache) {
+                    diskCacheStrategy(DiskCacheStrategy.NONE).skipMemoryCache(true)
                 } else {
                     this
                 }
@@ -899,6 +909,12 @@ class PhotoFragment : ViewPagerFragment() {
         } else {
             DEFAULT_DOUBLE_TAP_ZOOM
         }
+    }
+
+    fun reloadImageIgnoringCache() {
+        hideZoomableView()
+        mBypassImageCache = true
+        loadImage()
     }
 
     fun rotateImageViewBy(degrees: Int) {

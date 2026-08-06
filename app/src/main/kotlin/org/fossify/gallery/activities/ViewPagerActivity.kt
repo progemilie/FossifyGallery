@@ -856,7 +856,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             saveMirroredImageToFile(path, path, true) {
                 runOnUiThread {
                     refreshMenuItems()
-                    refreshViewPager()
+                    getCurrentPhotoFragment()?.reloadImageIgnoringCache()
                 }
             }
         }

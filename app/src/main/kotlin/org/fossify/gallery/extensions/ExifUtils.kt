@@ -172,6 +172,21 @@ fun Int.mirroredOrientation(): Int {
     }
 }
 
+fun ExifInterface.getReadableOrientation(context: Context): String {
+    val orientation = getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+    val stringRes = when (orientation) {
+        ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> org.fossify.gallery.R.string.orientation_mirrored_horizontal
+        ExifInterface.ORIENTATION_FLIP_VERTICAL -> org.fossify.gallery.R.string.orientation_mirrored_vertical
+        ExifInterface.ORIENTATION_ROTATE_90 -> org.fossify.gallery.R.string.orientation_rotated_90
+        ExifInterface.ORIENTATION_ROTATE_180 -> org.fossify.gallery.R.string.orientation_rotated_180
+        ExifInterface.ORIENTATION_ROTATE_270 -> org.fossify.gallery.R.string.orientation_rotated_270
+        ExifInterface.ORIENTATION_TRANSPOSE -> org.fossify.gallery.R.string.orientation_mirrored_horizontal_rotated_270
+        ExifInterface.ORIENTATION_TRANSVERSE -> org.fossify.gallery.R.string.orientation_mirrored_horizontal_rotated_90
+        else -> org.fossify.gallery.R.string.orientation_normal
+    }
+    return "${context.getString(org.fossify.gallery.R.string.orientation)}: ${context.getString(stringRes)}"
+}
+
 fun Context.writeExif(exif: ExifInterface?, uri: Uri?) {
     if (exif == null || uri == null) return
     resolveUriScheme(

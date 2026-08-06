@@ -462,6 +462,14 @@ class MediaAdapter(
                     fileCnt--
                     if (fileCnt == 0) {
                         activity.runOnUiThread {
+                            // the mirrored file is unchanged in size/modified time, so updateMedia()'s
+                            // hashcode-based diffing won't detect anything to rebind - force it directly
+                            paths.forEach { path ->
+                                val position = media.indexOfFirst { item -> (item as? Medium)?.path == path }
+                                if (position != -1) {
+                                    notifyItemChanged(position)
+                                }
+                            }
                             listener?.refreshItems()
                             finishActMode()
                         }
