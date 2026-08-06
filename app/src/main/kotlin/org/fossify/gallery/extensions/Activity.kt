@@ -802,12 +802,22 @@ fun BaseSimpleActivity.saveMirroredImageToFile(oldPath: String, newPath: String,
     }
 }
 
-fun Activity.tryMirrorByExif(path: String, showToasts: Boolean, callback: () -> Unit): Boolean {
+fun BaseSimpleActivity.tryMirrorByExif(path: String, showToasts: Boolean, callback: () -> Unit): Boolean {
     return try {
         val file = File(path)
         val oldLastModified = file.lastModified()
         if (saveImageMirror(path)) {
             fileTransformedSuccessfully(path, oldLastModified)
+
+            // the EXIF-only write barely changes file size and (with "Keep last modified date" on)
+            // doesn't change the file's mtime either, so a MediaStore rescan alone may not detect
+            // a meaningful difference and skip notifying observers - update the app's own DB
+            // directly so every screen's cached Medium.modified (and therefore its Glide cache
+            // signature, see Medium.getSignature()) picks up a fresh value on its next requery
+            updateDirectoryPath(path.getParentPath())
+            addPathToDB(path)
+            rescanPaths(arrayListOf(path)) {}
+
             callback.invoke()
             if (showToasts) {
                 toast(org.fossify.commons.R.string.file_saved)
