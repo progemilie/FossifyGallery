@@ -856,6 +856,8 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             saveMirroredImageToFile(path, path, true) {
                 runOnUiThread {
                     refreshMenuItems()
+                    // with "Keep last modified" enabled the file keeps its modified time, so the
+                    // Glide/Picasso cache keys are unchanged - reload past the caches explicitly
                     getCurrentPhotoFragment()?.reloadImageIgnoringCache()
                 }
             }

@@ -738,8 +738,8 @@ fun Activity.tryRotateByExif(path: String, degrees: Int, showToasts: Boolean, ca
     }
 }
 
-fun Activity.fileTransformedSuccessfully(path: String, lastModified: Long, restoreLastModified: Boolean = true) {
-    if (restoreLastModified && config.keepLastModified && lastModified != 0L) {
+fun Activity.fileTransformedSuccessfully(path: String, lastModified: Long) {
+    if (config.keepLastModified && lastModified != 0L) {
         File(path).setLastModified(lastModified)
         updateLastModified(path, lastModified)
     }
@@ -782,8 +782,9 @@ fun BaseSimpleActivity.saveMirroredImageToFile(oldPath: String, newPath: String,
             }
 
             copyFile(tmpPath, newPath)
-            // see tryMirrorByExif for why the last-modified date is deliberately not restored here
-            fileTransformedSuccessfully(newPath, oldLastModified, restoreLastModified = false)
+            // restore the last-modified date before rescanning, so MediaStore's DATE_MODIFIED
+            // picks up the restored value rather than the one this write just produced
+            fileTransformedSuccessfully(newPath, oldLastModified)
             rescanPaths(arrayListOf(newPath)) {
                 updateDirectoryPath(newPath.getParentPath())
             }
@@ -810,15 +811,13 @@ fun BaseSimpleActivity.tryMirrorByExif(path: String, showToasts: Boolean, callba
         val file = File(path)
         val oldLastModified = file.lastModified()
         if (saveImageMirror(path)) {
-            // deliberately NOT restoring the original last-modified date here, unlike rotate does.
-            // Every cache key in the app collapses to this one timestamp: Medium.getSignature()
-            // ("path-modified-size", the Glide key for grid thumbnails and the fullscreen image),
-            // Directory.getKey() ("path-modified", the Glide key for album covers) and
-            // MediaAdapter.updateMedia()'s hashcode gate. Those values all come from MediaStore's
-            // DATE_MODIFIED, which MediaStore derives from the file's own mtime - so restoring the
-            // mtime leaves every one of them byte-identical to before the edit, and every screen
-            // keeps serving its cached pre-mirror bitmap until the app is restarted
-            fileTransformedSuccessfully(path, oldLastModified, restoreLastModified = false)
+            // restore the last-modified date before rescanning, so MediaStore's DATE_MODIFIED
+            // picks up the restored value rather than the one the EXIF write just produced.
+            // With "Keep last modified" on, every mtime-derived cache key (Medium.getSignature(),
+            // Directory.getKey(), MediaAdapter.updateMedia()'s hashcode gate) therefore stays
+            // identical to its pre-mirror value - the callers force their own redraw instead of
+            // relying on that diff, see MediaAdapter.handleMirror()/ViewPagerActivity.commitMirror()
+            fileTransformedSuccessfully(path, oldLastModified)
             rescanPaths(arrayListOf(path)) {
                 updateDirectoryPath(path.getParentPath())
             }

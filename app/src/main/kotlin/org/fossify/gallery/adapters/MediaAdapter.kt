@@ -462,8 +462,11 @@ class MediaAdapter(
                     fileCnt--
                     if (fileCnt == 0) {
                         activity.runOnUiThread {
-                            // the mirrored file is unchanged in size/modified time, so updateMedia()'s
-                            // hashcode-based diffing won't detect anything to rebind - force it directly
+                            // a mirror leaves the file's size alone and, with "Keep last modified"
+                            // enabled, its modified time too, so updateMedia()'s hashcode-based
+                            // diffing won't detect anything to rebind - force it directly.
+                            // transformedImagePaths makes those rebinds skip Glide's memory cache,
+                            // which is likewise keyed on the unchanged modified time
                             paths.forEach { path ->
                                 val position = media.indexOfFirst { item -> (item as? Medium)?.path == path }
                                 if (position != -1) {
