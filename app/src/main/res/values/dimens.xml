@@ -31,4 +31,10 @@
     <dimen name="smaller_icon_size">36dp</dimen>
     <dimen name="highlight_border_min_width">2dp</dimen>
     <dimen name="highlight_border_max_width">8dp</dimen>
+    <dimen name="reorder_bar_corner_radius">20dp</dimen>
+    <dimen name="reorder_bar_elevation">6dp</dimen>
+    <dimen name="reorder_button_corner_radius">20dp</dimen>
+    <dimen name="reorder_button_height">40dp</dimen>
+    <dimen name="reorder_icon_size">20dp</dimen>
+    <dimen name="drag_lift_elevation">10dp</dimen>
 </resources>

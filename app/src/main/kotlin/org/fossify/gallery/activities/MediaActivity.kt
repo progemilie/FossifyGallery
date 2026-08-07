@@ -2,12 +2,14 @@ package org.fossify.gallery.activities
 
 import android.app.WallpaperManager
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Handler
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.core.net.toUri
+import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -16,18 +18,21 @@ import com.bumptech.glide.request.target.SimpleTarget
 import com.bumptech.glide.request.transition.Transition
 import org.fossify.commons.dialogs.CreateNewFolderDialog
 import org.fossify.commons.dialogs.RadioGroupDialog
+import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.appLockManager
+import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.areSystemAnimationsEnabled
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.deleteFiles
+import org.fossify.commons.extensions.getBottomNavigationBackgroundColor
+import org.fossify.commons.extensions.getContrastColor
 import org.fossify.commons.extensions.getDoesFilePathExist
 import org.fossify.commons.extensions.getFilenameFromPath
 import org.fossify.commons.extensions.getIsPathDirectory
 import org.fossify.commons.extensions.getLatestMediaByDateId
 import org.fossify.commons.extensions.getLatestMediaId
-import org.fossify.commons.extensions.getProperBackgroundColor
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.extensions.getProperTextColor
 import org.fossify.commons.extensions.getTimeFormat
@@ -45,6 +50,8 @@ import org.fossify.commons.extensions.toast
 import org.fossify.commons.extensions.viewBinding
 import org.fossify.commons.helpers.FAVORITES
 import org.fossify.commons.helpers.IS_FROM_GALLERY
+import org.fossify.commons.helpers.LOWER_ALPHA
+import org.fossify.commons.helpers.MEDIUM_ALPHA
 import org.fossify.commons.helpers.REQUEST_EDIT_IMAGE
 import org.fossify.commons.helpers.SORT_BY_CUSTOM
 import org.fossify.commons.helpers.SORT_BY_RANDOM
@@ -136,6 +143,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private var mHighlightPending = false
     private var mLastSearchedText = ""
     private var mIsReordering = false
+    private var mGridBottomPadding = 0
     private var mLatestMediaId = 0L
     private var mLatestMediaDateId = 0L
     private var mLastMediaHandler = Handler()
@@ -185,10 +193,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         setupReorderBar()
         refreshMenuItems()
         storeStateVariables()
-        setupEdgeToEdge(
-            padTopSystem = listOf(binding.mediaMenu),
-            padBottomImeAndSystem = listOf(binding.mediaGrid, binding.mediaReorderBar.root)
-        )
+        setupInsetPadding()
 
         if (mShowAll) {
             registerFileUpdateListener()
@@ -255,6 +260,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         }
 
         binding.loadingIndicator.setIndicatorColor(getProperPrimaryColor())
+        updateReorderBarColors()
         binding.mediaEmptyTextPlaceholder.setTextColor(getProperTextColor())
         binding.mediaEmptyTextPlaceholder2.setTextColor(getProperPrimaryColor())
         binding.mediaEmptyTextPlaceholder2.bringToFront()
@@ -459,17 +465,56 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         binding.mediaMenu.updateColors()
     }
 
+    /**
+     * Keeps the grid clear of the navigation bar - except while the reorder bar is up, where the
+     * bar sits between the two and does that job itself, and asking for the room twice would only
+     * open an empty band above it. Insets are dispatched again whenever the bar comes or goes, so
+     * this has to be what the inset handling is told rather than padding set once behind its back.
+     */
+    private fun setupInsetPadding() {
+        setupEdgeToEdge(
+            padTopSystem = listOf(binding.mediaMenu),
+            padBottomImeAndSystem = if (mIsReordering) {
+                listOf(binding.mediaReorderBar.root)
+            } else {
+                listOf(binding.mediaGrid, binding.mediaReorderBar.root)
+            }
+        )
+    }
+
     // the folder a custom order is keyed by, matching what the fetching and grouping code uses
     private fun getPathToUse() = (if (mShowAll) SHOW_ALL else mPath).ifEmpty { SHOW_ALL }
 
     private fun setupReorderBar() {
         binding.mediaReorderBar.apply {
-            root.setBackgroundColor(getProperBackgroundColor())
-            reorderHint.setTextColor(getProperTextColor())
-            reorderCancel.setTextColor(getProperTextColor())
-            reorderSave.setTextColor(getProperPrimaryColor())
             reorderCancel.setOnClickListener { cancelReordering() }
             reorderSave.setOnClickListener { saveReordering() }
+        }
+
+        updateReorderBarColors()
+    }
+
+    /**
+     * Paints the bar in the current theme - it is built once but the colors can change under it, so
+     * this runs again on every resume. Save is filled with the accent color to read as the action
+     * that ends the arrangement, Cancel only gets an outline to stay the quieter of the two.
+     */
+    private fun updateReorderBarColors() {
+        val textColor = getProperTextColor()
+        val primaryColor = getProperPrimaryColor()
+        binding.mediaReorderBar.apply {
+            root.backgroundTintList = ColorStateList.valueOf(getBottomNavigationBackgroundColor())
+            reorderIcon.applyColorFilter(textColor)
+            reorderHint.setTextColor(textColor)
+
+            reorderCancel.setTextColor(textColor)
+            reorderCancel.strokeColor = ColorStateList.valueOf(textColor.adjustAlpha(MEDIUM_ALPHA))
+            reorderCancel.rippleColor = ColorStateList.valueOf(textColor.adjustAlpha(LOWER_ALPHA))
+
+            val onPrimaryColor = primaryColor.getContrastColor()
+            reorderSave.backgroundTintList = ColorStateList.valueOf(primaryColor)
+            reorderSave.setTextColor(onPrimaryColor)
+            reorderSave.rippleColor = ColorStateList.valueOf(onPrimaryColor.adjustAlpha(LOWER_ALPHA))
         }
     }
 
@@ -497,6 +542,10 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         mIsReordering = true
         binding.mediaRefreshLayout.isEnabled = false
         binding.mediaReorderBar.root.beVisible()
+        // hand the room the grid was keeping for the navigation bar over to the bar taking its place
+        mGridBottomPadding = binding.mediaGrid.paddingBottom
+        setupInsetPadding()
+        binding.mediaGrid.updatePadding(bottom = 0)
         getMediaAdapter()?.setReordering(true, flatMedia)
         handleGridSpacing(flatMedia)
         setupLayoutManager()
@@ -541,6 +590,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private fun stopReordering() {
         mIsReordering = false
         binding.mediaReorderBar.root.beGone()
+        setupInsetPadding()
+        binding.mediaGrid.updatePadding(bottom = mGridBottomPadding)
         binding.mediaRefreshLayout.isEnabled = config.enablePullToRefresh
         refreshMenuItems()
     }
