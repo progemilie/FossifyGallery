@@ -15,11 +15,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.animation.doOnEnd
 import androidx.core.view.allViews
 import androidx.core.view.children
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -317,6 +319,8 @@ class MediaAdapter(
             itemView.scaleX = 1f
             itemView.scaleY = 1f
             itemView.translationZ = 0f
+            // the tick is put back on every bind, the count of a carried group is not
+            itemView.findCountBadge()?.beGone()
 
             val tmb = itemView.allViews.firstOrNull { it.id == R.id.medium_thumbnail }
             if (tmb != null) {
@@ -1180,6 +1184,7 @@ class MediaAdapter(
         // ItemTouchHelper owns the elevation of whatever it drags, translationZ is ours to lift with
         outlineProvider = thumbnailOutlineProvider
         animateLift(DRAG_LIFT_SCALE, activity.resources.getDimension(R.dimen.drag_lift_elevation))
+        showCarriedCount(carriedItems.size)
 
         findThumbnail()?.apply {
             foreground = buildAccentBorder(width, DRAG_BORDER_WIDTH_FRACTION, MAX_ALPHA_INT)
@@ -1192,7 +1197,37 @@ class MediaAdapter(
         // re-layout can cut short would leave the ring painted on the thumbnail for good
         outlineProvider = ViewOutlineProvider.BACKGROUND
         findThumbnail()?.foreground = null
+        hideCarriedCount()
         animateLift(1f, 0f)
+    }
+
+    /**
+     * The rest of a group being carried is off the grid, so the one thumbnail on its way counts the
+     * whole group in the badge the tick came from - one item on the move has nothing to count and
+     * keeps its tick.
+     */
+    private fun View.showCarriedCount(count: Int) {
+        if (count < 2) {
+            return
+        }
+
+        findCountBadge()?.apply {
+            text = count.toString()
+            background?.applyColorFilter(properPrimaryColor)
+            setTextColor(contrastColor)
+            beVisible()
+        }
+
+        findCheck()?.beGone()
+    }
+
+    private fun View.hideCarriedCount() {
+        val badge = findCountBadge() ?: return
+        if (badge.isVisible) {
+            badge.beGone()
+            // only a marked item is ever carried in a group, so its tick is due back
+            findCheck()?.beVisible()
+        }
     }
 
     /**
@@ -1214,6 +1249,10 @@ class MediaAdapter(
     }
 
     private fun View.findThumbnail() = findViewById<ImageView>(R.id.medium_thumbnail)
+
+    private fun View.findCountBadge() = findViewById<TextView>(R.id.medium_count)
+
+    private fun View.findCheck() = findViewById<ImageView>(R.id.medium_check)
 
     /**
      * The item view carries the padding that spaces the grid out, so a shadow around it would sit
