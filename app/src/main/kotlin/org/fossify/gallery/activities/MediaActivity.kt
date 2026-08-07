@@ -16,6 +16,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.SimpleTarget
 import com.bumptech.glide.request.transition.Transition
+import org.fossify.commons.dialogs.ConfirmationDialog
 import org.fossify.commons.dialogs.CreateNewFolderDialog
 import org.fossify.commons.dialogs.RadioGroupDialog
 import org.fossify.commons.extensions.adjustAlpha
@@ -582,6 +583,9 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 // a folder that was just arranged should come up in that order from now on
                 config.saveCustomSorting(pathToUse, SORT_BY_CUSTOM)
                 toast(R.string.custom_order_saved)
+                // the menu was put back before this arrangement was on file, so Reset was still
+                // hidden then - the folder has one to reset now
+                refreshMenuItems()
                 reloadMedia()
             }
         }
@@ -596,7 +600,20 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         refreshMenuItems()
     }
 
+    // an arrangement can be a lot of work to make and nothing brings it back, so ask first
     private fun resetCustomOrder() {
+        ConfirmationDialog(
+            this,
+            "",
+            R.string.reset_custom_order_confirmation,
+            org.fossify.commons.R.string.yes,
+            org.fossify.commons.R.string.no
+        ) {
+            doResetCustomOrder()
+        }
+    }
+
+    private fun doResetCustomOrder() {
         val pathToUse = getPathToUse()
         ensureBackgroundThread {
             removeCustomMediaOrder(pathToUse)

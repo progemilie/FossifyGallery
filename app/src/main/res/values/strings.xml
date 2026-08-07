@@ -36,6 +36,7 @@
     <string name="custom_order">Custom order</string>
     <string name="change_custom_order">Change custom order</string>
     <string name="reset_custom_order">Reset custom order</string>
+    <string name="reset_custom_order_confirmation">Are you sure you want to drop the custom order of this folder? It will go back to its normal sorting.</string>
     <string name="reorder_media_by_dragging">Hold an item, then drag it</string>
     <string name="custom_order_saved">Custom order saved</string>
     <string name="custom_order_reset">Custom order reset</string>
