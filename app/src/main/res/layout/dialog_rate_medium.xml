@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rate_medium_holder"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_horizontal"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/activity_margin"
+    android:paddingTop="@dimen/bigger_margin"
+    android:paddingEnd="@dimen/activity_margin"
+    android:paddingBottom="@dimen/bigger_margin">
+
+    <ImageView
+        android:id="@+id/rate_medium_star_1"
+        android:layout_width="@dimen/rating_dialog_star_size"
+        android:layout_height="@dimen/rating_dialog_star_size"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/rating"
+        android:padding="@dimen/tiny_margin" />
+
+    <ImageView
+        android:id="@+id/rate_medium_star_2"
+        android:layout_width="@dimen/rating_dialog_star_size"
+        android:layout_height="@dimen/rating_dialog_star_size"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/rating"
+        android:padding="@dimen/tiny_margin" />
+
+    <ImageView
+        android:id="@+id/rate_medium_star_3"
+        android:layout_width="@dimen/rating_dialog_star_size"
+        android:layout_height="@dimen/rating_dialog_star_size"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/rating"
+        android:padding="@dimen/tiny_margin" />
+
+    <ImageView
+        android:id="@+id/rate_medium_star_4"
+        android:layout_width="@dimen/rating_dialog_star_size"
+        android:layout_height="@dimen/rating_dialog_star_size"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/rating"
+        android:padding="@dimen/tiny_margin" />
+
+    <ImageView
+        android:id="@+id/rate_medium_star_5"
+        android:layout_width="@dimen/rating_dialog_star_size"
+        android:layout_height="@dimen/rating_dialog_star_size"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/rating"
+        android:padding="@dimen/tiny_margin" />
+</LinearLayout>

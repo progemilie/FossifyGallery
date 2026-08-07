@@ -6,6 +6,7 @@ import com.bumptech.glide.signature.ObjectKey
 import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.*
 import org.fossify.commons.models.FileDirItem
+import org.fossify.gallery.extensions.getRatingLabel
 import org.fossify.gallery.helpers.*
 import java.io.File
 import java.io.Serializable
@@ -26,11 +27,14 @@ data class Medium(
     @ColumnInfo(name = "is_favorite") var isFavorite: Boolean,
     @ColumnInfo(name = "deleted_ts") var deletedTS: Long,
     @ColumnInfo(name = "media_store_id") var mediaStoreId: Long,
+    // a copy of what media_ratings holds for this path, so media read straight back out of the
+    // cache carry their rating too and the badges are not missing until the next scan finishes
+    @ColumnInfo(name = "rating") var rating: Int = 0,
 
     @Ignore var gridPosition: Int = 0   // used at grid view decoration at Grouping enabled
 ) : Serializable, ThumbnailItem() {
 
-    constructor() : this(null, "", "", "", 0L, 0L, 0L, 0, 0, false, 0L, 0L, 0)
+    constructor() : this(null, "", "", "", 0L, 0L, 0L, 0, 0, false, 0L, 0L, 0, 0)
 
     companion object {
         private const val serialVersionUID = -6553149366975655L
@@ -65,6 +69,7 @@ data class Medium(
         sorting and SORT_BY_DATE_MODIFIED != 0 -> modified.formatDate(context, dateFormat, timeFormat)
         sorting and SORT_BY_RANDOM != 0 -> name
         sorting and SORT_BY_CUSTOM != 0 -> name
+        sorting and SORT_BY_RATING != 0 -> context.getRatingLabel(rating)
         else -> taken.formatDate(context)
     }
 
@@ -75,6 +80,7 @@ data class Medium(
             groupBy and GROUP_BY_DATE_TAKEN_DAILY != 0 -> getDayStartTS(taken, false)
             groupBy and GROUP_BY_DATE_TAKEN_MONTHLY != 0 -> getDayStartTS(taken, true)
             groupBy and GROUP_BY_FILE_TYPE != 0 -> type.toString()
+            groupBy and GROUP_BY_RATING != 0 -> rating.toString()
             groupBy and GROUP_BY_EXTENSION != 0 -> name.getFilenameExtension().lowercase(Locale.getDefault())
             groupBy and GROUP_BY_FOLDER != 0 -> parentPath
             else -> ""

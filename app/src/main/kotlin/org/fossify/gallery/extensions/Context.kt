@@ -103,15 +103,18 @@ import org.fossify.gallery.helpers.TYPE_PORTRAITS
 import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.TYPE_VIDEOS
+import org.fossify.gallery.helpers.XmpRating
 import org.fossify.gallery.interfaces.DateTakensDao
 import org.fossify.gallery.interfaces.DirectoryDao
 import org.fossify.gallery.interfaces.FavoritesDao
 import org.fossify.gallery.interfaces.MediaOrderDao
+import org.fossify.gallery.interfaces.MediaRatingsDao
 import org.fossify.gallery.interfaces.MediumDao
 import org.fossify.gallery.interfaces.WidgetsDao
 import org.fossify.gallery.models.AlbumCover
 import org.fossify.gallery.models.Directory
 import org.fossify.gallery.models.Favorite
+import org.fossify.gallery.models.MediaRating
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
 import org.fossify.gallery.svg.SvgSoftwareLayerSetter
@@ -149,7 +152,45 @@ val Context.dateTakensDB: DateTakensDao
 val Context.mediaOrderDB: MediaOrderDao
     get() = GalleryDatabase.getInstance(applicationContext).MediaOrderDao()
 
+val Context.mediaRatingsDB: MediaRatingsDao
+    get() = GalleryDatabase.getInstance(applicationContext).MediaRatingsDao()
+
 val Context.recycleBin: File get() = filesDir
+
+/**
+ * How a rating reads to a person: the stars themselves, or a word for having none. Matches how Aves
+ * labels its rating sections.
+ */
+fun Context.getRatingLabel(rating: Int) = if (rating <= 0) {
+    getString(R.string.unrated)
+} else {
+    "★".repeat(rating.coerceAtMost(XmpRating.MAX_RATING))
+}
+
+/**
+ * Records that [path] is now rated [rating], both in the rating cache and on the media row the grid
+ * reads back. Blocking, call it off the main thread.
+ */
+fun Context.storeRating(path: String, rating: Int) {
+    val file = File(path)
+    try {
+        mediaRatingsDB.insert(
+            MediaRating(
+                fullPath = path.lowercase(Locale.getDefault()),
+                parentPath = path.getParentPath().lowercase(Locale.getDefault()),
+                rating = rating,
+                lastModified = file.lastModified(),
+                size = file.length()
+            )
+        )
+    } catch (ignored: Exception) {
+    }
+
+    try {
+        mediaDB.updateRating(path, rating)
+    } catch (ignored: Exception) {
+    }
+}
 
 /**
  * Persists the order the user arranged [paths] in for [path], and marks the folder as custom

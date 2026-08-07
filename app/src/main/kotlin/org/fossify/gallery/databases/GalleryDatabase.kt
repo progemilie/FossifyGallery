@@ -9,9 +9,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import org.fossify.gallery.interfaces.*
 import org.fossify.gallery.models.*
 
+private const val DB_VERSION = 12
+
 @Database(
-    entities = [Directory::class, Medium::class, Widget::class, DateTaken::class, Favorite::class, MediaOrder::class],
-    version = 11
+    entities = [
+        Directory::class, Medium::class, Widget::class, DateTaken::class, Favorite::class,
+        MediaOrder::class, MediaRating::class
+    ],
+    version = DB_VERSION
 )
 abstract class GalleryDatabase : RoomDatabase() {
 
@@ -26,6 +31,8 @@ abstract class GalleryDatabase : RoomDatabase() {
     abstract fun FavoritesDao(): FavoritesDao
 
     abstract fun MediaOrderDao(): MediaOrderDao
+
+    abstract fun MediaRatingsDao(): MediaRatingsDao
 
     companion object {
         private var db: GalleryDatabase? = null
@@ -43,6 +50,7 @@ abstract class GalleryDatabase : RoomDatabase() {
                             .addMigrations(MIGRATION_8_9)
                             .addMigrations(MIGRATION_9_10)
                             .addMigrations(MIGRATION_10_11)
+                            .addMigrations(MIGRATION_11_12)
                             .build()
                     }
                 }
@@ -108,6 +116,22 @@ abstract class GalleryDatabase : RoomDatabase() {
                 database.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_media_order_folder_path` " +
                         "ON `media_order` (`folder_path`)"
+                )
+            }
+        }
+
+        private val MIGRATION_11_12 = object : Migration(11, DB_VERSION) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE media ADD COLUMN rating INTEGER default 0 NOT NULL")
+                database.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `media_ratings` (`full_path` TEXT NOT NULL, " +
+                        "`parent_path` TEXT NOT NULL, `rating` INTEGER NOT NULL, " +
+                        "`last_modified` INTEGER NOT NULL, `size` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`full_path`))"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_media_ratings_parent_path` " +
+                        "ON `media_ratings` (`parent_path`)"
                 )
             }
         }

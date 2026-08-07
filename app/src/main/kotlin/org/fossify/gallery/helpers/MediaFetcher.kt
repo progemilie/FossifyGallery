@@ -15,6 +15,7 @@ import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.*
 import org.fossify.gallery.R
 import org.fossify.gallery.extensions.*
+import org.fossify.gallery.models.MediaRating
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
 import org.fossify.gallery.models.ThumbnailSection
@@ -309,6 +310,8 @@ class MediaFetcher(val context: Context) {
         // hashed once instead of scanning the list again for every single file below
         val favorites = favoritePaths.toHashSet()
 
+        val ratings = RatingScan(folder)
+
         val files = when (folder) {
             FAVORITES -> favoritePaths.filter { showHidden || !it.contains("/.") }.map { File(it) }.toMutableList() as ArrayList<File>
             RECYCLE_BIN -> deletedMedia.map { File(it.path) }.toMutableList() as ArrayList<File>
@@ -412,22 +415,95 @@ class MediaFetcher(val context: Context) {
                     dateTaken = newDateTaken
                 }
 
-                val type = when {
-                    isVideo -> TYPE_VIDEOS
-                    isGif -> TYPE_GIFS
-                    isRaw -> TYPE_RAWS
-                    isSvg -> TYPE_SVGS
-                    isPortrait -> TYPE_PORTRAITS
-                    else -> TYPE_IMAGES
-                }
-
+                val type = mediaTypeOf(isVideo, isGif, isRaw, isSvg, isPortrait)
                 val isFavorite = favorites.contains(path)
-                val medium = Medium(null, filename, path, file.parent, lastModified, dateTaken, size, type, videoDuration, isFavorite, 0L, 0L)
+                val medium = Medium(
+                    null, filename, path, file.parent, lastModified, dateTaken, size, type, videoDuration, isFavorite,
+                    0L, 0L, ratings.of(file)
+                )
                 media.add(medium)
             }
         }
 
+        ratings.persist()
         return media
+    }
+
+    /**
+     * The rating side of a scan. It answers what each file is rated out of the cache, opens the file
+     * only when the cache has nothing that still describes it, and remembers everything it had to
+     * read so the next scan does not have to.
+     *
+     * Reading the metadata is the one genuinely expensive thing a scan can do per item, so it only
+     * happens at all when something - a thumbnail badge, a rating sort - is going to use the answer.
+     */
+    private inner class RatingScan(private val folder: String) {
+        private val wanted = context.config.showThumbnailRating ||
+            context.config.getFolderSorting(folder) and SORT_BY_RATING != 0
+
+        private val known by lazy { if (wanted) loadKnown() else emptyMap() }
+        private val fresh = ArrayList<MediaRating>()
+
+        fun of(file: File): Int {
+            val path = file.absolutePath
+            if (!wanted || !path.canBeRated()) {
+                return 0
+            }
+
+            val lastModified = file.lastModified()
+            val size = file.length()
+            val key = path.lowercase(Locale.getDefault())
+            val cached = known[key]
+            if (cached != null && cached.lastModified == lastModified && cached.size == size) {
+                return cached.rating
+            }
+
+            // a rating of 0 is worth caching too - "this file has no rating" is just as much of an
+            // answer as any other, and just as expensive to work out again
+            val rating = getFileRating(path)
+            val parent = path.getParentPath().lowercase(Locale.getDefault())
+            fresh.add(MediaRating(key, parent, rating, lastModified, size))
+            return rating
+        }
+
+        fun persist() {
+            if (fresh.isEmpty()) {
+                return
+            }
+
+            try {
+                context.mediaRatingsDB.insertAll(fresh)
+            } catch (ignored: Exception) {
+            }
+        }
+
+        private fun loadKnown(): Map<String, MediaRating> {
+            return try {
+                // the favorites and recycle bin views collect files from all over, and the Android
+                // 11 query walks the whole of MediaStore - none of them has one parent path to
+                // narrow the lookup down to
+                val rows = if (folder == FAVORITES || folder == RECYCLE_BIN) {
+                    context.mediaRatingsDB.getAll()
+                } else {
+                    context.mediaRatingsDB.getFolderRatings(folder.lowercase(Locale.getDefault()))
+                }
+
+                rows.associateBy { it.fullPath }
+            } catch (ignored: Exception) {
+                emptyMap()
+            }
+        }
+    }
+
+    private fun mediaTypeOf(
+        isVideo: Boolean, isGif: Boolean, isRaw: Boolean, isSvg: Boolean, isPortrait: Boolean
+    ) = when {
+        isVideo -> TYPE_VIDEOS
+        isGif -> TYPE_GIFS
+        isRaw -> TYPE_RAWS
+        isSvg -> TYPE_SVGS
+        isPortrait -> TYPE_PORTRAITS
+        else -> TYPE_IMAGES
     }
 
     fun getAndroid11FolderMedia(
@@ -447,6 +523,8 @@ class MediaFetcher(val context: Context) {
         val showHidden = context.config.shouldShowHidden
         // hashed once instead of scanning the list again for every MediaStore row below
         val favorites = favoritePaths.toHashSet()
+
+        val ratings = RatingScan(FAVORITES)
 
         val projection = arrayOf(
             Images.Media._ID,
@@ -507,14 +585,7 @@ class MediaFetcher(val context: Context) {
                     return@queryCursor
                 }
 
-                val type = when {
-                    isVideo -> TYPE_VIDEOS
-                    isGif -> TYPE_GIFS
-                    isRaw -> TYPE_RAWS
-                    isSvg -> TYPE_SVGS
-                    isPortrait -> TYPE_PORTRAITS
-                    else -> TYPE_IMAGES
-                }
+                val type = mediaTypeOf(isVideo, isGif, isRaw, isSvg, isPortrait)
 
                 val lastModified = cursor.getLongValue(Images.Media.DATE_MODIFIED) * 1000
                 var dateTaken = cursor.getLongValue(Images.Media.DATE_TAKEN)
@@ -530,7 +601,10 @@ class MediaFetcher(val context: Context) {
                 val videoDuration = Math.round(cursor.getIntValue(MediaStore.MediaColumns.DURATION) / 1000.toDouble()).toInt()
                 val isFavorite = favoritePaths.contains(path)
                 val medium =
-                    Medium(null, filename, path, path.getParentPath(), lastModified, dateTaken, size, type, videoDuration, isFavorite, 0L, mediaStoreId)
+                    Medium(
+                        null, filename, path, path.getParentPath(), lastModified, dateTaken, size, type, videoDuration,
+                        isFavorite, 0L, mediaStoreId, ratings.of(File(path))
+                    )
                 val parent = medium.parentPath.lowercase(Locale.getDefault())
                 val currentFolderMedia = media[parent]
                 if (currentFolderMedia == null) {
@@ -542,6 +616,7 @@ class MediaFetcher(val context: Context) {
             }
         }
 
+        ratings.persist()
         return media
     }
 
@@ -597,13 +672,7 @@ class MediaFetcher(val context: Context) {
             val dateTaken = file.lastModified()
             val dateModified = file.lastModified()
 
-            val type = when {
-                isVideo -> TYPE_VIDEOS
-                isGif -> TYPE_GIFS
-                isRaw -> TYPE_RAWS
-                isSvg -> TYPE_SVGS
-                else -> TYPE_IMAGES
-            }
+            val type = mediaTypeOf(isVideo, isGif, isRaw, isSvg, isPortrait = false)
 
             val path = Uri.decode(
                 file.uri.toString().replaceFirst("${context.config.OTGTreeUri}/document/${context.config.OTGPartition}%3A", "${context.config.OTGPath}/")
@@ -781,45 +850,54 @@ class MediaFetcher(val context: Context) {
             return
         }
 
-        media.sortWith { o1, o2 ->
-            o1 as Medium
-            o2 as Medium
-            var result = when {
-                sorting and SORT_BY_NAME != 0 -> {
-                    if (sorting and SORT_USE_NUMERIC_VALUE != 0) {
-                        AlphanumericComparator().compare(o1.name.normalizeString().lowercase(Locale.getDefault()), o2.name.normalizeString().lowercase(Locale.getDefault()))
-                    } else {
-                        o1.name.normalizeString().lowercase(Locale.getDefault()).compareTo(o2.name.normalizeString().lowercase(Locale.getDefault()))
-                    }
-                }
+        media.sortWith { o1, o2 -> compareMedia(o1 as Medium, o2 as Medium, sorting) }
+    }
 
-                sorting and SORT_BY_PATH != 0 -> {
-                    if (sorting and SORT_USE_NUMERIC_VALUE != 0) {
-                        AlphanumericComparator().compare(o1.path.lowercase(Locale.getDefault()), o2.path.lowercase(Locale.getDefault()))
-                    } else {
-                        o1.path.lowercase(Locale.getDefault()).compareTo(o2.path.lowercase(Locale.getDefault()))
-                    }
-                }
+    private fun compareMedia(o1: Medium, o2: Medium, sorting: Int): Int {
+        var result = compareBySortKey(o1, o2, sorting)
+        if (sorting and SORT_DESCENDING != 0) {
+            result *= -1
+        }
 
-                sorting and SORT_BY_SIZE != 0 -> o1.size.compareTo(o2.size)
-                sorting and SORT_BY_DATE_MODIFIED != 0 -> o1.modified.compareTo(o2.modified)
-                else -> o1.taken.compareTo(o2.taken)
+        // a rating on its own leaves whole blocks of items tied - every five star photo compares
+        // equal to every other - so fall back to newest first within each rating, the way Aves
+        // does. after the sign flip, so reversing the ratings does not also flip the dates inside
+        // them
+        if (result == 0 && sorting and SORT_BY_RATING != 0) {
+            result = o2.taken.compareTo(o1.taken)
+        }
+
+        // files that tie on the sort key - a burst of shots sharing a timestamp, or a whole folder
+        // with no Exif dates at all - would otherwise keep whatever order the MediaStore cursor
+        // happened to return, which is not the same from one scan to the next. that moves items
+        // around the grid and, since a folder's cover is simply its first item, swaps album covers
+        // for no reason. the path is unique, so it settles every tie
+        if (result == 0) {
+            result = o1.path.compareTo(o2.path)
+        }
+
+        return result
+    }
+
+    private fun compareBySortKey(o1: Medium, o2: Medium, sorting: Int): Int {
+        val numeric = sorting and SORT_USE_NUMERIC_VALUE != 0
+        return when {
+            sorting and SORT_BY_NAME != 0 -> {
+                val name1 = o1.name.normalizeString().lowercase(Locale.getDefault())
+                val name2 = o2.name.normalizeString().lowercase(Locale.getDefault())
+                if (numeric) AlphanumericComparator().compare(name1, name2) else name1.compareTo(name2)
             }
 
-            if (sorting and SORT_DESCENDING != 0) {
-                result *= -1
+            sorting and SORT_BY_PATH != 0 -> {
+                val path1 = o1.path.lowercase(Locale.getDefault())
+                val path2 = o2.path.lowercase(Locale.getDefault())
+                if (numeric) AlphanumericComparator().compare(path1, path2) else path1.compareTo(path2)
             }
 
-            // files that tie on the sort key - a burst of shots sharing a timestamp, or a whole
-            // folder with no Exif dates at all - would otherwise keep whatever order the MediaStore
-            // cursor happened to return, which is not the same from one scan to the next. that
-            // moves items around the grid and, since a folder's cover is simply its first item,
-            // swaps album covers for no reason. the path is unique, so it settles every tie
-            if (result == 0) {
-                result = o1.path.compareTo(o2.path)
-            }
-
-            result
+            sorting and SORT_BY_SIZE != 0 -> o1.size.compareTo(o2.size)
+            sorting and SORT_BY_DATE_MODIFIED != 0 -> o1.modified.compareTo(o2.modified)
+            sorting and SORT_BY_RATING != 0 -> o1.rating.compareTo(o2.rating)
+            else -> o1.taken.compareTo(o2.taken)
         }
     }
 
@@ -846,9 +924,23 @@ class MediaFetcher(val context: Context) {
 
     fun groupMedia(media: ArrayList<Medium>, path: String): ArrayList<ThumbnailItem> {
         val pathToCheck = if (path.isEmpty()) SHOW_ALL else path
-        val currentGrouping = context.config.getFolderGrouping(pathToCheck)
+        val sorting = context.config.getFolderSorting(pathToCheck)
+        val savedGrouping = context.config.getFolderGrouping(pathToCheck)
+
+        // sorting by rating carries its own headers - a run of five star photos followed by a run
+        // of four star ones is already grouped, all it is missing is the labels - so it overrides
+        // whatever grouping the folder is otherwise set to, keeping only the file count preference
+        val isRatingSorting = sorting and SORT_BY_RATING != 0
+        val currentGrouping = if (isRatingSorting) {
+            GROUP_BY_RATING or
+                (savedGrouping and GROUP_SHOW_FILE_COUNT) or
+                (if (sorting and SORT_DESCENDING != 0) GROUP_DESCENDING else 0)
+        } else {
+            savedGrouping
+        }
+
         // a hand made order cuts across whatever groups would be formed, show it as the flat list it is
-        val isCustomSorting = context.config.getFolderSorting(pathToCheck) and SORT_BY_CUSTOM != 0
+        val isCustomSorting = sorting and SORT_BY_CUSTOM != 0
         if (currentGrouping and GROUP_BY_NONE != 0 || isCustomSorting) {
             return media as ArrayList<ThumbnailItem>
         }
@@ -913,6 +1005,7 @@ class MediaFetcher(val context: Context) {
 
             grouping and GROUP_BY_LAST_MODIFIED_MONTHLY != 0 || grouping and GROUP_BY_DATE_TAKEN_MONTHLY != 0 -> formatDate(key, false)
             grouping and GROUP_BY_FILE_TYPE != 0 -> getFileTypeString(key)
+            grouping and GROUP_BY_RATING != 0 -> context.getRatingLabel(key.toIntOrNull() ?: 0)
             grouping and GROUP_BY_EXTENSION != 0 -> key.uppercase(Locale.getDefault())
             grouping and GROUP_BY_FOLDER != 0 -> context.humanizePath(key)
             else -> key

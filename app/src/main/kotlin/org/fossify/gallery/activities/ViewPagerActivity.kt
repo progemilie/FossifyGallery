@@ -22,8 +22,11 @@ import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.os.Handler
 import android.provider.MediaStore
+import android.view.HapticFeedbackConstants
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
@@ -72,8 +75,10 @@ import org.fossify.commons.extensions.isPortrait
 import org.fossify.commons.extensions.isRawFast
 import org.fossify.commons.extensions.isSvg
 import org.fossify.commons.extensions.isVideoFast
+import org.fossify.commons.extensions.isVisible
 import org.fossify.commons.extensions.needsStupidWritePermissions
 import org.fossify.commons.extensions.onGlobalLayout
+import org.fossify.commons.extensions.realScreenSize
 import org.fossify.commons.extensions.recycleBinPath
 import org.fossify.commons.extensions.rescanPaths
 import org.fossify.commons.extensions.scanPathRecursively
@@ -98,8 +103,10 @@ import org.fossify.gallery.adapters.MyPagerAdapter
 import org.fossify.gallery.asynctasks.GetMediaAsynctask
 import org.fossify.gallery.databinding.ActivityMediumBinding
 import org.fossify.gallery.dialogs.DeleteWithRememberDialog
+import org.fossify.gallery.dialogs.RateMediumDialog
 import org.fossify.gallery.dialogs.SaveAsDialog
 import org.fossify.gallery.dialogs.SlideshowDialog
+import org.fossify.gallery.extensions.canBeRated
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.favoritesDB
 import org.fossify.gallery.extensions.fixDateTaken
@@ -127,6 +134,7 @@ import org.fossify.gallery.extensions.tryDeleteFileDirItem
 import org.fossify.gallery.extensions.updateDBMediaPath
 import org.fossify.gallery.extensions.updateFavorite
 import org.fossify.gallery.extensions.updateFavoritePaths
+import org.fossify.gallery.extensions.updateFileRatingIfSupported
 import org.fossify.gallery.fragments.PhotoFragment
 import org.fossify.gallery.fragments.VideoFragment
 import org.fossify.gallery.fragments.ViewPagerFragment
@@ -136,6 +144,7 @@ import org.fossify.gallery.helpers.BOTTOM_ACTION_DELETE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_EDIT
 import org.fossify.gallery.helpers.BOTTOM_ACTION_MOVE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_PROPERTIES
+import org.fossify.gallery.helpers.BOTTOM_ACTION_RATING
 import org.fossify.gallery.helpers.BOTTOM_ACTION_RENAME
 import org.fossify.gallery.helpers.BOTTOM_ACTION_RESIZE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_ROTATE
@@ -212,6 +221,10 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     private var mFavoritePaths = ArrayList<String>()
     private var mIgnoredPaths = ArrayList<String>()
     private var mOriginalBrightness: Float? = null
+
+    // fires the star chooser once the rating button has been held long enough, and is cancelled by
+    // anything that ends the touch before then - that shorter touch is a tap, not a hold
+    private var mRatingChooserRunnable: Runnable? = null
 
     private val binding by viewBinding(ActivityMediumBinding::inflate)
 
@@ -991,6 +1004,8 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             toggleFavorite()
         }
 
+        setupRatingButton(currentMedium)
+
         binding.bottomActions.bottomEdit.beVisibleIf(visibleBottomActions and BOTTOM_ACTION_EDIT != 0 && currentMedium?.isSVG() == false)
         binding.bottomActions.bottomEdit.setOnLongClickListener { toast(R.string.edit); true }
         binding.bottomActions.bottomEdit.setOnClickListener {
@@ -1091,14 +1106,144 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
     }
 
+    /**
+     * Hold the button and a row of stars appears above it; slide left and right without lifting off
+     * to pick a rating, and left of the first star to clear it. A plain tap opens the dialog
+     * instead, which is the same choice Aves makes for its rate button.
+     */
+    // the listener below does call performClick() on a tap, which is the thing this check exists to
+    // make sure of - it just cannot see that through the lambda
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupRatingButton(currentMedium: Medium?) {
+        val button = binding.bottomActions.bottomRating
+        button.beVisibleIf(canRate(currentMedium))
+        button.setOnClickListener { showRatingDialog() }
+        button.setOnTouchListener { view, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    view.isPressed = true
+                    view.parent?.requestDisallowInterceptTouchEvent(true)
+                    mRatingChooserRunnable = Runnable {
+                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        showRatingChooser()
+                    }.also { view.postDelayed(it, ViewConfiguration.getLongPressTimeout().toLong()) }
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    if (binding.ratingChooser.isVisible()) {
+                        binding.ratingChooser.rating = binding.ratingChooser.ratingForPosition(event.rawX)
+                    }
+                }
+
+                MotionEvent.ACTION_UP -> {
+                    view.isPressed = false
+                    cancelRatingChooserTimer(view)
+                    if (binding.ratingChooser.isVisible()) {
+                        val chosen = binding.ratingChooser.rating
+                        binding.ratingChooser.beGone()
+                        applyRating(chosen)
+                    } else {
+                        // through performClick rather than straight to the dialog, so the tap is
+                        // still announced to accessibility services
+                        view.performClick()
+                    }
+                }
+
+                MotionEvent.ACTION_CANCEL -> {
+                    view.isPressed = false
+                    cancelRatingChooserTimer(view)
+                    binding.ratingChooser.beGone()
+                }
+            }
+
+            true
+        }
+    }
+
+    private fun canRate(medium: Medium?): Boolean {
+        val visibleBottomActions = if (config.bottomActions) config.visibleBottomActions else 0
+        return visibleBottomActions and BOTTOM_ACTION_RATING != 0 &&
+            medium?.getIsInRecycleBin() == false && medium.path.canBeRated()
+    }
+
+    private fun cancelRatingChooserTimer(view: View) {
+        mRatingChooserRunnable?.let { view.removeCallbacks(it) }
+        mRatingChooserRunnable = null
+    }
+
+    private fun showRatingChooser() {
+        val medium = getCurrentMedium() ?: return
+        binding.ratingChooser.apply {
+            rating = medium.rating
+            beVisible()
+            // its width is only known once it has been laid out, and centering needs that width
+            post { centerRatingChooserOverButton() }
+        }
+    }
+
+    private fun centerRatingChooserOverButton() {
+        val chooser = binding.ratingChooser
+        val button = binding.bottomActions.bottomRating
+        if (chooser.width == 0) {
+            return
+        }
+
+        val buttonLocation = IntArray(2)
+        button.getLocationOnScreen(buttonLocation)
+        val chooserLocation = IntArray(2)
+        chooser.getLocationOnScreen(chooserLocation)
+
+        val margin = resources.getDimensionPixelSize(org.fossify.commons.R.dimen.normal_margin)
+        val untranslatedLeft = chooserLocation[0] - chooser.translationX
+        val wanted = buttonLocation[0] + button.width / 2f - chooser.width / 2f
+        // a button near the screen edge would otherwise push half the stars off it
+        val furthestLeft = margin.toFloat()
+        val furthestRight = maxOf(furthestLeft, (realScreenSize.x - chooser.width - margin).toFloat())
+        chooser.translationX = wanted.coerceIn(furthestLeft, furthestRight) - untranslatedLeft
+    }
+
+    private fun showRatingDialog() {
+        val medium = getCurrentMedium() ?: return
+        RateMediumDialog(this, medium.rating) { applyRating(it) }
+    }
+
+    private fun applyRating(rating: Int) {
+        val medium = getCurrentMedium() ?: return
+        if (medium.rating == rating) {
+            return
+        }
+
+        updateFileRatingIfSupported(medium.path, rating) { success ->
+            if (success) {
+                // the media list this screen was handed shares its items with the grid behind it,
+                // so the grid is up to date the moment this is
+                medium.rating = rating
+                updateBottomActionIcons(medium)
+                getCurrentFragment()?.refreshExtendedDetails()
+            }
+        }
+    }
+
     private fun updateBottomActionIcons(medium: Medium?) {
         if (medium == null) {
             return
         }
 
-        val favoriteIcon =
-            if (medium.isFavorite) org.fossify.commons.R.drawable.ic_star_vector else org.fossify.commons.R.drawable.ic_star_outline_vector
+        val favoriteIcon = if (medium.isFavorite) {
+            org.fossify.commons.R.drawable.ic_heart_vector
+        } else {
+            R.drawable.ic_heart_outline_vector
+        }
         binding.bottomActions.bottomFavorite.setImageResource(favoriteIcon)
+
+        val ratingIcon = if (medium.rating > 0) {
+            org.fossify.commons.R.drawable.ic_star_vector
+        } else {
+            org.fossify.commons.R.drawable.ic_star_outline_vector
+        }
+        binding.bottomActions.bottomRating.setImageResource(ratingIcon)
+        // swiping onto a format that cannot carry a rating has to take the button away with it
+        binding.bottomActions.bottomRating.beVisibleIf(canRate(medium))
 
         val hideIcon =
             if (medium.isHidden()) org.fossify.commons.R.drawable.ic_unhide_vector else org.fossify.commons.R.drawable.ic_hide_vector

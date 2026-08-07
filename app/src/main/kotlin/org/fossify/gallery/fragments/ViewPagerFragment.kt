@@ -8,7 +8,9 @@ import android.view.MotionEvent
 import androidx.exifinterface.media.ExifInterface
 import androidx.fragment.app.Fragment
 import org.fossify.commons.extensions.*
+import org.fossify.gallery.R
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.extensions.getRatingLabel
 import org.fossify.gallery.extensions.getReadableOrientation
 import org.fossify.gallery.helpers.*
 import org.fossify.gallery.models.Medium
@@ -25,6 +27,12 @@ abstract class ViewPagerFragment : Fragment() {
     private var mIgnoreCloseDown = false
 
     abstract fun fullscreenToggled(isFullscreen: Boolean)
+
+    /**
+     * Redraws the extended details from the file as it is now. Called when something the details
+     * show has been changed from outside the fragment, which currently means the rating.
+     */
+    open fun refreshExtendedDetails() {}
 
     interface FragmentListener {
         fun fragmentClicked()
@@ -97,6 +105,14 @@ abstract class ViewPagerFragment : Fragment() {
         if (detailsFlag and EXT_ORIENTATION != 0) {
             exif.getReadableOrientation(context).let { if (it.isNotEmpty()) details.appendLine(it) }
         }
+
+        if (detailsFlag and EXT_RATING != 0) {
+            // straight out of the file rather than off the Medium, which is a copy handed to this
+            // fragment when it was created and would still show the rating from before an edit
+            val rating = XmpRating.read(exif.getAttributeBytes(ExifInterface.TAG_XMP)?.toString(Charsets.UTF_8))
+            details.appendLine("${context.getString(R.string.rating)}: ${context.getRatingLabel(rating)}")
+        }
+
         return details.toString().trim()
     }
 

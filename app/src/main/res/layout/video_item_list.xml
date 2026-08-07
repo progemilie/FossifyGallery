@@ -27,7 +27,7 @@
         android:layout_margin="@dimen/small_margin"
         android:background="@drawable/circle_black_background"
         android:padding="@dimen/tiny_margin"
-        android:src="@drawable/ic_star_vector"
+        android:src="@drawable/ic_heart_vector"
         android:visibility="gone"
         tools:visibility="visible" />
 

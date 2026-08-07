@@ -945,6 +945,12 @@ class PhotoFragment : ViewPagerFragment() {
         }
     }
 
+    override fun refreshExtendedDetails() {
+        if (mWasInit) {
+            initExtendedDetails()
+        }
+    }
+
     private fun initExtendedDetails() {
         if (requireContext().config.showExtendedDetails) {
             ensureBackgroundThread {

@@ -37,4 +37,14 @@
     <dimen name="reorder_button_height">40dp</dimen>
     <dimen name="reorder_icon_size">20dp</dimen>
     <dimen name="drag_lift_elevation">10dp</dimen>
+
+    <!-- the star row that pops up above the rating button while it is held -->
+    <dimen name="rating_chooser_star_size">32dp</dimen>
+    <dimen name="rating_chooser_star_margin">4dp</dimen>
+    <dimen name="rating_chooser_padding">8dp</dimen>
+    <dimen name="rating_chooser_corner_radius">24dp</dimen>
+    <dimen name="rating_chooser_elevation">8dp</dimen>
+    <dimen name="rating_dialog_star_size">44dp</dimen>
+    <dimen name="rating_badge_star_size">12dp</dimen>
+    <dimen name="rating_badge_corner_radius">8dp</dimen>
 </resources>
