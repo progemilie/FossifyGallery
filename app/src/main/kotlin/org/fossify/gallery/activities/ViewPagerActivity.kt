@@ -1193,7 +1193,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         val chooserLocation = IntArray(2)
         chooser.getLocationOnScreen(chooserLocation)
 
-        val margin = resources.getDimensionPixelSize(org.fossify.commons.R.dimen.normal_margin)
+        val margin = resources.getDimensionPixelSize(R.dimen.rating_chooser_edge_margin)
         val untranslatedLeft = chooserLocation[0] - chooser.translationX
         val wanted = buttonLocation[0] + button.width / 2f - chooser.width / 2f
         // a button near the screen edge would otherwise push half the stars off it
