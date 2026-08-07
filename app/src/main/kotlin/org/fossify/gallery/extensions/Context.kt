@@ -240,16 +240,17 @@ fun Context.getSortedDirectories(source: ArrayList<Directory>): ArrayList<Direct
         dirs.shuffle()
         return movePinnedDirectoriesToFront(dirs)
     } else if (sorting and SORT_BY_CUSTOM != 0) {
-        val newDirsOrdered = ArrayList<Directory>()
+        val newDirsOrdered = ArrayList<Directory>(dirs.size)
+        // indexed rather than searched, the saved order used to be walked with a linear scan of the
+        // folder list per entry
+        val remaining = dirs.associateByTo(LinkedHashMap(dirs.size)) { it.path }
         config.customFoldersOrder.split("|||").forEach { path ->
-            val index = dirs.indexOfFirst { it.path == path }
-            if (index != -1) {
-                val dir = dirs.removeAt(index)
-                newDirsOrdered.add(dir)
-            }
+            remaining.remove(path)?.let { newDirsOrdered.add(it) }
         }
 
-        dirs.mapTo(newDirsOrdered, { it })
+        // folders the saved order never mentioned - anything added since it was made - go after it
+        // in a fixed order, otherwise they shuffle around as the scan discovers them
+        remaining.values.sortedBy { it.path }.toCollection(newDirsOrdered)
         return newDirsOrdered
     }
 
@@ -305,6 +306,14 @@ fun Context.getSortedDirectories(source: ArrayList<Directory>): ArrayList<Direct
         if (sorting and SORT_DESCENDING != 0) {
             result *= -1
         }
+
+        // folders that tie on the sort key would otherwise hold whatever order the source list had,
+        // and that list is rebuilt as the scan discovers folders one by one - so they swap places
+        // under the user mid scan. the path is unique, so it settles every tie
+        if (result == 0) {
+            result = o1.path.compareTo(o2.path)
+        }
+
         result
     }
 
@@ -600,12 +609,12 @@ fun Context.rescanFolderMediaSync(path: String) {
                 try {
                     mediaDB.insertAll(media)
 
+                    // by path and hashed - see the matching cleanup in MainActivity.gotDirectories
+                    val newPaths = media.mapTo(HashSet(media.size)) { it.path }
                     cached.forEach { thumbnailItem ->
-                        if (!newMedia.contains(thumbnailItem)) {
-                            val mediumPath = (thumbnailItem as? Medium)?.path
-                            if (mediumPath != null) {
-                                deleteDBPath(mediumPath)
-                            }
+                        val mediumPath = (thumbnailItem as? Medium)?.path
+                        if (mediumPath != null && !newPaths.contains(mediumPath)) {
+                            deleteDBPath(mediumPath)
                         }
                     }
                 } catch (ignored: Exception) {

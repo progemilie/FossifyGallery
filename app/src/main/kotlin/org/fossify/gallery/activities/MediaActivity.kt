@@ -864,7 +864,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                     gotMedia(newMedia, false)
 
                     // remove cached files that are no longer valid for whatever reason
-                    val newPaths = newMedia.mapNotNull { it as? Medium }.map { it.path }
+                    val newPaths = newMedia.mapNotNullTo(HashSet(newMedia.size)) { (it as? Medium)?.path }
                     oldMedia
                         .mapNotNull { it as? Medium }
                         .filter { !newPaths.contains(it.path) }
@@ -1252,7 +1252,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 return@deleteFiles
             }
 
-            mMedia.removeAll { filtered.map { it.path }.contains((it as? Medium)?.path) }
+            val deletedPaths = filtered.mapTo(HashSet(filtered.size)) { it.path }
+            mMedia.removeAll { deletedPaths.contains((it as? Medium)?.path) }
 
             ensureBackgroundThread {
                 val useRecycleBin = config.useRecycleBin
