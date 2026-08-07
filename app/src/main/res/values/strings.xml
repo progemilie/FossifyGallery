@@ -37,7 +37,11 @@
     <string name="change_custom_order">Change custom order</string>
     <string name="reset_custom_order">Reset custom order</string>
     <string name="reset_custom_order_confirmation">Are you sure you want to drop the custom order of this folder? It will go back to its normal sorting.</string>
-    <string name="reorder_media_by_dragging">Hold an item, then drag it</string>
+    <string name="reorder_media_by_dragging">Hold an item to drag it, tap to mark several</string>
+    <plurals name="reorder_selected_items">
+        <item quantity="one">%d marked, tap more or drag it</item>
+        <item quantity="other">%d marked, drag one to move them all</item>
+    </plurals>
     <string name="custom_order_saved">Custom order saved</string>
     <string name="custom_order_reset">Custom order reset</string>
     <string name="reorder_needs_more_items">There is nothing to reorder here</string>
