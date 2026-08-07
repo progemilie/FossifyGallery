@@ -29,6 +29,8 @@ class SettingsActivity : SimpleActivity() {
         private const val PICK_IMPORT_SOURCE_INTENT = 1
         private const val SELECT_EXPORT_FAVORITES_FILE_INTENT = 2
         private const val SELECT_IMPORT_FAVORITES_FILE_INTENT = 3
+        private const val SELECT_EXPORT_CUSTOM_ORDER_FILE_INTENT = 4
+        private const val SELECT_IMPORT_CUSTOM_ORDER_FILE_INTENT = 5
     }
 
     private var mRecycleBinContentSize = 0L
@@ -108,6 +110,8 @@ class SettingsActivity : SimpleActivity() {
         setupClearCache()
         setupExportFavorites()
         setupImportFavorites()
+        setupExportCustomOrder()
+        setupImportCustomOrder()
         setupExportSettings()
         setupImportSettings()
 
@@ -141,6 +145,20 @@ class SettingsActivity : SimpleActivity() {
         } else if (requestCode == SELECT_IMPORT_FAVORITES_FILE_INTENT && resultCode == Activity.RESULT_OK && resultData != null && resultData.data != null) {
             val inputStream = contentResolver.openInputStream(resultData.data!!)
             importFavorites(inputStream)
+        } else {
+            handleCustomOrderResult(requestCode, resultCode, resultData)
+        }
+    }
+
+    private fun handleCustomOrderResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
+        val uri = resultData?.data
+        if (resultCode != Activity.RESULT_OK || uri == null) {
+            return
+        }
+
+        when (requestCode) {
+            SELECT_EXPORT_CUSTOM_ORDER_FILE_INTENT -> exportCustomOrderTo(contentResolver.openOutputStream(uri))
+            SELECT_IMPORT_CUSTOM_ORDER_FILE_INTENT -> importCustomOrder(contentResolver.openInputStream(uri))
         }
     }
 
@@ -895,6 +913,118 @@ class SettingsActivity : SimpleActivity() {
             }
 
             toast(if (importedItems > 0) org.fossify.commons.R.string.importing_successful else org.fossify.commons.R.string.no_entries_for_importing)
+        }
+    }
+
+    private fun setupExportCustomOrder() {
+        binding.settingsExportCustomOrderHolder.setOnClickListener {
+            if (isQPlus()) {
+                ExportFavoritesDialog(
+                    this, getExportCustomOrderFilename(), true, R.string.export_custom_order
+                ) { path, filename ->
+                    Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TITLE, filename)
+                        addCategory(Intent.CATEGORY_OPENABLE)
+
+                        try {
+                            startActivityForResult(this, SELECT_EXPORT_CUSTOM_ORDER_FILE_INTENT)
+                        } catch (e: ActivityNotFoundException) {
+                            toast(org.fossify.commons.R.string.system_service_disabled, Toast.LENGTH_LONG)
+                        } catch (e: Exception) {
+                            showErrorToast(e)
+                        }
+                    }
+                }
+            } else {
+                handlePermission(PERMISSION_WRITE_STORAGE) {
+                    if (it) {
+                        ExportFavoritesDialog(
+                            this, getExportCustomOrderFilename(), false, R.string.export_custom_order
+                        ) { path, filename ->
+                            val file = File(path)
+                            getFileOutputStream(file.toFileDirItem(this), true) {
+                                exportCustomOrderTo(it)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun exportCustomOrderTo(outputStream: OutputStream?) {
+        if (outputStream == null) {
+            toast(org.fossify.commons.R.string.unknown_error_occurred)
+            return
+        }
+
+        ensureBackgroundThread {
+            val exportedFolders = try {
+                exportCustomMediaOrder(outputStream)
+            } catch (e: Exception) {
+                showErrorToast(e)
+                0
+            }
+
+            toast(
+                if (exportedFolders > 0) {
+                    org.fossify.commons.R.string.exporting_successful
+                } else {
+                    org.fossify.commons.R.string.no_items_found
+                }
+            )
+        }
+    }
+
+    private fun getExportCustomOrderFilename(): String {
+        val appName = baseConfig.appId.removeSuffix(".debug").removeSuffix(".pro").removePrefix("org.fossify.")
+        return "$appName-custom_order_${getCurrentFormattedDateTime()}"
+    }
+
+    private fun setupImportCustomOrder() {
+        binding.settingsImportCustomOrderHolder.setOnClickListener {
+            if (isQPlus()) {
+                Intent(Intent.ACTION_GET_CONTENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "text/plain"
+                    startActivityForResult(this, SELECT_IMPORT_CUSTOM_ORDER_FILE_INTENT)
+                }
+            } else {
+                handlePermission(PERMISSION_READ_STORAGE) {
+                    if (it) {
+                        FilePickerDialog(this) {
+                            ensureBackgroundThread {
+                                importCustomOrder(File(it).inputStream())
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun importCustomOrder(inputStream: InputStream?) {
+        if (inputStream == null) {
+            toast(org.fossify.commons.R.string.unknown_error_occurred)
+            return
+        }
+
+        ensureBackgroundThread {
+            val importedFolders = try {
+                importCustomMediaOrder(inputStream)
+            } catch (e: Exception) {
+                showErrorToast(e)
+                0
+            }
+
+            toast(
+                if (importedFolders > 0) {
+                    org.fossify.commons.R.string.importing_successful
+                } else {
+                    org.fossify.commons.R.string.no_entries_for_importing
+                }
+            )
         }
     }
 

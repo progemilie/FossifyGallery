@@ -255,6 +255,8 @@
     <string name="rounded_corners">Rounded corners</string>
     <string name="export_favorite_paths">Export favorites</string>
     <string name="import_favorite_paths">Import favorites</string>
+    <string name="export_custom_order">Export custom order</string>
+    <string name="import_custom_order">Import custom order</string>
     <string name="paths_imported_successfully">Paths imported successfully</string>
     <string name="media_management_prompt">To make sure that all file operations work reliably, please make this app a Media management app in your device settings.</string>
     <string name="password_protect_excluded">Password protect excluded folder visibility</string>
