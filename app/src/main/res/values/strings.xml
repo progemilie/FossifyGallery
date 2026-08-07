@@ -42,6 +42,10 @@
         <item quantity="one">%d marked, tap more or drag it</item>
         <item quantity="other">%d marked, drag one to move them all</item>
     </plurals>
+    <plurals name="reorder_moving_items">
+        <item quantity="one">Moving %d item</item>
+        <item quantity="other">Moving %d items</item>
+    </plurals>
     <string name="custom_order_saved">Custom order saved</string>
     <string name="custom_order_reset">Custom order reset</string>
     <string name="reorder_needs_more_items">There is nothing to reorder here</string>

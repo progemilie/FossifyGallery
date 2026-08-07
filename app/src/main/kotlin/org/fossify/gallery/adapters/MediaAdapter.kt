@@ -146,6 +146,7 @@ class MediaAdapter(
     private val hasOTGConnected = activity.hasOTGConnected()
 
     private var highlightAnimator: Animator? = null
+    private var dragLiftAnimator: Animator? = null
 
     private var isReordering = false
     private var itemTouchHelper: ItemTouchHelper? = null
@@ -153,10 +154,14 @@ class MediaAdapter(
     // paths ticked off while reordering, kept in the order they were ticked - a separate set from
     // selectedKeys, which belongs to the action mode and has no business being up mid arrangement
     private val reorderSelection = LinkedHashSet<String>()
+
+    // what the drag under way is carrying: the marked items in the order they were picked up, the
+    // dragged one among them. empty while a lone item is being dragged
+    private var carriedItems = emptyList<Medium>()
     private var draggedPath: String? = null
 
-    // told how many items are marked, so the reorder bar can say what a drag is about to move
-    var onReorderSelectionChanged: ((Int) -> Unit)? = null
+    // told what is marked and what a drag is carrying, so the reorder bar can say so
+    var onReorderStateChanged: ((marked: Int, carried: Int) -> Unit)? = null
 
     private var scrollHorizontally = config.scrollHorizontally
     private var animateGifs = config.animateGifs
@@ -212,7 +217,7 @@ class MediaAdapter(
         if (isReordering && tmbItem is Medium) {
             holder.itemView.setOnClickListener { toggleReorderSelection(tmbItem, holder) }
             holder.itemView.setOnLongClickListener {
-                itemTouchHelper?.startDrag(holder)
+                startDragging(tmbItem, holder)
                 true
             }
         }
@@ -738,13 +743,14 @@ class MediaAdapter(
      */
     fun setReordering(reordering: Boolean, newMedia: ArrayList<ThumbnailItem>? = null) {
         isReordering = reordering
+        carriedItems = emptyList()
         draggedPath = null
         reorderSelection.clear()
-        onReorderSelectionChanged?.invoke(0)
+        notifyReorderState()
         if (reordering) {
             finishActMode()
             if (itemTouchHelper == null) {
-                itemTouchHelper = ItemTouchHelper(ItemMoveCallback(this, true))
+                itemTouchHelper = ItemTouchHelper(NearestCellMoveCallback(this))
             }
             itemTouchHelper?.attachToRecyclerView(recyclerView)
         } else {
@@ -759,7 +765,11 @@ class MediaAdapter(
         notifyDataSetChanged()
     }
 
-    fun getReorderedPaths() = media.mapNotNull { (it as? Medium)?.path }
+    fun getReorderedPaths(): List<String> {
+        // a save that lands while a drag is still carrying items must not go out without them
+        dropCarriedItems()
+        return media.mapNotNull { (it as? Medium)?.path }
+    }
 
     fun updateMedia(newMedia: ArrayList<ThumbnailItem>) {
         if (isReordering) {
@@ -949,7 +959,7 @@ class MediaAdapter(
         }
 
         bindItem(holder.itemView, medium).markSelected(isItemSelected(medium))
-        onReorderSelectionChanged?.invoke(reorderSelection.size)
+        notifyReorderState()
     }
 
     private fun setupThumbnail(view: View, medium: Medium) {
@@ -1068,33 +1078,51 @@ class MediaAdapter(
 
     override fun onRowSelected(myViewHolder: ViewHolder?) {
         swipeRefreshLayout?.isEnabled = false
-        val position = myViewHolder?.bindingAdapterPosition ?: RecyclerView.NO_POSITION
-        draggedPath = (media.getOrNull(position) as? Medium)?.path
         myViewHolder?.itemView?.liftForDrag()
     }
 
     override fun onRowClear(myViewHolder: ViewHolder?) {
         swipeRefreshLayout?.isEnabled = !isReordering && config.enablePullToRefresh
         myViewHolder?.itemView?.dropAfterDrag()
-
-        val droppedPath = draggedPath
-        draggedPath = null
-        if (droppedPath != null) {
-            // the drop is still being animated out, let it finish before the list moves under it
-            recyclerView.post { gatherSelectionAround(droppedPath) }
-        }
+        dropCarriedItems()
+        notifyReorderState()
     }
 
     /**
-     * Pulls every ticked item over to the one just dropped, the ones that were ahead of it landing
-     * directly in front and the ones behind directly after, so a whole selection can be placed in
-     * one drag. Their order among themselves is left alone - the drag says where the group goes,
-     * not how it is shuffled - and the dropped item stays exactly where the finger left it.
+     * Picks up the item held down and, if it is one of several marked, every other marked item with
+     * it. The others leave the grid for the length of the drag: the grid closes over the gaps they
+     * leave and opens one where the group is headed, so what is on screen while dragging is what
+     * the arrangement will look like rather than one item wandering through the old one.
      *
-     * Dragging an item that is not ticked moves that item alone, whatever else is marked.
+     * The group is taken out before the drag starts rather than after. ItemTouchHelper anchors the
+     * dragged view to where it sat when it was picked up, so the item stays under the finger even
+     * though the grid closes up underneath it.
      */
-    private fun gatherSelectionAround(droppedPath: String) {
-        if (!isReordering || reorderSelection.size < 2 || !reorderSelection.contains(droppedPath)) {
+    private fun startDragging(medium: Medium, holder: ViewHolder) {
+        draggedPath = medium.path
+        carriedItems = if (reorderSelection.size > 1 && reorderSelection.contains(medium.path)) {
+            media.filterIsInstance<Medium>().filter { reorderSelection.contains(it.path) }
+        } else {
+            emptyList()
+        }
+
+        carriedItems.filter { it.path != medium.path }.forEach { removeItem(it.path) }
+        notifyReorderState()
+        itemTouchHelper?.startDrag(holder)
+    }
+
+    /**
+     * Lands the carried items around the one just dropped, keeping the order they were picked up in
+     * - the drag says where the group goes, not how it is shuffled. Whatever was ahead of the
+     * dragged item in the group goes directly in front of it, whatever was behind goes directly
+     * after, so the dropped item keeps the place the finger left it in among the items that stayed.
+     */
+    private fun dropCarriedItems() {
+        val carried = carriedItems
+        val droppedPath = draggedPath
+        carriedItems = emptyList()
+        draggedPath = null
+        if (carried.size < 2 || droppedPath == null) {
             return
         }
 
@@ -1103,35 +1131,43 @@ class MediaAdapter(
             return
         }
 
-        val companions = media.withIndex().mapNotNull { (index, item) ->
-            val path = (item as? Medium)?.path
-            if (index != droppedIndex && path != null && reorderSelection.contains(path)) {
-                index to path
-            } else {
-                null
+        val offset = carried.indexOfFirst { it.path == droppedPath }
+        carried.take(offset).forEachIndexed { index, item ->
+            insertItem(item, droppedIndex + index)
+        }
+
+        carried.drop(offset + 1).forEachIndexed { index, item ->
+            insertItem(item, droppedIndex + offset + 1 + index)
+        }
+
+        // items landing in front of the dropped one push the grid down while it holds its scroll on
+        // what it was showing, which can leave the group that just landed above the fold
+        if (offset > 0) {
+            recyclerView.post {
+                val landedAt = indexOfPath(carried.first().path)
+                if (landedAt != -1) {
+                    scrollToItemIfNeeded(landedAt)
+                }
             }
         }
-
-        // work outwards from the dropped item, so every move lands next to what is already in place
-        companions.filter { it.first < droppedIndex }
-            .reversed()
-            .forEachIndexed { offset, (_, path) -> moveItem(path, indexOfPath(droppedPath) - 1 - offset) }
-
-        companions.filter { it.first > droppedIndex }
-            .forEachIndexed { offset, (_, path) -> moveItem(path, indexOfPath(droppedPath) + 1 + offset) }
     }
 
-    private fun moveItem(path: String, toPosition: Int) {
-        val fromPosition = indexOfPath(path)
-        if (fromPosition == -1 || fromPosition == toPosition || toPosition !in media.indices) {
-            return
+    private fun removeItem(path: String) {
+        val position = indexOfPath(path)
+        if (position != -1) {
+            media.removeAt(position)
+            notifyItemRemoved(position)
         }
+    }
 
-        media.add(toPosition, media.removeAt(fromPosition))
-        notifyItemMoved(fromPosition, toPosition)
+    private fun insertItem(item: Medium, position: Int) {
+        media.add(position, item)
+        notifyItemInserted(position)
     }
 
     private fun indexOfPath(path: String) = media.indexOfFirst { (it as? Medium)?.path == path }
+
+    private fun notifyReorderState() = onReorderStateChanged?.invoke(reorderSelection.size, carriedItems.size)
 
     /**
      * Pulls the picked up thumbnail out of the grid - smaller, ringed in the accent color and
@@ -1143,12 +1179,7 @@ class MediaAdapter(
         performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         // ItemTouchHelper owns the elevation of whatever it drags, translationZ is ours to lift with
         outlineProvider = thumbnailOutlineProvider
-        animate()
-            .scaleX(DRAG_LIFT_SCALE)
-            .scaleY(DRAG_LIFT_SCALE)
-            .translationZ(activity.resources.getDimension(R.dimen.drag_lift_elevation))
-            .setDuration(DRAG_LIFT_DURATION_MS)
-            .start()
+        animateLift(DRAG_LIFT_SCALE, activity.resources.getDimension(R.dimen.drag_lift_elevation))
 
         findThumbnail()?.apply {
             foreground = buildAccentBorder(width, DRAG_BORDER_WIDTH_FRACTION, MAX_ALPHA_INT)
@@ -1156,16 +1187,30 @@ class MediaAdapter(
     }
 
     private fun View.dropAfterDrag() {
-        animate()
-            .scaleX(1f)
-            .scaleY(1f)
-            .translationZ(0f)
-            .setDuration(DRAG_LIFT_DURATION_MS)
-            .withEndAction {
-                outlineProvider = ViewOutlineProvider.BACKGROUND
-                findThumbnail()?.foreground = null
-            }
-            .start()
+        // the ring and the shadow go at once rather than when the item has settled - carrying a
+        // group re-lays the grid out on the drop, and a reset waiting on an animation that a
+        // re-layout can cut short would leave the ring painted on the thumbnail for good
+        outlineProvider = ViewOutlineProvider.BACKGROUND
+        findThumbnail()?.foreground = null
+        animateLift(1f, 0f)
+    }
+
+    /**
+     * Animators of our own rather than the view's animate() builder: the grid's item animator uses
+     * that builder for the items it slides around and cancels whatever it finds on it, which would
+     * strand a picked up thumbnail half lifted.
+     */
+    private fun View.animateLift(scale: Float, elevation: Float) {
+        dragLiftAnimator?.cancel()
+        dragLiftAnimator = AnimatorSet().apply {
+            playTogether(
+                ObjectAnimator.ofFloat(this@animateLift, View.SCALE_X, scale),
+                ObjectAnimator.ofFloat(this@animateLift, View.SCALE_Y, scale),
+                ObjectAnimator.ofFloat(this@animateLift, View.TRANSLATION_Z, elevation)
+            )
+            duration = DRAG_LIFT_DURATION_MS
+            start()
+        }
     }
 
     private fun View.findThumbnail() = findViewById<ImageView>(R.id.medium_thumbnail)
@@ -1210,4 +1255,24 @@ class MediaAdapter(
             }
         }
     }
+}
+
+/**
+ * The dragged item takes the cell it covers most, which is the head of the list handed over here -
+ * ItemTouchHelper has already narrowed it to the cells the item overlaps and sorted them by how far
+ * their centre is from its own.
+ *
+ * The default rule instead asks which cells lie between where the item is being drawn and the cell
+ * it currently occupies. Those are the same place while a lone item is dragged, but picking up a
+ * group takes the rest of it out of the grid, which slides the held item's cell out from under the
+ * finger - and then that rule can find nothing between the two and the item stops responding. Going
+ * by what is under the item needs no such agreement, and it drops where it looks like it will.
+ */
+private class NearestCellMoveCallback(adapter: ItemTouchHelperContract) : ItemMoveCallback(adapter, true) {
+    override fun chooseDropTarget(
+        selected: RecyclerView.ViewHolder,
+        dropTargets: MutableList<RecyclerView.ViewHolder>,
+        curX: Int,
+        curY: Int
+    ) = dropTargets.firstOrNull() ?: super.chooseDropTarget(selected, dropTargets, curX, curY)
 }

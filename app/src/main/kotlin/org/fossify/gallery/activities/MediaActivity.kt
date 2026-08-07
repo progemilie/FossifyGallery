@@ -520,14 +520,15 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     }
 
     /**
-     * The hint carries whichever of the two gestures is the useful one to know about next: how to
-     * pick an item up while nothing is marked, and what a drag will take along once something is.
+     * The hint carries whatever is the useful thing to know next: how to pick an item up while
+     * nothing is marked, what a drag will take along once something is, and - while a group is off
+     * the grid travelling with the finger - how many items are in the air.
      */
-    private fun updateReorderHint(selectedCount: Int) {
-        binding.mediaReorderBar.reorderHint.text = if (selectedCount == 0) {
-            getString(R.string.reorder_media_by_dragging)
-        } else {
-            resources.getQuantityString(R.plurals.reorder_selected_items, selectedCount, selectedCount)
+    private fun updateReorderHint(markedCount: Int, carriedCount: Int) {
+        binding.mediaReorderBar.reorderHint.text = when {
+            carriedCount > 1 -> resources.getQuantityString(R.plurals.reorder_moving_items, carriedCount, carriedCount)
+            markedCount > 0 -> resources.getQuantityString(R.plurals.reorder_selected_items, markedCount, markedCount)
+            else -> getString(R.string.reorder_media_by_dragging)
         }
     }
 
@@ -559,7 +560,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         mGridBottomPadding = binding.mediaGrid.paddingBottom
         setupInsetPadding()
         binding.mediaGrid.updatePadding(bottom = 0)
-        getMediaAdapter()?.onReorderSelectionChanged = ::updateReorderHint
+        getMediaAdapter()?.onReorderStateChanged = ::updateReorderHint
         getMediaAdapter()?.setReordering(true, flatMedia)
         handleGridSpacing(flatMedia)
         setupLayoutManager()
