@@ -1,43 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/reorder_bar_holder"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
+    android:background="@drawable/reorder_bar_background"
+    android:elevation="@dimen/reorder_bar_elevation"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
     android:paddingStart="@dimen/activity_margin"
-    android:paddingEnd="@dimen/activity_margin"
+    android:paddingTop="@dimen/medium_margin"
+    android:paddingEnd="@dimen/medium_margin"
+    android:paddingBottom="@dimen/medium_margin"
     android:visibility="gone"
     tools:visibility="visible">
 
+    <ImageView
+        android:id="@+id/reorder_icon"
+        android:layout_width="@dimen/reorder_icon_size"
+        android:layout_height="@dimen/reorder_icon_size"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_drag_handle_vector" />
+
     <org.fossify.commons.views.MyTextView
         android:id="@+id/reorder_hint"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/medium_margin"
-        android:alpha="0.8"
-        android:gravity="center_horizontal"
+        android:layout_marginStart="@dimen/medium_margin"
+        android:layout_marginEnd="@dimen/medium_margin"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="2"
         android:text="@string/reorder_media_by_dragging"
         android:textSize="@dimen/smaller_text_size" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/reorder_cancel"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:gravity="end"
-        android:orientation="horizontal">
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:minHeight="@dimen/reorder_button_height"
+        android:minWidth="0dp"
+        android:paddingStart="@dimen/normal_margin"
+        android:paddingEnd="@dimen/normal_margin"
+        android:text="@string/cancel"
+        app:cornerRadius="@dimen/reorder_button_corner_radius" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/reorder_cancel"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/cancel" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/reorder_save"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/save" />
-    </LinearLayout>
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/reorder_save"
+        style="@style/Widget.Material3.Button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/medium_margin"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:minHeight="@dimen/reorder_button_height"
+        android:minWidth="0dp"
+        android:paddingStart="@dimen/bigger_margin"
+        android:paddingEnd="@dimen/bigger_margin"
+        android:text="@string/save"
+        app:cornerRadius="@dimen/reorder_button_corner_radius" />
 </LinearLayout>

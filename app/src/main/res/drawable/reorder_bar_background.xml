@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- tinted at runtime, the bar picks up whatever surface color the theme asks for -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <solid android:color="@android:color/white" />
+
+    <corners
+        android:topLeftRadius="@dimen/reorder_bar_corner_radius"
+        android:topRightRadius="@dimen/reorder_bar_corner_radius" />
+</shape>

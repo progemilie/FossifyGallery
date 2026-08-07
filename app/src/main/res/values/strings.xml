@@ -36,7 +36,7 @@
     <string name="custom_order">Custom order</string>
     <string name="change_custom_order">Change custom order</string>
     <string name="reset_custom_order">Reset custom order</string>
-    <string name="reorder_media_by_dragging">Drag the items into the order you want, then save</string>
+    <string name="reorder_media_by_dragging">Hold an item, then drag it</string>
     <string name="custom_order_saved">Custom order saved</string>
     <string name="custom_order_reset">Custom order reset</string>
     <string name="reorder_needs_more_items">There is nothing to reorder here</string>

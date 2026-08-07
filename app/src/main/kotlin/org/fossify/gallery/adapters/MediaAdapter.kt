@@ -6,11 +6,14 @@ import android.animation.ObjectAnimator
 import android.content.Intent
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
+import android.graphics.Outline
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.Icon
+import android.view.HapticFeedbackConstants
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
@@ -52,6 +55,7 @@ import org.fossify.commons.extensions.recycleBinPath
 import org.fossify.commons.extensions.rescanPaths
 import org.fossify.commons.extensions.toast
 import org.fossify.commons.helpers.FAVORITES
+import org.fossify.commons.helpers.MAX_ALPHA_INT
 import org.fossify.commons.helpers.VIEW_TYPE_LIST
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isRPlus
@@ -91,6 +95,9 @@ import org.fossify.gallery.extensions.tryCopyMoveFilesTo
 import org.fossify.gallery.extensions.updateDBMediaPath
 import org.fossify.gallery.extensions.updateFavorite
 import org.fossify.gallery.extensions.updateFavoritePaths
+import org.fossify.gallery.helpers.DRAG_BORDER_WIDTH_FRACTION
+import org.fossify.gallery.helpers.DRAG_LIFT_DURATION_MS
+import org.fossify.gallery.helpers.DRAG_LIFT_SCALE
 import org.fossify.gallery.helpers.HIGHLIGHT_BORDER_OPAQUE_ALPHA
 import org.fossify.gallery.helpers.HIGHLIGHT_BORDER_WIDTH_FRACTION
 import org.fossify.gallery.helpers.HIGHLIGHT_FADE_IN_DURATION_MS
@@ -290,10 +297,16 @@ class MediaAdapter(
         super.onViewRecycled(holder)
         if (!activity.isDestroyed) {
             val itemView = holder.itemView
+            // a view let go of mid drag would come back to another item still lifted
+            itemView.animate().cancel()
+            itemView.scaleX = 1f
+            itemView.scaleY = 1f
+            itemView.translationZ = 0f
+
             val tmb = itemView.allViews.firstOrNull { it.id == R.id.medium_thumbnail }
             if (tmb != null) {
                 Glide.with(activity).clear(tmb)
-                // drop a leftover highlight border, it would otherwise show up on another item
+                // drop a leftover highlight or drag border, it would otherwise show up on another item
                 tmb.foreground = null
             }
         }
@@ -828,6 +841,24 @@ class MediaAdapter(
             }
     }
 
+    /**
+     * An accent ring following the thumbnail's own corners, [widthFraction] of its width so it
+     * stays in proportion whatever column count the grid is on.
+     */
+    private fun buildAccentBorder(thumbnailWidth: Int, widthFraction: Float, alpha: Int): GradientDrawable {
+        val strokeWidth = (thumbnailWidth * widthFraction).coerceIn(
+            activity.resources.getDimension(R.dimen.highlight_border_min_width),
+            activity.resources.getDimension(R.dimen.highlight_border_max_width)
+        )
+
+        return GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = getThumbnailCornerRadius()
+            setStroke(strokeWidth.toInt(), properPrimaryColor)
+            this.alpha = alpha
+        }
+    }
+
     private fun highlightItem(position: Int) {
         val thumbnail = recyclerView.findViewHolderForAdapterPosition(position)
             ?.itemView
@@ -835,17 +866,7 @@ class MediaAdapter(
 
         highlightAnimator?.cancel()
 
-        val strokeWidth = (thumbnail.width * HIGHLIGHT_BORDER_WIDTH_FRACTION).coerceIn(
-            activity.resources.getDimension(R.dimen.highlight_border_min_width),
-            activity.resources.getDimension(R.dimen.highlight_border_max_width)
-        )
-
-        val border = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = getThumbnailCornerRadius()
-            setStroke(strokeWidth.toInt(), properPrimaryColor)
-            alpha = 0
-        }
+        val border = buildAccentBorder(thumbnail.width, HIGHLIGHT_BORDER_WIDTH_FRACTION, alpha = 0)
 
         // setForeground makes the view the drawables callback, so changing the alpha repaints it
         thumbnail.foreground = border
@@ -1007,10 +1028,65 @@ class MediaAdapter(
 
     override fun onRowSelected(myViewHolder: ViewHolder?) {
         swipeRefreshLayout?.isEnabled = false
+        myViewHolder?.itemView?.liftForDrag()
     }
 
     override fun onRowClear(myViewHolder: ViewHolder?) {
         swipeRefreshLayout?.isEnabled = !isReordering && config.enablePullToRefresh
+        myViewHolder?.itemView?.dropAfterDrag()
+    }
+
+    /**
+     * Pulls the picked up thumbnail out of the grid - smaller, ringed in the accent color and
+     * casting a shadow into the gap that opens around it - so the moment the long press takes hold
+     * and the item is free to be moved is unmistakable. A tap of feedback goes with it, the finger
+     * is on the item and cannot see it.
+     */
+    private fun View.liftForDrag() {
+        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        // ItemTouchHelper owns the elevation of whatever it drags, translationZ is ours to lift with
+        outlineProvider = thumbnailOutlineProvider
+        animate()
+            .scaleX(DRAG_LIFT_SCALE)
+            .scaleY(DRAG_LIFT_SCALE)
+            .translationZ(activity.resources.getDimension(R.dimen.drag_lift_elevation))
+            .setDuration(DRAG_LIFT_DURATION_MS)
+            .start()
+
+        findThumbnail()?.apply {
+            foreground = buildAccentBorder(width, DRAG_BORDER_WIDTH_FRACTION, MAX_ALPHA_INT)
+        }
+    }
+
+    private fun View.dropAfterDrag() {
+        animate()
+            .scaleX(1f)
+            .scaleY(1f)
+            .translationZ(0f)
+            .setDuration(DRAG_LIFT_DURATION_MS)
+            .withEndAction {
+                outlineProvider = ViewOutlineProvider.BACKGROUND
+                findThumbnail()?.foreground = null
+            }
+            .start()
+    }
+
+    private fun View.findThumbnail() = findViewById<ImageView>(R.id.medium_thumbnail)
+
+    /**
+     * The item view carries the padding that spaces the grid out, so a shadow around it would sit
+     * off the picture. This traces the thumbnail inside it instead, corners and all.
+     */
+    private val thumbnailOutlineProvider = object : ViewOutlineProvider() {
+        override fun getOutline(view: View, outline: Outline) {
+            outline.setRoundRect(
+                view.paddingLeft,
+                view.paddingTop,
+                view.width - view.paddingRight,
+                view.height - view.paddingBottom,
+                getThumbnailCornerRadius()
+            )
+        }
     }
 
     override fun onChange(position: Int): String {

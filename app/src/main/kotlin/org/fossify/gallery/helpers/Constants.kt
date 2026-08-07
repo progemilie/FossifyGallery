@@ -276,6 +276,13 @@ const val HIGHLIGHT_FADE_OUT_DURATION_MS = 250L
 const val HIGHLIGHT_BORDER_WIDTH_FRACTION = 0.08f
 const val HIGHLIGHT_BORDER_OPAQUE_ALPHA = 255
 
+// the lift a thumbnail gets while it is being held for a hand made order. it shrinks rather than
+// grows - a bigger one would be cut off by the grid edge in the outer columns, taking its ring
+// with it, and the gap the smaller one leaves is what lets the shadow under it show
+const val DRAG_LIFT_SCALE = 0.9f
+const val DRAG_LIFT_DURATION_MS = 120L
+const val DRAG_BORDER_WIDTH_FRACTION = 0.04f
+
 fun getPermissionToRequest() = if (isTiramisuPlus()) PERMISSION_READ_MEDIA_IMAGES else PERMISSION_WRITE_STORAGE
 
 fun getPermissionsToRequest(): Collection<Int> {
