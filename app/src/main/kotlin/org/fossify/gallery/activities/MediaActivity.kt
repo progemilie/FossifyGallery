@@ -520,6 +520,18 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     }
 
     /**
+     * The hint carries whichever of the two gestures is the useful one to know about next: how to
+     * pick an item up while nothing is marked, and what a drag will take along once something is.
+     */
+    private fun updateReorderHint(selectedCount: Int) {
+        binding.mediaReorderBar.reorderHint.text = if (selectedCount == 0) {
+            getString(R.string.reorder_media_by_dragging)
+        } else {
+            resources.getQuantityString(R.plurals.reorder_selected_items, selectedCount, selectedCount)
+        }
+    }
+
+    /**
      * Puts the grid into drag-to-reorder mode. The list is flattened first - grouping headers have
      * no place in a hand made order - and the search is closed so the arrangement covers the whole
      * folder rather than whatever was filtered into view.
@@ -547,6 +559,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         mGridBottomPadding = binding.mediaGrid.paddingBottom
         setupInsetPadding()
         binding.mediaGrid.updatePadding(bottom = 0)
+        getMediaAdapter()?.onReorderSelectionChanged = ::updateReorderHint
         getMediaAdapter()?.setReordering(true, flatMedia)
         handleGridSpacing(flatMedia)
         setupLayoutManager()

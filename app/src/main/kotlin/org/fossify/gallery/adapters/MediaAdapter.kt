@@ -150,6 +150,14 @@ class MediaAdapter(
     private var isReordering = false
     private var itemTouchHelper: ItemTouchHelper? = null
 
+    // paths ticked off while reordering, kept in the order they were ticked - a separate set from
+    // selectedKeys, which belongs to the action mode and has no business being up mid arrangement
+    private val reorderSelection = LinkedHashSet<String>()
+    private var draggedPath: String? = null
+
+    // told how many items are marked, so the reorder bar can say what a drag is about to move
+    var onReorderSelectionChanged: ((Int) -> Unit)? = null
+
     private var scrollHorizontally = config.scrollHorizontally
     private var animateGifs = config.animateGifs
     private var cropThumbnails = config.cropThumbnails
@@ -198,9 +206,11 @@ class MediaAdapter(
             }
         }
 
-        // while reordering the grid is flat and unselectable, bindView cleared both listeners above
-        // so a long press is free to mean "pick this thumbnail up" instead
-        if (isReordering) {
+        // while reordering the action mode is out of reach, bindView cleared both listeners above
+        // so the two gestures are free to mean something else: a long press picks the thumbnail up,
+        // a tap marks it to travel along with whatever is picked up next
+        if (isReordering && tmbItem is Medium) {
+            holder.itemView.setOnClickListener { toggleReorderSelection(tmbItem, holder) }
             holder.itemView.setOnLongClickListener {
                 itemTouchHelper?.startDrag(holder)
                 true
@@ -728,6 +738,9 @@ class MediaAdapter(
      */
     fun setReordering(reordering: Boolean, newMedia: ArrayList<ThumbnailItem>? = null) {
         isReordering = reordering
+        draggedPath = null
+        reorderSelection.clear()
+        onReorderSelectionChanged?.invoke(0)
         if (reordering) {
             finishActMode()
             if (itemTouchHelper == null) {
@@ -904,8 +917,43 @@ class MediaAdapter(
         return activity.resources.getDimension(radiusId)
     }
 
+    /**
+     * A ticked item wears the same check while reordering as it does in the action mode - it means
+     * the same thing, the item is one of several the next command applies to.
+     */
+    private fun MediaItemBinding.markSelected(isSelected: Boolean) {
+        mediumCheck.beVisibleIf(isSelected)
+        if (isSelected) {
+            mediumCheck.background?.applyColorFilter(properPrimaryColor)
+            mediumCheck.applyColorFilter(contrastColor)
+        }
+
+        if (isListViewType) {
+            mediaItemHolder.isSelected = isSelected
+        }
+    }
+
+    private fun isItemSelected(medium: Medium) = if (isReordering) {
+        reorderSelection.contains(medium.path)
+    } else {
+        selectedKeys.contains(medium.path.hashCode())
+    }
+
+    /**
+     * Repaints only the check rather than rebinding the item - a rebind would put the thumbnail
+     * through another image request, and this runs on every tap.
+     */
+    private fun toggleReorderSelection(medium: Medium, holder: ViewHolder) {
+        if (!reorderSelection.remove(medium.path)) {
+            reorderSelection.add(medium.path)
+        }
+
+        bindItem(holder.itemView, medium).markSelected(isItemSelected(medium))
+        onReorderSelectionChanged?.invoke(reorderSelection.size)
+    }
+
     private fun setupThumbnail(view: View, medium: Medium) {
-        val isSelected = selectedKeys.contains(medium.path.hashCode())
+        val isSelected = isItemSelected(medium)
         bindItem(view, medium).apply {
             val padding = if (config.thumbnailSpacing <= 1) {
                 config.thumbnailSpacing
@@ -958,15 +1006,7 @@ class MediaAdapter(
                 videoDuration?.setTextColor(textColor)
             }
 
-            mediumCheck.beVisibleIf(isSelected)
-            if (isSelected) {
-                mediumCheck.background?.applyColorFilter(properPrimaryColor)
-                mediumCheck.applyColorFilter(contrastColor)
-            }
-
-            if (isListViewType) {
-                mediaItemHolder.isSelected = isSelected
-            }
+            markSelected(isSelected)
 
             var path = medium.path
             if (hasOTGConnected && root.context.isPathOnOTG(path)) {
@@ -1028,13 +1068,70 @@ class MediaAdapter(
 
     override fun onRowSelected(myViewHolder: ViewHolder?) {
         swipeRefreshLayout?.isEnabled = false
+        val position = myViewHolder?.bindingAdapterPosition ?: RecyclerView.NO_POSITION
+        draggedPath = (media.getOrNull(position) as? Medium)?.path
         myViewHolder?.itemView?.liftForDrag()
     }
 
     override fun onRowClear(myViewHolder: ViewHolder?) {
         swipeRefreshLayout?.isEnabled = !isReordering && config.enablePullToRefresh
         myViewHolder?.itemView?.dropAfterDrag()
+
+        val droppedPath = draggedPath
+        draggedPath = null
+        if (droppedPath != null) {
+            // the drop is still being animated out, let it finish before the list moves under it
+            recyclerView.post { gatherSelectionAround(droppedPath) }
+        }
     }
+
+    /**
+     * Pulls every ticked item over to the one just dropped, the ones that were ahead of it landing
+     * directly in front and the ones behind directly after, so a whole selection can be placed in
+     * one drag. Their order among themselves is left alone - the drag says where the group goes,
+     * not how it is shuffled - and the dropped item stays exactly where the finger left it.
+     *
+     * Dragging an item that is not ticked moves that item alone, whatever else is marked.
+     */
+    private fun gatherSelectionAround(droppedPath: String) {
+        if (!isReordering || reorderSelection.size < 2 || !reorderSelection.contains(droppedPath)) {
+            return
+        }
+
+        val droppedIndex = indexOfPath(droppedPath)
+        if (droppedIndex == -1) {
+            return
+        }
+
+        val companions = media.withIndex().mapNotNull { (index, item) ->
+            val path = (item as? Medium)?.path
+            if (index != droppedIndex && path != null && reorderSelection.contains(path)) {
+                index to path
+            } else {
+                null
+            }
+        }
+
+        // work outwards from the dropped item, so every move lands next to what is already in place
+        companions.filter { it.first < droppedIndex }
+            .reversed()
+            .forEachIndexed { offset, (_, path) -> moveItem(path, indexOfPath(droppedPath) - 1 - offset) }
+
+        companions.filter { it.first > droppedIndex }
+            .forEachIndexed { offset, (_, path) -> moveItem(path, indexOfPath(droppedPath) + 1 + offset) }
+    }
+
+    private fun moveItem(path: String, toPosition: Int) {
+        val fromPosition = indexOfPath(path)
+        if (fromPosition == -1 || fromPosition == toPosition || toPosition !in media.indices) {
+            return
+        }
+
+        media.add(toPosition, media.removeAt(fromPosition))
+        notifyItemMoved(fromPosition, toPosition)
+    }
+
+    private fun indexOfPath(path: String) = media.indexOfFirst { (it as? Medium)?.path == path }
 
     /**
      * Pulls the picked up thumbnail out of the grid - smaller, ringed in the accent color and
