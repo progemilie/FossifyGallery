@@ -21,6 +21,7 @@ import org.fossify.gallery.R
 import org.fossify.gallery.databinding.DialogChangeSortingBinding
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.helpers.SHOW_ALL
+import org.fossify.gallery.helpers.SORT_BY_RATING
 
 class ChangeSortingDialog(
     val activity: BaseSimpleActivity,
@@ -64,6 +65,8 @@ class ChangeSortingDialog(
             sortingDialogUseForThisFolder.isChecked = config.hasCustomSorting(pathToUse)
             sortingDialogBottomNote.beVisibleIf(!isDirectorySorting)
             sortingDialogRadioCustom.beVisibleIf(isDirectorySorting || canSortMediaCustomly)
+            // folders have no rating of their own to sort by, only the media inside them do
+            sortingDialogRadioRating.beVisibleIf(!isDirectorySorting)
         }
 
         activity.getAlertDialogBuilder()
@@ -89,6 +92,7 @@ class ChangeSortingDialog(
             currSorting and SORT_BY_COUNT != 0 -> binding.sortingDialogRadioNumberOfItems
             currSorting and SORT_BY_DATE_MODIFIED != 0 -> binding.sortingDialogRadioLastModified
             currSorting and SORT_BY_DATE_TAKEN != 0 -> binding.sortingDialogRadioDateTaken
+            currSorting and SORT_BY_RATING != 0 -> binding.sortingDialogRadioRating
             currSorting and SORT_BY_RANDOM != 0 -> binding.sortingDialogRadioRandom
             currSorting and SORT_BY_CUSTOM != 0 -> binding.sortingDialogRadioCustom
             else -> binding.sortingDialogRadioName
@@ -140,6 +144,7 @@ class ChangeSortingDialog(
         R.id.sorting_dialog_radio_size -> SORT_BY_SIZE
         R.id.sorting_dialog_radio_number_of_items -> SORT_BY_COUNT
         R.id.sorting_dialog_radio_last_modified -> SORT_BY_DATE_MODIFIED
+        R.id.sorting_dialog_radio_rating -> SORT_BY_RATING
         R.id.sorting_dialog_radio_random -> SORT_BY_RANDOM
         R.id.sorting_dialog_radio_custom -> SORT_BY_CUSTOM
         else -> SORT_BY_DATE_TAKEN

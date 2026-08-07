@@ -114,6 +114,49 @@ last-modified date (`fileTransformedSuccessfully`, renamed from `fileRotatedSucc
 applies Exif orientation itself, so Glide's baked-in transform has to be undone — mirror first,
 then rotate, since the two don't commute.
 
+### Star ratings
+
+A 0–5 rating per photo, ported from Aves. It lives in the file's XMP packet, not in the app:
+`helpers/XmpRating.kt` reads and rewrites `xmp:Rating` (and keeps `MicrosoftPhoto:Rating` in step
+when the file already had one), which is what Aves, Lightroom, digiKam and Windows all read.
+androidx `ExifInterface` is pinned to 1.4.2 in the version catalog because XMP *writing* only
+arrived in 1.4.0.
+
+Three things about `XmpRating` are load-bearing:
+- Reading is regex, writing is DOM. Reading runs once per file on a media scan, where building a
+  DOM per photo would be the expensive part of the scan.
+- Output is forced to ASCII (`OutputKeys.ENCODING = "US-ASCII"` onto a *stream*, not a Writer), so
+  non-ASCII in someone else's XMP comes back as numeric character references. `ExifInterface` hands
+  the packet over as a `String`, and that round trip is only lossless for ASCII.
+- Setting 0 removes the property, and drops the whole packet when nothing else was in it. `apply`
+  returns its input unchanged when nothing needs to change — that is how `extensions/Rating.kt`
+  knows not to rewrite the file at all.
+
+`updateFileRating` restores the file's last-modified date **unconditionally**, not gated on
+`config.keepLastModified` like `fileTransformedSuccessfully` is: rating a photo is not a change to
+the photo, and letting it re-date the file reshuffles every date-sorted grid. It deliberately does
+*not* call `TransformedMedia.onTransformed` — writing XMP rewrites the container but not a pixel,
+so every decoded bitmap still stands (unlike the mirror above). Only jpg/png/webp can be written at
+all (`String.canBeRated()`); the viewer's star button hides itself for anything else.
+
+Ratings are cached in a `media_ratings` Room table (migration 11→12) keyed by lowercased path, with
+the file's last-modified and size as the staleness signature, plus a denormalized `media.rating`
+column so media read back from the cache carry their badge immediately. `MediaFetcher.RatingScan`
+is the only thing that opens files, and only when `Config.showThumbnailRating` is on or the folder
+sorts by rating — otherwise a scan pays nothing. A rating of 0 is cached too; "no rating" is just
+as expensive to work out again.
+
+`SORT_BY_RATING` (1048576, past the last commons sorting) brings its own headers: `groupMedia`
+forces `GROUP_BY_RATING` under it rather than offering a separate Group by entry, giving ★★★★★…★
+and Unrated sections. Ties inside a rating fall back to newest first, after the descending sign
+flip so reversing the ratings does not also flip the dates inside them.
+
+The viewer's `bottom_rating` button is the Aves gesture: hold it and `views/RatingChooser.kt` pops
+up over it, sliding left/right picks a rating without lifting off, and left of the first star
+clears it. A plain tap opens `RateMediumDialog` instead. The button consumes all touches, so the
+tap path goes through `performClick()` to keep accessibility working. The favourite button became a
+heart (`ic_heart_outline_vector`/commons `ic_heart_vector`) to free the star for this.
+
 ### Per-folder custom media order
 
 Sort-by-custom for media (upstream has it for folders only). Storage is split deliberately:

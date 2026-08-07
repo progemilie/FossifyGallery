@@ -158,6 +158,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private var mStoredShowFileTypes = true
     private var mStoredRoundedCorners = false
     private var mStoredMarkFavoriteItems = true
+    private var mStoredShowRatings = true
     private var mStoredTextColor = 0
     private var mStoredPrimaryColor = 0
     private var mStoredThumbnailSpacing = 0
@@ -231,6 +232,13 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
         if (mStoredShowFileTypes != config.showThumbnailFileTypes) {
             getMediaAdapter()?.updateShowFileTypes(config.showThumbnailFileTypes)
+        }
+
+        if (mStoredShowRatings != config.showThumbnailRating) {
+            // turning it on for the first time means no rating has ever been read, so the scan has
+            // to run again rather than just repainting what is already there
+            getMediaAdapter()?.updateShowRatings(config.showThumbnailRating)
+            getMedia()
         }
 
         if (mStoredTextColor != getProperTextColor()) {
@@ -658,6 +666,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             mStoredScrollHorizontally = scrollHorizontally
             mStoredShowFileTypes = showThumbnailFileTypes
             mStoredMarkFavoriteItems = markFavoriteItems
+            mStoredShowRatings = showThumbnailRating
             mStoredThumbnailSpacing = thumbnailSpacing
             mStoredRoundedCorners = fileRoundedCorners
             mShowAll = showAll && mPath != RECYCLE_BIN

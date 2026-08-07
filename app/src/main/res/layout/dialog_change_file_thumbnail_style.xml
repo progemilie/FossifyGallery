@@ -108,5 +108,21 @@
                 android:text="@string/mark_favorite_items" />
 
         </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/dialog_file_style_show_thumbnail_rating_holder"
+            style="@style/SettingsHolderCheckboxStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground">
+
+            <org.fossify.commons.views.MyAppCompatCheckbox
+                android:id="@+id/dialog_file_style_show_thumbnail_rating"
+                style="@style/SettingsCheckboxStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/show_thumbnail_rating" />
+
+        </RelativeLayout>
     </LinearLayout>
 </ScrollView>

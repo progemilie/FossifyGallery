@@ -91,6 +91,7 @@ const val FILE_LOADING_PRIORITY = "file_loading_priority"
 const val SPAM_FOLDERS_CHECKED = "spam_folders_checked"
 const val SHOW_THUMBNAIL_FILE_TYPES = "show_thumbnail_file_types"
 const val MARK_FAVORITE_ITEMS = "mark_favorite_items"
+const val SHOW_THUMBNAIL_RATING = "show_thumbnail_rating"
 const val EDITOR_BRUSH_COLOR = "editor_brush_color"
 const val EDITOR_BRUSH_HARDNESS = "editor_brush_hardness"
 const val EDITOR_BRUSH_SIZE = "editor_brush_size"
@@ -193,6 +194,7 @@ const val EXT_ARTIST = 512
 const val EXT_ALBUM = 1024
 const val EXT_GPS = 2048
 const val EXT_ORIENTATION = 4096
+const val EXT_RATING = 8192
 
 // default extended details, per build type
 const val DEFAULT_EXTENDED_DETAILS = EXT_RESOLUTION or EXT_LAST_MODIFIED or EXT_EXIF_PROPERTIES
@@ -220,8 +222,15 @@ const val GROUP_BY_EXTENSION = 16
 const val GROUP_BY_FOLDER = 32
 const val GROUP_BY_LAST_MODIFIED_MONTHLY = 64
 const val GROUP_BY_DATE_TAKEN_MONTHLY = 128
+
+// not offered in the Group by dialog: sorting by rating brings its own headers, so this is only
+// ever set by MediaFetcher.groupMedia off the back of SORT_BY_RATING
+const val GROUP_BY_RATING = 256
 const val GROUP_DESCENDING = 1024
 const val GROUP_SHOW_FILE_COUNT = 2048
+
+// the sortings above are the ones Fossify Commons defines, which go up to SORT_BY_COUNT (524288)
+const val SORT_BY_RATING = 1048576
 
 // bottom actions
 const val BOTTOM_ACTION_TOGGLE_FAVORITE = 1
@@ -239,8 +248,10 @@ const val BOTTOM_ACTION_SET_AS = 2048
 const val BOTTOM_ACTION_COPY = 4096
 const val BOTTOM_ACTION_MOVE = 8192
 const val BOTTOM_ACTION_RESIZE = 16384
+const val BOTTOM_ACTION_RATING = 32768
 
-const val DEFAULT_BOTTOM_ACTIONS = BOTTOM_ACTION_TOGGLE_FAVORITE or BOTTOM_ACTION_EDIT or BOTTOM_ACTION_SHARE or BOTTOM_ACTION_DELETE
+const val DEFAULT_BOTTOM_ACTIONS = BOTTOM_ACTION_TOGGLE_FAVORITE or BOTTOM_ACTION_RATING or
+    BOTTOM_ACTION_EDIT or BOTTOM_ACTION_SHARE or BOTTOM_ACTION_DELETE
 
 // aspect ratios used at the editor for cropping
 const val ASPECT_RATIO_FREE = 0

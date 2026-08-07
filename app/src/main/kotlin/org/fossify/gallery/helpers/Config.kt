@@ -202,6 +202,10 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(MARK_FAVORITE_ITEMS, true)
         set(markFavoriteItems) = prefs.edit().putBoolean(MARK_FAVORITE_ITEMS, markFavoriteItems).apply()
 
+    var showThumbnailRating: Boolean
+        get() = prefs.getBoolean(SHOW_THUMBNAIL_RATING, true)
+        set(showThumbnailRating) = prefs.edit().putBoolean(SHOW_THUMBNAIL_RATING, showThumbnailRating).apply()
+
     var screenRotation: Int
         get() = prefs.getInt(SCREEN_ROTATION, ROTATE_BY_SYSTEM_SETTING)
         set(screenRotation) = prefs.edit().putInt(SCREEN_ROTATION, screenRotation).apply()

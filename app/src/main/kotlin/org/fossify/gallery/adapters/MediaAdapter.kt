@@ -170,6 +170,7 @@ class MediaAdapter(
     private var cropThumbnails = config.cropThumbnails
     private var displayFilenames = config.displayFileNames
     private var showFileTypes = config.showThumbnailFileTypes
+    private var showRatings = config.showThumbnailRating
 
     var sorting = config.getFolderSorting(if (config.showAll) SHOW_ALL else path)
     var dateFormat = config.dateFormat
@@ -813,6 +814,11 @@ class MediaAdapter(
         notifyDataSetChanged()
     }
 
+    fun updateShowRatings(showRatings: Boolean) {
+        this.showRatings = showRatings
+        notifyDataSetChanged()
+    }
+
     /**
      * Scrolls the item at [path] into view if needed and briefly pulses a border over it, so it is
      * obvious which thumbnail the fullscreen viewer was just left from. Returns false if the item
@@ -978,6 +984,12 @@ class MediaAdapter(
             mediaItemHolder.setPadding(padding, padding, padding, padding)
 
             favorite.beVisibleIf(medium.isFavorite && config.markFavoriteItems)
+
+            val showRating = medium.rating > 0 && showRatings
+            if (showRating) {
+                ratingBadge?.text = medium.rating.toString()
+            }
+            ratingBadge?.beVisibleIf(showRating)
 
             playPortraitOutline?.beVisibleIf(medium.isVideo() || medium.isPortrait())
             if (medium.isVideo()) {

@@ -3,24 +3,29 @@ package org.fossify.gallery.interfaces
 import androidx.room.*
 import org.fossify.gallery.models.Medium
 
+// every column of a Medium except its id, which is left to Room to assign
+private const val COLUMNS =
+    "filename, full_path, parent_path, last_modified, date_taken, size, type, " +
+        "video_duration, is_favorite, deleted_ts, media_store_id, rating"
+
 @Dao
 interface MediumDao {
-    @Query("SELECT filename, full_path, parent_path, last_modified, date_taken, size, type, video_duration, is_favorite, deleted_ts, media_store_id FROM media WHERE deleted_ts = 0 AND parent_path = :path COLLATE NOCASE")
+    @Query("SELECT " + COLUMNS + " FROM media WHERE deleted_ts = 0 AND parent_path = :path COLLATE NOCASE")
     fun getMediaFromPath(path: String): List<Medium>
 
-    @Query("SELECT filename, full_path, parent_path, last_modified, date_taken, size, type, video_duration, is_favorite, deleted_ts, media_store_id FROM media WHERE deleted_ts = 0 AND is_favorite = 1")
+    @Query("SELECT " + COLUMNS + " FROM media WHERE deleted_ts = 0 AND is_favorite = 1")
     fun getFavorites(): List<Medium>
 
     @Query("SELECT COUNT(filename) FROM media WHERE deleted_ts = 0 AND is_favorite = 1")
     fun getFavoritesCount(): Long
 
-    @Query("SELECT filename, full_path, parent_path, last_modified, date_taken, size, type, video_duration, is_favorite, deleted_ts, media_store_id FROM media WHERE deleted_ts != 0")
+    @Query("SELECT " + COLUMNS + " FROM media WHERE deleted_ts != 0")
     fun getDeletedMedia(): List<Medium>
 
     @Query("SELECT COUNT(filename) FROM media WHERE deleted_ts != 0")
     fun getDeletedMediaCount(): Long
 
-    @Query("SELECT filename, full_path, parent_path, last_modified, date_taken, size, type, video_duration, is_favorite, deleted_ts, media_store_id FROM media WHERE deleted_ts < :timestmap AND deleted_ts != 0")
+    @Query("SELECT " + COLUMNS + " FROM media WHERE deleted_ts < :timestmap AND deleted_ts != 0")
     fun getOldRecycleBinItems(timestmap: Long): List<Medium>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -46,6 +51,9 @@ interface MediumDao {
 
     @Query("UPDATE media SET is_favorite = :isFavorite WHERE full_path = :path COLLATE NOCASE")
     fun updateFavorite(path: String, isFavorite: Boolean)
+
+    @Query("UPDATE media SET rating = :rating WHERE full_path = :path COLLATE NOCASE")
+    fun updateRating(path: String, rating: Int)
 
     @Query("UPDATE media SET is_favorite = 0")
     fun clearFavorites()

@@ -12,6 +12,9 @@ androidx-print = "1.1.0"
 androidx-swiperefreshlayout = "1.2.0"
 androidx-constraintlayout = "2.2.1"
 androidx-documentfile = "1.1.0"
+# pinned rather than left transitive: writing a rating means writing an XMP packet, and
+# ExifInterface only learned to do that in 1.4.0
+androidx-exifinterface = "1.4.2"
 #exif
 exif = "1.0.1"
 #Room
@@ -50,6 +53,7 @@ androidx-swiperefreshlayout = { module = "androidx.swiperefreshlayout:swiperefre
 androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "androidx-constraintlayout" }
 androidx-print = { module = "androidx.print:print", version.ref = "androidx-print" }
 androidx-documentfile = { module = "androidx.documentfile:documentfile", version.ref = "androidx-documentfile" }
+androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "androidx-exifinterface" }
 #exif
 exif = { module = "it.sephiroth.android.exif:library", version.ref = "exif" }
 #Room

@@ -28,8 +28,32 @@
         android:layout_margin="@dimen/small_margin"
         android:background="@drawable/circle_black_background"
         android:padding="@dimen/tiny_margin"
-        android:src="@drawable/ic_star_vector"
+        android:src="@drawable/ic_heart_vector"
         android:visibility="gone"
+        tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/rating_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/favorite"
+        android:layout_alignEnd="@id/medium_thumbnail"
+        android:layout_marginEnd="@dimen/small_margin"
+        android:background="@drawable/rating_badge_background"
+        android:drawableEnd="@drawable/ic_star_badge_vector"
+        android:drawablePadding="@dimen/tiny_margin"
+        android:drawableTint="@color/star_enabled"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center_vertical"
+        android:includeFontPadding="false"
+        android:paddingStart="@dimen/small_margin"
+        android:paddingTop="@dimen/tiny_margin"
+        android:paddingEnd="@dimen/small_margin"
+        android:paddingBottom="@dimen/tiny_margin"
+        android:textColor="@android:color/white"
+        android:textSize="@dimen/smaller_text_size"
+        android:visibility="gone"
+        tools:text="3"
         tools:visibility="visible" />
 
     <ImageView

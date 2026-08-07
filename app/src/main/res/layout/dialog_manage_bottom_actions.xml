@@ -22,6 +22,14 @@
             android:text="@string/toggle_favorite" />
 
         <org.fossify.commons.views.MyAppCompatCheckbox
+            android:id="@+id/manage_bottom_actions_rating"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="@dimen/activity_margin"
+            android:paddingBottom="@dimen/activity_margin"
+            android:text="@string/rating" />
+
+        <org.fossify.commons.views.MyAppCompatCheckbox
             android:id="@+id/manage_bottom_actions_edit"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

@@ -135,6 +135,14 @@
     <string name="orientation_rotated_270">Rotated 270°</string>
     <string name="orientation_mirrored_horizontal_rotated_90">Mirrored horizontally, rotated 90°</string>
     <string name="orientation_mirrored_horizontal_rotated_270">Mirrored horizontally, rotated 270°</string>
+    <!-- Rating -->
+    <string name="rating">Rating</string>
+    <string name="unrated">Unrated</string>
+    <string name="rate">Rate</string>
+    <string name="clear_rating">Clear</string>
+    <string name="rating_unsupported_format">A rating can only be saved into JPG, PNG and WebP files</string>
+    <string name="show_thumbnail_rating">Show ratings</string>
+
     <string name="transform">Transform</string>
     <string name="crop">Crop</string>
     <string name="draw">Draw</string>

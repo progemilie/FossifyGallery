@@ -19,6 +19,9 @@ interface MediaItemBinding {
     val videoDuration: TextView?
     val mediumCheck: ImageView
     val mediumThumbnail: MySquareImageView
+
+    // only the photo layouts carry it - a video cannot hold a rating, so there is never one to show
+    val ratingBadge: TextView?
 }
 
 class PhotoListMediaItemBinding(val binding: PhotoItemListBinding) : MediaItemBinding {
@@ -31,6 +34,7 @@ class PhotoListMediaItemBinding(val binding: PhotoItemListBinding) : MediaItemBi
     override val videoDuration: TextView? = null
     override val mediumCheck: ImageView = binding.mediumCheck
     override val mediumThumbnail: MySquareImageView = binding.mediumThumbnail
+    override val ratingBadge: TextView = binding.ratingBadge
 }
 
 fun PhotoItemListBinding.toMediaItemBinding() = PhotoListMediaItemBinding(this)
@@ -45,6 +49,7 @@ class PhotoGridMediaItemBinding(val binding: PhotoItemGridBinding) : MediaItemBi
     override val videoDuration: TextView? = null
     override val mediumCheck: ImageView = binding.mediumCheck
     override val mediumThumbnail: MySquareImageView = binding.mediumThumbnail
+    override val ratingBadge: TextView = binding.ratingBadge
 }
 
 fun PhotoItemGridBinding.toMediaItemBinding() = PhotoGridMediaItemBinding(this)
@@ -59,6 +64,7 @@ class VideoListMediaItemBinding(val binding: VideoItemListBinding) : MediaItemBi
     override val videoDuration: TextView = binding.videoDuration
     override val mediumCheck: ImageView = binding.mediumCheck
     override val mediumThumbnail: MySquareImageView = binding.mediumThumbnail
+    override val ratingBadge: TextView? = null
 }
 
 fun VideoItemListBinding.toMediaItemBinding() = VideoListMediaItemBinding(this)
@@ -73,6 +79,7 @@ class VideoGridMediaItemBinding(val binding: VideoItemGridBinding) : MediaItemBi
     override val videoDuration: TextView = binding.videoDuration
     override val mediumCheck: ImageView = binding.mediumCheck
     override val mediumThumbnail: MySquareImageView = binding.mediumThumbnail
+    override val ratingBadge: TextView? = null
 }
 
 fun VideoItemGridBinding.toMediaItemBinding() = VideoGridMediaItemBinding(this)
