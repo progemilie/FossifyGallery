@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.widget.FrameLayout
+import androidx.core.graphics.ColorUtils
 import androidx.recyclerview.widget.RecyclerView
 import eightbitlab.com.blurview.BlurView
 import eightbitlab.com.blurview.BlurViewFacade
@@ -31,6 +32,41 @@ private const val PILL_BLUR_RADIUS = 20f
 // what the pill falls back to where there is no cheap blur to be had (below Android 12): near
 // solid, since a sheer pill over a photo is the thing the blur was there to fix
 private const val PILL_OPAQUE_ALPHA = 0.97f
+
+// how far the pill's colour is carried off the theme's background towards white, at its darkest
+// and at its lightest. A dark theme gets the most of it: a near black pill over a photo reads as a
+// hole punched in the picture rather than as glass laid over it. A light one has barely anywhere
+// to go and wants no more than a hint, or the pill turns into a white slab.
+private const val PILL_MAX_LIFT = 0.20f
+private const val PILL_MIN_LIFT = 0.05f
+
+// Rec. 601 luma weights: perceived brightness, in which a mid grey lands near the middle. The
+// relative luminance androidx works in linearises first, which would read that same grey as dark
+// and hand it most of the lift.
+private const val LUMA_RED = 0.299f
+private const val LUMA_GREEN = 0.587f
+private const val LUMA_BLUE = 0.114f
+private const val FULL_CHANNEL = 255f
+
+/**
+ * The pill's own colour: the theme's background carried towards white by an amount that falls away
+ * as that background gets lighter, so the bar reads as glass laid over the app rather than as a
+ * patch of the same paint it is sitting on.
+ *
+ * Squaring the darkness is what separates the middle from the two ends - a mid grey theme comes out
+ * nearer the hint a light one gets than the lift a dark one does, rather than halfway between them.
+ */
+private fun pillTint(background: Int): Int {
+    val brightness = (
+        LUMA_RED * Color.red(background) +
+            LUMA_GREEN * Color.green(background) +
+            LUMA_BLUE * Color.blue(background)
+        ) / FULL_CHANNEL
+
+    val darkness = 1f - brightness
+    val lift = PILL_MIN_LIFT + (PILL_MAX_LIFT - PILL_MIN_LIFT) * darkness * darkness
+    return ColorUtils.blendARGB(background, Color.WHITE, lift)
+}
 
 /**
  * Lifts a screen's search bar off its band of colour so the grid runs underneath it, and pans it
@@ -116,7 +152,7 @@ class FloatingTopBar(
             // while the grid is scrolling - a near solid pill instead. Through the same colour
             // filter commons paints with, so this replaces its tint rather than stacking on it.
             pill.background?.applyColorFilter(
-                pill.context.getProperBackgroundColor().adjustAlpha(PILL_OPAQUE_ALPHA)
+                pillTint(pill.context.getProperBackgroundColor()).adjustAlpha(PILL_OPAQUE_ALPHA)
             )
         }
     }
@@ -166,7 +202,10 @@ class FloatingTopBar(
             // the grid sits on is what makes the pill frost everything under it and not just the
             // photos.
             .setFrameClearDrawable(SolidColorDrawable(base))
-            .setOverlayColor(base.adjustAlpha(PILL_TINT_ALPHA))
+            // the frame clear above stands in for the grid's own background and stays the real
+            // colour, so the lift rides on the tint instead - the pill parts company with the app
+            // behind it without the frost parting company with the grid it is a copy of
+            .setOverlayColor(pillTint(base).adjustAlpha(PILL_TINT_ALPHA))
     }
 
     private fun createBlurBackdrop(pill: ViewGroup): BlurViewFacade {
