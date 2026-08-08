@@ -26,10 +26,14 @@ import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
 import androidx.core.graphics.drawable.toDrawable
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat.Type
+import androidx.core.view.updateLayoutParams
 import androidx.exifinterface.media.ExifInterface
 import androidx.print.PrintHelper
 import androidx.viewpager.widget.ViewPager
@@ -243,6 +247,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         )
 
         setupOptionsMenu()
+        setupThumbnailStrip()
         refreshMenuItems()
 
         window.decorView.setBackgroundColor(getProperBackgroundColor())
@@ -606,6 +611,8 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 addOnPageChangeListener(this@ViewPagerActivity)
                 currentItem = mPos
             }
+
+            binding.viewerThumbnailStrip.setMedia(media, mPos)
         }
     }
 
@@ -983,6 +990,31 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             binding.bottomActions.root.beVisible()
         } else {
             binding.bottomActions.root.beGone()
+        }
+
+        binding.viewerThumbnailStrip.beVisibleIf(config.showThumbnailStrip)
+        // whether the strip has to keep off the navigation bar itself depends on the buttons below
+        // it still being there
+        binding.viewerThumbnailStrip.requestApplyInsets()
+    }
+
+    /**
+     * The strip of thumbnails under the photo. Whatever the strip comes to rest on is what the
+     * pager shows, and the pager tells it where it went in return - the two are one position.
+     */
+    private fun setupThumbnailStrip() {
+        binding.viewerThumbnailStrip.onMediumPicked = { position ->
+            if (binding.viewPager.currentItem != position) {
+                binding.viewPager.setCurrentItem(position, false)
+            }
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.viewerThumbnailStrip) { view, insets ->
+            val systemBottom = insets.getInsetsIgnoringVisibility(Type.systemBars()).bottom
+            view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = if (binding.bottomActions.root.isVisible()) 0 else systemBottom
+            }
+            insets
         }
     }
 
@@ -1661,10 +1693,12 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             (it as MyPagerAdapter).toggleFullscreen(mIsFullScreen)
             val newAlpha = if (mIsFullScreen) 0f else 1f
             binding.topShadow.animate().alpha(newAlpha).start()
-            binding.bottomActions.root.animate().alpha(newAlpha).withStartAction {
-                binding.bottomActions.root.beVisible()
+            // the strip and the buttons fade as one piece, each keeping whatever visibility its own
+            // setting gave it
+            binding.bottomChrome.animate().alpha(newAlpha).withStartAction {
+                binding.bottomChrome.beVisible()
             }.withEndAction {
-                binding.bottomActions.root.beVisibleIf(newAlpha == 1f)
+                binding.bottomChrome.beVisibleIf(newAlpha == 1f)
             }.start()
 
             binding.mediumViewerAppbar.animate().alpha(newAlpha).withStartAction {
@@ -1730,6 +1764,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             mPos = position
             updateHeader()
             refreshMenuItems()
+            binding.viewerThumbnailStrip.setSelectedPosition(position)
             scheduleSwipe()
         }
     }

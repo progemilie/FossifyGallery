@@ -173,3 +173,24 @@ no longer paints an opaque band under its own bar.
   `MySearchMenu.updateColors()`, which repaints the band on each resume.
 - `extensions/EdgeFade.kt` fades both ends of each grid so the system bars stay readable over
   scrolling content.
+
+### Viewer thumbnail strip
+
+A row of thumbnails between the photo and the bottom actions, ported from Aves' `ThumbnailScroller`.
+Whatever sits in the middle of `views/ViewerThumbnailStrip.kt` is what the pager shows: the strip
+commits a position to `ViewPagerActivity` when it settles, and `onPageSelected` scrolls it back — the
+two are one position, so both directions have to agree on where "the middle" is. That middle is
+created by padding the strip by half its own width at either end (set in `onMeasure`, so it survives
+rotation) rather than by any offset of its own, which is also what a plain `LinearSnapHelper` and
+`SNAP_TO_START` measure against.
+
+The strip and the bottom actions stack inside `bottom_chrome`, and it is that wrapper the fullscreen
+fade animates — each child keeps whatever visibility its own setting gave it. With the buttons turned
+off the strip becomes the bottom of the screen and takes the navigation bar inset as a margin itself.
+
+Aves' fling coasts for seconds; `StripSnapHelper` keeps two thirds of the velocity (fling distance
+grows with about v^1.74, so that is under half the travel) and settles at 45ms/inch. Thumbnails load
+RGB_565 at strip size with a quarter-size pass first, and an unloaded cell shows
+`viewer_strip_placeholder`, not the grid's black one — over a photo, black is a hole. `PhotoFragment`
+gained the same idea: `buildLowResRequest` decodes a 320px version alongside the full one, so
+arriving at an unread photo is a soft version of it rather than a black screen.

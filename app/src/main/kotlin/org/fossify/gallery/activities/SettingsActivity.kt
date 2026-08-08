@@ -97,6 +97,7 @@ class SettingsActivity : SimpleActivity() {
         setupShowHighestQuality()
         setupAllowOneToOneZoom()
         setupAllowInstantChange()
+        setupShowThumbnailStrip()
         setupShowExtendedDetails()
         setupManageExtendedDetails()
         setupSkipDeleteConfirmation()
@@ -629,6 +630,14 @@ class SettingsActivity : SimpleActivity() {
         binding.settingsAllowInstantChangeHolder.setOnClickListener {
             binding.settingsAllowInstantChange.toggle()
             config.allowInstantChange = binding.settingsAllowInstantChange.isChecked
+        }
+    }
+
+    private fun setupShowThumbnailStrip() {
+        binding.settingsShowThumbnailStrip.isChecked = config.showThumbnailStrip
+        binding.settingsShowThumbnailStripHolder.setOnClickListener {
+            binding.settingsShowThumbnailStrip.toggle()
+            config.showThumbnailStrip = binding.settingsShowThumbnailStrip.isChecked
         }
     }
 
