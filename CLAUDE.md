@@ -247,6 +247,17 @@ hardware blur — BlurView's software path costs real frame time exactly while t
 once the bar has finished panning off screen, which is the moment the grid is being scrolled
 hardest.
 
+`setFrameClearDrawable(SolidColorDrawable(...))` is what makes the pill frost *everything* under it
+rather than only the photos, and it is not optional. BlurView clears its capture buffer to
+transparent before drawing the grid into it, and the grid paints nothing of its own between the
+thumbnails — so the capture comes back transparent over a date header, over the gaps between cells,
+and over whatever part of the pill hangs past the end of a row. Blurring transparency leaves
+transparency, and since the pill has no background of its own the real content then shows through
+it sharp: section headers read straight over the search hint, and a thumbnail only half under the
+bar looked half blurred. Starting every capture from the background the grid sits on fixes all
+three. Note the drawable has to flood the canvas rather than fill its bounds — BlurView hands the
+buffer over untransformed and never sets bounds, so a plain `ColorDrawable` paints nothing.
+
 The same object is the grid's scroll listener. The two thresholds are deliberately lopsided: it
 takes a real drag down (`top_bar_hide_threshold`) to pan the bar away, but only a nudge back up
 (`top_bar_show_threshold`) to bring it in, and `onScrollStateChanged` brings it back whenever the
