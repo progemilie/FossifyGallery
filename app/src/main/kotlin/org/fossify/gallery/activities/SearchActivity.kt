@@ -34,7 +34,7 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
     private var mLastSearchedText = ""
 
     private var mLastViewedPath = ""
-    private var mHighlightPending = false
+    private var mRevealPending = false
 
     private var mCurrAsyncTask: GetMediaAsynctask? = null
     private var mAllMedia = ArrayList<ThumbnailItem>()
@@ -78,12 +78,12 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
     // point out the thumbnail the fullscreen viewer was just left from, it is easy to lose track of
     // it after swiping through a bunch of media
     private fun revealLastViewedItem() {
-        if (!mHighlightPending) {
+        if (!mRevealPending) {
             return
         }
 
         if (getMediaAdapter()?.revealItem(mLastViewedPath) == true) {
-            mHighlightPending = false
+            mRevealPending = false
         }
     }
 
@@ -193,7 +193,7 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
 
     private fun itemClicked(path: String) {
         mLastViewedPath = path
-        mHighlightPending = true
+        mRevealPending = true
         if (!path.isVideoFast()) {
             openInViewPager(path)
             return

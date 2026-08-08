@@ -280,12 +280,9 @@ const val FOLDER_STYLE_ROUNDED_CORNERS = 2
 // animations
 const val THUMBNAIL_FADE_DURATION_MS = 150
 
-// brief accent border pulsed over the thumbnail the user just came back from
-const val HIGHLIGHT_FADE_IN_DURATION_MS = 150L
-const val HIGHLIGHT_HOLD_DURATION_MS = 500L
-const val HIGHLIGHT_FADE_OUT_DURATION_MS = 250L
-const val HIGHLIGHT_BORDER_WIDTH_FRACTION = 0.08f
-const val HIGHLIGHT_BORDER_OPAQUE_ALPHA = 255
+// the thumbnail the user just came back from grows into place
+const val REVEAL_START_SCALE = 0.3f
+const val REVEAL_DURATION_MS = 400L
 
 // the lift a thumbnail gets while it is being held for a hand made order. it shrinks rather than
 // grows - a bigger one would be cut off by the grid edge in the outer columns, taking its ring

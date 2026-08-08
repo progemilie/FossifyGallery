@@ -144,7 +144,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private var mShowLoadingIndicator = true
     private var mWasFullscreenViewOpen = false
     private var mLastViewedPath = ""
-    private var mHighlightPending = false
+    private var mRevealPending = false
     private var mLastSearchedText = ""
     private var mIsReordering = false
     private var mGridBottomPadding = 0
@@ -281,6 +281,10 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         binding.mediaEmptyTextPlaceholder2.setTextColor(getProperPrimaryColor())
         binding.mediaEmptyTextPlaceholder2.bringToFront()
 
+        // the grid still holds what it had when the viewer was opened, so point the item out now
+        // rather than only once the refresh below comes back. it stays pending if it is not there
+        revealLastViewedItem()
+
         // do not refresh Random sorted files after opening a fullscreen image and going Back
         val isRandomSorting = config.getFolderSorting(mPath) and SORT_BY_RANDOM != 0
         if (mMedia.isEmpty() || !isRandomSorting || (isRandomSorting && !mWasFullscreenViewOpen)) {
@@ -295,9 +299,6 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                     }
                 }
             }
-        } else {
-            // the grid is kept as is, so setupAdapter() will not run to reveal the item for us
-            revealLastViewedItem()
         }
     }
 
@@ -471,7 +472,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 putExtra(SLIDESHOW_START_ON_ENTER, true)
                 putExtra(IS_FROM_GALLERY, true)
                 mLastViewedPath = item.path
-                mHighlightPending = true
+                mRevealPending = true
                 startActivityForResult(this, REQUEST_VIEW_MEDIA)
             }
         }
@@ -840,13 +841,13 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     // point out the thumbnail the fullscreen viewer was just left from, it is easy to lose track of
     // it after swiping through a bunch of media
     private fun revealLastViewedItem() {
-        if (!mHighlightPending) {
+        if (!mRevealPending) {
             return
         }
 
         // keep the request around if the item is not there yet, a pending refresh may still bring it
         if (getMediaAdapter()?.revealItem(mLastViewedPath) == true) {
-            mHighlightPending = false
+            mRevealPending = false
         }
     }
 
@@ -1277,7 +1278,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         } else {
             mWasFullscreenViewOpen = true
             mLastViewedPath = path
-            mHighlightPending = true
+            mRevealPending = true
             if (!path.isVideoFast()) {
                 openInViewPager(path)
                 return

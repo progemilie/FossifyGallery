@@ -14,6 +14,7 @@ import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
+import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -57,7 +58,6 @@ import org.fossify.commons.extensions.recycleBinPath
 import org.fossify.commons.extensions.rescanPaths
 import org.fossify.commons.extensions.toast
 import org.fossify.commons.helpers.FAVORITES
-import org.fossify.commons.helpers.MAX_ALPHA_INT
 import org.fossify.commons.helpers.VIEW_TYPE_LIST
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isRPlus
@@ -100,13 +100,10 @@ import org.fossify.gallery.extensions.updateFavoritePaths
 import org.fossify.gallery.helpers.DRAG_BORDER_WIDTH_FRACTION
 import org.fossify.gallery.helpers.DRAG_LIFT_DURATION_MS
 import org.fossify.gallery.helpers.DRAG_LIFT_SCALE
-import org.fossify.gallery.helpers.HIGHLIGHT_BORDER_OPAQUE_ALPHA
-import org.fossify.gallery.helpers.HIGHLIGHT_BORDER_WIDTH_FRACTION
-import org.fossify.gallery.helpers.HIGHLIGHT_FADE_IN_DURATION_MS
-import org.fossify.gallery.helpers.HIGHLIGHT_FADE_OUT_DURATION_MS
-import org.fossify.gallery.helpers.HIGHLIGHT_HOLD_DURATION_MS
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.RECYCLE_BIN
+import org.fossify.gallery.helpers.REVEAL_DURATION_MS
+import org.fossify.gallery.helpers.REVEAL_START_SCALE
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_NONE
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_SMALL
@@ -147,7 +144,7 @@ class MediaAdapter(
     private var currentTransformGeneration = TransformedMedia.generation
     private val hasOTGConnected = activity.hasOTGConnected()
 
-    private var highlightAnimator: Animator? = null
+    private var revealAnimator: Animator? = null
     private var dragLiftAnimator: Animator? = null
 
     private var isReordering = false
@@ -315,8 +312,10 @@ class MediaAdapter(
         super.onViewRecycled(holder)
         if (!activity.isDestroyed) {
             val itemView = holder.itemView
-            // a view let go of mid drag would come back to another item still lifted
+            // a view let go of mid drag would come back to another item still lifted, one recycled
+            // mid reveal still growing
             itemView.animate().cancel()
+            revealAnimator?.cancel()
             itemView.scaleX = 1f
             itemView.scaleY = 1f
             itemView.translationZ = 0f
@@ -326,7 +325,7 @@ class MediaAdapter(
             val tmb = itemView.allViews.firstOrNull { it.id == R.id.medium_thumbnail }
             if (tmb != null) {
                 Glide.with(activity).clear(tmb)
-                // drop a leftover highlight or drag border, it would otherwise show up on another item
+                // drop a leftover drag border, it would otherwise show up on another item
                 tmb.foreground = null
             }
         }
@@ -820,9 +819,9 @@ class MediaAdapter(
     }
 
     /**
-     * Scrolls the item at [path] into view if needed and briefly pulses a border over it, so it is
-     * obvious which thumbnail the fullscreen viewer was just left from. Returns false if the item
-     * is not in the grid (deleted, filtered out), letting the caller retry after a refresh.
+     * Scrolls the item at [path] into view if needed and lets it grow into place, so it is obvious
+     * which thumbnail the fullscreen viewer was just left from. Returns false if the item is not in
+     * the grid (deleted, filtered out), letting the caller retry after a refresh.
      */
     fun revealItem(path: String): Boolean {
         val position = getItemKeyPosition(path.hashCode())
@@ -830,21 +829,25 @@ class MediaAdapter(
             return false
         }
 
-        // scroll on the next pass so the grid is laid out, then highlight once that scroll settled
+        // scroll on the next pass so the grid is laid out, wait a further one only if it did scroll
         recyclerView.post {
-            scrollToItemIfNeeded(position)
-            recyclerView.post { highlightItem(position) }
+            if (scrollToItemIfNeeded(position)) {
+                recyclerView.post { scaleItemIn(position) }
+            } else {
+                scaleItemIn(position)
+            }
         }
 
         return true
     }
 
-    private fun scrollToItemIfNeeded(position: Int) {
-        val layoutManager = recyclerView.layoutManager as? MyGridLayoutManager ?: return
+    /** Returns whether it scrolled, ie whether the item still has to be laid out. */
+    private fun scrollToItemIfNeeded(position: Int): Boolean {
+        val layoutManager = recyclerView.layoutManager as? MyGridLayoutManager ?: return false
         val isHorizontal = layoutManager.orientation == RecyclerView.HORIZONTAL
         val itemView = layoutManager.findViewByPosition(position)
         if (itemView != null && isFullyVisible(itemView, isHorizontal)) {
-            return
+            return false
         }
 
         val available = if (isHorizontal) {
@@ -855,6 +858,7 @@ class MediaAdapter(
 
         val itemSize = getItemSize(isHorizontal) ?: (available / layoutManager.spanCount)
         layoutManager.scrollToPositionWithOffset(position, ((available - itemSize) / 2).coerceAtLeast(0))
+        return true
     }
 
     private fun isFullyVisible(itemView: View, isHorizontal: Boolean) = if (isHorizontal) {
@@ -875,46 +879,39 @@ class MediaAdapter(
     }
 
     /**
-     * An accent ring following the thumbnail's own corners, [widthFraction] of its width so it
-     * stays in proportion whatever column count the grid is on.
+     * An accent ring following the thumbnail's own corners, [DRAG_BORDER_WIDTH_FRACTION] of its
+     * width so it stays in proportion whatever column count the grid is on.
      */
-    private fun buildAccentBorder(thumbnailWidth: Int, widthFraction: Float, alpha: Int): GradientDrawable {
-        val strokeWidth = (thumbnailWidth * widthFraction).coerceIn(
-            activity.resources.getDimension(R.dimen.highlight_border_min_width),
-            activity.resources.getDimension(R.dimen.highlight_border_max_width)
+    private fun buildAccentBorder(thumbnailWidth: Int): GradientDrawable {
+        val strokeWidth = (thumbnailWidth * DRAG_BORDER_WIDTH_FRACTION).coerceIn(
+            activity.resources.getDimension(R.dimen.accent_border_min_width),
+            activity.resources.getDimension(R.dimen.accent_border_max_width)
         )
 
         return GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = getThumbnailCornerRadius()
             setStroke(strokeWidth.toInt(), properPrimaryColor)
-            this.alpha = alpha
         }
     }
 
-    private fun highlightItem(position: Int) {
-        val thumbnail = recyclerView.findViewHolderForAdapterPosition(position)
-            ?.itemView
-            ?.findViewById<ImageView>(R.id.medium_thumbnail) ?: return
+    /** The whole item, not just its thumbnail, so the badges over the photo come up with it. */
+    private fun scaleItemIn(position: Int) {
+        val itemView = recyclerView.findViewHolderForAdapterPosition(position)?.itemView ?: return
 
-        highlightAnimator?.cancel()
-
-        val border = buildAccentBorder(thumbnail.width, HIGHLIGHT_BORDER_WIDTH_FRACTION, alpha = 0)
-
-        // setForeground makes the view the drawables callback, so changing the alpha repaints it
-        thumbnail.foreground = border
-        highlightAnimator = AnimatorSet().apply {
-            val fadeIn = ObjectAnimator.ofInt(border, "alpha", 0, HIGHLIGHT_BORDER_OPAQUE_ALPHA)
-                .setDuration(HIGHLIGHT_FADE_IN_DURATION_MS)
-
-            val fadeOut = ObjectAnimator.ofInt(border, "alpha", HIGHLIGHT_BORDER_OPAQUE_ALPHA, 0)
-                .setDuration(HIGHLIGHT_FADE_OUT_DURATION_MS)
-                .apply { startDelay = HIGHLIGHT_HOLD_DURATION_MS }
-
-            playSequentially(fadeIn, fadeOut)
+        revealAnimator?.cancel()
+        revealAnimator = AnimatorSet().apply {
+            playTogether(
+                ObjectAnimator.ofFloat(itemView, View.SCALE_X, REVEAL_START_SCALE, 1f),
+                ObjectAnimator.ofFloat(itemView, View.SCALE_Y, REVEAL_START_SCALE, 1f)
+            )
+            duration = REVEAL_DURATION_MS
+            interpolator = DecelerateInterpolator()
+            // runs on a cancel too, so a reveal cut short cannot leave the item part grown
             doOnEnd {
-                thumbnail.foreground = null
-                highlightAnimator = null
+                itemView.scaleX = 1f
+                itemView.scaleY = 1f
+                revealAnimator = null
             }
 
             start()
@@ -1199,7 +1196,7 @@ class MediaAdapter(
         showCarriedCount(carriedItems.size)
 
         findThumbnail()?.apply {
-            foreground = buildAccentBorder(width, DRAG_BORDER_WIDTH_FRACTION, MAX_ALPHA_INT)
+            foreground = buildAccentBorder(width)
         }
     }
 
