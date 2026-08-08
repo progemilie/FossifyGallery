@@ -1,13 +1,18 @@
 package org.fossify.gallery.helpers
 
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ColorFilter
 import android.graphics.Outline
+import android.graphics.PixelFormat
+import android.graphics.drawable.Drawable
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.widget.FrameLayout
 import androidx.recyclerview.widget.RecyclerView
 import eightbitlab.com.blurview.BlurView
+import eightbitlab.com.blurview.BlurViewFacade
 import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.getProperBackgroundColor
@@ -20,7 +25,7 @@ private const val ANIMATION_DURATION = 200L
 // how hard the blurred backdrop is tinted towards the theme's background, and how far it is
 // smeared. Enough tint to read the hint and the icons against, enough blur to lose the detail of
 // whatever is passing underneath without losing its colour.
-private const val PILL_TINT_ALPHA = 0.6f
+private const val PILL_TINT_ALPHA = 0.3f
 private const val PILL_BLUR_RADIUS = 20f
 
 // what the pill falls back to where there is no cheap blur to be had (below Android 12): near
@@ -50,7 +55,7 @@ class FloatingTopBar(
     // that a wobble in the middle of a fling does not flip the bar back and forth
     private var travelledSinceTurn = 0
     private var isHidden = false
-    private var blurView: BlurView? = null
+    private var blurBackdrop: BlurViewFacade? = null
 
     /**
      * Stops the bar from panning away and brings it back down if it had. The grid is not the only
@@ -112,10 +117,23 @@ class FloatingTopBar(
      * pill's own rounded shape.
      */
     private fun addBlurBackdrop(pill: ViewGroup) {
-        if (blurView != null) {
-            return
-        }
+        val backdrop = blurBackdrop ?: createBlurBackdrop(pill).also { blurBackdrop = it }
+        val base = pill.context.getProperBackgroundColor()
 
+        backdrop
+            .setBlurRadius(PILL_BLUR_RADIUS)
+            // the grid paints nothing of its own between the thumbnails, so a capture that starts
+            // from a cleared buffer comes back transparent everywhere there is no photo - over a
+            // date header, over the gaps between cells, over the half of the pill hanging past the
+            // end of a row. Blurring transparency leaves transparency, and the real content shows
+            // straight through it, unblurred and sharp. Starting each capture from the background
+            // the grid sits on is what makes the pill frost everything under it and not just the
+            // photos.
+            .setFrameClearDrawable(SolidColorDrawable(base))
+            .setOverlayColor(base.adjustAlpha(PILL_TINT_ALPHA))
+    }
+
+    private fun createBlurBackdrop(pill: ViewGroup): BlurViewFacade {
         val radius = resources.getDimension(org.fossify.commons.R.dimen.material_dialog_corner_radius)
         val view = BlurView(pill.context).apply {
             outlineProvider = object : ViewOutlineProvider() {
@@ -132,11 +150,7 @@ class FloatingTopBar(
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         )
 
-        view.setupWith(contentBehind)
-            .setBlurRadius(PILL_BLUR_RADIUS)
-            .setOverlayColor(pill.context.getProperBackgroundColor().adjustAlpha(PILL_TINT_ALPHA))
-
-        blurView = view
+        return view.setupWith(contentBehind)
     }
 
     fun attachTo(recyclerView: RecyclerView) {
@@ -189,7 +203,7 @@ class FloatingTopBar(
         }
 
         isHidden = false
-        blurView?.setBlurAutoUpdate(true)
+        blurBackdrop?.setBlurAutoUpdate(true)
         topBar.animate().translationY(0f).setDuration(ANIMATION_DURATION).start()
     }
 
@@ -205,7 +219,7 @@ class FloatingTopBar(
             .setDuration(ANIMATION_DURATION)
             // nothing to keep re-blurring once the pill is off the screen, and that is the moment
             // the grid is being scrolled hardest
-            .withEndAction { if (isHidden) blurView?.setBlurAutoUpdate(false) }
+            .withEndAction { if (isHidden) blurBackdrop?.setBlurAutoUpdate(false) }
             .start()
     }
 
@@ -215,4 +229,20 @@ class FloatingTopBar(
      */
     val occupiedHeight: Int
         get() = topBar.height
+}
+
+/**
+ * Floods whatever canvas it is handed, whatever bounds it was set. BlurView hands its capture
+ * buffer over untransformed and without ever setting bounds on this, which a plain ColorDrawable
+ * would answer by painting nothing at all.
+ */
+private class SolidColorDrawable(private val color: Int) : Drawable() {
+    override fun draw(canvas: Canvas) = canvas.drawColor(color)
+
+    override fun setAlpha(alpha: Int) = Unit
+
+    override fun setColorFilter(colorFilter: ColorFilter?) = Unit
+
+    @Deprecated("abstract on Drawable, so it has to be answered whatever its own docs say")
+    override fun getOpacity() = PixelFormat.OPAQUE
 }

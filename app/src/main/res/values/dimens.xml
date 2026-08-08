@@ -59,7 +59,7 @@
     <!-- how far past the search bar the softening at the top of a grid keeps going -->
     <dimen name="top_fade_falloff">40dp</dimen>
     <!-- a real drag down to pan the bar away, the smallest nudge back up to bring it in again -->
-    <dimen name="top_bar_hide_threshold">80dp</dimen>
+    <dimen name="top_bar_hide_threshold">200dp</dimen>
     <dimen name="top_bar_show_threshold">8dp</dimen>
     <!-- how far below the floating bar a pull to refresh spinner comes to rest -->
     <dimen name="refresh_spinner_travel">64dp</dimen>
