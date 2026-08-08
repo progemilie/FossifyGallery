@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.util.DisplayMetrics
 import android.view.View
+import android.view.animation.DecelerateInterpolator
 import androidx.core.view.isNotEmpty
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearSmoothScroller
@@ -42,6 +43,15 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
         /** Faster than RecyclerView's own 100ms/inch, so the settle is not the slow part. */
         private const val MILLIS_PER_INCH = 60f
 
+        /**
+         * How long the strip takes to bring a position to the middle when something else moved
+         * first - a swipe on the photo, or a tap on a thumbnail. Distance alone would give a step
+         * of one thumbnail about a frame and a half, which reads as a cut rather than a move.
+         */
+        private const val CENTERING_MIN_MS = 240
+        private const val CENTERING_MAX_MS = 400
+        private const val CENTERING_DECELERATION = 1.5f
+
         /** How far off the middle a thumbnail is drawn shrunk and shaded, in item widths. */
         private const val FALLOFF_ITEMS = 1f
         private const val OFF_CENTRE_SCALE = 0.92f
@@ -53,6 +63,10 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
 
     /** Called with the position now in the middle of the strip, so the pager can follow it. */
     var onMediumPicked: ((position: Int) -> Unit)? = null
+
+    // eases out harder than the scroller's own interpolator, so the glide leaves promptly and
+    // arrives gently rather than stopping dead on the beat
+    private val centeringInterpolator = DecelerateInterpolator(CENTERING_DECELERATION)
 
     private val itemWidth = resources.getDimensionPixelSize(R.dimen.viewer_strip_item_width)
     private val stripAdapter = ViewerThumbnailAdapter(
@@ -258,6 +272,20 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
         }
 
         override fun getHorizontalSnapPreference() = SNAP_TO_START
+
+        /**
+         * Held to a glide the eye can follow. The scroller's own timing is a function of distance,
+         * and the distance here is usually a single thumbnail - too little to be worth animating by
+         * that measure, so the strip would arrive before anyone saw it leave.
+         */
+        override fun onTargetFound(targetView: View, state: State, action: Action) {
+            val dx = calculateDxToMakeVisible(targetView, SNAP_TO_START)
+            if (dx != 0) {
+                val time = calculateTimeForDeceleration(abs(dx))
+                    .coerceIn(CENTERING_MIN_MS, CENTERING_MAX_MS)
+                action.update(-dx, 0, time, centeringInterpolator)
+            }
+        }
 
         override fun calculateSpeedPerPixel(displayMetrics: DisplayMetrics): Float {
             return MILLIS_PER_INCH / displayMetrics.densityDpi

@@ -56,12 +56,11 @@
     <!-- the strip of thumbnails between the photo and the bottom actions in the viewer. The item is
          wider than the thumbnail on purpose: the gap either side is what the shrunken off-centre
          thumbnails grow into, so nothing has to overflow its own cell to look bigger -->
-    <dimen name="viewer_strip_thumbnail_size">48dp</dimen>
-    <dimen name="viewer_strip_item_width">51dp</dimen>
-    <!-- lopsided so the thumbnails sit low in the strip, near the buttons rather than the photo -->
+    <dimen name="viewer_strip_thumbnail_size">40dp</dimen>
+    <dimen name="viewer_strip_item_width">42dp</dimen>
     <dimen name="viewer_strip_padding_top">10dp</dimen>
     <dimen name="viewer_strip_padding_bottom">2dp</dimen>
-    <dimen name="viewer_strip_height">60dp</dimen>
+    <dimen name="viewer_strip_height">54dp</dimen>
 
     <dimen name="bottom_fade_height">60dp</dimen>
     <dimen name="top_fade_height">70dp</dimen>
