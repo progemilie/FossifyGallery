@@ -184,6 +184,10 @@ have to agree on where "the middle" is. That middle is created by padding the st
 width at either end (set in `onMeasure`, so it survives rotation) rather than by any offset of its
 own, which is also what a plain `LinearSnapHelper` and `SNAP_TO_START` measure against.
 
+`CenteringScroller` overrides `onTargetFound` to floor how long that move takes. A `LinearSmoothScroller`
+times itself by distance, and the distance for the usual case — one photo swiped, one thumbnail to
+move — is about a frame and a half, which arrives before it can be seen to leave.
+
 How big and how shaded each thumbnail is drawn comes from its own distance to that middle, applied
 to the children in `updateChildDecorations` on every scroll frame. It is deliberately not a selected
 position handed to the adapter: that change lands a frame later and then animates from there, and the
