@@ -10,16 +10,35 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <include
-        android:id="@+id/bottom_actions"
-        layout="@layout/bottom_actions" />
+    <!-- the strip and the action buttons stack rather than anchor to each other, so either one
+         being turned off just closes the gap it left -->
+    <LinearLayout
+        android:id="@+id/bottom_chrome"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="vertical">
+
+        <org.fossify.gallery.views.ViewerThumbnailStrip
+            android:id="@+id/viewer_thumbnail_strip"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/viewer_strip_height"
+            android:paddingTop="@dimen/viewer_strip_vertical_padding"
+            android:paddingBottom="@dimen/viewer_strip_vertical_padding"
+            android:visibility="gone" />
+
+        <include
+            android:id="@+id/bottom_actions"
+            layout="@layout/bottom_actions" />
+
+    </LinearLayout>
 
     <!-- nudged horizontally at runtime to sit over whichever spot the rating button ended up in -->
     <org.fossify.gallery.views.RatingChooser
         android:id="@+id/rating_chooser"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@id/bottom_actions"
+        android:layout_above="@id/bottom_chrome"
         android:layout_marginBottom="@dimen/small_margin"
         android:visibility="gone" />
 

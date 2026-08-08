@@ -36,6 +36,7 @@ import com.alexvasilkov.gestures.GestureController
 import com.alexvasilkov.gestures.State
 import com.bumptech.glide.Glide
 import com.bumptech.glide.Priority
+import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.DecodeFormat
 import com.bumptech.glide.load.engine.DiskCacheStrategy
@@ -104,6 +105,12 @@ import kotlin.math.abs
 import kotlin.math.ceil
 
 class PhotoFragment : ViewPagerFragment() {
+    companion object {
+        // wide enough to read as the photo rather than as a smear, small enough that the decoder
+        // can subsample its way there in a fraction of the time the full one takes
+        private const val LOW_RES_IMAGE_SIZE = 320
+    }
+
     private val DEFAULT_DOUBLE_TAP_ZOOM = 2f
     private val ZOOMABLE_VIEW_LOAD_DELAY = 100L
     private val SAME_ASPECT_RATIO_THRESHOLD = 0.01
@@ -530,6 +537,7 @@ class PhotoFragment : ViewPagerFragment() {
         Glide.with(requireContext())
             .load(path)
             .apply(options)
+            .thumbnail(buildLowResRequest(path, options))
             .listener(object : RequestListener<Drawable> {
                 override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean {
                     resetColorModeIfVisible()
@@ -555,6 +563,26 @@ class PhotoFragment : ViewPagerFragment() {
                     return false
                 }
             }).into(binding.gesturesView)
+    }
+
+    /**
+     * A small first pass at the same photo, shown until the full one has decoded. Landing on a
+     * photo the app has not read yet - which is what the thumbnail strip does every time it is
+     * scrolled any distance - would otherwise be a black screen for as long as the decode takes,
+     * and a decode at a sixteenth of the width is a fraction of that.
+     *
+     * It carries no listener of its own on purpose: the zoomable view and the colour mode are the
+     * full image's business, and it is only standing in for it.
+     */
+    private fun buildLowResRequest(path: String, options: RequestOptions): RequestBuilder<Drawable> {
+        return Glide.with(requireContext())
+            .load(path)
+            .apply(
+                options.clone()
+                    .override(LOW_RES_IMAGE_SIZE)
+                    .format(DecodeFormat.PREFER_RGB_565)
+                    .priority(Priority.IMMEDIATE)
+            )
     }
 
     private fun tryLoadingWithPicasso(addZoomableView: Boolean) {
