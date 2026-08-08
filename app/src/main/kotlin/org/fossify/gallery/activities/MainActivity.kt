@@ -11,7 +11,6 @@ import android.provider.MediaStore.Video
 import android.view.ViewGroup
 import android.widget.RelativeLayout
 import android.widget.Toast
-import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.RecyclerView
 import org.fossify.commons.dialogs.CreateNewFolderDialog
@@ -563,9 +562,6 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         // set here rather than in the layout because the bar's height is the status bar inset plus
         // its own, and only the running app knows the first of those
         binding.directoriesGrid.updatePadding(top = roomToMake)
-        binding.directoriesTopFade.updateLayoutParams {
-            height = barHeight + resources.getDimensionPixelSize(R.dimen.top_fade_falloff)
-        }
 
         val travel = resources.getDimensionPixelSize(R.dimen.refresh_spinner_travel)
         binding.directoriesRefreshLayout.setProgressViewOffset(false, barHeight, barHeight + travel)

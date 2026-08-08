@@ -53,11 +53,11 @@
     <dimen name="rating_badge_star_size">12dp</dimen>
     <dimen name="rating_badge_corner_radius">8dp</dimen>
 
-    <!-- how tall the darkening at the foot of a grid is, and how far a grid has to be dragged
-         before the floating top bar pans away or comes back -->
-    <dimen name="bottom_fade_height">104dp</dimen>
-    <!-- how far past the search bar the softening at the top of a grid keeps going -->
-    <dimen name="top_fade_falloff">40dp</dimen>
+    <dimen name="bottom_fade_height">60dp</dimen>
+    <dimen name="top_fade_height">70dp</dimen>
+    <!-- how far the search pill sits off the grid. Small on purpose: an elevation shadow's spread
+         grows with it, and this one wants a quick falloff hugging the pill rather than a halo -->
+    <dimen name="search_pill_elevation">3dp</dimen>
     <!-- a real drag down to pan the bar away, the smallest nudge back up to bring it in again -->
     <dimen name="top_bar_hide_threshold">200dp</dimen>
     <dimen name="top_bar_show_threshold">8dp</dimen>

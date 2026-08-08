@@ -8,10 +8,10 @@ import org.fossify.commons.extensions.getProperBackgroundColor
 // how solid each fade is where it meets its edge of the screen, and a third of the way in. The
 // bottom one has the navigation buttons to keep readable, the top one only has to settle the
 // status bar and give the search pill something to sit against.
-private const val BOTTOM_FADE_EDGE_ALPHA = 0.85f
-private const val BOTTOM_FADE_MID_ALPHA = 0.32f
-private const val TOP_FADE_EDGE_ALPHA = 0.55f
-private const val TOP_FADE_MID_ALPHA = 0.16f
+private const val BOTTOM_FADE_EDGE_ALPHA = 1.0f
+private const val BOTTOM_FADE_MID_ALPHA = 0.5f
+private const val TOP_FADE_EDGE_ALPHA = 1.0f
+private const val TOP_FADE_MID_ALPHA = 0.65f
 
 /**
  * Paints the softening at one end of a grid, in the theme's own background colour - white under a
