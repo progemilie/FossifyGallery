@@ -79,11 +79,11 @@
         </LinearLayout>
 
         <!-- inside the holder rather than over it, so the blurred backdrop behind the search pill
-             picks it up along with the grid. Height is set from the bar's own at runtime. -->
+             picks it up along with the grid -->
         <View
             android:id="@+id/media_top_fade"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
+            android:layout_height="@dimen/top_fade_height"
             android:layout_alignParentTop="true" />
     </RelativeLayout>
 

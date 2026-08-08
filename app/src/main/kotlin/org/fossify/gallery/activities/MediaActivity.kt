@@ -9,7 +9,6 @@ import android.os.Handler
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.core.net.toUri
-import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -501,9 +500,6 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         // set here rather than in the layout because the bar's height is the status bar inset plus
         // its own, and only the running app knows the first of those
         binding.mediaGrid.updatePadding(top = barHeight)
-        binding.mediaTopFade.updateLayoutParams {
-            height = barHeight + resources.getDimensionPixelSize(R.dimen.top_fade_falloff)
-        }
 
         val travel = resources.getDimensionPixelSize(R.dimen.refresh_spinner_travel)
         binding.mediaRefreshLayout.setProgressViewOffset(false, barHeight, barHeight + travel)

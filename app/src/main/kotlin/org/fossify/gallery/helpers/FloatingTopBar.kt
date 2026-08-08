@@ -25,7 +25,7 @@ private const val ANIMATION_DURATION = 200L
 // how hard the blurred backdrop is tinted towards the theme's background, and how far it is
 // smeared. Enough tint to read the hint and the icons against, enough blur to lose the detail of
 // whatever is passing underneath without losing its colour.
-private const val PILL_TINT_ALPHA = 0.3f
+private const val PILL_TINT_ALPHA = 0.5f
 private const val PILL_BLUR_RADIUS = 20f
 
 // what the pill falls back to where there is no cheap blur to be had (below Android 12): near
@@ -56,6 +56,17 @@ class FloatingTopBar(
     private var travelledSinceTurn = 0
     private var isHidden = false
     private var blurBackdrop: BlurViewFacade? = null
+
+    // the pill's own rounded shape: what the blurred backdrop is clipped to, and what the shadow
+    // under the pill is cast from
+    private val pillOutline = object : ViewOutlineProvider() {
+        private val radius =
+            resources.getDimension(org.fossify.commons.R.dimen.material_dialog_corner_radius)
+
+        override fun getOutline(view: View, outline: Outline) {
+            outline.setRoundRect(0, 0, view.width, view.height, radius)
+        }
+    }
 
     /**
      * Stops the bar from panning away and brings it back down if it had. The grid is not the only
@@ -88,26 +99,51 @@ class FloatingTopBar(
         topBar.setBackgroundColor(Color.TRANSPARENT)
         topBar.requireToolbar().setBackgroundColor(Color.TRANSPARENT)
         // an app bar draws a shadow the width of the screen off its elevation, which over a photo
-        // reads as a grey smear rather than as depth
+        // reads as a grey smear rather than as depth. The pill casts its own instead.
         topBar.stateListAnimator = null
         topBar.elevation = 0f
 
+        val pill = topBar.binding.toolbarContainer
+        castPillShadow(pill)
+
         // commons leaves the search pill at a quarter of the accent colour, which was legible over
         // the band of background colour that used to be behind it and is not over a photo
-        topBar.binding.toolbarContainer.apply {
-            elevation = 0f
-            if (isSPlus()) {
-                background = null
-                addBlurBackdrop(this)
-            } else {
-                // no hardware blur below Android 12, and the software one costs real frame time
-                // exactly while the grid is scrolling - a near solid pill instead. Through the same
-                // colour filter commons paints with, so this replaces its tint rather than stacking
-                // on top of it.
-                background?.applyColorFilter(
-                    context.getProperBackgroundColor().adjustAlpha(PILL_OPAQUE_ALPHA)
-                )
+        if (isSPlus()) {
+            pill.background = null
+            addBlurBackdrop(pill)
+        } else {
+            // no hardware blur below Android 12, and the software one costs real frame time exactly
+            // while the grid is scrolling - a near solid pill instead. Through the same colour
+            // filter commons paints with, so this replaces its tint rather than stacking on it.
+            pill.background?.applyColorFilter(
+                pill.context.getProperBackgroundColor().adjustAlpha(PILL_OPAQUE_ALPHA)
+            )
+        }
+    }
+
+    /**
+     * Drops a shadow under the pill that follows its rounded shape, in place of the app bar's own
+     * straight-edged one.
+     *
+     * A shadow is drawn *outside* the view casting it, so every parent between the pill and the
+     * `CoordinatorLayout` has to stop clipping to its own bounds first - there is only a couple of
+     * dp of room under the pill inside the app bar, and without this the shadow comes back cropped
+     * square along the bottom. Nothing else lives in those parents by now for the unclipping to let
+     * spill.
+     */
+    private fun castPillShadow(pill: ViewGroup) {
+        pill.outlineProvider = pillOutline
+        pill.elevation = resources.getDimension(R.dimen.search_pill_elevation)
+
+        var parent = pill.parent
+        while (parent is ViewGroup) {
+            parent.clipChildren = false
+            parent.clipToPadding = false
+            if (parent === topBar.parent) {
+                return
             }
+
+            parent = parent.parent
         }
     }
 
@@ -134,14 +170,8 @@ class FloatingTopBar(
     }
 
     private fun createBlurBackdrop(pill: ViewGroup): BlurViewFacade {
-        val radius = resources.getDimension(org.fossify.commons.R.dimen.material_dialog_corner_radius)
         val view = BlurView(pill.context).apply {
-            outlineProvider = object : ViewOutlineProvider() {
-                override fun getOutline(view: View, outline: Outline) {
-                    outline.setRoundRect(0, 0, view.width, view.height, radius)
-                }
-            }
-
+            outlineProvider = pillOutline
             clipToOutline = true
         }
 
