@@ -1,21 +1,11 @@
 package org.fossify.gallery.fragments
 
-import android.graphics.Point
-import android.provider.MediaStore
-import android.provider.MediaStore.Files
-import android.provider.MediaStore.Images
 import android.view.MotionEvent
-import androidx.exifinterface.media.ExifInterface
 import androidx.fragment.app.Fragment
 import org.fossify.commons.extensions.*
-import org.fossify.gallery.R
 import org.fossify.gallery.extensions.config
-import org.fossify.gallery.extensions.getRatingLabel
-import org.fossify.gallery.extensions.getReadableOrientation
 import org.fossify.gallery.helpers.*
 import org.fossify.gallery.models.Medium
-import java.io.File
-import com.awxkee.jxlcoder.JxlCoder
 
 abstract class ViewPagerFragment : Fragment() {
     var listener: FragmentListener? = null
@@ -27,12 +17,6 @@ abstract class ViewPagerFragment : Fragment() {
     private var mIgnoreCloseDown = false
 
     abstract fun fullscreenToggled(isFullscreen: Boolean)
-
-    /**
-     * Redraws the extended details from the file as it is now. Called when something the details
-     * show has been changed from outside the fragment, which currently means the rating.
-     */
-    open fun refreshExtendedDetails() {}
 
     interface FragmentListener {
         fun fragmentClicked()
@@ -50,72 +34,6 @@ abstract class ViewPagerFragment : Fragment() {
         fun isFullScreen(): Boolean
     }
 
-    fun getMediumExtendedDetails(medium: Medium): String {
-        val context = context ?: return ""
-        val file = File(medium.path)
-        if (!context.getDoesFilePathExist(file.absolutePath)) {
-            return ""
-        }
-
-        val path = "${file.parent.trimEnd('/')}/"
-        val exif = try {
-            ExifInterface(medium.path)
-        } catch (e: Exception) {
-            return ""
-        }
-
-        val details = StringBuilder()
-        val detailsFlag = context.config.extendedDetails
-        if (detailsFlag and EXT_NAME != 0) {
-            medium.name.let { if (it.isNotEmpty()) details.appendLine(it) }
-        }
-
-        if (detailsFlag and EXT_PATH != 0) {
-            path.let { if (it.isNotEmpty()) details.appendLine(it) }
-        }
-
-        if (detailsFlag and EXT_SIZE != 0) {
-            file.length().formatSize().let { if (it.isNotEmpty()) details.appendLine(it) }
-        }
-
-        if (detailsFlag and EXT_RESOLUTION != 0) {
-            getResolution(medium, file)?.let { if (it.isNotEmpty()) details.appendLine(it) }
-        }
-
-        if (detailsFlag and EXT_LAST_MODIFIED != 0) {
-            getFileLastModified(file).let { if (it.isNotEmpty()) details.appendLine(it) }
-        }
-
-        if (detailsFlag and EXT_DATE_TAKEN != 0) {
-            exif.getExifDateTaken(context).let { if (it.isNotEmpty()) details.appendLine(it) }
-        }
-
-        if (detailsFlag and EXT_CAMERA_MODEL != 0) {
-            exif.getExifCameraModel().let { if (it.isNotEmpty()) details.appendLine(it) }
-        }
-
-        if (detailsFlag and EXT_EXIF_PROPERTIES != 0) {
-            exif.getExifProperties().let { if (it.isNotEmpty()) details.appendLine(it) }
-        }
-
-        if (detailsFlag and EXT_GPS != 0) {
-            getLatLonAltitude(medium.path).let { if (it.isNotEmpty()) details.appendLine(it) }
-        }
-
-        if (detailsFlag and EXT_ORIENTATION != 0) {
-            exif.getReadableOrientation(context).let { if (it.isNotEmpty()) details.appendLine(it) }
-        }
-
-        if (detailsFlag and EXT_RATING != 0) {
-            // straight out of the file rather than off the Medium, which is a copy handed to this
-            // fragment when it was created and would still show the rating from before an edit
-            val rating = XmpRating.read(exif.getAttributeBytes(ExifInterface.TAG_XMP)?.toString(Charsets.UTF_8))
-            details.appendLine("${context.getString(R.string.rating)}: ${context.getRatingLabel(rating)}")
-        }
-
-        return details.toString().trim()
-    }
-
     fun getPathToLoad(medium: Medium): String {
         val context = context ?: return medium.path
         return if (context.isPathOnOTG(medium.path)) {
@@ -123,59 +41,6 @@ abstract class ViewPagerFragment : Fragment() {
         } else {
             medium.path
         }
-    }
-
-    private fun getResolution(medium: Medium, file: File): String? {
-        if (medium.name.endsWith(".jxl",ignoreCase = true)) {
-            val resolution = try {
-                JxlCoder.getSize(file.readBytes())
-            } catch (ignored: OutOfMemoryError) {
-                null
-            }
-            return resolution?.let { Point(it.width,it.height).formatAsResolution() }
-        } else {
-            return context?.getResolution(file.absolutePath)?.formatAsResolution()
-        }
-    }
-
-    private fun getFileLastModified(file: File): String {
-        val context = context ?: return ""
-        val projection = arrayOf(Images.Media.DATE_MODIFIED)
-        val uri = Files.getContentUri("external")
-        val selection = "${MediaStore.MediaColumns.DATA} = ?"
-        val selectionArgs = arrayOf(file.absolutePath)
-        val cursor = context.contentResolver.query(uri, projection, selection, selectionArgs, null)
-        cursor?.use {
-            return if (cursor.moveToFirst()) {
-                val dateModified = cursor.getLongValue(Images.Media.DATE_MODIFIED) * 1000L
-                dateModified.formatDate(context)
-            } else {
-                file.lastModified().formatDate(context)
-            }
-        }
-        return ""
-    }
-
-    private fun getLatLonAltitude(path: String): String {
-        var result = ""
-        val exif = try {
-            ExifInterface(path)
-        } catch (e: Exception) {
-            return ""
-        }
-
-        val latLon = FloatArray(2)
-
-        if (exif.getLatLong(latLon)) {
-            result = "${latLon[0]},  ${latLon[1]}"
-        }
-
-        val altitude = exif.getAltitude(0.0)
-        if (altitude != 0.0) {
-            result += ",  ${altitude}m"
-        }
-
-        return result.trimStart(',').trim()
     }
 
     protected fun handleEvent(event: MotionEvent) {

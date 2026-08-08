@@ -5,6 +5,7 @@ import android.view.View
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsCompat.Type
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -27,6 +28,16 @@ abstract class BaseViewerActivity : SimpleActivity() {
             insets
         }
         registerShowNotchCollector(contentRoot)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // a viewer's chrome is white over the photo whichever theme the app is in, so the system's
+        // own icons at either end of the screen have to be light to match it
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
+        }
     }
 
     private fun registerShowNotchCollector(view: View) {

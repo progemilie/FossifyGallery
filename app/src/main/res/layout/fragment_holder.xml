@@ -36,9 +36,17 @@
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/fragment_viewer_toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="wrap_content"
+            android:minHeight="?attr/actionBarSize"
+            app:contentInsetStartWithNavigation="0dp"
             app:menu="@menu/photo_video_menu"
-            app:navigationIcon="@drawable/ic_arrow_left_vector" />
+            app:navigationIcon="@drawable/ic_arrow_left_vector">
+
+            <include
+                android:id="@+id/viewer_header"
+                layout="@layout/viewer_header" />
+
+        </com.google.android.material.appbar.MaterialToolbar>
 
     </com.google.android.material.appbar.AppBarLayout>
 </RelativeLayout>

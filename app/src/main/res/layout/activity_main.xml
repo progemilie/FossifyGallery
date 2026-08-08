@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Same shape as the media grid: the folders fill the window, the search bar floats over them and
+    the foot of the list fades out behind the navigation bar. The search bar comes last so it draws
+    on top of what it is floating over.
+-->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/directories_coordinator"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <org.fossify.commons.views.MySearchMenu
-        android:id="@+id/main_menu"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
     <RelativeLayout
         android:id="@+id/directories_holder"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:layout_height="match_parent">
 
         <org.fossify.commons.views.MyTextView
             android:id="@+id/directories_switch_searching"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="?attr/actionBarSize"
             android:background="?attr/selectableItemBackground"
             android:gravity="center"
             android:padding="@dimen/activity_margin"
@@ -31,6 +31,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_below="@+id/directories_switch_searching"
+            android:layout_marginTop="?attr/actionBarSize"
             android:alpha="0.8"
             android:gravity="center_horizontal"
             android:paddingStart="@dimen/activity_margin"
@@ -56,7 +57,7 @@
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
             android:id="@+id/directories_refresh_layout"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_below="@+id/directories_switch_searching">
 
             <com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
@@ -69,6 +70,7 @@
                     android:id="@+id/directories_grid"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    android:clipToPadding="false"
                     android:layoutAnimation="@anim/layout_animation"
                     android:scrollbars="none"
                     app:layoutManager="org.fossify.commons.views.MyGridLayoutManager"
@@ -77,4 +79,17 @@
             </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
     </RelativeLayout>
+
+    <View
+        android:id="@+id/directories_bottom_fade"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/bottom_fade_height"
+        android:layout_gravity="bottom"
+        android:background="@drawable/gradient_bottom_fade" />
+
+    <org.fossify.commons.views.MySearchMenu
+        android:id="@+id/main_menu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

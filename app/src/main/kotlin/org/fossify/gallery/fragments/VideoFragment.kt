@@ -122,10 +122,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     private var mVideoSize = Point(1, 1)
     private var mTimerHandler = Handler()
 
-    private var mStoredShowExtendedDetails = false
-    private var mStoredHideExtendedDetails = false
     private var mStoredBottomActions = true
-    private var mStoredExtendedDetails = 0
     private var mStoredRememberLastVideoPosition = false
     private var mOriginalPlaybackSpeed = 1f
     private var mIsLongPressActive = false
@@ -376,7 +373,6 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         mVolumeSideScroll.beVisibleIf(allowVideoGestures && !mIsPanorama)
         mBrightnessSideScroll.beVisibleIf(allowVideoGestures && !mIsPanorama)
 
-        checkExtendedDetails()
         initTimeHolder()
         storeStateVariables()
     }
@@ -423,9 +419,6 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
     private fun storeStateVariables() {
         mConfig.apply {
-            mStoredShowExtendedDetails = showExtendedDetails
-            mStoredHideExtendedDetails = hideExtendedDetails
-            mStoredExtendedDetails = extendedDetails
             mStoredBottomActions = bottomActions
             mStoredRememberLastVideoPosition = rememberLastVideoPosition
         }
@@ -604,19 +597,6 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
     }
 
-    private fun checkExtendedDetails() {
-        if (mConfig.showExtendedDetails) {
-            binding.videoDetails.apply {
-                text = getMediumExtendedDetails(mMedium)
-                beVisibleIf(text.isNotEmpty())
-                alpha = if (!mConfig.hideExtendedDetails || !mIsFullscreen) 1f else 0f
-                (activity as? BaseViewerActivity)?.applyProperHorizontalInsets(this)
-            }
-        } else {
-            binding.videoDetails.beGone()
-        }
-    }
-
     private fun initTimeHolder() {
         mTimeHolder.beGoneIf(mIsFullscreen)
         mTimeHolder.alpha = if (mIsFullscreen) 0f else 1f
@@ -660,14 +640,6 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         } else {
             binding.bottomActionsDummy.beVisible()
             mTimeHolder.fadeIn(DEFAULT_ANIMATION_DURATION)
-        }
-
-        binding.videoDetails.apply {
-            if (mStoredShowExtendedDetails && isVisible() && context != null && resources != null) {
-                if (mStoredHideExtendedDetails) {
-                    animate().alpha(if (isFullscreen) 0f else 1f).start()
-                }
-            }
         }
     }
 

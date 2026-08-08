@@ -40,6 +40,7 @@ import org.fossify.commons.extensions.getTimeFormat
 import org.fossify.commons.extensions.handleHiddenFolderPasswordProtection
 import org.fossify.commons.extensions.handleLockedFolderOpening
 import org.fossify.commons.extensions.hideKeyboard
+import org.fossify.commons.extensions.onGlobalLayout
 import org.fossify.commons.extensions.isExternalStorageManager
 import org.fossify.commons.extensions.isGone
 import org.fossify.commons.extensions.isMediaFile
@@ -99,6 +100,7 @@ import org.fossify.gallery.extensions.showRestoreConfirmationDialog
 import org.fossify.gallery.extensions.tryDeleteFileDirItem
 import org.fossify.gallery.extensions.updateWidgets
 import org.fossify.gallery.helpers.DIRECTORY
+import org.fossify.gallery.helpers.FloatingTopBar
 import org.fossify.gallery.helpers.GET_ANY_INTENT
 import org.fossify.gallery.helpers.GET_IMAGE_INTENT
 import org.fossify.gallery.helpers.GET_VIDEO_INTENT
@@ -164,6 +166,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private var mStoredThumbnailSpacing = 0
 
     private val binding by viewBinding(ActivityMediaBinding::inflate)
+    private val floatingTopBar by lazy { FloatingTopBar(binding.mediaMenu) }
 
     companion object {
         private const val REQUEST_VIEW_MEDIA = 1
@@ -196,6 +199,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         refreshMenuItems()
         storeStateVariables()
         setupInsetPadding()
+        setupFloatingTopBar()
 
         if (mShowAll) {
             registerFileUpdateListener()
@@ -216,6 +220,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     override fun onResume() {
         super.onResume()
         updateMenuColors()
+        updateTopBarPanning()
         if (mStoredAnimateGifs != config.animateGifs) {
             getMediaAdapter()?.updateAnimateGifs(config.animateGifs)
         }
@@ -414,8 +419,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
     private fun setupOptionsMenu() {
         binding.mediaMenu.requireToolbar().inflateMenu(R.menu.menu_media)
-        binding.mediaMenu.toggleHideOnScroll(!config.scrollHorizontally)
         binding.mediaMenu.setupMenu()
+        updateTopBarPanning()
 
         binding.mediaMenu.onSearchTextChangedListener = { text ->
             mLastSearchedText = text
@@ -472,6 +477,35 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
     private fun updateMenuColors() {
         binding.mediaMenu.updateColors()
+        // updateColors() paints the band back in every time, so undo it right behind it
+        floatingTopBar.makeFloating()
+    }
+
+    /**
+     * The grid runs the full height of the window with the search bar floating over the top of it,
+     * so the grid keeps its first row clear of the bar by padding rather than by starting below it,
+     * and the refresh spinner has to drop in from under the bar rather than from behind it.
+     */
+    private fun setupFloatingTopBar() {
+        floatingTopBar.makeFloating()
+        floatingTopBar.attachTo(binding.mediaGrid)
+        floatingTopBar.onHeightChanged = ::keepGridClearOfTopBar
+        binding.mediaMenu.onGlobalLayout { keepGridClearOfTopBar() }
+    }
+
+    private fun keepGridClearOfTopBar() {
+        val barHeight = floatingTopBar.occupiedHeight
+        // set here rather than in the layout because the bar's height is the status bar inset plus
+        // its own, and only the running app knows the first of those
+        binding.mediaGrid.updatePadding(top = barHeight)
+        val travel = resources.getDimensionPixelSize(R.dimen.refresh_spinner_travel)
+        binding.mediaRefreshLayout.setProgressViewOffset(false, barHeight, barHeight + travel)
+    }
+
+    // sideways scrolling has no room to pan the bar out of, and while a group is being arranged
+    // the bar is the way out of that mode
+    private fun updateTopBarPanning() {
+        floatingTopBar.isPanningEnabled = !config.scrollHorizontally && !mIsReordering
     }
 
     /**
@@ -482,7 +516,9 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
      */
     private fun setupInsetPadding() {
         setupEdgeToEdge(
-            padTopSystem = listOf(binding.mediaMenu),
+            // the grid gets no top inset of its own - keepGridClearOfTopBar() pads it by the whole
+            // height of the bar, which already carries this inset
+            padTopSystem = listOf(binding.mediaMenu, binding.mediaEmptyTextPlaceholder),
             padBottomImeAndSystem = if (mIsReordering) {
                 listOf(binding.mediaReorderBar.root)
             } else {
@@ -564,6 +600,9 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         mIsReordering = true
         binding.mediaRefreshLayout.isEnabled = false
         binding.mediaReorderBar.root.beVisible()
+        // the bar brings its own solid background, so the darkening behind it would only muddy it
+        binding.mediaBottomFade.beGone()
+        updateTopBarPanning()
         // hand the room the grid was keeping for the navigation bar over to the bar taking its place
         mGridBottomPadding = binding.mediaGrid.paddingBottom
         setupInsetPadding()
@@ -616,6 +655,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private fun stopReordering() {
         mIsReordering = false
         binding.mediaReorderBar.root.beGone()
+        binding.mediaBottomFade.beVisible()
+        updateTopBarPanning()
         setupInsetPadding()
         binding.mediaGrid.updatePadding(bottom = mGridBottomPadding)
         binding.mediaRefreshLayout.isEnabled = config.enablePullToRefresh

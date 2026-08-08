@@ -11,6 +11,7 @@ import android.provider.MediaStore.Video
 import android.view.ViewGroup
 import android.widget.RelativeLayout
 import android.widget.Toast
+import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.RecyclerView
 import org.fossify.commons.dialogs.CreateNewFolderDialog
 import org.fossify.commons.dialogs.FilePickerDialog
@@ -49,10 +50,12 @@ import org.fossify.commons.extensions.isGone
 import org.fossify.commons.extensions.isImageFast
 import org.fossify.commons.extensions.isMediaFile
 import org.fossify.commons.extensions.isPathOnOTG
+import org.fossify.commons.extensions.isVisible
 import org.fossify.commons.extensions.isRawFast
 import org.fossify.commons.extensions.isSvg
 import org.fossify.commons.extensions.isVideoFast
 import org.fossify.commons.extensions.launchMoreAppsFromUsIntent
+import org.fossify.commons.extensions.onGlobalLayout
 import org.fossify.commons.extensions.recycleBinPath
 import org.fossify.commons.extensions.sdCardPath
 import org.fossify.commons.extensions.showErrorToast
@@ -114,6 +117,7 @@ import org.fossify.gallery.extensions.tryDeleteFileDirItem
 import org.fossify.gallery.extensions.updateDBDirectory
 import org.fossify.gallery.extensions.updateWidgets
 import org.fossify.gallery.helpers.DIRECTORY
+import org.fossify.gallery.helpers.FloatingTopBar
 import org.fossify.gallery.helpers.GET_ANY_INTENT
 import org.fossify.gallery.helpers.GET_IMAGE_INTENT
 import org.fossify.gallery.helpers.GET_VIDEO_INTENT
@@ -199,6 +203,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     private var mStoredPrimaryColor = 0
     private var mStoredStyleString = ""
     private val binding by viewBinding(ActivityMainBinding::inflate)
+    private val floatingTopBar by lazy { FloatingTopBar(binding.mainMenu) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -233,8 +238,16 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         refreshMenuItems()
 
         setupEdgeToEdge(
+            // the list gets no top inset of its own - keepGridClearOfTopBar() pads it by the whole
+            // height of the bar, which already carries this inset
+            padTopSystem = listOf(
+                binding.mainMenu,
+                binding.directoriesSwitchSearching,
+                binding.directoriesEmptyPlaceholder
+            ),
             padBottomImeAndSystem = listOf(binding.directoriesGrid)
         )
+        setupFloatingTopBar()
 
         binding.directoriesRefreshLayout.setOnRefreshListener { getDirectories() }
         storeStateVariables()
@@ -293,6 +306,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     override fun onResume() {
         super.onResume()
         updateMenuColors()
+        updateTopBarPanning()
         config.isThirdPartyIntent = false
         mDateFormat = config.dateFormat
         mTimeFormat = getTimeFormat()
@@ -479,8 +493,8 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         }
 
         binding.mainMenu.requireToolbar().inflateMenu(menuId)
-        binding.mainMenu.toggleHideOnScroll(!config.scrollHorizontally)
         binding.mainMenu.setupMenu()
+        updateTopBarPanning()
 
         binding.mainMenu.onSearchOpenListener = {
             if (config.searchAllFilesByDefault) {
@@ -493,6 +507,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             binding.directoriesRefreshLayout.isEnabled =
                 text.isEmpty() && config.enablePullToRefresh
             binding.directoriesSwitchSearching.beVisibleIf(text.isNotEmpty())
+            keepGridClearOfTopBar()
         }
 
         binding.mainMenu.requireToolbar().setOnMenuItemClickListener { menuItem ->
@@ -521,6 +536,37 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
 
     private fun updateMenuColors() {
         binding.mainMenu.updateColors()
+        // updateColors() paints the band back in every time, so undo it right behind it
+        floatingTopBar.makeFloating()
+    }
+
+    /**
+     * The folder list runs the full height of the window with the search bar floating over the top
+     * of it, so it keeps its first row clear of the bar by padding rather than by starting below
+     * it, and the refresh spinner has to drop in from under the bar rather than from behind it.
+     */
+    private fun setupFloatingTopBar() {
+        floatingTopBar.makeFloating()
+        floatingTopBar.attachTo(binding.directoriesGrid)
+        floatingTopBar.onHeightChanged = ::keepGridClearOfTopBar
+        binding.mainMenu.onGlobalLayout { keepGridClearOfTopBar() }
+    }
+
+    private fun keepGridClearOfTopBar() {
+        val barHeight = floatingTopBar.occupiedHeight
+        // the switch-to-file-search link keeps clear of the bar itself and the list is laid out
+        // below the link, so while it is up the list has no room left to make for itself
+        val roomToMake = if (binding.directoriesSwitchSearching.isVisible()) 0 else barHeight
+        // set here rather than in the layout because the bar's height is the status bar inset plus
+        // its own, and only the running app knows the first of those
+        binding.directoriesGrid.updatePadding(top = roomToMake)
+        val travel = resources.getDimensionPixelSize(R.dimen.refresh_spinner_travel)
+        binding.directoriesRefreshLayout.setProgressViewOffset(false, barHeight, barHeight + travel)
+    }
+
+    // sideways scrolling has no room to pan the bar out of
+    private fun updateTopBarPanning() {
+        floatingTopBar.isPanningEnabled = !config.scrollHorizontally
     }
 
     private fun getRecyclerAdapter() = binding.directoriesGrid.adapter as? DirectoryAdapter

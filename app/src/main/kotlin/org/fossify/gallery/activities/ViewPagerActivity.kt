@@ -23,7 +23,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.provider.MediaStore
 import android.view.HapticFeedbackConstants
-import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
@@ -111,10 +110,12 @@ import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.favoritesDB
 import org.fossify.gallery.extensions.fixDateTaken
 import org.fossify.gallery.extensions.getFavoritePaths
+import org.fossify.gallery.extensions.getMediumExtendedDetails
 import org.fossify.gallery.extensions.getShortcutImage
 import org.fossify.gallery.extensions.handleMediaManagementPrompt
 import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.isDownloadsFolder
+import org.fossify.gallery.extensions.joinAsExtendedDetails
 import org.fossify.gallery.extensions.launchResizeImageDialog
 import org.fossify.gallery.extensions.launchSettings
 import org.fossify.gallery.extensions.mediaDB
@@ -267,9 +268,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         mOriginalBrightness = window.updateBrightness(config.maxBrightness, mOriginalBrightness)
         setupOrientation()
         refreshMenuItems()
-
-        val filename = getCurrentMedium()?.name ?: mPath.getFilenameFromPath()
-        binding.mediumViewerToolbar.title = filename
+        updateHeader()
     }
 
     override fun onPause() {
@@ -333,13 +332,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 findItem(R.id.menu_restore_file).isVisible = currentMedium.path.startsWith(recycleBinPath)
                 findItem(R.id.menu_create_shortcut).isVisible = true
                 findItem(R.id.menu_change_orientation).isVisible = rotationDegrees == 0 && visibleBottomActions and BOTTOM_ACTION_CHANGE_ORIENTATION == 0
-                findItem(R.id.menu_rotate).setShowAsAction(
-                    if (rotationDegrees != 0) {
-                        MenuItem.SHOW_AS_ACTION_ALWAYS
-                    } else {
-                        MenuItem.SHOW_AS_ACTION_IF_ROOM
-                    }
-                )
             }
 
             if (visibleBottomActions != 0) {
@@ -350,7 +342,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
     private fun setupOptionsMenu() {
         binding.mediumViewerToolbar.apply {
-            setTitleTextColor(Color.WHITE)
             overflowIcon = resources.getColoredDrawableWithColor(org.fossify.commons.R.drawable.ic_three_dots_vector, Color.WHITE)
             navigationIcon = resources.getColoredDrawableWithColor(org.fossify.commons.R.drawable.ic_arrow_left_vector, Color.WHITE)
         }
@@ -515,7 +506,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             isShowingRecycleBin -> RECYCLE_BIN
             else -> mPath.getParentPath()
         }
-        binding.mediumViewerToolbar.title = mPath.getFilenameFromPath()
+        binding.viewerHeader.viewerHeaderFilename.text = mPath.getFilenameFromPath()
 
         binding.viewPager.onGlobalLayout {
             if (!isDestroyed) {
@@ -829,7 +820,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     private fun toggleFileVisibility(hide: Boolean, callback: (() -> Unit)? = null) {
         toggleFileVisibility(getCurrentPath(), hide) {
             val newFileName = it.getFilenameFromPath()
-            binding.mediumViewerToolbar.title = newFileName
 
             getCurrentMedium()!!.apply {
                 name = newFileName
@@ -837,6 +827,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 getCurrentMedia()[mPos] = this
             }
 
+            updateHeader()
             refreshMenuItems()
             callback?.invoke()
         }
@@ -1219,7 +1210,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 // so the grid is up to date the moment this is
                 medium.rating = rating
                 updateBottomActionIcons(medium)
-                getCurrentFragment()?.refreshExtendedDetails()
+                updateHeader()
             }
         }
     }
@@ -1497,7 +1488,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             ensureBackgroundThread {
                 updateDBMediaPath(oldPath, it)
             }
-            updateActionbarTitle()
+            updateHeader()
         }
     }
 
@@ -1538,7 +1529,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             }
         }
 
-        updateActionbarTitle()
+        updateHeader()
         updatePagerItems(mMediaFiles.toMutableList())
 
         refreshMenuItems()
@@ -1684,11 +1675,38 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
     }
 
-    private fun updateActionbarTitle() {
+    /**
+     * The top bar's heading: the file name, with the extended details packed onto the lines below
+     * it when they are turned on. Sitting inside the toolbar means fading the top bar out for
+     * fullscreen takes the whole heading with it.
+     */
+    private fun updateHeader() {
         runOnUiThread {
             val medium = getCurrentMedium()
-            if (medium != null) {
-                binding.mediumViewerToolbar.title = medium.path.getFilenameFromPath()
+            binding.viewerHeader.viewerHeaderFilename.text =
+                medium?.path?.getFilenameFromPath() ?: mPath.getFilenameFromPath()
+            updateHeaderDetails(medium)
+        }
+    }
+
+    private fun updateHeaderDetails(medium: Medium?) {
+        val detailsView = binding.viewerHeader.viewerHeaderDetails
+        if (medium == null || !config.showExtendedDetails) {
+            detailsView.beGone()
+            return
+        }
+
+        // reading them opens the file, and swiping on is not going to wait for that
+        ensureBackgroundThread {
+            val details = getMediumExtendedDetails(medium, skipName = true).joinAsExtendedDetails()
+
+            runOnUiThread {
+                // a fast swipe can land several of these out of order - only the one describing
+                // what is on screen now gets to write itself into the header
+                if (getCurrentPath() == medium.path) {
+                    detailsView.text = details
+                    detailsView.beVisibleIf(details.isNotEmpty())
+                }
             }
         }
     }
@@ -1710,7 +1728,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     override fun onPageSelected(position: Int) {
         if (mPos != position) {
             mPos = position
-            updateActionbarTitle()
+            updateHeader()
             refreshMenuItems()
             scheduleSwipe()
         }

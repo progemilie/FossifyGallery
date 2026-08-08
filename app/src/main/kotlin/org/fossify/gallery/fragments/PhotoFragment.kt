@@ -76,7 +76,6 @@ import org.fossify.commons.helpers.DEFAULT_ANIMATION_DURATION
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isRPlus
 import org.fossify.gallery.R
-import org.fossify.gallery.activities.BaseViewerActivity
 import org.fossify.gallery.activities.PhotoActivity
 import org.fossify.gallery.activities.PhotoVideoActivity
 import org.fossify.gallery.activities.ViewPagerActivity
@@ -133,11 +132,8 @@ class PhotoFragment : ViewPagerFragment() {
     private var mInitialZoom = 1f
     private var mHasInitialZoom = false
 
-    private var mStoredShowExtendedDetails = false
-    private var mStoredHideExtendedDetails = false
     private var mStoredAllowDeepZoomableImages = false
     private var mStoredShowHighestQuality = false
-    private var mStoredExtendedDetails = 0
 
     private lateinit var mView: ViewGroup
     private lateinit var binding: PagerPhotoItemBinding
@@ -251,7 +247,6 @@ class PhotoFragment : ViewPagerFragment() {
             binding.bottomActionsDummy.beGone()
         }
         loadImage()
-        initExtendedDetails()
         mWasInit = true
         updateInstantSwitchWidths()
 
@@ -272,10 +267,6 @@ class PhotoFragment : ViewPagerFragment() {
     override fun onResume() {
         super.onResume()
         val config = requireContext().config
-        if (mWasInit && (config.showExtendedDetails != mStoredShowExtendedDetails || config.extendedDetails != mStoredExtendedDetails)) {
-            initExtendedDetails()
-        }
-
         if (mWasInit) {
             if (config.allowZoomingImages != mStoredAllowDeepZoomableImages || config.showHighestQuality != mStoredShowHighestQuality) {
                 mIsSubsamplingVisible = false
@@ -348,7 +339,6 @@ class PhotoFragment : ViewPagerFragment() {
         }
 
         measureScreen()
-        initExtendedDetails()
         updateInstantSwitchWidths()
         mShouldResetImage = true
     }
@@ -367,11 +357,8 @@ class PhotoFragment : ViewPagerFragment() {
 
     private fun storeStateVariables() {
         requireContext().config.apply {
-            mStoredShowExtendedDetails = showExtendedDetails
-            mStoredHideExtendedDetails = hideExtendedDetails
             mStoredAllowDeepZoomableImages = allowZoomingImages
             mStoredShowHighestQuality = showHighestQuality
-            mStoredExtendedDetails = extendedDetails
         }
     }
 
@@ -945,31 +932,6 @@ class PhotoFragment : ViewPagerFragment() {
         }
     }
 
-    override fun refreshExtendedDetails() {
-        if (mWasInit) {
-            initExtendedDetails()
-        }
-    }
-
-    private fun initExtendedDetails() {
-        if (requireContext().config.showExtendedDetails) {
-            ensureBackgroundThread {
-                val details = getMediumExtendedDetails(mMedium)
-                activity?.runOnUiThread {
-                    binding.photoDetails.apply {
-                        text = details
-                        beVisibleIf(text.isNotEmpty())
-                        val hideExtendedDetails = context?.config?.hideExtendedDetails == true
-                        alpha = if (!hideExtendedDetails || !mIsFullscreen) 1f else 0f
-                        (activity as? BaseViewerActivity)?.applyProperHorizontalInsets(this)
-                    }
-                }
-            }
-        } else {
-            binding.photoDetails.beGone()
-        }
-    }
-
     private fun hideZoomableView() {
         if (context?.config?.allowZoomingImages == true) {
             mIsSubsamplingVisible = false
@@ -991,14 +953,6 @@ class PhotoFragment : ViewPagerFragment() {
     override fun fullscreenToggled(isFullscreen: Boolean) {
         this.mIsFullscreen = isFullscreen
         binding.apply {
-            photoDetails.apply {
-                if (mStoredShowExtendedDetails && isVisible() && context != null && resources != null) {
-                    if (mStoredHideExtendedDetails) {
-                        animate().alpha(if (isFullscreen) 0f else 1f).start()
-                    }
-                }
-            }
-
             if (isFullscreen) {
                 bottomActionsDummy.fadeOut(DEFAULT_ANIMATION_DURATION)
             } else {

@@ -6,7 +6,6 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
-import android.text.Html
 import android.view.View
 import androidx.core.graphics.drawable.toDrawable
 import com.google.android.material.appbar.AppBarLayout
@@ -34,7 +33,6 @@ import org.fossify.commons.extensions.isSvg
 import org.fossify.commons.extensions.isVideoFast
 import org.fossify.commons.extensions.rescanPath
 import org.fossify.commons.extensions.rescanPaths
-import org.fossify.commons.extensions.toHex
 import org.fossify.commons.extensions.toast
 import org.fossify.commons.extensions.updateBrightness
 import org.fossify.commons.extensions.viewBinding
@@ -47,7 +45,9 @@ import org.fossify.gallery.BuildConfig
 import org.fossify.gallery.R
 import org.fossify.gallery.databinding.FragmentHolderBinding
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.extensions.getMediumExtendedDetails
 import org.fossify.gallery.extensions.hideSystemUI
+import org.fossify.gallery.extensions.joinAsExtendedDetails
 import org.fossify.gallery.extensions.openEditor
 import org.fossify.gallery.extensions.openPath
 import org.fossify.gallery.extensions.setAs
@@ -138,7 +138,6 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
 
     private fun setupOptionsMenu() {
         binding.fragmentViewerToolbar.apply {
-            setTitleTextColor(Color.WHITE)
             overflowIcon = resources.getColoredDrawableWithColor(org.fossify.commons.R.drawable.ic_three_dots_vector, Color.WHITE)
             navigationIcon = resources.getColoredDrawableWithColor(org.fossify.commons.R.drawable.ic_arrow_left_vector, Color.WHITE)
         }
@@ -254,7 +253,7 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
 
         mIsVideo = type == TYPE_VIDEOS
         mMedium = Medium(null, filename, mUri.toString(), mUri!!.path!!.getParentPath(), 0, 0, file.length(), type, 0, false, 0L, 0)
-        binding.fragmentViewerToolbar.title = Html.fromHtml("<font color='${Color.WHITE.toHex()}'>${mMedium!!.name}</font>")
+        updateHeader()
         bundle.putSerializable(MEDIUM, mMedium)
 
         if (savedInstanceState == null) {
@@ -270,6 +269,31 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
 
         mOriginalBrightness = window.updateBrightness(config.maxBrightness, mOriginalBrightness)
         initBottomActions()
+    }
+
+    /**
+     * Same heading the pager viewer uses - file name, with the extended details underneath when
+     * they are on. Opened through an intent the medium is often a content uri with no file behind
+     * it, in which case there are no details to read and only the name shows.
+     */
+    private fun updateHeader() {
+        val medium = mMedium ?: return
+        binding.viewerHeader.viewerHeaderFilename.text = medium.name
+
+        val detailsView = binding.viewerHeader.viewerHeaderDetails
+        if (!config.showExtendedDetails) {
+            detailsView.beGone()
+            return
+        }
+
+        ensureBackgroundThread {
+            val details = getMediumExtendedDetails(medium, skipName = true).joinAsExtendedDetails()
+
+            runOnUiThread {
+                detailsView.text = details
+                detailsView.beVisibleIf(details.isNotEmpty())
+            }
+        }
     }
 
     private fun launchGesturePlayer() {
