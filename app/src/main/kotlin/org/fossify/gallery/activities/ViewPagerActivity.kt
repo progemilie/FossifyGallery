@@ -21,6 +21,7 @@ import android.graphics.Color
 import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
@@ -203,6 +204,10 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     companion object {
         private const val REQUEST_VIEW_VIDEO = 1
         private const val SAVED_PATH = "current_path"
+
+        // long enough to sit out the photos a scrolling thumbnail strip passes over, short enough
+        // that landing on one and reading about it feels like the same moment
+        private const val HEADER_DETAILS_DELAY = 200L
     }
 
     private var mPath = ""
@@ -230,6 +235,9 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     // fires the star chooser once the rating button has been held long enough, and is cancelled by
     // anything that ends the touch before then - that shorter touch is a tap, not a hold
     private var mRatingChooserRunnable: Runnable? = null
+
+    private val mHeaderDetailsHandler = Handler(Looper.getMainLooper())
+    private var mHeaderDetailsRunnable: Runnable? = null
 
     private val binding by viewBinding(ActivityMediumBinding::inflate)
 
@@ -1725,24 +1733,31 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
     private fun updateHeaderDetails(medium: Medium?) {
         val detailsView = binding.viewerHeader.viewerHeaderDetails
+        mHeaderDetailsRunnable?.let { mHeaderDetailsHandler.removeCallbacks(it) }
         if (medium == null || !config.showExtendedDetails) {
             detailsView.beGone()
             return
         }
 
-        // reading them opens the file, and swiping on is not going to wait for that
-        ensureBackgroundThread {
-            val details = getMediumExtendedDetails(medium, skipName = true).joinAsExtendedDetails()
+        // held back a moment because reading the details opens the file, and scrolling the
+        // thumbnail strip crosses photos faster than any of them can be opened. Only the one still
+        // on screen when that pauses is worth opening
+        mHeaderDetailsRunnable = Runnable {
+            // reading them opens the file, and swiping on is not going to wait for that
+            ensureBackgroundThread {
+                val details =
+                    getMediumExtendedDetails(medium, skipName = true).joinAsExtendedDetails()
 
-            runOnUiThread {
-                // a fast swipe can land several of these out of order - only the one describing
-                // what is on screen now gets to write itself into the header
-                if (getCurrentPath() == medium.path) {
-                    detailsView.text = details
-                    detailsView.beVisibleIf(details.isNotEmpty())
+                runOnUiThread {
+                    // a fast swipe can land several of these out of order - only the one describing
+                    // what is on screen now gets to write itself into the header
+                    if (getCurrentPath() == medium.path) {
+                        detailsView.text = details
+                        detailsView.beVisibleIf(details.isNotEmpty())
+                    }
                 }
             }
-        }
+        }.also { mHeaderDetailsHandler.postDelayed(it, HEADER_DETAILS_DELAY) }
     }
 
     private fun getCurrentMedium(): Medium? {

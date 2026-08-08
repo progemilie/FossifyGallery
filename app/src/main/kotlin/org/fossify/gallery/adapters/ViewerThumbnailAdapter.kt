@@ -17,9 +17,9 @@ import org.fossify.gallery.models.Medium
 import org.fossify.gallery.svg.SvgSoftwareLayerSetter
 
 /**
- * The thumbnails of [org.fossify.gallery.views.ViewerThumbnailStrip]. Everything but the one in the
- * middle of the strip is shaded and a little smaller, which is what makes the middle read as the
- * photo on screen rather than as one thumbnail among a row of them.
+ * The thumbnails of [org.fossify.gallery.views.ViewerThumbnailStrip]. Loading them is all this does:
+ * how big and how shaded each one is drawn depends on where the strip has scrolled to, so the strip
+ * sets that on the children itself rather than going through a binding for it.
  */
 class ViewerThumbnailAdapter(
     private val thumbnailSize: Int,
@@ -27,32 +27,15 @@ class ViewerThumbnailAdapter(
 ) : RecyclerView.Adapter<ViewerThumbnailAdapter.ThumbnailViewHolder>() {
 
     companion object {
-        private const val HIGHLIGHT_ANIMATION_MS = 150L
-        private const val UNSELECTED_SCALE = 0.92f
-        private const val UNSELECTED_SHADE = 0.45f
-
         /**
          * The fraction of the thumbnail's resolution Glide decodes first. A quarter-size bitmap is
          * roughly a sixteenth of the work, so it lands while the finger is still moving and the
          * full one replaces it in place - a strip being scrolled never has to show an empty cell.
          */
         private const val PREVIEW_QUALITY = 0.25f
-
-        private const val SELECTION_PAYLOAD = "selection"
     }
 
     private var media = emptyList<Medium>()
-
-    /** The one thumbnail drawn full size and unshaded. */
-    var selectedPosition = 0
-        set(value) {
-            if (field != value) {
-                val previous = field
-                field = value
-                notifyItemChanged(previous, SELECTION_PAYLOAD)
-                notifyItemChanged(value, SELECTION_PAYLOAD)
-            }
-        }
 
     @Suppress("NotifyDataSetChanged")
     fun setItems(newMedia: List<Medium>) {
@@ -77,20 +60,7 @@ class ViewerThumbnailAdapter(
     }
 
     override fun onBindViewHolder(holder: ThumbnailViewHolder, position: Int) {
-        applySelection(holder.binding, position == selectedPosition, animate = false)
         loadThumbnail(holder.binding.viewerThumbnailImage, media[position])
-    }
-
-    override fun onBindViewHolder(
-        holder: ThumbnailViewHolder,
-        position: Int,
-        payloads: MutableList<Any>,
-    ) {
-        if (payloads.contains(SELECTION_PAYLOAD)) {
-            applySelection(holder.binding, position == selectedPosition, animate = true)
-        } else {
-            onBindViewHolder(holder, position)
-        }
     }
 
     override fun onViewRecycled(holder: ThumbnailViewHolder) {
@@ -98,8 +68,6 @@ class ViewerThumbnailAdapter(
         // scrolling far enough leaves a queue of decodes for thumbnails nobody can see anymore
         Glide.with(holder.itemView.context.applicationContext)
             .clear(holder.binding.viewerThumbnailImage)
-        holder.binding.viewerThumbnailHolder.animate().cancel()
-        holder.binding.viewerThumbnailShade.animate().cancel()
     }
 
     private fun loadThumbnail(target: ImageView, medium: Medium) {
@@ -133,33 +101,6 @@ class ViewerThumbnailAdapter(
             .set(WebpDownsampler.USE_SYSTEM_DECODER, false) // CVE-2023-4863
             .thumbnail(PREVIEW_QUALITY)
             .into(target)
-    }
-
-    private fun applySelection(
-        binding: ViewerThumbnailStripItemBinding,
-        isSelected: Boolean,
-        animate: Boolean,
-    ) {
-        val scale = if (isSelected) 1f else UNSELECTED_SCALE
-        val shade = if (isSelected) 0f else UNSELECTED_SHADE
-        binding.viewerThumbnailHolder.animate().cancel()
-        binding.viewerThumbnailShade.animate().cancel()
-
-        if (animate) {
-            binding.viewerThumbnailHolder.animate()
-                .scaleX(scale)
-                .scaleY(scale)
-                .setDuration(HIGHLIGHT_ANIMATION_MS)
-                .start()
-            binding.viewerThumbnailShade.animate()
-                .alpha(shade)
-                .setDuration(HIGHLIGHT_ANIMATION_MS)
-                .start()
-        } else {
-            binding.viewerThumbnailHolder.scaleX = scale
-            binding.viewerThumbnailHolder.scaleY = scale
-            binding.viewerThumbnailShade.alpha = shade
-        }
     }
 
     class ThumbnailViewHolder(val binding: ViewerThumbnailStripItemBinding) :

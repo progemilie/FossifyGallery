@@ -34,19 +34,24 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
         /**
          * The share of a fling's velocity the strip keeps. Aves hands the fling to a plain friction
          * simulation and it coasts for seconds, well past whatever you were aiming at. Fling
-         * distance grows with about v^1.74, so keeping two thirds of the velocity leaves a bit
-         * under half the travel - still momentum, over sooner.
+         * distance grows with about v^1.74, so four fifths of the velocity is about two thirds of
+         * the travel - still clearly shorter than Aves, without stopping the moment you let go.
          */
-        private const val FLING_VELOCITY_KEPT = 0.65f
+        private const val FLING_VELOCITY_KEPT = 0.8f
 
-        /** Half of RecyclerView's own 100ms/inch, so the settle after a fling is not the slow part. */
-        private const val MILLIS_PER_INCH = 45f
+        /** Faster than RecyclerView's own 100ms/inch, so the settle is not the slow part. */
+        private const val MILLIS_PER_INCH = 60f
+
+        /** How far off the middle a thumbnail is drawn shrunk and shaded, in item widths. */
+        private const val FALLOFF_ITEMS = 1f
+        private const val OFF_CENTRE_SCALE = 0.92f
+        private const val OFF_CENTRE_SHADE = 0.45f
 
         /** Thumbnails held ready either side of the strip, so a scroll back over them is instant. */
         private const val VIEW_CACHE_SIZE = 8
     }
 
-    /** Called with the position the strip has come to rest on, so the pager can follow it. */
+    /** Called with the position now in the middle of the strip, so the pager can follow it. */
     var onMediumPicked: ((position: Int) -> Unit)? = null
 
     private val itemWidth = resources.getDimensionPixelSize(R.dimen.viewer_strip_item_width)
@@ -55,8 +60,8 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
         onItemClick = ::pick
     )
 
-    // what the pager has actually been told to show. It and the highlight part ways while a drag is
-    // in flight and meet again when it settles
+    // what the pager has been told to show. It only parts ways with the middle of the strip for the
+    // one frame between the middle changing and the pager being told
     private var committedPosition = NO_POSITION
     private var isUserScrolling = false
 
@@ -65,7 +70,7 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
         adapter = stripAdapter
         setHasFixedSize(true)
         setItemViewCacheSize(VIEW_CACHE_SIZE)
-        // the selection animates itself, and item animations only get in the way of a fast scroll
+        // nothing here waits on an animation, and item animations only get in the way of a scroll
         itemAnimator = null
         clipToPadding = false
         overScrollMode = OVER_SCROLL_NEVER
@@ -77,15 +82,16 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
                     isUserScrolling = true
                 } else if (newState == SCROLL_STATE_IDLE && isUserScrolling) {
                     isUserScrolling = false
-                    commitCenteredPosition()
+                    // the snap may have moved the middle on by one after the fling ran out
+                    commitCentre()
                 }
             }
 
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                // the highlight tracks the middle of the strip live, so a fling reads as passing
-                // over thumbnails rather than as one still picture until it stops
+                updateChildDecorations()
+                // the photo keeps up with the strip rather than waiting for it to stop
                 if (isUserScrolling) {
-                    highlight(centeredPosition())
+                    commitCentre()
                 }
             }
         })
@@ -104,6 +110,12 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
         super.onMeasure(widthSpec, heightSpec)
     }
 
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        super.onLayout(changed, l, t, r, b)
+        // children that scrolled into view during this pass have not been through onScrolled yet
+        updateChildDecorations()
+    }
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         // the middle of the strip is half its width along, so a rotation moves it out from under
@@ -116,19 +128,17 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
     fun setMedia(media: List<Medium>, selectedPosition: Int) {
         stripAdapter.setItems(media)
         val position = selectedPosition.coerceIn(0, max(0, media.lastIndex))
-        stripAdapter.selectedPosition = position
         committedPosition = position
         centerOn(position, smooth = false)
     }
 
-    /** Follows the pager: what it swiped to is what the strip centers and lights up. */
+    /** Follows the pager: what it swiped to is what the strip centers. */
     fun setSelectedPosition(position: Int, smooth: Boolean = true) {
         if (position !in 0 until stripAdapter.itemCount) {
             return
         }
 
         committedPosition = position
-        highlight(position)
         // a drag in flight is the user's, and the pager is only echoing where it already put them
         if (!isUserScrolling && centeredPosition() != position) {
             centerOn(position, smooth)
@@ -145,11 +155,10 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
         }
     }
 
-    private fun commitCenteredPosition() {
+    private fun commitCentre() {
         val position = centeredPosition()
         if (position != NO_POSITION && position != committedPosition) {
             committedPosition = position
-            highlight(position)
             onMediumPicked?.invoke(position)
         }
     }
@@ -174,15 +183,32 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
         return nearest
     }
 
-    private fun highlight(position: Int) {
-        if (position != NO_POSITION) {
-            stripAdapter.selectedPosition = position
+    /**
+     * Sizes and shades every thumbnail by how near the middle of the strip it currently is. Done
+     * from the children's own positions on each scroll frame rather than by telling the adapter
+     * which item is selected: an adapter change lands a frame later and then animates from there,
+     * which reads as the highlight trailing behind the thumbnails it is supposed to be marking.
+     */
+    private fun updateChildDecorations() {
+        val middle = width / 2f
+        val falloff = itemWidth * FALLOFF_ITEMS
+        for (i in 0 until childCount) {
+            val child = getChildAt(i) ?: continue
+            val binding =
+                (getChildViewHolder(child) as? ViewerThumbnailAdapter.ThumbnailViewHolder)?.binding
+            if (binding != null) {
+                val distance = abs((child.left + child.right) / 2f - middle)
+                val nearness = (1f - distance / falloff).coerceIn(0f, 1f)
+                val scale = OFF_CENTRE_SCALE + (1f - OFF_CENTRE_SCALE) * nearness
+                binding.viewerThumbnailHolder.scaleX = scale
+                binding.viewerThumbnailHolder.scaleY = scale
+                binding.viewerThumbnailShade.alpha = OFF_CENTRE_SHADE * (1f - nearness)
+            }
         }
     }
 
     private fun pick(position: Int) {
         committedPosition = position
-        highlight(position)
         centerOn(position, smooth = true)
         onMediumPicked?.invoke(position)
     }
