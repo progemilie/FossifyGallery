@@ -21,15 +21,20 @@ import android.graphics.Color
 import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
 import androidx.core.graphics.drawable.toDrawable
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat.Type
+import androidx.core.view.updateLayoutParams
 import androidx.exifinterface.media.ExifInterface
 import androidx.print.PrintHelper
 import androidx.viewpager.widget.ViewPager
@@ -199,6 +204,10 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     companion object {
         private const val REQUEST_VIEW_VIDEO = 1
         private const val SAVED_PATH = "current_path"
+
+        // long enough to sit out the photos a scrolling thumbnail strip passes over, short enough
+        // that landing on one and reading about it feels like the same moment
+        private const val HEADER_DETAILS_DELAY = 200L
     }
 
     private var mPath = ""
@@ -227,6 +236,9 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     // anything that ends the touch before then - that shorter touch is a tap, not a hold
     private var mRatingChooserRunnable: Runnable? = null
 
+    private val mHeaderDetailsHandler = Handler(Looper.getMainLooper())
+    private var mHeaderDetailsRunnable: Runnable? = null
+
     private val binding by viewBinding(ActivityMediumBinding::inflate)
 
     override val contentHolder: View
@@ -243,6 +255,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         )
 
         setupOptionsMenu()
+        setupThumbnailStrip()
         refreshMenuItems()
 
         window.decorView.setBackgroundColor(getProperBackgroundColor())
@@ -606,6 +619,8 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 addOnPageChangeListener(this@ViewPagerActivity)
                 currentItem = mPos
             }
+
+            binding.viewerThumbnailStrip.setMedia(media, mPos)
         }
     }
 
@@ -983,6 +998,31 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             binding.bottomActions.root.beVisible()
         } else {
             binding.bottomActions.root.beGone()
+        }
+
+        binding.viewerThumbnailStrip.beVisibleIf(config.showThumbnailStrip)
+        // whether the strip has to keep off the navigation bar itself depends on the buttons below
+        // it still being there
+        binding.viewerThumbnailStrip.requestApplyInsets()
+    }
+
+    /**
+     * The strip of thumbnails under the photo. Whatever the strip comes to rest on is what the
+     * pager shows, and the pager tells it where it went in return - the two are one position.
+     */
+    private fun setupThumbnailStrip() {
+        binding.viewerThumbnailStrip.onMediumPicked = { position ->
+            if (binding.viewPager.currentItem != position) {
+                binding.viewPager.setCurrentItem(position, false)
+            }
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.viewerThumbnailStrip) { view, insets ->
+            val systemBottom = insets.getInsetsIgnoringVisibility(Type.systemBars()).bottom
+            view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = if (binding.bottomActions.root.isVisible()) 0 else systemBottom
+            }
+            insets
         }
     }
 
@@ -1661,10 +1701,12 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             (it as MyPagerAdapter).toggleFullscreen(mIsFullScreen)
             val newAlpha = if (mIsFullScreen) 0f else 1f
             binding.topShadow.animate().alpha(newAlpha).start()
-            binding.bottomActions.root.animate().alpha(newAlpha).withStartAction {
-                binding.bottomActions.root.beVisible()
+            // the strip and the buttons fade as one piece, each keeping whatever visibility its own
+            // setting gave it
+            binding.bottomChrome.animate().alpha(newAlpha).withStartAction {
+                binding.bottomChrome.beVisible()
             }.withEndAction {
-                binding.bottomActions.root.beVisibleIf(newAlpha == 1f)
+                binding.bottomChrome.beVisibleIf(newAlpha == 1f)
             }.start()
 
             binding.mediumViewerAppbar.animate().alpha(newAlpha).withStartAction {
@@ -1691,24 +1733,31 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
     private fun updateHeaderDetails(medium: Medium?) {
         val detailsView = binding.viewerHeader.viewerHeaderDetails
+        mHeaderDetailsRunnable?.let { mHeaderDetailsHandler.removeCallbacks(it) }
         if (medium == null || !config.showExtendedDetails) {
             detailsView.beGone()
             return
         }
 
-        // reading them opens the file, and swiping on is not going to wait for that
-        ensureBackgroundThread {
-            val details = getMediumExtendedDetails(medium, skipName = true).joinAsExtendedDetails()
+        // held back a moment because reading the details opens the file, and scrolling the
+        // thumbnail strip crosses photos faster than any of them can be opened. Only the one still
+        // on screen when that pauses is worth opening
+        mHeaderDetailsRunnable = Runnable {
+            // reading them opens the file, and swiping on is not going to wait for that
+            ensureBackgroundThread {
+                val details =
+                    getMediumExtendedDetails(medium, skipName = true).joinAsExtendedDetails()
 
-            runOnUiThread {
-                // a fast swipe can land several of these out of order - only the one describing
-                // what is on screen now gets to write itself into the header
-                if (getCurrentPath() == medium.path) {
-                    detailsView.text = details
-                    detailsView.beVisibleIf(details.isNotEmpty())
+                runOnUiThread {
+                    // a fast swipe can land several of these out of order - only the one describing
+                    // what is on screen now gets to write itself into the header
+                    if (getCurrentPath() == medium.path) {
+                        detailsView.text = details
+                        detailsView.beVisibleIf(details.isNotEmpty())
+                    }
                 }
             }
-        }
+        }.also { mHeaderDetailsHandler.postDelayed(it, HEADER_DETAILS_DELAY) }
     }
 
     private fun getCurrentMedium(): Medium? {
@@ -1730,6 +1779,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             mPos = position
             updateHeader()
             refreshMenuItems()
+            binding.viewerThumbnailStrip.setSelectedPosition(position)
             scheduleSwipe()
         }
     }

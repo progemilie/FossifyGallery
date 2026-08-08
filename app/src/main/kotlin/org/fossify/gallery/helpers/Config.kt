@@ -3,6 +3,7 @@ package org.fossify.gallery.helpers
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Environment
+import androidx.core.content.edit
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.fossify.commons.helpers.BaseConfig
@@ -381,6 +382,10 @@ class Config(context: Context) : BaseConfig(context) {
     var showExtendedDetails: Boolean
         get() = prefs.getBoolean(SHOW_EXTENDED_DETAILS, BuildConfig.DEBUG)
         set(showExtendedDetails) = prefs.edit().putBoolean(SHOW_EXTENDED_DETAILS, showExtendedDetails).apply()
+
+    var showThumbnailStrip: Boolean
+        get() = prefs.getBoolean(SHOW_THUMBNAIL_STRIP, true)
+        set(showThumbnailStrip) = prefs.edit { putBoolean(SHOW_THUMBNAIL_STRIP, showThumbnailStrip) }
 
     var hideExtendedDetails: Boolean
         get() = prefs.getBoolean(HIDE_EXTENDED_DETAILS, true)

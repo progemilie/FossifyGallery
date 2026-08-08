@@ -133,3 +133,35 @@ no longer paints an opaque band under its own bar.
   `MySearchMenu.updateColors()`, which repaints the band on each resume.
 - `extensions/EdgeFade.kt` fades both ends of each grid so the system bars stay readable over
   scrolling content.
+
+### Viewer thumbnail strip
+
+A row of thumbnails between the photo and the bottom actions, ported from Aves' `ThumbnailScroller`.
+Whatever sits in the middle of `views/ViewerThumbnailStrip.kt` is what the pager shows, and it says
+so on every scroll frame rather than waiting to settle, so the photo keeps up with the strip;
+`onPageSelected` scrolls the strip back the other way. The two are one position, so both directions
+have to agree on where "the middle" is. That middle is created by padding the strip by half its own
+width at either end (set in `onMeasure`, so it survives rotation) rather than by any offset of its
+own, which is also what a plain `LinearSnapHelper` and `SNAP_TO_START` measure against.
+
+`CenteringScroller` overrides `onTargetFound` to floor how long that move takes. A `LinearSmoothScroller`
+times itself by distance, and the distance for the usual case — one photo swiped, one thumbnail to
+move — is about a frame and a half, which arrives before it can be seen to leave.
+
+How big and how shaded each thumbnail is drawn comes from its own distance to that middle, applied
+to the children in `updateChildDecorations` on every scroll frame. It is deliberately not a selected
+position handed to the adapter: that change lands a frame later and then animates from there, and the
+highlight visibly trails the thumbnails it is marking. The adapter therefore only loads images.
+
+The strip and the bottom actions stack inside `bottom_chrome`, and it is that wrapper the fullscreen
+fade animates — each child keeps whatever visibility its own setting gave it. With the buttons turned
+off the strip becomes the bottom of the screen and takes the navigation bar inset as a margin itself.
+
+Aves' fling coasts for seconds; `StripSnapHelper` keeps four fifths of the velocity (fling distance
+grows with about v^1.74, so that is about two thirds of the travel) and settles at 60ms/inch.
+Thumbnails load RGB_565 at strip size with a quarter-size pass first, and an unloaded cell shows
+`viewer_strip_placeholder`, not the grid's black one — over a photo, black is a hole. `PhotoFragment`
+gained the same idea: `buildLowResRequest` decodes a 320px version alongside the full one, so
+arriving at an unread photo is a soft version of it rather than a black screen. Crossing photos this
+fast is also why `updateHeaderDetails` is posted with a delay — it opens the file, which is only
+worth doing for the photo still on screen once the scrolling pauses.
