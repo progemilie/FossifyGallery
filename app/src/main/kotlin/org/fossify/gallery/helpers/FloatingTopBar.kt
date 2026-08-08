@@ -1,33 +1,56 @@
 package org.fossify.gallery.helpers
 
 import android.graphics.Color
+import android.graphics.Outline
+import android.view.View
+import android.view.ViewGroup
+import android.view.ViewOutlineProvider
+import android.widget.FrameLayout
 import androidx.recyclerview.widget.RecyclerView
+import eightbitlab.com.blurview.BlurView
 import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.getProperBackgroundColor
+import org.fossify.commons.helpers.isSPlus
 import org.fossify.commons.views.MySearchMenu
 import org.fossify.gallery.R
 
 private const val ANIMATION_DURATION = 200L
 
-// solid enough to read the hint and icons against, sheer enough to tell there is a photo behind it
-private const val PILL_ALPHA = 0.92f
+// how hard the blurred backdrop is tinted towards the theme's background, and how far it is
+// smeared. Enough tint to read the hint and the icons against, enough blur to lose the detail of
+// whatever is passing underneath without losing its colour.
+private const val PILL_TINT_ALPHA = 0.6f
+private const val PILL_BLUR_RADIUS = 20f
+
+// what the pill falls back to where there is no cheap blur to be had (below Android 12): near
+// solid, since a sheer pill over a photo is the thing the blur was there to fix
+private const val PILL_OPAQUE_ALPHA = 0.97f
 
 /**
  * Lifts a screen's search bar off its band of colour so the grid runs underneath it, and pans it
- * out of the way while that grid is being scrolled down - dragging back up a little brings it
- * straight back, the way a browser's address bar behaves.
+ * out of the way while that grid is actively being dragged down.
+ *
+ * The bar comes back on the first drag the other way and again as soon as the grid comes to rest,
+ * so it is only ever out of the way mid-gesture. Only a real drag down hides it - a short one
+ * leaves it alone.
  *
  * Commons paints the bar again on every resume ([MySearchMenu.updateColors]), so [makeFloating]
  * has to run after each of those calls rather than once at startup.
  */
-class FloatingTopBar(private val topBar: MySearchMenu) : RecyclerView.OnScrollListener() {
-    private val hideThreshold = topBar.resources.getDimensionPixelSize(R.dimen.top_bar_hide_threshold)
+class FloatingTopBar(
+    private val topBar: MySearchMenu,
+    private val contentBehind: ViewGroup,
+) : RecyclerView.OnScrollListener() {
+    private val resources = topBar.resources
+    private val hideThreshold = resources.getDimensionPixelSize(R.dimen.top_bar_hide_threshold)
+    private val showThreshold = resources.getDimensionPixelSize(R.dimen.top_bar_show_threshold)
 
     // how far the grid has been dragged the same way in a row, reset whenever it turns around, so
     // that a wobble in the middle of a fling does not flip the bar back and forth
     private var travelledSinceTurn = 0
     private var isHidden = false
+    private var blurView: BlurView? = null
 
     /**
      * Stops the bar from panning away and brings it back down if it had. The grid is not the only
@@ -65,12 +88,55 @@ class FloatingTopBar(private val topBar: MySearchMenu) : RecyclerView.OnScrollLi
         topBar.elevation = 0f
 
         // commons leaves the search pill at a quarter of the accent colour, which was legible over
-        // the band of background colour that used to be behind it and is not over a photo. Give the
-        // pill itself the surface the bar has given up, and its own shadow to lift it off the grid.
+        // the band of background colour that used to be behind it and is not over a photo
         topBar.binding.toolbarContainer.apply {
-            background?.applyColorFilter(context.getProperBackgroundColor().adjustAlpha(PILL_ALPHA))
-            elevation = resources.getDimension(R.dimen.floating_top_bar_elevation)
+            elevation = 0f
+            if (isSPlus()) {
+                background = null
+                addBlurBackdrop(this)
+            } else {
+                // no hardware blur below Android 12, and the software one costs real frame time
+                // exactly while the grid is scrolling - a near solid pill instead. Through the same
+                // colour filter commons paints with, so this replaces its tint rather than stacking
+                // on top of it.
+                background?.applyColorFilter(
+                    context.getProperBackgroundColor().adjustAlpha(PILL_OPAQUE_ALPHA)
+                )
+            }
         }
+    }
+
+    /**
+     * Slides a blurred copy of the grid in behind the pill's contents. It goes in as the first
+     * child of the pill so it draws under the icon, the hint and the menu, and is clipped to the
+     * pill's own rounded shape.
+     */
+    private fun addBlurBackdrop(pill: ViewGroup) {
+        if (blurView != null) {
+            return
+        }
+
+        val radius = resources.getDimension(org.fossify.commons.R.dimen.material_dialog_corner_radius)
+        val view = BlurView(pill.context).apply {
+            outlineProvider = object : ViewOutlineProvider() {
+                override fun getOutline(view: View, outline: Outline) {
+                    outline.setRoundRect(0, 0, view.width, view.height, radius)
+                }
+            }
+
+            clipToOutline = true
+        }
+
+        pill.addView(
+            view, 0,
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        )
+
+        view.setupWith(contentBehind)
+            .setBlurRadius(PILL_BLUR_RADIUS)
+            .setOverlayColor(pill.context.getProperBackgroundColor().adjustAlpha(PILL_TINT_ALPHA))
+
+        blurView = view
     }
 
     fun attachTo(recyclerView: RecyclerView) {
@@ -101,7 +167,18 @@ class FloatingTopBar(private val topBar: MySearchMenu) : RecyclerView.OnScrollLi
         travelledSinceTurn += dy
         if (travelledSinceTurn > hideThreshold) {
             hide()
-        } else if (travelledSinceTurn < -hideThreshold) {
+        } else if (travelledSinceTurn < -showThreshold) {
+            show()
+        }
+    }
+
+    /**
+     * A grid at rest is a grid being looked at rather than moved through, and the bar belongs on
+     * screen for that - lifting off after a scroll down brings it straight back.
+     */
+    override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+        if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+            travelledSinceTurn = 0
             show()
         }
     }
@@ -112,6 +189,7 @@ class FloatingTopBar(private val topBar: MySearchMenu) : RecyclerView.OnScrollLi
         }
 
         isHidden = false
+        blurView?.setBlurAutoUpdate(true)
         topBar.animate().translationY(0f).setDuration(ANIMATION_DURATION).start()
     }
 
@@ -122,7 +200,13 @@ class FloatingTopBar(private val topBar: MySearchMenu) : RecyclerView.OnScrollLi
 
         isHidden = true
         // its height covers the status bar padding as well, so this clears the screen entirely
-        topBar.animate().translationY(-topBar.height.toFloat()).setDuration(ANIMATION_DURATION).start()
+        topBar.animate()
+            .translationY(-topBar.height.toFloat())
+            .setDuration(ANIMATION_DURATION)
+            // nothing to keep re-blurring once the pill is off the screen, and that is the moment
+            // the grid is being scrolled hardest
+            .withEndAction { if (isHidden) blurView?.setBlurAutoUpdate(false) }
+            .start()
     }
 
     /**

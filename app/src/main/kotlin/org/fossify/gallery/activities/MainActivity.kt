@@ -11,6 +11,7 @@ import android.provider.MediaStore.Video
 import android.view.ViewGroup
 import android.widget.RelativeLayout
 import android.widget.Toast
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.RecyclerView
 import org.fossify.commons.dialogs.CreateNewFolderDialog
@@ -88,6 +89,7 @@ import org.fossify.gallery.dialogs.ChangeSortingDialog
 import org.fossify.gallery.dialogs.ChangeViewTypeDialog
 import org.fossify.gallery.dialogs.FilterMediaDialog
 import org.fossify.gallery.dialogs.GrantAllFilesDialog
+import org.fossify.gallery.extensions.applyEdgeFade
 import org.fossify.gallery.extensions.addTempFolderIfNeeded
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.createDirectoryFromMedia
@@ -203,7 +205,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     private var mStoredPrimaryColor = 0
     private var mStoredStyleString = ""
     private val binding by viewBinding(ActivityMainBinding::inflate)
-    private val floatingTopBar by lazy { FloatingTopBar(binding.mainMenu) }
+    private val floatingTopBar by lazy { FloatingTopBar(binding.mainMenu, binding.directoriesHolder) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -307,6 +309,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         super.onResume()
         updateMenuColors()
         updateTopBarPanning()
+        updateEdgeFades()
         config.isThirdPartyIntent = false
         mDateFormat = config.dateFormat
         mTimeFormat = getTimeFormat()
@@ -560,8 +563,19 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         // set here rather than in the layout because the bar's height is the status bar inset plus
         // its own, and only the running app knows the first of those
         binding.directoriesGrid.updatePadding(top = roomToMake)
+        binding.directoriesTopFade.updateLayoutParams {
+            height = barHeight + resources.getDimensionPixelSize(R.dimen.top_fade_falloff)
+        }
+
         val travel = resources.getDimensionPixelSize(R.dimen.refresh_spinner_travel)
         binding.directoriesRefreshLayout.setProgressViewOffset(false, barHeight, barHeight + travel)
+    }
+
+    // repainted on every resume rather than set once: the fades are drawn in the theme's own
+    // background colour, and the theme can change while this screen is in the back stack
+    private fun updateEdgeFades() {
+        binding.directoriesTopFade.applyEdgeFade(atTop = true)
+        binding.directoriesBottomFade.applyEdgeFade(atTop = false)
     }
 
     // sideways scrolling has no room to pan the bar out of

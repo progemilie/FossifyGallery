@@ -23,14 +23,15 @@
         android:textStyle="bold"
         tools:text="IMG_20240101_120000.jpg" />
 
+    <!-- no line cap: which fields are on is the user's choice under "Manage extended details", and
+         cutting the last of them off with an ellipsis makes that choice a lie. The toolbar around
+         it is wrap_content, so the bar grows to whatever is turned on. -->
     <TextView
         android:id="@+id/viewer_header_details"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:alpha="0.85"
-        android:ellipsize="end"
         android:lineSpacingMultiplier="1.05"
-        android:maxLines="2"
         android:textColor="@android:color/white"
         android:textSize="@dimen/list_tertiary_text_size"
         android:visibility="gone"

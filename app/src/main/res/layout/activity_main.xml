@@ -78,14 +78,21 @@
 
             </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+        <!-- inside the holder rather than over it, so the blurred backdrop behind the search pill
+             picks it up along with the list. Height is set from the bar's own at runtime. -->
+        <View
+            android:id="@+id/directories_top_fade"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_alignParentTop="true" />
     </RelativeLayout>
 
     <View
         android:id="@+id/directories_bottom_fade"
         android:layout_width="match_parent"
         android:layout_height="@dimen/bottom_fade_height"
-        android:layout_gravity="bottom"
-        android:background="@drawable/gradient_bottom_fade" />
+        android:layout_gravity="bottom" />
 
     <org.fossify.commons.views.MySearchMenu
         android:id="@+id/main_menu"

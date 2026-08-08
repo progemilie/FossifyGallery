@@ -200,11 +200,13 @@ changed is that the app no longer paints an opaque band under its own bar and no
 content below it.
 
 **Viewer (`activity_medium.xml`, `fragment_holder.xml`).** The toolbar's title is gone, replaced by
-an included `viewer_header.xml` — the file name, with the extended details packed onto up to two
-lines under it when `Config.showExtendedDetails` is on. Because the header lives *inside* the
-toolbar, the existing fullscreen fade already takes it away with the rest of the chrome; nothing
-else has to know about it. The toolbar is `wrap_content` with `minHeight="?attr/actionBarSize"`, so
-two lines of details do not clip.
+an included `viewer_header.xml` — the file name, with the extended details wrapped underneath it
+when `Config.showExtendedDetails` is on. Because the header lives *inside* the toolbar, the existing
+fullscreen fade already takes it away with the rest of the chrome; nothing else has to know about
+it. The details carry no `maxLines` and no ellipsis on purpose: which fields are on is the user's
+choice under "Manage extended details", and cutting the last of them off would make that choice a
+lie. The toolbar is `wrap_content` with `minHeight="?attr/actionBarSize"`, so it grows to whatever
+is turned on — four lines with every field enabled.
 
 The details themselves moved out of the fragments into `extensions/ExtendedDetails.kt`
 (`Context.getMediumExtendedDetails`) — the activity owns the header now, and it already knows which
@@ -226,25 +228,41 @@ photo whichever theme the app is in, and dark status bar icons over a black back
 
 **Grids (`activity_main.xml`, `activity_media.xml`).** `MySearchMenu` is now the *last* child of
 the `CoordinatorLayout` rather than the first, and the content holder lost
-`appbar_scrolling_view_behavior` — draw order is what puts the bar over the grid. The grid keeps
-its own first row clear with `paddingTop="?attr/actionBarSize"` plus `clipToPadding="false"`, and
-is passed to `padTopSystem` so the status bar inset lands on top of that (commons'
-`updatePaddingWithBase` captures the XML padding as its base, which is what makes those two
-compose). Empty-state placeholders carry a matching `layout_marginTop`.
+`appbar_scrolling_view_behavior` — draw order is what puts the bar over the grid. The grid gets no
+top inset of its own; `keepGridClearOfTopBar()` pads it by the bar's *measured* height, which
+already carries the status bar inset, and re-runs off `FloatingTopBar.onHeightChanged` because a
+rotation or an inset change moves it. Doing it in the layout instead would double up with the
+inset, which is exactly what went wrong under `MainActivity`'s "switch to file search" link — that
+link is laid out under the bar and the list under the link, so while it is up the list makes no room
+of its own at all.
 
-`helpers/FloatingTopBar.kt` does the rest: `makeFloating()` clears the app bar's background and
-elevation and gives the search pill itself a near-opaque surface (commons leaves it at a quarter of
-the accent colour, which was legible over a band of background colour and is not over a photo). It
-must run *after* every `MySearchMenu.updateColors()`, which repaints the band on each resume. The
-same object is the grid's scroll listener and pans the bar off the top once the grid has been
-dragged down past `top_bar_hide_threshold`, bringing it back on the first drag the other way — note
-`MySearchMenu.toggleHideOnScroll` is a no-op in commons 6.1.6, which is why this is hand-rolled.
-Panning is switched off while the grid scrolls sideways and while media is being reordered.
+`helpers/FloatingTopBar.kt` does the rest. `makeFloating()` clears the app bar's background,
+elevation and shadow, and must run *after* every `MySearchMenu.updateColors()`, which repaints the
+band on each resume. Commons leaves the search pill at a quarter of the accent colour, which was
+legible over a band of background colour and is not over a photo; on Android 12+ the pill instead
+gets a `BlurView` inserted as its first child, sampling the grid holder and clipped to the pill's
+own rounded outline, with the theme background over it at `PILL_TINT_ALPHA`. Below 12 there is no
+hardware blur — BlurView's software path costs real frame time exactly while the grid is scrolling
+— so `isSPlus()` gates it and older versions get a near-solid pill. Blur redraws are switched off
+once the bar has finished panning off screen, which is the moment the grid is being scrolled
+hardest.
 
-A `gradient_bottom_fade` view darkens the foot of each grid so the navigation bar stays readable
-over whatever is scrolling past under it. It is a plain non-clickable `View`, so touches fall
-through to the grid behind it, and it is hidden while the reorder bar is up because that bar brings
-its own background.
+The same object is the grid's scroll listener. The two thresholds are deliberately lopsided: it
+takes a real drag down (`top_bar_hide_threshold`) to pan the bar away, but only a nudge back up
+(`top_bar_show_threshold`) to bring it in, and `onScrollStateChanged` brings it back whenever the
+grid comes to rest — so the bar is only ever gone mid-gesture. Note `MySearchMenu.toggleHideOnScroll`
+is a no-op in commons 6.1.6, which is why this is hand-rolled. Panning is switched off while the
+grid scrolls sideways and while media is being reordered.
+
+`extensions/EdgeFade.kt` softens both ends of each grid so the system bars stay readable over
+whatever is scrolling past under them. The gradients are built at runtime rather than as drawables
+because they are painted in `getProperBackgroundColor()` — white under a light theme, near black
+under a dark one — and the clear end of the ramp is that same colour at zero alpha rather than
+`Color.TRANSPARENT`, which is a transparent *black* and drags a grey cast through the middle of a
+white fade. The top one is the weaker of the two and lives *inside* the holder so the blurred
+backdrop behind the pill picks it up along with the grid; the bottom one sits over the holder and
+is hidden while the reorder bar is up, because that bar brings its own background. Both are plain
+non-clickable `View`s, so touches fall through to the grid behind them.
 
 ### Smaller behavior changes
 

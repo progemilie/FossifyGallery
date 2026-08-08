@@ -77,14 +77,21 @@
                 android:id="@+id/media_reorder_bar"
                 layout="@layout/media_reorder_bar" />
         </LinearLayout>
+
+        <!-- inside the holder rather than over it, so the blurred backdrop behind the search pill
+             picks it up along with the grid. Height is set from the bar's own at runtime. -->
+        <View
+            android:id="@+id/media_top_fade"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_alignParentTop="true" />
     </RelativeLayout>
 
     <View
         android:id="@+id/media_bottom_fade"
         android:layout_width="match_parent"
         android:layout_height="@dimen/bottom_fade_height"
-        android:layout_gravity="bottom"
-        android:background="@drawable/gradient_bottom_fade" />
+        android:layout_gravity="bottom" />
 
     <com.google.android.material.progressindicator.CircularProgressIndicator
         android:id="@+id/loading_indicator"
