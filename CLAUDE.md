@@ -191,6 +191,61 @@ one is a `notifyDataSetChanged()` that restarts every visible cover's image requ
 still end with a plain `setupAdapter(dirs)`. Rescan cleanup compares by path in a `HashSet`, not by
 whole item, so a metadata-only refresh no longer races into deleting the row it just wrote.
 
+### Chrome that floats over the content
+
+The three browsing screens all put their content edge to edge and let the chrome sit over it. No
+immersive/fullscreen mode is involved — commons' `EdgeToEdgeActivity` already calls
+`WindowCompat.enableEdgeToEdge`, so the window has always drawn behind the system bars; what
+changed is that the app no longer paints an opaque band under its own bar and no longer starts the
+content below it.
+
+**Viewer (`activity_medium.xml`, `fragment_holder.xml`).** The toolbar's title is gone, replaced by
+an included `viewer_header.xml` — the file name, with the extended details packed onto up to two
+lines under it when `Config.showExtendedDetails` is on. Because the header lives *inside* the
+toolbar, the existing fullscreen fade already takes it away with the rest of the chrome; nothing
+else has to know about it. The toolbar is `wrap_content` with `minHeight="?attr/actionBarSize"`, so
+two lines of details do not clip.
+
+The details themselves moved out of the fragments into `extensions/ExtendedDetails.kt`
+(`Context.getMediumExtendedDetails`) — the activity owns the header now, and it already knows which
+medium is showing and when a rating changed. `joinAsExtendedDetails` runs the fields together with
+middle dots and makes the spaces *inside* a field unbreakable, so a line only ever ends between
+fields rather than halfway through a date. `skipName = true` drops `EXT_NAME`, which the heading
+above already says. Reading opens the file, so it runs off the main thread and the result is
+dropped unless `getCurrentPath()` still matches the medium it was read for — a fast swipe starts
+several of these.
+
+The in-photo details panel (`photo_details`/`video_details`) and `ViewPagerFragment`'s copy of the
+builder are gone with it, and so is the "hide extended details when fullscreen" setting: the
+details ride the top bar now, which always hides. `Config.hideExtendedDetails` stays for settings
+import/export. `menu_rotate` is `showAsAction="never"` — the top bar is the file's heading, not a
+row of tools.
+
+`BaseViewerActivity.onResume` forces light system-bar icons. The viewer's chrome is white over the
+photo whichever theme the app is in, and dark status bar icons over a black backdrop are invisible.
+
+**Grids (`activity_main.xml`, `activity_media.xml`).** `MySearchMenu` is now the *last* child of
+the `CoordinatorLayout` rather than the first, and the content holder lost
+`appbar_scrolling_view_behavior` — draw order is what puts the bar over the grid. The grid keeps
+its own first row clear with `paddingTop="?attr/actionBarSize"` plus `clipToPadding="false"`, and
+is passed to `padTopSystem` so the status bar inset lands on top of that (commons'
+`updatePaddingWithBase` captures the XML padding as its base, which is what makes those two
+compose). Empty-state placeholders carry a matching `layout_marginTop`.
+
+`helpers/FloatingTopBar.kt` does the rest: `makeFloating()` clears the app bar's background and
+elevation and gives the search pill itself a near-opaque surface (commons leaves it at a quarter of
+the accent colour, which was legible over a band of background colour and is not over a photo). It
+must run *after* every `MySearchMenu.updateColors()`, which repaints the band on each resume. The
+same object is the grid's scroll listener and pans the bar off the top once the grid has been
+dragged down past `top_bar_hide_threshold`, bringing it back on the first drag the other way — note
+`MySearchMenu.toggleHideOnScroll` is a no-op in commons 6.1.6, which is why this is hand-rolled.
+Panning is switched off while the grid scrolls sideways and while media is being reordered.
+
+A `gradient_bottom_fade` view darkens the foot of each grid so the navigation bar stays readable
+over whatever is scrolling past under it. It is a plain non-clickable `View`, so touches fall
+through to the grid behind it, and it is hidden while the reorder bar is up because that bar brings
+its own background.
+
 ### Smaller behavior changes
 
 - `ViewPagerActivity.finish()` returns the current path; `MediaActivity` scrolls to it and pulses

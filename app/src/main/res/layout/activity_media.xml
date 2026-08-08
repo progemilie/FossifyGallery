@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    The grid fills the whole window and scrolls under both ends of it: the search bar floats over
+    the top of it, and the foot of it fades out behind the navigation bar. Draw order is what makes
+    that work, so the search bar is the last child rather than the first.
+-->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -6,33 +11,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <org.fossify.commons.views.MySearchMenu
-        android:id="@+id/media_menu"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
-    <com.google.android.material.progressindicator.CircularProgressIndicator
-        android:id="@+id/loading_indicator"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:indeterminate="true"
-        android:visibility="gone"
-        app:hideAnimationBehavior="inward"
-        app:showAnimationBehavior="outward"
-        app:showDelay="500"
-        tools:visibility="visible" />
-
     <RelativeLayout
         android:id="@+id/media_holder"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:layout_height="match_parent">
 
         <org.fossify.commons.views.MyTextView
             android:id="@+id/media_empty_text_placeholder"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="?attr/actionBarSize"
             android:alpha="0.8"
             android:gravity="center_horizontal"
             android:paddingStart="@dimen/activity_margin"
@@ -76,6 +64,7 @@
                         android:id="@+id/media_grid"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
+                        android:clipToPadding="false"
                         android:layoutAnimation="@anim/layout_animation"
                         android:scrollbars="none"
                         app:layoutManager="org.fossify.commons.views.MyGridLayoutManager"
@@ -89,4 +78,29 @@
                 layout="@layout/media_reorder_bar" />
         </LinearLayout>
     </RelativeLayout>
+
+    <View
+        android:id="@+id/media_bottom_fade"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/bottom_fade_height"
+        android:layout_gravity="bottom"
+        android:background="@drawable/gradient_bottom_fade" />
+
+    <com.google.android.material.progressindicator.CircularProgressIndicator
+        android:id="@+id/loading_indicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:indeterminate="true"
+        android:visibility="gone"
+        app:hideAnimationBehavior="inward"
+        app:showAnimationBehavior="outward"
+        app:showDelay="500"
+        tools:visibility="visible" />
+
+    <org.fossify.commons.views.MySearchMenu
+        android:id="@+id/media_menu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

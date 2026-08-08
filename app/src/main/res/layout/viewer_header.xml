@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The viewer's heading: the file name, with whatever extended details are turned on packed
+    underneath it. Lives inside the toolbar so that hiding the top bar takes it along.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_vertical"
+    android:orientation="vertical"
+    android:paddingEnd="@dimen/medium_margin"
+    android:paddingVertical="@dimen/small_margin">
+
+    <TextView
+        android:id="@+id/viewer_header_filename"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="middle"
+        android:maxLines="1"
+        android:textColor="@android:color/white"
+        android:textSize="@dimen/medium_text_size"
+        android:textStyle="bold"
+        tools:text="IMG_20240101_120000.jpg" />
+
+    <TextView
+        android:id="@+id/viewer_header_details"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:alpha="0.85"
+        android:ellipsize="end"
+        android:lineSpacingMultiplier="1.05"
+        android:maxLines="2"
+        android:textColor="@android:color/white"
+        android:textSize="@dimen/list_tertiary_text_size"
+        android:visibility="gone"
+        tools:text="4032 x 3024 (12.2MP)  ·  3.4 MB  ·  12 Jan 2024, 14:05"
+        tools:visibility="visible" />
+
+</LinearLayout>

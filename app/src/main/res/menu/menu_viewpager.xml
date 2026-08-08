@@ -19,11 +19,12 @@
         android:icon="@drawable/ic_share_vector"
         android:title="@string/share"
         app:showAsAction="always" />
+    <!-- overflow only: the top bar is the file's heading now, not a row of tools -->
     <item
         android:id="@+id/menu_rotate"
         android:icon="@drawable/ic_rotate_right_vector"
         android:title="@string/rotate"
-        app:showAsAction="ifRoom">
+        app:showAsAction="never">
         <menu>
             <item
                 android:id="@+id/menu_rotate_right"

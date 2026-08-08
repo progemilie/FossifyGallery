@@ -52,4 +52,12 @@
     <dimen name="rating_dialog_star_size">44dp</dimen>
     <dimen name="rating_badge_star_size">12dp</dimen>
     <dimen name="rating_badge_corner_radius">8dp</dimen>
+
+    <!-- how tall the darkening at the foot of a grid is, and how far a grid has to be dragged
+         before the floating top bar pans away or comes back -->
+    <dimen name="bottom_fade_height">104dp</dimen>
+    <dimen name="top_bar_hide_threshold">16dp</dimen>
+    <dimen name="floating_top_bar_elevation">4dp</dimen>
+    <!-- how far below the floating bar a pull to refresh spinner comes to rest -->
+    <dimen name="refresh_spinner_travel">64dp</dimen>
 </resources>

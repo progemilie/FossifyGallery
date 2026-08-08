@@ -98,7 +98,6 @@ class SettingsActivity : SimpleActivity() {
         setupAllowOneToOneZoom()
         setupAllowInstantChange()
         setupShowExtendedDetails()
-        setupHideExtendedDetails()
         setupManageExtendedDetails()
         setupSkipDeleteConfirmation()
         setupManageBottomActions()
@@ -643,14 +642,6 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
-    private fun setupHideExtendedDetails() {
-        binding.settingsHideExtendedDetails.isChecked = config.hideExtendedDetails
-        binding.settingsHideExtendedDetailsHolder.setOnClickListener {
-            binding.settingsHideExtendedDetails.toggle()
-            config.hideExtendedDetails = binding.settingsHideExtendedDetails.isChecked
-        }
-    }
-
     private fun setupManageExtendedDetails() {
         binding.settingsManageExtendedDetailsHolder.setOnClickListener {
             ManageExtendedDetailsDialog(this) {
@@ -663,7 +654,6 @@ class SettingsActivity : SimpleActivity() {
 
     private fun updateExtendedDetailsButtons() {
         binding.settingsManageExtendedDetailsHolder.beVisibleIf(config.showExtendedDetails)
-        binding.settingsHideExtendedDetailsHolder.beVisibleIf(config.showExtendedDetails)
     }
 
     private fun setupSkipDeleteConfirmation() {
