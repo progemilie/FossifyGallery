@@ -3,8 +3,7 @@
 ## Project overview
 
 Fossify Gallery is a privacy-focused Android photo/video gallery app (Kotlin, single `:app`
-Gradle module). This repo is a fork — see "Fork-specific features" for what differs from
-upstream.
+Gradle module). This repo is a fork.
 
 ## Build system
 
@@ -37,6 +36,8 @@ so `testFossDebugUnitTest` has no tests to execute yet.
 Lint and Detekt both use baseline files to suppress pre-existing issues — new code should not
 add new findings. `.editorconfig` enforces LF line endings, 4-space indent, 160-char max line
 length.
+
+adb can be used to test the app in an emulator.
 
 ## Architecture
 
@@ -97,37 +98,6 @@ it bumps a per-path version folded into both keys, plus a global generation coun
 decide whether to rebind stale bitmaps. An edit that leaves size and timestamp unchanged is
 otherwise invisible to every cache in the app.
 
-## Fork-specific features
-
-These do not exist upstream. Each is listed with the invariant that is easy to break; details
-live in the code.
-
-### Lossless mirror (horizontal flip)
-
-Flips an image by rewriting only its Exif orientation (`extensions/Activity.kt`,
-`extensions/ExifUtils.kt`); non-JPEGs fall back to re-encoding the bitmap. Restore the
-last-modified date (`fileTransformedSuccessfully`) *before* `rescanPaths`, or MediaStore records
-the write's timestamp instead. `RotateTransformation`/`MyGlideImageDecoder` take an `isFlipped`
-flag because SubsamplingScaleImageView applies Exif orientation itself — mirror first, then
-rotate; the two don't commute.
-
-### Star ratings
-
-A 0–5 rating per photo, stored in the file's XMP packet (`xmp:Rating`, plus `MicrosoftPhoto:Rating`
-when already present) so Aves/Lightroom/digiKam/Windows read it too. `helpers/XmpRating.kt` reads by
-regex and writes by DOM, forcing ASCII output; androidx `ExifInterface` is pinned to 1.4.2 because
-XMP writing arrived in 1.4.0. Only jpg/png/webp are writable (`String.canBeRated()`).
-
-`updateFileRating` restores the last-modified date **unconditionally** (not gated on
-`config.keepLastModified`) — rating a photo is not a change to the photo, and re-dating it
-reshuffles every date-sorted grid. It deliberately does *not* call `TransformedMedia.onTransformed`:
-the container changes, no pixel does.
-
-Ratings are cached in a `media_ratings` Room table keyed by lowercased path, staleness-checked by
-last-modified + size, with a denormalized `media.rating` column. `MediaFetcher.RatingScan` is the
-only thing that opens files, and only when `Config.showThumbnailRating` is on or the folder sorts by
-rating. `SORT_BY_RATING` forces `GROUP_BY_RATING` rather than offering a separate Group by entry.
-
 ### Per-folder custom media order
 
 Sort-by-custom for media (upstream has it for folders only). The `media_order` Room table holds the
@@ -141,16 +111,6 @@ main thread.
 Reordering is a mode of `MediaAdapter` driven by `MediaActivity`'s reorder bar: multi-select marks a
 group and dragging any marked item carries the whole group. Orders export/import as plain text via
 `helpers/CustomOrderIO.kt`.
-
-### Stable ordering and grid churn
-
-Several sorts gained a `path` tiebreak (`getSortedDirectories`, `MediaFetcher.sortMedia`, custom
-folder order) — without it, items tying on the sort key kept MediaStore cursor order, which differs
-per scan, so items jumped around and album covers swapped for no reason.
-`MainActivity.setupAdapterThrottled` rate-limits mid-scan grid pushes to 500 ms (each is a
-`notifyDataSetChanged()` that restarts every visible cover's image request); callers must still end
-with a plain `setupAdapter(dirs)`. Rescan cleanup compares by path in a `HashSet`, not by whole
-item.
 
 ### Chrome that floats over the content
 
