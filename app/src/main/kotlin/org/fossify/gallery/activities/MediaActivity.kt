@@ -9,6 +9,7 @@ import android.os.Handler
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.core.net.toUri
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -75,6 +76,7 @@ import org.fossify.gallery.dialogs.ChangeSortingDialog
 import org.fossify.gallery.dialogs.ChangeViewTypeDialog
 import org.fossify.gallery.dialogs.FilterMediaDialog
 import org.fossify.gallery.dialogs.GrantAllFilesDialog
+import org.fossify.gallery.extensions.applyEdgeFade
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.deleteDBPath
 import org.fossify.gallery.extensions.directoryDB
@@ -166,7 +168,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private var mStoredThumbnailSpacing = 0
 
     private val binding by viewBinding(ActivityMediaBinding::inflate)
-    private val floatingTopBar by lazy { FloatingTopBar(binding.mediaMenu) }
+    private val floatingTopBar by lazy { FloatingTopBar(binding.mediaMenu, binding.mediaHolder) }
 
     companion object {
         private const val REQUEST_VIEW_MEDIA = 1
@@ -221,6 +223,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         super.onResume()
         updateMenuColors()
         updateTopBarPanning()
+        updateEdgeFades()
         if (mStoredAnimateGifs != config.animateGifs) {
             getMediaAdapter()?.updateAnimateGifs(config.animateGifs)
         }
@@ -498,8 +501,19 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         // set here rather than in the layout because the bar's height is the status bar inset plus
         // its own, and only the running app knows the first of those
         binding.mediaGrid.updatePadding(top = barHeight)
+        binding.mediaTopFade.updateLayoutParams {
+            height = barHeight + resources.getDimensionPixelSize(R.dimen.top_fade_falloff)
+        }
+
         val travel = resources.getDimensionPixelSize(R.dimen.refresh_spinner_travel)
         binding.mediaRefreshLayout.setProgressViewOffset(false, barHeight, barHeight + travel)
+    }
+
+    // repainted on every resume rather than set once: the fades are drawn in the theme's own
+    // background colour, and the theme can change while this screen is in the back stack
+    private fun updateEdgeFades() {
+        binding.mediaTopFade.applyEdgeFade(atTop = true)
+        binding.mediaBottomFade.applyEdgeFade(atTop = false)
     }
 
     // sideways scrolling has no room to pan the bar out of, and while a group is being arranged
