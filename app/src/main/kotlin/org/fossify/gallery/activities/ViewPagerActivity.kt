@@ -148,6 +148,7 @@ import org.fossify.gallery.helpers.BOTTOM_ACTION_CHANGE_ORIENTATION
 import org.fossify.gallery.helpers.BOTTOM_ACTION_COPY
 import org.fossify.gallery.helpers.BOTTOM_ACTION_DELETE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_EDIT
+import org.fossify.gallery.helpers.BOTTOM_ACTION_MIRROR
 import org.fossify.gallery.helpers.BOTTOM_ACTION_MOVE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_PROPERTIES
 import org.fossify.gallery.helpers.BOTTOM_ACTION_RATING
@@ -331,7 +332,8 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 findItem(R.id.menu_edit).isVisible = visibleBottomActions and BOTTOM_ACTION_EDIT == 0 && !currentMedium.isSVG()
                 findItem(R.id.menu_rename).isVisible = visibleBottomActions and BOTTOM_ACTION_RENAME == 0 && !currentMedium.getIsInRecycleBin()
                 findItem(R.id.menu_rotate).isVisible = currentMedium.isImage() && visibleBottomActions and BOTTOM_ACTION_ROTATE == 0
-                findItem(R.id.menu_mirror).isVisible = currentMedium.isImage() && rotationDegrees == 0
+                findItem(R.id.menu_mirror).isVisible = currentMedium.isImage() && rotationDegrees == 0 &&
+                    visibleBottomActions and BOTTOM_ACTION_MIRROR == 0
                 findItem(R.id.menu_set_as).isVisible = visibleBottomActions and BOTTOM_ACTION_SET_AS == 0
                 findItem(R.id.menu_copy_to_clipboard).isVisible = currentMedium.isImage()
                 findItem(R.id.menu_copy_to).isVisible = visibleBottomActions and BOTTOM_ACTION_COPY == 0
@@ -1105,6 +1107,12 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             rotateImage(90)
         }
 
+        binding.bottomActions.bottomMirror.beVisibleIf(canMirror(currentMedium))
+        binding.bottomActions.bottomMirror.setOnLongClickListener { toast(R.string.mirror); true }
+        binding.bottomActions.bottomMirror.setOnClickListener {
+            mirrorImage()
+        }
+
         binding.bottomActions.bottomProperties.applyColorFilter(Color.WHITE)
         binding.bottomActions.bottomProperties.beVisibleIf(visibleBottomActions and BOTTOM_ACTION_PROPERTIES != 0)
         binding.bottomActions.bottomProperties.setOnLongClickListener { toast(org.fossify.commons.R.string.properties); true }
@@ -1241,6 +1249,13 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             medium?.getIsInRecycleBin() == false && medium.path.canBeRated()
     }
 
+    /** Same terms the overflow's mirror gets: an image, and not one carrying an unsaved rotation. */
+    private fun canMirror(medium: Medium?): Boolean {
+        val visibleBottomActions = if (config.bottomActions) config.visibleBottomActions else 0
+        return visibleBottomActions and BOTTOM_ACTION_MIRROR != 0 && medium?.isImage() == true &&
+            (getCurrentPhotoFragment()?.mCurrentRotationDegrees ?: 0) == 0
+    }
+
     private fun cancelRatingChooserTimer(view: View) {
         mRatingChooserRunnable?.let { view.removeCallbacks(it) }
         mRatingChooserRunnable = null
@@ -1324,6 +1339,8 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         binding.bottomActions.bottomToggleFileVisibility.setImageResource(hideIcon)
 
         binding.bottomActions.bottomRotate.beVisibleIf(config.visibleBottomActions and BOTTOM_ACTION_ROTATE != 0 && getCurrentMedium()?.isImage() == true)
+        // swiping onto a video, or rotating without saving, has to take the button away with it
+        binding.bottomActions.bottomMirror.beVisibleIf(canMirror(medium))
         binding.bottomActions.bottomChangeOrientation.setImageResource(getChangeOrientationIcon())
     }
 

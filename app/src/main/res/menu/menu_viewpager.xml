@@ -37,11 +37,13 @@
                 android:title="@string/rotate_one_eighty" />
         </menu>
     </item>
+    <!-- overflow only: mirror earns a spot on the toolbar no more than any other action does, and
+         has its own bottom-bar button when it is switched on there -->
     <item
         android:id="@+id/menu_mirror"
         android:icon="@drawable/ic_flip_horizontally_vector"
         android:title="@string/mirror"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/menu_properties"
         android:icon="@drawable/ic_info_vector"

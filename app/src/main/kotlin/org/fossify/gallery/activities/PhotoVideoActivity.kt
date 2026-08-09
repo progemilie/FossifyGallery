@@ -442,8 +442,10 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
     private fun initBottomActionButtons() {
         arrayListOf(
             binding.bottomActions.bottomFavorite,
+            binding.bottomActions.bottomRating,
             binding.bottomActions.bottomDelete,
             binding.bottomActions.bottomRotate,
+            binding.bottomActions.bottomMirror,
             binding.bottomActions.bottomProperties,
             binding.bottomActions.bottomChangeOrientation,
             binding.bottomActions.bottomSlideshow,

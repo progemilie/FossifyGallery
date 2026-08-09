@@ -9,6 +9,7 @@ import org.fossify.gallery.adapters.ManageBottomActionsAdapter
 import org.fossify.gallery.databinding.DialogManageBottomActionsBinding
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.helpers.ALL_BOTTOM_ACTIONS
+import org.fossify.gallery.helpers.MAX_VISIBLE_BOTTOM_ACTIONS
 
 private const val DRAGGED_ROW_ELEVATION = 8f
 
@@ -28,6 +29,9 @@ class ManageBottomActionsDialog(val activity: BaseSimpleActivity, val callback: 
         val visible = activity.config.bottomActionsOrder
             .mapNotNull { byId[it] }
             .filter { visibleActions and it.id != 0 }
+            // a config from before the cap existed keeps its first eight; the rest fall to hidden,
+            // where the user can see what happened and put back whichever they wanted
+            .take(MAX_VISIBLE_BOTTOM_ACTIONS)
             .toMutableList()
         val hidden = ALL_BOTTOM_ACTIONS.filterNot { it in visible }.toMutableList()
 

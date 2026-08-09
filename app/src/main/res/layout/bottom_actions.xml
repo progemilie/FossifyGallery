@@ -99,9 +99,25 @@
         android:padding="@dimen/normal_margin"
         android:src="@drawable/ic_rotate_right_vector"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/bottom_properties"
+        app:layout_constraintEnd_toStartOf="@+id/bottom_mirror"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/bottom_delete"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <ImageView
+        android:id="@+id/bottom_mirror"
+        android:layout_width="@dimen/list_touch_target_min"
+        android:layout_height="@dimen/list_touch_target_min"
+        android:layout_marginBottom="@dimen/normal_margin"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/mirror"
+        android:padding="@dimen/normal_margin"
+        android:src="@drawable/ic_flip_horizontally_vector"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/bottom_properties"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/bottom_rotate"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
@@ -117,7 +133,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/bottom_change_orientation"
         app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/bottom_rotate"
+        app:layout_constraintStart_toEndOf="@+id/bottom_mirror"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 

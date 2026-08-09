@@ -127,15 +127,23 @@ carries them in is `Config.bottomActionsOrder`, a comma-separated list of the sa
 
 `applyBottomActionsOrder()` rebuilds bottom_actions.xml's horizontal chain rather than reordering
 children — the chain is what spreads the buttons and what skips the GONE ones, so re-adding views
-would leave every constraint pointing at its old neighbour. All sixteen stay chained whatever their
-visibility, so the buttons that come and go with the current file (rating, rotate) never need a
-re-chain. Note that a spread chain of fixed-width buttons has nowhere to put sixteen of them on a
-phone-width screen: enabling them all overflows the bar, as it does upstream.
+would leave every constraint pointing at its old neighbour. Every button stays chained whatever its
+visibility, so the ones that come and go with the current file (rating, rotate, mirror) never need a
+re-chain.
 
-The settings dialog is a drag-to-reorder list — a "Visible" section in bar order over a "Hidden" one
-kept in `ALL_BOTTOM_ACTIONS` order, since no arrangement of the hidden half is the user's to lose.
-Drags are clamped to the visible section (`canDropOver`); the checkbox is what moves a row between
-the two.
+`MAX_VISIBLE_BOTTOM_ACTIONS` caps the bar at 8. The cap is what keeps the bar from overflowing —
+a spread chain of fixed-width buttons has nowhere to put seventeen of them on a phone-width screen.
+`ManageBottomActionsDialog` is the only writer of `visibleBottomActions`, so enforcing it there is
+enough; it also trims a config saved before the cap existed down to its first eight on load.
+
+Mirror is a bottom action *and* `menu_mirror`, which is `showAsAction="never"` and gated on the bar
+like every other action — so it is in the overflow when it is off the bar, on the bar when it is on,
+and never pinned to the toolbar.
+
+The settings dialog is a drag-to-reorder list — a "Visible" section in bar order (headed by an
+`n/8` count, so the cap is visible before it is hit) over a "Hidden" one kept in
+`ALL_BOTTOM_ACTIONS` order, since no arrangement of the hidden half is the user's to lose. Drags are
+clamped to the visible section (`canDropOver`); the checkbox is what moves a row between the two.
 
 ### The viewer's file metadata sheet
 

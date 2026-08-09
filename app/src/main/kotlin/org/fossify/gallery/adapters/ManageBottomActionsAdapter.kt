@@ -7,19 +7,24 @@ import android.view.MotionEvent
 import android.view.ViewGroup
 import androidx.annotation.StringRes
 import androidx.recyclerview.widget.RecyclerView
+import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.applyColorFilter
+import org.fossify.commons.extensions.beGoneIf
 import org.fossify.commons.extensions.beInvisibleIf
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.extensions.getProperTextColor
+import org.fossify.commons.extensions.toast
 import org.fossify.commons.extensions.updateTextColors
 import org.fossify.gallery.R
 import org.fossify.gallery.databinding.ItemBottomActionBinding
 import org.fossify.gallery.databinding.ItemBottomActionSectionBinding
 import org.fossify.gallery.helpers.ALL_BOTTOM_ACTIONS
 import org.fossify.gallery.helpers.BottomAction
+import org.fossify.gallery.helpers.MAX_VISIBLE_BOTTOM_ACTIONS
 
 private const val VIEW_TYPE_SECTION = 0
 private const val VIEW_TYPE_ACTION = 1
+private const val COUNT_ALPHA = 0.6f
 
 /**
  * The list behind the manage-bottom-actions dialog.
@@ -36,11 +41,12 @@ class ManageBottomActionsAdapter(
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private sealed interface Row {
-        data class Section(@param:StringRes val titleId: Int) : Row
+        data class Section(@param:StringRes val titleId: Int, val count: String?) : Row
         data class Action(val action: BottomAction, val isVisible: Boolean) : Row
     }
 
     private val textColor = context.getProperTextColor()
+    private val countColor = textColor.adjustAlpha(COUNT_ALPHA)
     private val primaryColor = context.getProperPrimaryColor()
     private var rows = buildRows()
 
@@ -84,8 +90,8 @@ class ManageBottomActionsAdapter(
         ?.let { visible.indexOf(it.action) }
         ?.takeIf { it != -1 }
 
-    // both sections move as a block, and there are sixteen rows in all - working out which ones
-    // actually changed would cost more than rebinding them
+    // both sections move as a block, and the whole list is under twenty rows - working out which
+    // ones actually changed would cost more than rebinding them
     @SuppressLint("NotifyDataSetChanged")
     private fun toggle(row: Row.Action) {
         if (row.isVisible) {
@@ -93,6 +99,11 @@ class ManageBottomActionsAdapter(
             val landsBefore = hidden.indexOfFirst { defaultIndexOf(it) > defaultIndexOf(row.action) }
             hidden.add(if (landsBefore == -1) hidden.size else landsBefore, row.action)
         } else {
+            if (visible.size >= MAX_VISIBLE_BOTTOM_ACTIONS) {
+                context.toast(context.getString(R.string.bottom_actions_limit_reached, MAX_VISIBLE_BOTTOM_ACTIONS))
+                return
+            }
+
             hidden.remove(row.action)
             // last, where it is next to the section heading you just tapped away from
             visible.add(row.action)
@@ -105,10 +116,13 @@ class ManageBottomActionsAdapter(
     private fun defaultIndexOf(action: BottomAction) = ALL_BOTTOM_ACTIONS.indexOfFirst { it.id == action.id }
 
     private fun buildRows(): List<Row> {
-        val built = mutableListOf<Row>(Row.Section(R.string.bottom_actions_visible))
+        val count = context.getString(
+            R.string.bottom_actions_count, visible.size, MAX_VISIBLE_BOTTOM_ACTIONS
+        )
+        val built = mutableListOf<Row>(Row.Section(R.string.bottom_actions_visible, count))
         visible.mapTo(built) { Row.Action(it, isVisible = true) }
         if (hidden.isNotEmpty()) {
-            built.add(Row.Section(R.string.bottom_actions_hidden))
+            built.add(Row.Section(R.string.bottom_actions_hidden, count = null))
             hidden.mapTo(built) { Row.Action(it, isVisible = false) }
         }
 
@@ -122,6 +136,9 @@ class ManageBottomActionsAdapter(
         fun bind(row: Row.Section) {
             binding.bottomActionSectionTitle.setTextColor(primaryColor)
             binding.bottomActionSectionTitle.text = context.getString(row.titleId)
+            binding.bottomActionSectionCount.setTextColor(countColor)
+            binding.bottomActionSectionCount.text = row.count
+            binding.bottomActionSectionCount.beGoneIf(row.count == null)
         }
     }
 

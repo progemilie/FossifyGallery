@@ -51,6 +51,10 @@ val ALL_BOTTOM_ACTIONS = listOf(
         R.string.rotate, R.drawable.ic_rotate_right_vector
     ),
     BottomAction(
+        BOTTOM_ACTION_MIRROR, R.id.bottom_mirror,
+        R.string.mirror, R.drawable.ic_flip_horizontally_vector
+    ),
+    BottomAction(
         BOTTOM_ACTION_PROPERTIES, R.id.bottom_properties,
         commonsR.string.properties, commonsR.drawable.ic_info_vector
     ),
