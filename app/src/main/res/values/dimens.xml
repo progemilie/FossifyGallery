@@ -60,7 +60,7 @@
     <dimen name="folder_chooser_text_size">15sp</dimen>
     <!-- how close to an edge the finger has to get before the list starts scrolling. -->
     <dimen name="folder_chooser_edge_zone">56dp</dimen>
-    <dimen name="folder_chooser_scroll_speed">150dp</dimen>
+    <dimen name="folder_chooser_scroll_speed">200dp</dimen>
     <!-- kept clear on the end side, so there is always somewhere to slide off to and call it off.
          wider than the other choosers' because copy and move sit near the end of the bar, which would
          otherwise put their chooser against the screen edge -->
