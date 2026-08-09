@@ -60,6 +60,12 @@ class MetadataSheet @JvmOverloads constructor(
         /** The resting sheet never takes more of the screen than this, however long the summary is. */
         private const val MAX_PEEK_RATIO = 0.7f
 
+        /** How far up the sheet has to travel for the "there is more below" hint to be gone. */
+        private const val HINT_FADE_FRACTION = 0.2f
+
+        /** How long the reveal waits for a resting height before coming up without one anyway. */
+        private const val MAX_REVEAL_DELAY = 250L
+
         private const val LABEL_ALPHA = 0.7f
         private const val HANDLE_ALPHA = 0.4f
         private const val DIVIDER_ALPHA = 0.15f
@@ -78,6 +84,21 @@ class MetadataSheet @JvmOverloads constructor(
     private var topInset = 0
     private var callbackRegistered = false
 
+    /** Set between being asked for and coming up, so a layout pass in between can bring it up early. */
+    private var revealPending = false
+
+    /**
+     * Brings the sheet up, once. Posted with a delay by [show] and run ahead of that by
+     * [updatePeekHeight] as soon as there is a resting height to come up to, so the sheet rises
+     * straight to it instead of overshooting and settling back down over the photo.
+     */
+    private val reveal = Runnable {
+        if (revealPending && behavior.state == BottomSheetBehavior.STATE_HIDDEN) {
+            revealPending = false
+            behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        }
+    }
+
     /** Called once the sheet has finished sliding out of view, by drag or otherwise. */
     var onHidden: (() -> Unit)? = null
 
@@ -95,6 +116,8 @@ class MetadataSheet @JvmOverloads constructor(
             context.tinted(R.drawable.metadata_sheet_handle, textColor.adjustAlpha(HANDLE_ALPHA))
         binding.metadataSheetPlaceholder.setTextColor(labelColor)
         binding.metadataSheetDivider.setBackgroundColor(textColor.adjustAlpha(DIVIDER_ALPHA))
+        binding.metadataSheetMoreHintText.setTextColor(labelColor)
+        binding.metadataSheetMoreHintIcon.setColorFilter(labelColor)
 
         // read ignoring visibility because the viewer hides the system bars in fullscreen, and the
         // sheet should not shuffle about by a status bar's worth when it does
@@ -104,14 +127,13 @@ class MetadataSheet @JvmOverloads constructor(
             binding.metadataSheetScroll.updatePadding(bottom = system.bottom)
 
             // the resting sheet shows its own top peekHeight pixels, so the blank strip that keeps
-            // the summary clear of the navigation bar has to be laid out directly under the summary
-            // rather than added to the peek - anything else and the first section heading is what
-            // ends up behind the buttons
-            binding.metadataSheetSummary.updatePadding(
-                bottom = resources.getDimensionPixelSize(org.fossify.commons.R.dimen.medium_margin) + system.bottom
-            )
+            // the summary clear of the navigation bar has to be laid out directly under it rather
+            // than added to the peek - anything else and the first section heading is what ends up
+            // behind the buttons
+            binding.metadataSheetPeek.updatePadding(bottom = system.bottom)
 
             updateTopMargin()
+            updatePeekHeight()
             insets
         }
     }
@@ -119,6 +141,9 @@ class MetadataSheet @JvmOverloads constructor(
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
         super.onLayout(changed, l, t, r, b)
         updateTopMargin()
+        // the first pass after the holder is shown is the earliest the sheet knows its own width,
+        // and so the earliest a resting height can be worked out at all
+        updatePeekHeight()
     }
 
     /**
@@ -151,27 +176,51 @@ class MetadataSheet @JvmOverloads constructor(
         behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 if (newState == BottomSheetBehavior.STATE_HIDDEN) {
+                    revealPending = false
                     holder?.beGone()
                     onHidden?.invoke()
                 }
             }
 
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                // nothing follows the drag: the photo behind stays put, and the chrome the sheet
-                // covers is left as it was so dismissing puts it straight back
+                // the hint is about what is below the fold, so it goes as soon as the fold does.
+                // nothing else follows the drag: the photo behind stays put, and the chrome the
+                // sheet covers is left as it was so dismissing puts it straight back
+                binding.metadataSheetMoreHint.alpha =
+                    1f - (slideOffset / HINT_FADE_FRACTION).coerceIn(0f, 1f)
             }
         })
     }
 
-    /** Brings the sheet up describing [path], reading the file as it goes. */
+    /**
+     * Brings the sheet up describing [path], reading the file as it goes, or opens an already
+     * resting sheet the rest of the way - a second ask is a request for the part not on screen yet.
+     */
     fun show(path: String) {
+        if (isSheetVisible) {
+            behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            return
+        }
+
         holder?.beVisible()
+        binding.metadataSheetMoreHint.alpha = 1f
         load(path)
-        behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+
+        revealPending = true
+        postDelayed(reveal, MAX_REVEAL_DELAY)
     }
 
     fun hide() {
-        behavior.state = BottomSheetBehavior.STATE_HIDDEN
+        removeCallbacks(reveal)
+        if (behavior.state == BottomSheetBehavior.STATE_HIDDEN) {
+            // asked for and dropped again before it ever came up, so the state callback that tidies
+            // up after the sheet has nothing to fire on
+            revealPending = false
+            holder?.beGone()
+            onHidden?.invoke()
+        } else {
+            behavior.state = BottomSheetBehavior.STATE_HIDDEN
+        }
     }
 
     /**
@@ -219,22 +268,35 @@ class MetadataSheet @JvmOverloads constructor(
             binding.metadataSheetSections.addView(buildSection(binding.metadataSheetSections, section, path))
         }
 
-        // the summary is what the resting height is measured against, so it has to have been laid
-        // out before the peek can be worked out
-        binding.metadataSheetSummary.post { updatePeekHeight() }
+        // nothing to promise below the fold if there are no sections to open
+        binding.metadataSheetMoreHint.beVisibleIf(metadata.sections.isNotEmpty())
+        updatePeekHeight()
     }
 
+    /**
+     * Works out how tall the sheet comes to rest and brings it up if it was waiting on that.
+     *
+     * The peek is measured rather than read off the laid out views: it has to be right before the
+     * sheet is revealed, which is a layout pass earlier than the rows it is worked out from.
+     */
     private fun updatePeekHeight() {
-        val summaryHeight = binding.metadataSheetSummary.height
-        if (summaryHeight == 0 || height == 0) return
+        if (width == 0 || height == 0 || binding.metadataSheetSummary.isEmpty()) return
 
-        // the summary already carries the navigation bar inset as bottom padding
-        val wanted = binding.metadataSheetHandle.height + summaryHeight
+        val peekContent = binding.metadataSheetPeek.heightMeasuredAt(width)
+        if (peekContent == 0) return
+
+        // the peek content already carries the navigation bar inset as bottom padding
+        val wanted = resources.getDimensionPixelSize(R.dimen.metadata_sheet_handle_height) + peekContent
         val ceiling = (height * MAX_PEEK_RATIO).toInt()
         val floor = resources.getDimensionPixelSize(R.dimen.metadata_sheet_min_peek_height)
         val peek = wanted.coerceIn(minOf(floor, ceiling), ceiling)
         if (peek != behavior.peekHeight) {
             behavior.setPeekHeight(peek, isSheetVisible)
+        }
+
+        if (revealPending) {
+            removeCallbacks(reveal)
+            reveal.run()
         }
     }
 
@@ -294,3 +356,12 @@ class MetadataSheet @JvmOverloads constructor(
 /** A copy of [drawableRes] tinted [color], mutated so the shared drawable is left alone. */
 private fun Context.tinted(drawableRes: Int, color: Int) =
     ContextCompat.getDrawable(this, drawableRes)?.mutate()?.apply { setTint(color) }
+
+/** How tall this view comes out in a parent [width] pixels across, asked before any layout pass. */
+private fun View.heightMeasuredAt(width: Int): Int {
+    measure(
+        View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+    )
+    return measuredHeight
+}

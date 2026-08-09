@@ -70,6 +70,8 @@
     <dimen name="metadata_sheet_elevation">12dp</dimen>
     <!-- a section heading is a touch target before it is a heading -->
     <dimen name="metadata_section_header_height">48dp</dimen>
+    <!-- the arrow on the "there is more below this" line, sized to the text beside it -->
+    <dimen name="metadata_hint_icon_size">14dp</dimen>
     <!-- what the sheet falls back to when the summary cannot be measured, and the share of the
          screen the resting sheet is never allowed to grow past -->
     <dimen name="metadata_sheet_min_peek_height">220dp</dimen>

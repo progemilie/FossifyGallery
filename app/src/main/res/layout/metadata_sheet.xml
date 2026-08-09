@@ -36,14 +36,54 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- pinned open: the fields worth reading before anything is expanded -->
+            <!-- everything the resting sheet shows, measured as one piece to work out how tall it
+                 comes to rest; the navigation bar strip is padding on this rather than extra peek,
+                 since a collapsed sheet shows its own top peekHeight pixels -->
             <LinearLayout
-                android:id="@+id/metadata_sheet_summary"
+                android:id="@+id/metadata_sheet_peek"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingHorizontal="@dimen/normal_margin"
-                android:paddingBottom="@dimen/medium_margin" />
+                android:orientation="vertical">
+
+                <!-- pinned open: the fields worth reading before anything is expanded -->
+                <LinearLayout
+                    android:id="@+id/metadata_sheet_summary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="@dimen/normal_margin"
+                    android:paddingBottom="@dimen/medium_margin" />
+
+                <!-- sits on the bottom edge of the resting sheet, which is the whole point of it:
+                     the last thing read before the fold says there is something below it -->
+                <LinearLayout
+                    android:id="@+id/metadata_sheet_more_hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="@dimen/normal_margin"
+                    android:paddingBottom="@dimen/small_margin">
+
+                    <ImageView
+                        android:id="@+id/metadata_sheet_more_hint_icon"
+                        android:layout_width="@dimen/metadata_hint_icon_size"
+                        android:layout_height="@dimen/metadata_hint_icon_size"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_chevron_up_vector" />
+
+                    <TextView
+                        android:id="@+id/metadata_sheet_more_hint_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/tiny_margin"
+                        android:text="@string/metadata_more_hint"
+                        android:textSize="@dimen/smaller_text_size"
+                        tools:ignore="TextContrastCheck" />
+
+                </LinearLayout>
+
+            </LinearLayout>
 
             <!-- marks where the pinned rows stop and the collapsed groups start; tinted at runtime -->
             <View

@@ -1018,20 +1018,34 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     }
 
     private fun showProperties() {
-        if (getCurrentMedium() != null) {
+        if (getCurrentMedium() == null) {
+            return
+        }
+
+        // the menu item toggles: it raises the same panel a swipe up does, and tapping it again is
+        // the obvious way to be rid of something you opened by tapping it
+        if (metadataSheet.isSheetVisible) {
+            metadataSheet.hide()
+        } else {
             showMetadata()
         }
     }
 
     override fun showMetadata() {
         val path = getCurrentPath()
-        if (path.isEmpty() || metadataSheet.isSheetVisible) {
+        if (path.isEmpty()) {
             return
         }
 
         stopSlideshow()
         updateNavigationBarIconsForPanel(true)
         metadataSheet.show(path)
+    }
+
+    override fun isMetadataVisible() = metadataSheet.isSheetVisible
+
+    override fun hideMetadata() {
+        metadataSheet.hide()
     }
 
     private fun initBottomActionsLayout() {
@@ -1675,6 +1689,13 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     }
 
     override fun fragmentClicked() {
+        // a tap on the photo above the panel is a tap to be rid of the panel, not one asking for
+        // the chrome back
+        if (metadataSheet.isSheetVisible) {
+            metadataSheet.hide()
+            return
+        }
+
         mIsFullScreen = !mIsFullScreen
         checkSystemUI()
         fullscreenToggled()

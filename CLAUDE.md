@@ -118,9 +118,7 @@ group and dragging any marked item carries the whole group. Orders export/import
 
 ### The viewer's file metadata sheet
 
-A swipe up over the media in the viewer (and the Properties menu item, which no longer opens
-commons' `PropertiesDialog`) raises `views/MetadataSheet.kt`, listing every metadata group the file
-carries.
+A swipe up over the media in the viewer raises `views/MetadataSheet.kt`, listing every metadata group the file carries.
 
 - `helpers/MetadataReader.kt` reads it, off the main thread, **straight off the file every time** —
   never from Room, MediaStore or the `Medium` the grid was built from, all of which describe the
@@ -132,15 +130,6 @@ carries.
 - `helpers/MetadataSummary.kt` picks the pinned rows; `helpers/MetadataFormat.kt` holds the pure
   value formatting. Splitting those out is what keeps each file under detekt's function-count
   threshold — check `./gradlew detekt` before folding them back together.
-- The sheet lives in its own full-screen `CoordinatorLayout` (`layout/metadata_sheet_holder.xml`),
-  included last in both viewer layouts, because `BottomSheetBehavior` needs a Coordinator and the
-  viewer screens are laid out with `RelativeLayout` rules. That holder is `gone` whenever the sheet
-  is, so nothing invisible sits between a finger and the photo.
-- Two layout details are load-bearing: the expanded sheet's top margin is worked out from the
-  holder's **on-screen position** rather than the status bar inset (an ancestor already pads by the
-  display cutout, and adding the inset blind double-counts it); and the strip that keeps the resting
-  sheet clear of the navigation bar is bottom padding on the summary, not extra peek height, since a
-  collapsed sheet shows its own top `peekHeight` pixels.
 - `BaseViewerActivity.updateNavigationBarIconsForPanel()` hands the navigation bar back its normal
   icons while the sheet covers it — the viewer otherwise forces light icons, which vanish against a
   light-theme sheet.

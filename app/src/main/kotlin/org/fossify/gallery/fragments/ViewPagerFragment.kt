@@ -34,8 +34,17 @@ abstract class ViewPagerFragment : Fragment() {
 
         fun isFullScreen(): Boolean
 
-        /** A swipe up over the media, which pulls the file's metadata in from the bottom. */
+        /**
+         * A swipe up over the media, which pulls the file's metadata in from the bottom - or, with
+         * the panel already resting there, opens it the rest of the way.
+         */
         fun showMetadata() {}
+
+        /** Whether that panel is currently up over the media. */
+        fun isMetadataVisible(): Boolean = false
+
+        /** Puts it away again. */
+        fun hideMetadata() {}
     }
 
     fun getPathToLoad(medium: Medium): String {
@@ -66,10 +75,17 @@ abstract class ViewPagerFragment : Fragment() {
                     downGestureDuration < MAX_CLOSE_DOWN_GESTURE_DURATION
 
                 if (isFlick) {
+                    // diffY is the distance back towards the top of the screen, so a negative one
+                    // is a finger that travelled downwards
+                    val flickedDown = diffY < -mCloseDownThreshold
+                    val metadataVisible = listener?.isMetadataVisible() == true
+
                     when {
-                        // diffY is the distance back towards the top of the screen, so a negative
-                        // one is a finger that travelled downwards
-                        diffY < -mCloseDownThreshold && context?.config?.allowDownGesture == true -> {
+                        // with the panel up, a flick down asks to be rid of the panel rather than
+                        // of the viewer - the thing that came in last is the thing that goes first
+                        flickedDown && metadataVisible -> listener?.hideMetadata()
+
+                        flickedDown && context?.config?.allowDownGesture == true -> {
                             activity?.finish()
                             activity?.overridePendingTransition(0, org.fossify.commons.R.anim.slide_down)
                         }

@@ -391,19 +391,31 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
     }
 
     private fun showProperties() {
-        showMetadata()
+        // the menu item toggles: it raises the same panel a swipe up does, and tapping it again is
+        // the obvious way to be rid of something you opened by tapping it
+        if (metadataSheet.isSheetVisible) {
+            metadataSheet.hide()
+        } else {
+            showMetadata()
+        }
     }
 
     override fun showMetadata() {
         // only a file:// intent leaves a path the metadata can be read back off; a content uri from
         // another app is not something this sheet can open
         val path = mUri?.takeIf { it.scheme == "file" }?.path.orEmpty()
-        if (path.isEmpty() || metadataSheet.isSheetVisible) {
+        if (path.isEmpty()) {
             return
         }
 
         updateNavigationBarIconsForPanel(true)
         metadataSheet.show(path)
+    }
+
+    override fun isMetadataVisible() = metadataSheet.isSheetVisible
+
+    override fun hideMetadata() {
+        metadataSheet.hide()
     }
 
     private fun isFileTypeVisible(path: String): Boolean {
@@ -474,6 +486,13 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
     }
 
     override fun fragmentClicked() {
+        // a tap on the photo above the panel is a tap to be rid of the panel, not one asking for
+        // the chrome back
+        if (metadataSheet.isSheetVisible) {
+            metadataSheet.hide()
+            return
+        }
+
         mIsFullScreen = !mIsFullScreen
         if (mIsFullScreen) hideSystemUI() else showSystemUI()
         mFragment?.fullscreenToggled(mIsFullScreen)

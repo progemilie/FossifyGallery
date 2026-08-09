@@ -147,6 +147,7 @@
     <string name="metadata_title">File info</string>
     <string name="metadata_reading">Reading file info&#8230;</string>
     <string name="metadata_unavailable">This file has no readable metadata</string>
+    <string name="metadata_more_hint">Swipe up for all details</string>
     <string name="metadata_filename">Name</string>
     <string name="metadata_date_taken">Date taken</string>
     <string name="metadata_date_created">Date created</string>
