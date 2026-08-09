@@ -114,9 +114,7 @@ const val MAX_RECENT_COPY_MOVE_DESTINATIONS = 12
 
 /** How many folders the copy/move quick chooser offers, recents first. */
 const val MAX_QUICK_CHOOSER_FOLDERS = 12
-
-/** How many of those it shows at once - past this the list scrolls when the finger nears an edge. */
-const val MAX_VISIBLE_QUICK_CHOOSER_FOLDERS = 6
+const val MAX_VISIBLE_QUICK_CHOOSER_FOLDERS = 5
 const val AVOID_SHOWING_ALL_FILES_PROMPT = "avoid_showing_all_files_prompt"
 const val SEARCH_ALL_FILES_BY_DEFAULT = "search_all_files_by_default"
 const val LAST_EXPORTED_FAVORITES_FOLDER = "last_exported_favorites_folder"

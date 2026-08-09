@@ -39,11 +39,10 @@ class EdgeAutoScroller(
     }
 
     /** Starts, redirects or stops the scroll to suit a finger now at [rawY]. */
-    fun update(rawY: Float, isActive: Boolean) {
+    fun update(rawY: Float) {
         touchY = rawY
         val viewportTop = viewportTop()
         val wanted = when {
-            !isActive -> 0
             rawY < viewportTop + edgeZone -> -1
             rawY > viewportTop + scroller.height - edgeZone -> 1
             else -> 0

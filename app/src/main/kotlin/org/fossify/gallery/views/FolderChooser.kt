@@ -130,6 +130,7 @@ class FolderChooser @JvmOverloads constructor(
         gravity = Gravity.CENTER_VERTICAL
         isSingleLine = true
         ellipsize = TextUtils.TruncateAt.MIDDLE
+        minWidth = resources.getDimensionPixelSize(R.dimen.folder_chooser_min_row_width)
         maxWidth = resources.getDimensionPixelSize(R.dimen.folder_chooser_max_row_width)
         setTextColor(Color.WHITE)
         setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize)
@@ -148,7 +149,9 @@ class FolderChooser @JvmOverloads constructor(
         }
 
         updateSelectionForY(rawY)
-        autoScroller.update(rawY, isActive = selected != null)
+        // driven by where the finger is rather than by whether it landed on a row: below the list is
+        // the button it came off, which picks nothing but still has to pull the list down
+        autoScroller.update(rawY)
     }
 
     fun stopAutoScroll() = autoScroller.stop()
