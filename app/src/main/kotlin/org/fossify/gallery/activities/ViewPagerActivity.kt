@@ -1213,11 +1213,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
     }
 
-    /**
-     * Hold the button and a row of stars appears above it; slide left and right without lifting off
-     * to pick a rating, and left of the first star to clear it. A plain tap opens the dialog
-     * instead, which is the same choice Aves makes for its rate button.
-     */
     // the listener below does call performClick() on a tap, which is the thing this check exists to
     // make sure of - it just cannot see that through the lambda
     @SuppressLint("ClickableViewAccessibility")
@@ -1293,11 +1288,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
     }
 
-    /**
-     * Hold either button and the folders one might copy or move to appear above it; slide up and down
-     * without lifting off to pick one, and off to either side to think better of it. A plain tap
-     * opens the full destination picker, same as it always did.
-     */
     // the listener below does call performClick() on a tap, which is the thing this check exists to
     // make sure of - it just cannot see that through the lambda
     @SuppressLint("ClickableViewAccessibility")
@@ -1391,14 +1381,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
     private fun isFolderChooserUp() = !binding.folderChooser.isGone()
 
-    /**
-     * Lays a chooser out unseen, then positions it and only then draws it.
-     *
-     * Centering needs a measured width, which is only known after a layout pass, and going visible
-     * before that pass lands shows the chooser at its untranslated spot for a frame - visible the
-     * first time each one is opened, when there is no translation left over from a previous open to
-     * make the wrong spot look like the right one.
-     */
+    // lays a chooser out unseen, then positions it and only then draws it.
     private fun revealChooserOverButton(chooser: View, button: View, @DimenRes endMarginId: Int) {
         chooser.beInvisible()
         chooser.post {

@@ -130,43 +130,12 @@ Two buttons answer a hold with a picker the finger drags through without ever li
 with the dialog they always had: rating (`views/RatingChooser.kt`) and copy/move
 (`views/FolderChooser.kt`). Both share `chooser_*` dimens and `chooser_background`.
 
-The gesture is a plain `setOnTouchListener` on the button, not a long-click listener: the chooser has
-to appear *during* a touch that is still in flight, so a timer is posted on `ACTION_DOWN` and the
-touch stream keeps arriving on the button (via `requestDisallowInterceptTouchEvent`) rather than
-transferring to the chooser. `ACTION_UP` commits only if a row is highlighted, and calls
-`performClick()` otherwise so a tap still reaches accessibility services. `FolderChooser` deliberately
-starts with nothing highlighted — the finger is over the button, not the list — so a hold and release
-without moving does nothing.
-
 `revealChooserOverButton()` lays a chooser out **INVISIBLE** and only makes it VISIBLE once
-`centerChooserOverButton()` has run, because centering needs a measured width and so cannot happen
-until after a layout pass. Going visible first shows the chooser at its untranslated position for one
-frame — obvious the first time each chooser is opened, when there is no translation left over from a
-previous open to disguise it. That invisible frame is why "is the chooser up?" is asked as
-`!isGone()`, never `isVisible()`.
-
-Because it opens *above* the button, `FolderChooser` reads bottom up: the last row is the one the
-finger reaches soonest, so `Context.getQuickChooserFolders()` returns the most recent destination last
-(capping *before* it flips the list, so the cap drops the least interesting folders), and the list
-opens scrolled to its end. Dragging up out of the list keeps the top row picked and keeps scrolling
-rather than stranding the gesture at the edge the list runs out on; dragging *down* out of it clears
-the pick, since below the list is the button the finger came from. Only leaving sideways cancels, which
-is what `folder_chooser_end_margin` keeps room for — copy and move sit near the end of the bar, so
-without it their chooser would be pressed against the screen edge with nowhere to slide off to.
+`centerChooserOverButton()` has run.
 
 The list is **prefetched** into `mQuickChooserFolders` on every media change: it reads Room and the
-filesystem, far too slow to run when the hold fires. Folders the copy or move would only fail on (the
-source itself, the bin, favourites, scoped-storage-restricted paths) are left out rather than offered,
-since the chooser has nowhere to show an error. Past destinations live in
-`Config.recentCopyMoveDestinations`, recorded in `copyMoveFilesToFolder()` — which is the tail of
-`tryCopyMoveFilesTo()` split out, so destinations picked through the *dialog* teach the quick list too.
-`views/EdgeAutoScroller.kt` is split off only to keep `FolderChooser` under detekt's function-count
-threshold.
-
-Both choosers go through commons' `copyMoveFilesTo`/`CopyMoveTask` exactly as the dialog does, so the
-"Keep old last-modified value at file operations" setting keeps working untouched. Anything that ever
-bypasses that engine has to reapply `config.keepLastModified` by hand, the way the recycle-bin moves
-in `extensions/Activity.kt` do.
+filesystem, far too slow to run when the hold fires. Past destinations live in
+`Config.recentCopyMoveDestinations`, recorded in `copyMoveFilesToFolder()`
 
 ### The viewer's file metadata sheet
 
@@ -208,4 +177,5 @@ Keep code comments concise and not too long. Comments dont need to explain small
 Comment things that are not obvious and might raise questions otherwise. Longer comments are
 warranted when it is not immediatelly evident what the purpose of something is.
 
-Dont make insignificant updates to CLAUDE.md file. Only for large features that change core functionality.
+DO NOT make insignificant updates to CLAUDE.md file. Only for large features that change core functionality.
+A UI feature does not need a large block of text in the CLAUDE.md file. Try to keep the file less than 200 lines.

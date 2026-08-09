@@ -11,15 +11,8 @@ import org.fossify.gallery.helpers.XmpRating
 import kotlin.math.ceil
 
 /**
- * The row of stars that pops up above the rating button while it is being held, ported from Aves'
- * RateQuickChooser: the finger never leaves the screen, sliding right fills the stars up and
- * sliding left empties them.
- *
- * Unlike Aves it leads with a slot of its own for "no rating". Aves clears by sliding off the left
- * of the chooser, which only works while there is screen left of it - and there is not much, since
- * the rating button sits near the start of the bottom bar and drags the chooser to the screen edge
- * with it. A slot inside the chooser is somewhere to slide *to* rather than off, and it says what
- * it does.
+ * The row of stars that pops up above the rating button while it is being held,
+ * sliding right fills the stars up and sliding left empties them.
  */
 class RatingChooser @JvmOverloads constructor(
     context: Context,
@@ -76,11 +69,7 @@ class RatingChooser @JvmOverloads constructor(
         updateIcons()
     }
 
-    /**
-     * The rating the finger currently sits over, given its position on screen. Anything short of the
-     * first star - the clear slot, or past it - means no rating, which is how one gets cleared
-     * without lifting off.
-     */
+    // The rating the finger currently sits over, given its position on screen.
     fun ratingForPosition(rawX: Float): Int {
         if (stars.isEmpty() || width == 0) {
             return rating

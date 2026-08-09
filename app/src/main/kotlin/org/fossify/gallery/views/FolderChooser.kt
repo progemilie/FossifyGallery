@@ -22,19 +22,7 @@ import org.fossify.commons.R as commonsR
 /** A folder the quick chooser can copy or move to. */
 data class QuickFolder(val path: String, val name: String)
 
-/**
- * The list of destination folders that pops up above the copy and move buttons while one is held.
- *
- * The finger never leaves the screen: sliding up and down moves the highlight, holding it near the top
- * or bottom edge scrolls the list on past what fits, and sliding off to either side clears the
- * highlight so lifting off there does nothing.
- *
- * It reads bottom up. The last row is the one the finger reaches soonest, so that is where the folders
- * worth reaching soonest go (see `getQuickChooserFolders`), and the list opens scrolled to its end
- * rather than its start. Dragging up past the top keeps the topmost row picked and the list scrolling,
- * so overshooting the scroll zone - which is easy to do, since it is where the list runs out - does
- * not strand the gesture. Only leaving sideways clears the pick.
- */
+// The list of destination folders that pops up above the copy and move buttons while one is held.
 class FolderChooser @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -168,8 +156,7 @@ class FolderChooser @JvmOverloads constructor(
     private fun updateSelectionForY(rawY: Float) {
         val viewportTop = locationOnScreen(scroller)[1]
         selected = if (rawY > viewportTop + scroller.height) {
-            // below the list is the button the finger came off, so nothing is picked yet - which is
-            // also what keeps a hold-and-release that never moved from acting on anything
+            // below the list is the button the finger came off, so nothing is picked yet
             null
         } else {
             // clamped rather than cleared, so dragging up past the top holds on to the topmost row and

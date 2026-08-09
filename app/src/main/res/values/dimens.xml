@@ -58,9 +58,7 @@
     <dimen name="folder_chooser_row_corner_radius">12dp</dimen>
     <dimen name="folder_chooser_max_row_width">280dp</dimen>
     <dimen name="folder_chooser_text_size">15sp</dimen>
-    <!-- how close to an edge the finger has to get before the list starts scrolling, and how fast
-         it scrolls once the finger is all the way at that edge. wide enough to be hard to shoot past
-         at speed - dragging up out of the list keeps scrolling, but dragging down out of it does not -->
+    <!-- how close to an edge the finger has to get before the list starts scrolling. -->
     <dimen name="folder_chooser_edge_zone">56dp</dimen>
     <dimen name="folder_chooser_scroll_speed">150dp</dimen>
     <!-- kept clear on the end side, so there is always somewhere to slide off to and call it off.
