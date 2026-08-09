@@ -62,7 +62,6 @@ import org.fossify.commons.helpers.VIEW_TYPE_LIST
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isRPlus
 import org.fossify.commons.helpers.sumByLong
-import org.fossify.commons.interfaces.ItemMoveCallback
 import org.fossify.commons.interfaces.ItemTouchHelperContract
 import org.fossify.commons.models.FileDirItem
 import org.fossify.commons.views.MyGridLayoutManager
@@ -100,6 +99,7 @@ import org.fossify.gallery.extensions.updateFavoritePaths
 import org.fossify.gallery.helpers.DRAG_BORDER_WIDTH_FRACTION
 import org.fossify.gallery.helpers.DRAG_LIFT_DURATION_MS
 import org.fossify.gallery.helpers.DRAG_LIFT_SCALE
+import org.fossify.gallery.helpers.PaddedGridMoveCallback
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.REVEAL_DURATION_MS
@@ -1316,7 +1316,7 @@ class MediaAdapter(
  * finger - and then that rule can find nothing between the two and the item stops responding. Going
  * by what is under the item needs no such agreement, and it drops where it looks like it will.
  */
-private class NearestCellMoveCallback(adapter: ItemTouchHelperContract) : ItemMoveCallback(adapter, true) {
+private class NearestCellMoveCallback(adapter: ItemTouchHelperContract) : PaddedGridMoveCallback(adapter, true) {
     override fun chooseDropTarget(
         selected: RecyclerView.ViewHolder,
         dropTargets: MutableList<RecyclerView.ViewHolder>,
