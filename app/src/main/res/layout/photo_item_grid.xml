@@ -76,7 +76,6 @@
             android:background="@drawable/rating_badge_background"
             android:drawableEnd="@drawable/ic_star_badge_vector"
             android:drawablePadding="@dimen/tiny_margin"
-            android:drawableTint="@color/star_enabled"
             android:fontFamily="sans-serif-medium"
             android:gravity="center_vertical"
             android:includeFontPadding="false"
