@@ -173,7 +173,7 @@ no longer paints an opaque band under its own bar.
 
 ## Style
 
-Keep code comments concise and not too long. Comments dont need to explain small UI details.
+Keep code comments CONCISE and NOT TOO LONG. Comments dont need to explain small UI details.
 Comment things that are not obvious and might raise questions otherwise. Longer comments are
 warranted when it is not immediatelly evident what the purpose of something is.
 
