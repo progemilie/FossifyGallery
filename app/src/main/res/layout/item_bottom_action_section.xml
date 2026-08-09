@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/bottom_action_section_title"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="@dimen/normal_margin"
+    android:paddingTop="@dimen/activity_margin"
+    android:paddingBottom="@dimen/small_margin"
+    android:textSize="@dimen/normal_text_size"
+    android:textStyle="bold"
+    tools:ignore="TextContrastCheck"
+    tools:text="Visible" />

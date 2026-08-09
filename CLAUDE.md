@@ -115,6 +115,28 @@ Reordering is a mode of `MediaAdapter` driven by `MediaActivity`'s reorder bar: 
 group and dragging any marked item carries the whole group. Orders export/import as plain text via
 `helpers/CustomOrderIO.kt`.
 
+### The viewer's bottom action bar
+
+*Which* actions the bar carries is upstream's `Config.visibleBottomActions` bitmask; *what order* it
+carries them in is `Config.bottomActionsOrder`, a comma-separated list of the same bits covering
+**every** action, hidden ones included — so an action switched back on returns where it was left.
+
+`helpers/BottomAction.kt` is the one table of bit, view id, label and icon that both the bar and
+`ManageBottomActionsDialog` read; an action added there is picked up by both, and
+`parseBottomActionsOrder()` appends whatever a stored order predates rather than dropping it.
+
+`applyBottomActionsOrder()` rebuilds bottom_actions.xml's horizontal chain rather than reordering
+children — the chain is what spreads the buttons and what skips the GONE ones, so re-adding views
+would leave every constraint pointing at its old neighbour. All sixteen stay chained whatever their
+visibility, so the buttons that come and go with the current file (rating, rotate) never need a
+re-chain. Note that a spread chain of fixed-width buttons has nowhere to put sixteen of them on a
+phone-width screen: enabling them all overflows the bar, as it does upstream.
+
+The settings dialog is a drag-to-reorder list — a "Visible" section in bar order over a "Hidden" one
+kept in `ALL_BOTTOM_ACTIONS` order, since no arrangement of the hidden half is the user's to lose.
+Drags are clamped to the visible section (`canDropOver`); the checkbox is what moves a row between
+the two.
+
 ### The viewer's file metadata sheet
 
 A swipe up over the media in the viewer raises `views/MetadataSheet.kt`, listing every metadata group the file carries.

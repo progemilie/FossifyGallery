@@ -306,6 +306,8 @@
 
     <!-- Bottom actions -->
     <string name="manage_bottom_actions">Manage visible bottom actions</string>
+    <string name="bottom_actions_visible">Visible</string>
+    <string name="bottom_actions_hidden">Hidden</string>
     <string name="toggle_favorite">Toggle favorite</string>
     <string name="toggle_file_visibility">Toggle file visibility</string>
 

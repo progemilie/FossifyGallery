@@ -162,6 +162,7 @@ import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_FAVORITE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_VISIBILITY
 import org.fossify.gallery.helpers.ColorModeHelper
 import org.fossify.gallery.helpers.DefaultPageTransformer
+import org.fossify.gallery.helpers.applyBottomActionsOrder
 import org.fossify.gallery.helpers.FadePageTransformer
 import org.fossify.gallery.helpers.GO_TO_NEXT_ITEM
 import org.fossify.gallery.helpers.GO_TO_PREV_ITEM
@@ -1043,6 +1044,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
     private fun initBottomActionsLayout() {
         if (config.bottomActions) {
+            binding.bottomActions.applyBottomActionsOrder(config.bottomActionsOrder)
             binding.bottomActions.root.beVisible()
         } else {
             binding.bottomActions.root.beGone()
