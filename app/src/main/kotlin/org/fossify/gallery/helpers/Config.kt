@@ -469,6 +469,13 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getInt(VISIBLE_BOTTOM_ACTIONS, DEFAULT_BOTTOM_ACTIONS)
         set(visibleBottomActions) = prefs.edit().putInt(VISIBLE_BOTTOM_ACTIONS, visibleBottomActions).apply()
 
+    /** Every action, hidden ones included, left to right. Visibility stays [visibleBottomActions]' job. */
+    var bottomActionsOrder: List<Int>
+        get() = parseBottomActionsOrder(prefs.getString(BOTTOM_ACTIONS_ORDER, "").orEmpty())
+        set(bottomActionsOrder) = prefs.edit()
+            .putString(BOTTOM_ACTIONS_ORDER, serializeBottomActionsOrder(bottomActionsOrder))
+            .apply()
+
     // if a user hides a folder, then enables temporary hidden folder displaying, make sure we show it properly
     var everShownFolders: Set<String>
         get() = prefs.getStringSet(EVER_SHOWN_FOLDERS, getEverShownFolders())!!

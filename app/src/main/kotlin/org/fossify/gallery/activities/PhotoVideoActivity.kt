@@ -74,6 +74,7 @@ import org.fossify.gallery.helpers.TYPE_PORTRAITS
 import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.TYPE_VIDEOS
+import org.fossify.gallery.helpers.applyBottomActionsOrder
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.views.MetadataSheet
 import java.io.File
@@ -431,6 +432,7 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
 
     private fun initBottomActionsLayout() {
         if (config.bottomActions) {
+            binding.bottomActions.applyBottomActionsOrder(config.bottomActionsOrder)
             binding.bottomActions.root.beVisible()
         } else {
             binding.bottomActions.root.beGone()
@@ -440,8 +442,10 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
     private fun initBottomActionButtons() {
         arrayListOf(
             binding.bottomActions.bottomFavorite,
+            binding.bottomActions.bottomRating,
             binding.bottomActions.bottomDelete,
             binding.bottomActions.bottomRotate,
+            binding.bottomActions.bottomMirror,
             binding.bottomActions.bottomProperties,
             binding.bottomActions.bottomChangeOrientation,
             binding.bottomActions.bottomSlideshow,

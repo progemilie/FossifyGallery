@@ -66,6 +66,7 @@ const val TEMP_SKIP_RECYCLE_BIN = "temp_skip_recycle_bin"
 const val BOTTOM_ACTIONS = "bottom_actions"
 const val LAST_VIDEO_POSITION_PREFIX = "last_video_position_"
 const val VISIBLE_BOTTOM_ACTIONS = "visible_bottom_actions"
+const val BOTTOM_ACTIONS_ORDER = "bottom_actions_order"
 const val WERE_FAVORITES_PINNED = "were_favorites_pinned"
 const val WAS_RECYCLE_BIN_PINNED = "was_recycle_bin_pinned"
 const val USE_RECYCLE_BIN = "use_recycle_bin"
@@ -250,9 +251,12 @@ const val BOTTOM_ACTION_COPY = 4096
 const val BOTTOM_ACTION_MOVE = 8192
 const val BOTTOM_ACTION_RESIZE = 16384
 const val BOTTOM_ACTION_RATING = 32768
+const val BOTTOM_ACTION_MIRROR = 65536
 
 const val DEFAULT_BOTTOM_ACTIONS = BOTTOM_ACTION_TOGGLE_FAVORITE or BOTTOM_ACTION_RATING or
     BOTTOM_ACTION_EDIT or BOTTOM_ACTION_SHARE or BOTTOM_ACTION_DELETE
+
+const val MAX_VISIBLE_BOTTOM_ACTIONS = 8
 
 // aspect ratios used at the editor for cropping
 const val ASPECT_RATIO_FREE = 0
