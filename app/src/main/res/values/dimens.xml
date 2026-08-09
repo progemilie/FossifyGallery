@@ -43,9 +43,6 @@
     <dimen name="rating_chooser_star_margin">4dp</dimen>
     <dimen name="rating_chooser_padding">8dp</dimen>
     <dimen name="rating_chooser_clear_gap">12dp</dimen>
-    <!-- how far the chooser keeps off the screen edges. bigger than a normal margin on purpose:
-         the clear slot is the leftmost thing in it, and reaching for something pressed against the
-         edge of the screen feels like sliding a finger off it -->
     <dimen name="rating_chooser_edge_margin">24dp</dimen>
     <dimen name="rating_chooser_corner_radius">24dp</dimen>
     <dimen name="rating_chooser_elevation">8dp</dimen>
@@ -53,35 +50,24 @@
     <dimen name="rating_badge_star_size">12dp</dimen>
     <dimen name="rating_badge_corner_radius">8dp</dimen>
 
-    <!-- the strip of thumbnails between the photo and the bottom actions in the viewer. The item is
-         wider than the thumbnail on purpose: the gap either side is what the shrunken off-centre
-         thumbnails grow into, so nothing has to overflow its own cell to look bigger -->
     <dimen name="viewer_strip_thumbnail_size">40dp</dimen>
     <dimen name="viewer_strip_item_width">42dp</dimen>
     <dimen name="viewer_strip_padding_top">10dp</dimen>
     <dimen name="viewer_strip_padding_bottom">2dp</dimen>
     <dimen name="viewer_strip_height">54dp</dimen>
 
-    <!-- the metadata sheet the viewer pulls up from the bottom -->
     <dimen name="metadata_sheet_corner_radius">20dp</dimen>
     <dimen name="metadata_sheet_handle_height">28dp</dimen>
     <dimen name="metadata_sheet_handle_width">36dp</dimen>
     <dimen name="metadata_sheet_handle_thickness">4dp</dimen>
     <dimen name="metadata_sheet_elevation">12dp</dimen>
-    <!-- a section heading is a touch target before it is a heading -->
     <dimen name="metadata_section_header_height">48dp</dimen>
-    <!-- the arrow on the "there is more below this" line, sized to the text beside it -->
     <dimen name="metadata_hint_icon_size">14dp</dimen>
-    <!-- what the sheet falls back to when the summary cannot be measured, and the share of the
-         screen the resting sheet is never allowed to grow past -->
     <dimen name="metadata_sheet_min_peek_height">220dp</dimen>
 
     <dimen name="bottom_fade_height">60dp</dimen>
     <dimen name="top_fade_height">70dp</dimen>
-    <!-- how far the search pill sits off the grid. Small on purpose: an elevation shadow's spread
-         grows with it, and this one wants a quick falloff hugging the pill rather than a halo -->
     <dimen name="search_pill_elevation">3dp</dimen>
-    <!-- a real drag down to pan the bar away, the smallest nudge back up to bring it in again -->
     <dimen name="top_bar_hide_threshold">200dp</dimen>
     <dimen name="top_bar_show_threshold">8dp</dimen>
     <!-- how far below the floating bar a pull to refresh spinner comes to rest -->

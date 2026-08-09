@@ -58,7 +58,7 @@ private val msElementRegex =
  * digiKam and Windows all read `xmp:Rating`, and androidx's ExifInterface has no constant for the
  * Windows-only Exif Rating tag (0x4746) at all, so it could not write one even if we wanted it to.
  *
- * Two properties are involved, exactly as Aves handles them:
+ * Two properties are involved:
  * - `xmp:Rating` (0-5) is the one we own - written when a rating is set, removed when it is cleared.
  * - `MicrosoftPhoto:Rating` is a percentage kept only in step: updated when the file already
  *   carries it, never introduced. Writing it into files that never had it would be adding a second,

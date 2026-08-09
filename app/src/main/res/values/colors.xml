@@ -3,12 +3,8 @@
     <color name="crop_image_view_background">#BB000000</color>
     <color name="circle_black_background">#66000000</color>
 
-    <!-- the same amber/grey pair Aves uses for its stars -->
     <color name="star_enabled">#FFC107</color>
     <color name="star_disabled">#9E9E9E</color>
-    <!-- white rather than the stars' amber: picking it means ending up with no rating at all, which
-         is not one more step along the same scale -->
     <color name="rating_clear_enabled">#FFFFFFFF</color>
-    <!-- light enough to read as a surface of its own against the black viewer bar it floats over -->
     <color name="rating_chooser_background">#F0424242</color>
 </resources>

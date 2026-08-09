@@ -995,11 +995,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
     private fun getCurrentFragment() = (binding.viewPager.adapter as? MyPagerAdapter)?.getCurrentFragment(binding.viewPager.currentItem)
 
-    /**
-     * The sheet the metadata lives in. Kept out of the way until asked for, by a swipe up over the
-     * photo or by the Properties menu item - both land here rather than in two different views of
-     * the same file.
-     */
     private fun setupMetadataSheet() {
         metadataSheet.onLocationClicked = { path -> showFileOnMap(path) }
         metadataSheet.onHidden = {
@@ -1022,8 +1017,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             return
         }
 
-        // the menu item toggles: it raises the same panel a swipe up does, and tapping it again is
-        // the obvious way to be rid of something you opened by tapping it
         if (metadataSheet.isSheetVisible) {
             metadataSheet.hide()
         } else {
@@ -1056,15 +1049,9 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
 
         binding.viewerThumbnailStrip.beVisibleIf(config.showThumbnailStrip)
-        // whether the strip has to keep off the navigation bar itself depends on the buttons below
-        // it still being there
         binding.viewerThumbnailStrip.requestApplyInsets()
     }
 
-    /**
-     * The strip of thumbnails under the photo. Whatever the strip comes to rest on is what the
-     * pager shows, and the pager tells it where it went in return - the two are one position.
-     */
     private fun setupThumbnailStrip() {
         binding.viewerThumbnailStrip.onMediumPicked = { position ->
             if (binding.viewPager.currentItem != position) {
@@ -1282,7 +1269,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         val margin = resources.getDimensionPixelSize(R.dimen.rating_chooser_edge_margin)
         val untranslatedLeft = chooserLocation[0] - chooser.translationX
         val wanted = buttonLocation[0] + button.width / 2f - chooser.width / 2f
-        // a button near the screen edge would otherwise push half the stars off it
         val furthestLeft = margin.toFloat()
         val furthestRight = maxOf(furthestLeft, (realScreenSize.x - chooser.width - margin).toFloat())
         chooser.translationX = wanted.coerceIn(furthestLeft, furthestRight) - untranslatedLeft

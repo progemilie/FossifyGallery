@@ -391,8 +391,6 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
     }
 
     private fun showProperties() {
-        // the menu item toggles: it raises the same panel a swipe up does, and tapping it again is
-        // the obvious way to be rid of something you opened by tapping it
         if (metadataSheet.isSheetVisible) {
             metadataSheet.hide()
         } else {
@@ -401,8 +399,6 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
     }
 
     override fun showMetadata() {
-        // only a file:// intent leaves a path the metadata can be read back off; a content uri from
-        // another app is not something this sheet can open
         val path = mUri?.takeIf { it.scheme == "file" }?.path.orEmpty()
         if (path.isEmpty()) {
             return
