@@ -70,7 +70,9 @@ class EdgeAutoScroller(
 
     fun canScrollUp() = scroller.scrollY > 0
 
-    fun canScrollDown() = scroller.scrollY < contentHeight() - scroller.height
+    fun canScrollDown() = scroller.scrollY < maxScroll()
+
+    fun maxScroll() = (contentHeight() - scroller.height).coerceAtLeast(0)
 
     private fun hasFurtherToGo() = when {
         direction < 0 -> canScrollUp()

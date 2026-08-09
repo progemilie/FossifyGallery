@@ -25,9 +25,15 @@ data class QuickFolder(val path: String, val name: String)
 /**
  * The list of destination folders that pops up above the copy and move buttons while one is held.
  *
- * The finger never leaves the screen: sliding up and down moves the highlight, holding it near the
- * top or bottom edge scrolls the list on past what fits, and sliding off to either side clears the
+ * The finger never leaves the screen: sliding up and down moves the highlight, holding it near the top
+ * or bottom edge scrolls the list on past what fits, and sliding off to either side clears the
  * highlight so lifting off there does nothing.
+ *
+ * It reads bottom up. The last row is the one the finger reaches soonest, so that is where the folders
+ * worth reaching soonest go (see `getQuickChooserFolders`), and the list opens scrolled to its end
+ * rather than its start. Dragging up past the top keeps the topmost row picked and the list scrolling,
+ * so overshooting the scroll zone - which is easy to do, since it is where the list runs out - does
+ * not strand the gesture. Only leaving sideways clears the pick.
  */
 class FolderChooser @JvmOverloads constructor(
     context: Context,
@@ -46,6 +52,10 @@ class FolderChooser @JvmOverloads constructor(
 
     private var folders = emptyList<QuickFolder>()
     private var lastTouchY = 0f
+
+    // the end of the list is only reachable once the rows have been measured, so opening there waits
+    // for the layout pass that a fresh list triggers
+    private var pendingScrollToEnd = false
 
     /** The folder the finger sits over, or null when it sits somewhere that means "never mind". */
     var selected: QuickFolder? = null
@@ -114,8 +124,16 @@ class FolderChooser @JvmOverloads constructor(
 
         scrollUp.isVisible = isScrollable
         scrollDown.isVisible = isScrollable
-        scroller.scrollTo(0, 0)
-        updateScrollIndicators()
+        pendingScrollToEnd = true
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        super.onLayout(changed, l, t, r, b)
+        if (pendingScrollToEnd) {
+            pendingScrollToEnd = false
+            scroller.scrollTo(0, autoScroller.maxScroll())
+            updateScrollIndicators()
+        }
     }
 
     private fun buildRow(folder: QuickFolder) = TextView(context).apply {
@@ -149,10 +167,15 @@ class FolderChooser @JvmOverloads constructor(
 
     private fun updateSelectionForY(rawY: Float) {
         val viewportTop = locationOnScreen(scroller)[1]
-        selected = if (rawY < viewportTop || rawY > viewportTop + scroller.height) {
+        selected = if (rawY > viewportTop + scroller.height) {
+            // below the list is the button the finger came off, so nothing is picked yet - which is
+            // also what keeps a hold-and-release that never moved from acting on anything
             null
         } else {
-            folders.getOrNull(((rawY - viewportTop + scroller.scrollY) / rowHeight).toInt())
+            // clamped rather than cleared, so dragging up past the top holds on to the topmost row and
+            // keeps the list scrolling instead of stranding the gesture at the very edge it runs out on
+            val offsetInList = (rawY - viewportTop).coerceAtLeast(0f) + scroller.scrollY
+            folders.getOrNull((offsetInList / rowHeight).toInt())
         }
     }
 

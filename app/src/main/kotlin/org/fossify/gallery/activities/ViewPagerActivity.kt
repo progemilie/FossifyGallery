@@ -32,6 +32,7 @@ import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
 import androidx.activity.addCallback
+import androidx.annotation.DimenRes
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat.Type
@@ -50,6 +51,7 @@ import com.google.android.material.appbar.AppBarLayout
 import org.fossify.commons.dialogs.RenameItemDialog
 import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.beGone
+import org.fossify.commons.extensions.beInvisible
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.convertToBitmap
@@ -74,6 +76,7 @@ import org.fossify.commons.extensions.internalStoragePath
 import org.fossify.commons.extensions.isAStorageRootFolder
 import org.fossify.commons.extensions.isExternalStorageManager
 import org.fossify.commons.extensions.isGif
+import org.fossify.commons.extensions.isGone
 import org.fossify.commons.extensions.isMediaFile
 import org.fossify.commons.extensions.isPortrait
 import org.fossify.commons.extensions.isRawFast
@@ -1234,7 +1237,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 }
 
                 MotionEvent.ACTION_MOVE -> {
-                    if (binding.ratingChooser.isVisible()) {
+                    if (isRatingChooserUp()) {
                         binding.ratingChooser.rating = binding.ratingChooser.ratingForPosition(event.rawX)
                     }
                 }
@@ -1242,7 +1245,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 MotionEvent.ACTION_UP -> {
                     view.isPressed = false
                     cancelRatingChooserTimer(view)
-                    if (binding.ratingChooser.isVisible()) {
+                    if (isRatingChooserUp()) {
                         val chosen = binding.ratingChooser.rating
                         binding.ratingChooser.beGone()
                         applyRating(chosen)
@@ -1286,9 +1289,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         val medium = getCurrentMedium() ?: return
         binding.ratingChooser.apply {
             rating = medium.rating
-            beVisible()
-            // its width is only known once it has been laid out, and centering needs that width
-            post { centerChooserOverButton(this, binding.bottomActions.bottomRating) }
+            revealChooserOverButton(this, binding.bottomActions.bottomRating, R.dimen.chooser_edge_margin)
         }
     }
 
@@ -1321,7 +1322,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 }
 
                 MotionEvent.ACTION_MOVE -> {
-                    if (binding.folderChooser.isVisible()) {
+                    if (isFolderChooserUp()) {
                         binding.folderChooser.updateSelectionFor(event.rawX, event.rawY)
                     }
                 }
@@ -1329,7 +1330,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 MotionEvent.ACTION_UP -> {
                     view.isPressed = false
                     cancelFolderChooserTimer()
-                    if (binding.folderChooser.isVisible()) {
+                    if (isFolderChooserUp()) {
                         val chosen = binding.folderChooser.selected
                         hideFolderChooser()
                         if (chosen != null) {
@@ -1381,8 +1382,28 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
         binding.folderChooser.apply {
             setFolders(mQuickChooserFolders)
-            beVisible()
-            post { centerChooserOverButton(this, button) }
+            revealChooserOverButton(this, button, R.dimen.folder_chooser_end_margin)
+        }
+    }
+
+    /** GONE rather than not-VISIBLE, since both spend their first frame laid out but not yet drawn. */
+    private fun isRatingChooserUp() = !binding.ratingChooser.isGone()
+
+    private fun isFolderChooserUp() = !binding.folderChooser.isGone()
+
+    /**
+     * Lays a chooser out unseen, then positions it and only then draws it.
+     *
+     * Centering needs a measured width, which is only known after a layout pass, and going visible
+     * before that pass lands shows the chooser at its untranslated spot for a frame - visible the
+     * first time each one is opened, when there is no translation left over from a previous open to
+     * make the wrong spot look like the right one.
+     */
+    private fun revealChooserOverButton(chooser: View, button: View, @DimenRes endMarginId: Int) {
+        chooser.beInvisible()
+        chooser.post {
+            centerChooserOverButton(chooser, button, resources.getDimensionPixelSize(endMarginId))
+            chooser.beVisible()
         }
     }
 
@@ -1391,7 +1412,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         binding.folderChooser.beGone()
     }
 
-    private fun centerChooserOverButton(chooser: View, button: View) {
+    private fun centerChooserOverButton(chooser: View, button: View, endMargin: Int) {
         if (chooser.width == 0) {
             return
         }
@@ -1401,11 +1422,10 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         val chooserLocation = IntArray(2)
         chooser.getLocationOnScreen(chooserLocation)
 
-        val margin = resources.getDimensionPixelSize(R.dimen.chooser_edge_margin)
         val untranslatedLeft = chooserLocation[0] - chooser.translationX
         val wanted = buttonLocation[0] + button.width / 2f - chooser.width / 2f
-        val furthestLeft = margin.toFloat()
-        val furthestRight = maxOf(furthestLeft, (realScreenSize.x - chooser.width - margin).toFloat())
+        val furthestLeft = resources.getDimensionPixelSize(R.dimen.chooser_edge_margin).toFloat()
+        val furthestRight = maxOf(furthestLeft, (realScreenSize.x - chooser.width - endMargin).toFloat())
         chooser.translationX = wanted.coerceIn(furthestLeft, furthestRight) - untranslatedLeft
     }
 

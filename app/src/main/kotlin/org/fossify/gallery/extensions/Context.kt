@@ -279,10 +279,15 @@ fun Context.movePinnedDirectoriesToFront(dirs: ArrayList<Directory>): ArrayList<
 /**
  * The folders the copy/move quick chooser offers when a button is held, off the main thread.
  *
- * Destinations of past copy/move operations lead, most recent first, then the rest in the order the
- * folder grid would show them. Folders the operation would only fail on - the source itself, the bin,
- * the favourites bucket, anything a scoped-storage restriction puts out of reach - are left out
- * rather than offered and then refused, since the chooser has nowhere to explain itself.
+ * Returned bottom row first: the chooser pops up above the button, so the end of this list is the end
+ * the finger reaches soonest and the most recent destination belongs there. Destinations of past
+ * copy/move operations therefore come last, most recent of all at the very end, preceded by the rest
+ * in the order the folder grid would show them. The cap is applied before the flip so it drops the
+ * least interesting folders rather than the most.
+ *
+ * Folders the operation would only fail on - the source itself, the bin, the favourites bucket,
+ * anything a scoped-storage restriction puts out of reach - are left out rather than offered and then
+ * refused, since the chooser has nowhere to explain itself.
  */
 fun Context.getQuickChooserFolders(sourcePath: String, callback: (List<QuickFolder>) -> Unit) {
     getCachedDirectories { dirs ->
@@ -300,6 +305,7 @@ fun Context.getQuickChooserFolders(sourcePath: String, callback: (List<QuickFold
         val folders = (recent + rest)
             .take(MAX_QUICK_CHOOSER_FOLDERS)
             .map { QuickFolder(it.path.trimEnd('/'), it.name) }
+            .reversed()
         callback(folders)
     }
 }

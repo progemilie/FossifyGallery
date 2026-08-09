@@ -128,9 +128,7 @@ children — the chain is what spreads the buttons and what skips the GONE ones.
 
 Two buttons answer a hold with a picker the finger drags through without ever lifting off, and a tap
 with the dialog they always had: rating (`views/RatingChooser.kt`) and copy/move
-(`views/FolderChooser.kt`). Both share `chooser_*` dimens and `chooser_background`, and both are
-positioned by `ViewPagerActivity.centerChooserOverButton()`, which clamps them inside the screen —
-the buttons sit wherever the user's bottom-action order put them.
+(`views/FolderChooser.kt`). Both share `chooser_*` dimens and `chooser_background`.
 
 The gesture is a plain `setOnTouchListener` on the button, not a long-click listener: the chooser has
 to appear *during* a touch that is still in flight, so a timer is posted on `ACTION_DOWN` and the
@@ -140,11 +138,26 @@ transferring to the chooser. `ACTION_UP` commits only if a row is highlighted, a
 starts with nothing highlighted — the finger is over the button, not the list — so a hold and release
 without moving does nothing.
 
-`FolderChooser`'s list is capped and recents-first, built by `Context.getQuickChooserFolders()` off
-`getCachedDirectories`, and **prefetched** into `mQuickChooserFolders` on every media change: it reads
-Room and the filesystem, which is far too slow to run when the hold fires. Folders the copy or move
-would only fail on (the source itself, the bin, favourites, scoped-storage-restricted paths) are left
-out rather than offered, since the chooser has nowhere to show an error. Past destinations live in
+`revealChooserOverButton()` lays a chooser out **INVISIBLE** and only makes it VISIBLE once
+`centerChooserOverButton()` has run, because centering needs a measured width and so cannot happen
+until after a layout pass. Going visible first shows the chooser at its untranslated position for one
+frame — obvious the first time each chooser is opened, when there is no translation left over from a
+previous open to disguise it. That invisible frame is why "is the chooser up?" is asked as
+`!isGone()`, never `isVisible()`.
+
+Because it opens *above* the button, `FolderChooser` reads bottom up: the last row is the one the
+finger reaches soonest, so `Context.getQuickChooserFolders()` returns the most recent destination last
+(capping *before* it flips the list, so the cap drops the least interesting folders), and the list
+opens scrolled to its end. Dragging up out of the list keeps the top row picked and keeps scrolling
+rather than stranding the gesture at the edge the list runs out on; dragging *down* out of it clears
+the pick, since below the list is the button the finger came from. Only leaving sideways cancels, which
+is what `folder_chooser_end_margin` keeps room for — copy and move sit near the end of the bar, so
+without it their chooser would be pressed against the screen edge with nowhere to slide off to.
+
+The list is **prefetched** into `mQuickChooserFolders` on every media change: it reads Room and the
+filesystem, far too slow to run when the hold fires. Folders the copy or move would only fail on (the
+source itself, the bin, favourites, scoped-storage-restricted paths) are left out rather than offered,
+since the chooser has nowhere to show an error. Past destinations live in
 `Config.recentCopyMoveDestinations`, recorded in `copyMoveFilesToFolder()` — which is the tail of
 `tryCopyMoveFilesTo()` split out, so destinations picked through the *dialog* teach the quick list too.
 `views/EdgeAutoScroller.kt` is split off only to keep `FolderChooser` under detekt's function-count
