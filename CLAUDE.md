@@ -122,13 +122,7 @@ group and dragging any marked item carries the whole group. Orders export/import
 `parseBottomActionsOrder()` appends whatever a stored order predates rather than dropping it.
 
 `applyBottomActionsOrder()` rebuilds bottom_actions.xml's horizontal chain rather than reordering
-children — the chain is what spreads the buttons and what skips the GONE ones, so re-adding views
-would leave every constraint pointing at its old neighbour. Every button stays chained whatever its
-visibility, so the ones that come and go with the current file (rating, rotate, mirror) never need a
-re-chain.
-
-`ManageBottomActionsDialog` is the only writer of `visibleBottomActions`, so enforcing it there is
-enough; it also trims a config saved before the cap existed down to its first eight on load.
+children — the chain is what spreads the buttons and what skips the GONE ones.
 
 ### The viewer's file metadata sheet
 
@@ -163,3 +157,11 @@ no longer paints an opaque band under its own bar.
   it over the grid) and the grid gets no top inset of its own; `keepGridClearOfTopBar()` pads it by
   the bar's measured height, which already carries the status bar inset. Doing it in the layout
   instead double-counts the inset.
+
+## Style
+
+Keep code comments concise and not too long. Comments dont need to explain small UI details.
+Comment things that are not obvious and might raise questions otherwise. Longer comments are
+warranted when it is not immediatelly evident what the purpose of something is.
+
+Dont make insignificant updates to CLAUDE.md file. Only for large features that change core functionality.
