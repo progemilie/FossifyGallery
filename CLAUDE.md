@@ -37,7 +37,9 @@ Lint and Detekt both use baseline files to suppress pre-existing issues — new 
 add new findings. `.editorconfig` enforces LF line endings, 4-space indent, 160-char max line
 length.
 
-adb can be used to test the app in an emulator.
+adb is added to path. It can be used to test in an android emulator.
+The device being emulated is emulator-5554, it is a Pixel_10, API version 37, resolution 1080x2424, density 420dpi
+The device has many folders with many pictures in the /Pictures folder.
 
 ## Architecture
 
@@ -52,9 +54,6 @@ repo. In particular:
 - `helpers/Config.kt` extends commons' `BaseConfig` for SharedPreferences-backed settings.
 - Shared dialogs (e.g. `FilePickerDialog`) and extensions (`org.fossify.commons.extensions.*`)
   are used throughout rather than reimplemented here.
-
-When something looks unimplemented in this repo, check whether it lives in Fossify Commons
-before adding it.
 
 ### Package layout (app/src/main/kotlin/org/fossify/gallery/)
 
@@ -127,14 +126,3 @@ no longer paints an opaque band under its own bar.
   it over the grid) and the grid gets no top inset of its own; `keepGridClearOfTopBar()` pads it by
   the bar's measured height, which already carries the status bar inset. Doing it in the layout
   instead double-counts the inset.
-- That top padding breaks drag-to-reorder unless it is compensated for:
-  `LinearLayoutManager.prepareForDrop()`, which the stock `onMoved()` calls to hold the swapped-with
-  item still, feeds its current top to `scrollToPositionWithOffset()` — and that measures from
-  *below* the padding, so every swap shoves the list down by it. Both grids therefore drag through
-  `helpers/PaddedGridMoveCallback.kt` rather than commons' `ItemMoveCallback` directly.
-- `helpers/FloatingTopBar.kt` strips the app bar's background/elevation, blurs the search pill on
-  Android 12+, and doubles as the scroll listener that pans the bar away mid-drag and brings it back
-  whenever the grid comes to rest. `makeFloating()` must run *after* every
-  `MySearchMenu.updateColors()`, which repaints the band on each resume.
-- `extensions/EdgeFade.kt` fades both ends of each grid so the system bars stay readable over
-  scrolling content.
