@@ -22,9 +22,11 @@ fun hasSigningVars(): Boolean {
             && providers.environmentVariable("SIGNING_STORE_PASSWORD").orNull != null
 }
 
+val forkVersionName: String = project.property("FORK_VERSION_NAME").toString()
+
 base {
     val versionCode = project.property("VERSION_CODE").toString().toInt()
-    archivesName = "gallery-$versionCode"
+    archivesName = "gallery-$versionCode-$forkVersionName"
 }
 
 android {
@@ -36,6 +38,7 @@ android {
         targetSdk = project.libs.versions.app.build.targetSDK.get().toInt()
         versionName = project.property("VERSION_NAME").toString()
         versionCode = project.property("VERSION_CODE").toString().toInt()
+        buildConfigField("String", "FORK_VERSION_NAME", "\"$forkVersionName\"")
     }
 
     signingConfigs {

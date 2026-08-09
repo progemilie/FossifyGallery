@@ -152,7 +152,10 @@ fun SimpleActivity.launchAbout() {
         faqItems.removeIf { it.text == R.string.faq_8_text }
     }
 
-    startAboutActivity(R.string.app_name, licenses, BuildConfig.VERSION_NAME, faqItems, true)
+    val versionName = getString(
+        R.string.fork_version_placeholder, BuildConfig.VERSION_NAME, BuildConfig.FORK_VERSION_NAME
+    )
+    startAboutActivity(R.string.app_name, licenses, versionName, faqItems, true)
 }
 
 fun BaseSimpleActivity.handleMediaManagementPrompt(callback: () -> Unit) {
