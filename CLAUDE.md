@@ -116,6 +116,35 @@ Reordering is a mode of `MediaAdapter` driven by `MediaActivity`'s reorder bar: 
 group and dragging any marked item carries the whole group. Orders export/import as plain text via
 `helpers/CustomOrderIO.kt`.
 
+### The viewer's file metadata sheet
+
+A swipe up over the media in the viewer (and the Properties menu item, which no longer opens
+commons' `PropertiesDialog`) raises `views/MetadataSheet.kt`, listing every metadata group the file
+carries.
+
+- `helpers/MetadataReader.kt` reads it, off the main thread, **straight off the file every time** —
+  never from Room, MediaStore or the `Medium` the grid was built from, all of which describe the
+  last scan rather than the file as it is now. `com.drewnoakes:metadata-extractor` supplies one
+  directory per group the file stores (JPEG, Exif IFD0, Exif SubIFD, GPS, IPTC, XMP, ICC, PNG-\*,
+  QuickTime, MP4, …) and those become the collapsible sections verbatim, so nothing is dropped for
+  want of a hand-written mapping. `ExifInterface` fills in for formats the library cannot parse;
+  `MediaMetadataRetriever` and `MediaExtractor` cover video.
+- `helpers/MetadataSummary.kt` picks the pinned rows; `helpers/MetadataFormat.kt` holds the pure
+  value formatting. Splitting those out is what keeps each file under detekt's function-count
+  threshold — check `./gradlew detekt` before folding them back together.
+- The sheet lives in its own full-screen `CoordinatorLayout` (`layout/metadata_sheet_holder.xml`),
+  included last in both viewer layouts, because `BottomSheetBehavior` needs a Coordinator and the
+  viewer screens are laid out with `RelativeLayout` rules. That holder is `gone` whenever the sheet
+  is, so nothing invisible sits between a finger and the photo.
+- Two layout details are load-bearing: the expanded sheet's top margin is worked out from the
+  holder's **on-screen position** rather than the status bar inset (an ancestor already pads by the
+  display cutout, and adding the inset blind double-counts it); and the strip that keeps the resting
+  sheet clear of the navigation bar is bottom padding on the summary, not extra peek height, since a
+  collapsed sheet shows its own top `peekHeight` pixels.
+- `BaseViewerActivity.updateNavigationBarIconsForPanel()` hands the navigation bar back its normal
+  icons while the sheet covers it — the viewer otherwise forces light icons, which vanish against a
+  light-theme sheet.
+
 ### Chrome that floats over the content
 
 The three browsing screens draw content edge to edge with the chrome over it. No immersive mode is

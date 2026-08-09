@@ -7,9 +7,9 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.View
+import androidx.activity.addCallback
 import androidx.core.graphics.drawable.toDrawable
 import com.google.android.material.appbar.AppBarLayout
-import org.fossify.commons.dialogs.PropertiesDialog
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
@@ -75,6 +75,7 @@ import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.TYPE_VIDEOS
 import org.fossify.gallery.models.Medium
+import org.fossify.gallery.views.MetadataSheet
 import java.io.File
 
 open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.FragmentListener {
@@ -89,11 +90,17 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
 
     private val binding by viewBinding(FragmentHolderBinding::inflate)
 
+    private val metadataSheet: MetadataSheet
+        get() = binding.metadataSheetHolder.metadataSheet
+
     override val contentHolder: View
         get() = binding.fragmentHolder
 
     override val appBarLayout: AppBarLayout
         get() = binding.fragmentViewerAppbar
+
+    override val isPanelCoveringNavigationBar: Boolean
+        get() = metadataSheet.isSheetVisible
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,9 +113,29 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
         }
 
         setupOptionsMenu()
+        setupMetadataSheet()
         refreshMenuItems()
         requestMediaPermissions {
             checkIntent(savedInstanceState)
+        }
+    }
+
+    /**
+     * Same sheet the gallery's own viewer uses, so a photo opened from another app describes itself
+     * the same way. It only has a real file to read when the intent handed one over, which is also
+     * the only case the Properties menu item shows up in.
+     */
+    private fun setupMetadataSheet() {
+        metadataSheet.onLocationClicked = { path -> showFileOnMap(path) }
+        metadataSheet.onHidden = { updateNavigationBarIconsForPanel(false) }
+
+        onBackPressedDispatcher.addCallback(this) {
+            if (metadataSheet.isSheetVisible) {
+                metadataSheet.hide()
+            } else {
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+            }
         }
     }
 
@@ -364,7 +391,19 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
     }
 
     private fun showProperties() {
-        PropertiesDialog(this, mUri!!.path!!)
+        showMetadata()
+    }
+
+    override fun showMetadata() {
+        // only a file:// intent leaves a path the metadata can be read back off; a content uri from
+        // another app is not something this sheet can open
+        val path = mUri?.takeIf { it.scheme == "file" }?.path.orEmpty()
+        if (path.isEmpty() || metadataSheet.isSheetVisible) {
+            return
+        }
+
+        updateNavigationBarIconsForPanel(true)
+        metadataSheet.show(path)
     }
 
     private fun isFileTypeVisible(path: String): Boolean {

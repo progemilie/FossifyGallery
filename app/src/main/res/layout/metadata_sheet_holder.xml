@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Holds the metadata sheet and nothing else. A CoordinatorLayout of its own rather than the
+    viewer's root, because BottomSheetBehavior needs one and the viewer's screens are laid out with
+    RelativeLayout rules the Coordinator would throw away. It is gone whenever the sheet is, so a
+    full-screen invisible layer never sits between a finger and the photo.
+-->
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:visibility="gone">
+
+    <org.fossify.gallery.views.MetadataSheet
+        android:id="@+id/metadata_sheet"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:behavior_hideable="true"
+        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -40,6 +40,7 @@ okhttp = "5.3.2"
 okio = "3.17.0"
 picasso = "2.71828"
 subsamplingScaleImageView = "d705c3c4ad"
+metadataExtractor = "2.21.0"
 #build
 app-build-compileSDKVersion = "36"
 app-build-targetSDK = "36"
@@ -82,6 +83,9 @@ avif = { module = "com.github.penfeizhou.android.animation:avif", version.ref = 
 glide-compiler = { module = "com.github.bumptech.glide:ksp", version.ref = "glideCompiler" }
 zjupure-webpdecoder = { module = "com.github.zjupure:webpdecoder", version.ref = "zjupureWebpdecoder" }
 picasso = { module = "com.squareup.picasso:picasso", version.ref = "picasso" }
+# reads every metadata directory a file carries (JPEG, Exif, GPS, IPTC, XMP, ICC, PNG, WebP,
+# QuickTime, MP4, ...) rather than only the EXIF tags ExifInterface knows about
+metadata-extractor = { module = "com.drewnoakes:metadata-extractor", version.ref = "metadataExtractor" }
 avif-integration = { group = "com.github.bumptech.glide", name = "avif-integration", version.ref = "glideCompiler" }
 jxl-integration = { group = "io.github.awxkee", name = "jxl-coder-glide", version.ref = "jxlDecoder" }
 [bundles]

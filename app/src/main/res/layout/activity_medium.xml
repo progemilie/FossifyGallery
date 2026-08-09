@@ -77,4 +77,10 @@
         </com.google.android.material.appbar.MaterialToolbar>
 
     </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- last child so that the sheet draws over the chrome it slides up past -->
+    <include
+        android:id="@+id/metadata_sheet_holder"
+        layout="@layout/metadata_sheet_holder" />
+
 </RelativeLayout>
