@@ -10,9 +10,8 @@ Gradle module). This repo is a fork.
 - Single app module `:app` (see settings.gradle.kts, `rootProject.name = "Gallery"`).
 - **Fork version:** `FORK_VERSION_NAME` in gradle.properties tracks this fork independently of
   upstream's `VERSION_NAME`/`VERSION_CODE` (which stay as inherited from upstream).
-  **Bump it in the same commit as every feature (minor) and every fix (patch), but only on a per branch basis (maximum one bump per working branch)**,
-  and tag that commit `v<FORK_VERSION_NAME>` (`git tag v1.0.1`) so every version is reachable by tag. Changes
-  that cannot affect the build — docs, CI config, comments — need neither a bump nor a tag.
+  **Bump it in the same commit as every feature (minor) and every fix (patch), but only on a per branch basis (maximum one bump per working branch)**.
+  Changes that cannot affect the build — docs, CI config, comments — need neither a bump nor a tag.
 - Kotlin 2.3.10, AGP 9.2.0, Gradle wrapper 9.4.1, KSP 2.3.7, Java/Kotlin target 17.
 - compileSdk/targetSdk 36, minSdk 26 (see gradle/libs.versions.toml).
 - One flavor dimension, `licensing`, with two flavors and no flavor-specific Kotlin code —
