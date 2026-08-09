@@ -148,6 +148,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private var mLastSearchedText = ""
     private var mIsReordering = false
     private var mGridBottomPadding = 0
+    private var mGridPositionToRestore: MediaAdapter.GridPosition? = null
     private var mLatestMediaId = 0L
     private var mLatestMediaDateId = 0L
     private var mLastMediaHandler = Handler()
@@ -645,6 +646,9 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         }
 
         val pathToUse = getPathToUse()
+        // the reload at the end of this builds the grid over again, which would drop it back at the
+        // top of a folder the arrangement was as likely as not made well down
+        mGridPositionToRestore = getMediaAdapter()?.getGridPosition()
         stopReordering()
         // keep the dragged order on screen, reloadMedia() below replaces it with the saved one
         getMediaAdapter()?.setReordering(false)
@@ -835,7 +839,17 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         }
 
         setupScrollDirection()
+        restoreGridPosition()
         revealLastViewedItem()
+    }
+
+    // a reload starts the grid at the top, which is no use to someone who was just arranging the
+    // middle of a folder - put it back where the arranging was going on
+    private fun restoreGridPosition() {
+        val gridPosition = mGridPositionToRestore ?: return
+        val adapter = getMediaAdapter() ?: return
+        mGridPositionToRestore = null
+        adapter.restoreGridPosition(gridPosition)
     }
 
     // point out the thumbnail the fullscreen viewer was just left from, it is easy to lose track of
