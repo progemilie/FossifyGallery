@@ -26,7 +26,7 @@ val forkVersionName: String = project.property("FORK_VERSION_NAME").toString()
 
 base {
     val versionCode = project.property("VERSION_CODE").toString().toInt()
-    archivesName = "gallery-$versionCode-fork-$forkVersionName"
+    archivesName = "gallery-$versionCode-$forkVersionName"
 }
 
 android {
