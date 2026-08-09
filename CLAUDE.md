@@ -117,10 +117,6 @@ group and dragging any marked item carries the whole group. Orders export/import
 
 ### The viewer's bottom action bar
 
-*Which* actions the bar carries is upstream's `Config.visibleBottomActions` bitmask; *what order* it
-carries them in is `Config.bottomActionsOrder`, a comma-separated list of the same bits covering
-**every** action, hidden ones included — so an action switched back on returns where it was left.
-
 `helpers/BottomAction.kt` is the one table of bit, view id, label and icon that both the bar and
 `ManageBottomActionsDialog` read; an action added there is picked up by both, and
 `parseBottomActionsOrder()` appends whatever a stored order predates rather than dropping it.
@@ -131,19 +127,8 @@ would leave every constraint pointing at its old neighbour. Every button stays c
 visibility, so the ones that come and go with the current file (rating, rotate, mirror) never need a
 re-chain.
 
-`MAX_VISIBLE_BOTTOM_ACTIONS` caps the bar at 8. The cap is what keeps the bar from overflowing —
-a spread chain of fixed-width buttons has nowhere to put seventeen of them on a phone-width screen.
 `ManageBottomActionsDialog` is the only writer of `visibleBottomActions`, so enforcing it there is
 enough; it also trims a config saved before the cap existed down to its first eight on load.
-
-Mirror is a bottom action *and* `menu_mirror`, which is `showAsAction="never"` and gated on the bar
-like every other action — so it is in the overflow when it is off the bar, on the bar when it is on,
-and never pinned to the toolbar.
-
-The settings dialog is a drag-to-reorder list — a "Visible" section in bar order (headed by an
-`n/8` count, so the cap is visible before it is hit) over a "Hidden" one kept in
-`ALL_BOTTOM_ACTIONS` order, since no arrangement of the hidden half is the user's to lose. Drags are
-clamped to the visible section (`canDropOver`); the checkbox is what moves a row between the two.
 
 ### The viewer's file metadata sheet
 

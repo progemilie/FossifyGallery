@@ -256,7 +256,6 @@ const val BOTTOM_ACTION_MIRROR = 65536
 const val DEFAULT_BOTTOM_ACTIONS = BOTTOM_ACTION_TOGGLE_FAVORITE or BOTTOM_ACTION_RATING or
     BOTTOM_ACTION_EDIT or BOTTOM_ACTION_SHARE or BOTTOM_ACTION_DELETE
 
-/** As many buttons as the bar can spread across a phone-width screen without crowding them. */
 const val MAX_VISIBLE_BOTTOM_ACTIONS = 8
 
 // aspect ratios used at the editor for cropping

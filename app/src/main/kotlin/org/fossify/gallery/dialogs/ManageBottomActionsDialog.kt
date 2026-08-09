@@ -29,8 +29,6 @@ class ManageBottomActionsDialog(val activity: BaseSimpleActivity, val callback: 
         val visible = activity.config.bottomActionsOrder
             .mapNotNull { byId[it] }
             .filter { visibleActions and it.id != 0 }
-            // a config from before the cap existed keeps its first eight; the rest fall to hidden,
-            // where the user can see what happened and put back whichever they wanted
             .take(MAX_VISIBLE_BOTTOM_ACTIONS)
             .toMutableList()
         val hidden = ALL_BOTTOM_ACTIONS.filterNot { it in visible }.toMutableList()

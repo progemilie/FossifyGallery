@@ -43,7 +43,7 @@
         android:id="@+id/menu_mirror"
         android:icon="@drawable/ic_flip_horizontally_vector"
         android:title="@string/mirror"
-        app:showAsAction="never" />
+        app:showAsAction="ifRoom" />
     <item
         android:id="@+id/menu_properties"
         android:icon="@drawable/ic_info_vector"
