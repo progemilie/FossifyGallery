@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- rounded only at the top, since the bottom edge is always off the screen. Filled at runtime
+     with the theme's background colour -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <corners
+        android:topLeftRadius="@dimen/metadata_sheet_corner_radius"
+        android:topRightRadius="@dimen/metadata_sheet_corner_radius" />
+    <solid android:color="@android:color/white" />
+
+</shape>

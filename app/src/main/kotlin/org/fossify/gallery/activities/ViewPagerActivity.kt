@@ -31,6 +31,7 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
+import androidx.activity.addCallback
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat.Type
@@ -46,7 +47,6 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
 import com.google.android.material.appbar.AppBarLayout
-import org.fossify.commons.dialogs.PropertiesDialog
 import org.fossify.commons.dialogs.RenameItemDialog
 import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.beGone
@@ -196,6 +196,7 @@ import org.fossify.gallery.helpers.TYPE_VIDEOS
 import org.fossify.gallery.helpers.getPermissionToRequest
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
+import org.fossify.gallery.views.MetadataSheet
 import java.io.File
 import kotlin.math.min
 
@@ -241,11 +242,17 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
     private val binding by viewBinding(ActivityMediumBinding::inflate)
 
+    private val metadataSheet: MetadataSheet
+        get() = binding.metadataSheetHolder.metadataSheet
+
     override val contentHolder: View
         get() = binding.fragmentHolder
 
     override val appBarLayout: AppBarLayout
         get() = binding.mediumViewerAppbar
+
+    override val isPanelCoveringNavigationBar: Boolean
+        get() = metadataSheet.isSheetVisible
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -256,6 +263,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
         setupOptionsMenu()
         setupThumbnailStrip()
+        setupMetadataSheet()
         refreshMenuItems()
 
         window.decorView.setBackgroundColor(getProperBackgroundColor())
@@ -987,10 +995,57 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
     private fun getCurrentFragment() = (binding.viewPager.adapter as? MyPagerAdapter)?.getCurrentFragment(binding.viewPager.currentItem)
 
-    private fun showProperties() {
-        if (getCurrentMedium() != null) {
-            PropertiesDialog(this, getCurrentPath(), false)
+    /**
+     * The sheet the metadata lives in. Kept out of the way until asked for, by a swipe up over the
+     * photo or by the Properties menu item - both land here rather than in two different views of
+     * the same file.
+     */
+    private fun setupMetadataSheet() {
+        metadataSheet.onLocationClicked = { path -> showFileOnMap(path) }
+        metadataSheet.onHidden = {
+            updateNavigationBarIconsForPanel(false)
+            refreshMenuItems()
         }
+
+        onBackPressedDispatcher.addCallback(this) {
+            if (metadataSheet.isSheetVisible) {
+                metadataSheet.hide()
+            } else {
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+            }
+        }
+    }
+
+    private fun showProperties() {
+        if (getCurrentMedium() == null) {
+            return
+        }
+
+        // the menu item toggles: it raises the same panel a swipe up does, and tapping it again is
+        // the obvious way to be rid of something you opened by tapping it
+        if (metadataSheet.isSheetVisible) {
+            metadataSheet.hide()
+        } else {
+            showMetadata()
+        }
+    }
+
+    override fun showMetadata() {
+        val path = getCurrentPath()
+        if (path.isEmpty()) {
+            return
+        }
+
+        stopSlideshow()
+        updateNavigationBarIconsForPanel(true)
+        metadataSheet.show(path)
+    }
+
+    override fun isMetadataVisible() = metadataSheet.isSheetVisible
+
+    override fun hideMetadata() {
+        metadataSheet.hide()
     }
 
     private fun initBottomActionsLayout() {
@@ -1634,6 +1689,13 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     }
 
     override fun fragmentClicked() {
+        // a tap on the photo above the panel is a tap to be rid of the panel, not one asking for
+        // the chrome back
+        if (metadataSheet.isSheetVisible) {
+            metadataSheet.hide()
+            return
+        }
+
         mIsFullScreen = !mIsFullScreen
         checkSystemUI()
         fullscreenToggled()
@@ -1728,6 +1790,12 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             binding.viewerHeader.viewerHeaderFilename.text =
                 medium?.path?.getFilenameFromPath() ?: mPath.getFilenameFromPath()
             updateHeaderDetails(medium)
+
+            // an open sheet follows the swipe onto the next photo rather than going on describing
+            // the one that has left the screen
+            if (metadataSheet.isSheetVisible) {
+                metadataSheet.load(medium?.path ?: mPath)
+            }
         }
     }
 

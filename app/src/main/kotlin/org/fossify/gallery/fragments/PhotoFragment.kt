@@ -182,22 +182,24 @@ class PhotoFragment : ViewPagerFragment() {
                 }
             })
 
+            // only the zoom checks gate these now: a vertical flick means something whether or not
+            // the down gesture is on, since swiping up opens the metadata sheet either way, and
+            // handleEvent is what decides which of the two a given flick was
             gifView.setOnTouchListener { v, event ->
-                if (context.config.allowDownGesture && gifViewFrame.controller.state.zoom == 1f) handleEvent(event)
+                if (gifViewFrame.controller.state.zoom == 1f) handleEvent(event)
                 false
             }
 
             setupGesturesViewStateListener()
             gesturesView.setOnTouchListener { v, event ->
-                val allowDownGesture = context.config.allowDownGesture
-                if (allowDownGesture && abs(mCurrentGestureViewZoom - mInitialZoom) < MAX_ZOOM_EQUALITY_TOLERANCE) {
+                if (abs(mCurrentGestureViewZoom - mInitialZoom) < MAX_ZOOM_EQUALITY_TOLERANCE) {
                     handleEvent(event)
                 }
                 false
             }
 
             subsamplingView.setOnTouchListener { v, event ->
-                if (subsamplingView.isZoomedOut() && context.config.allowDownGesture) handleEvent(event)
+                if (subsamplingView.isZoomedOut()) handleEvent(event)
                 false
             }
         }

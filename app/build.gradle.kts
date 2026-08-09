@@ -168,6 +168,7 @@ dependencies {
     implementation(libs.avif.integration)
     implementation(libs.jxl.integration)
     implementation(libs.blurview)
+    implementation(libs.metadata.extractor)
     implementation(libs.okio)
     implementation(libs.picasso) {
         exclude(group = "com.squareup.okhttp3", module = "okhttp")

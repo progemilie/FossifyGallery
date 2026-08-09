@@ -116,6 +116,24 @@ Reordering is a mode of `MediaAdapter` driven by `MediaActivity`'s reorder bar: 
 group and dragging any marked item carries the whole group. Orders export/import as plain text via
 `helpers/CustomOrderIO.kt`.
 
+### The viewer's file metadata sheet
+
+A swipe up over the media in the viewer raises `views/MetadataSheet.kt`, listing every metadata group the file carries.
+
+- `helpers/MetadataReader.kt` reads it, off the main thread, **straight off the file every time** —
+  never from Room, MediaStore or the `Medium` the grid was built from, all of which describe the
+  last scan rather than the file as it is now. `com.drewnoakes:metadata-extractor` supplies one
+  directory per group the file stores (JPEG, Exif IFD0, Exif SubIFD, GPS, IPTC, XMP, ICC, PNG-\*,
+  QuickTime, MP4, …) and those become the collapsible sections verbatim, so nothing is dropped for
+  want of a hand-written mapping. `ExifInterface` fills in for formats the library cannot parse;
+  `MediaMetadataRetriever` and `MediaExtractor` cover video.
+- `helpers/MetadataSummary.kt` picks the pinned rows; `helpers/MetadataFormat.kt` holds the pure
+  value formatting. Splitting those out is what keeps each file under detekt's function-count
+  threshold — check `./gradlew detekt` before folding them back together.
+- `BaseViewerActivity.updateNavigationBarIconsForPanel()` hands the navigation bar back its normal
+  icons while the sheet covers it — the viewer otherwise forces light icons, which vanish against a
+  light-theme sheet.
+
 ### Chrome that floats over the content
 
 The three browsing screens draw content edge to edge with the chrome over it. No immersive mode is

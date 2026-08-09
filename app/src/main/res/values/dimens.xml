@@ -62,6 +62,20 @@
     <dimen name="viewer_strip_padding_bottom">2dp</dimen>
     <dimen name="viewer_strip_height">54dp</dimen>
 
+    <!-- the metadata sheet the viewer pulls up from the bottom -->
+    <dimen name="metadata_sheet_corner_radius">20dp</dimen>
+    <dimen name="metadata_sheet_handle_height">28dp</dimen>
+    <dimen name="metadata_sheet_handle_width">36dp</dimen>
+    <dimen name="metadata_sheet_handle_thickness">4dp</dimen>
+    <dimen name="metadata_sheet_elevation">12dp</dimen>
+    <!-- a section heading is a touch target before it is a heading -->
+    <dimen name="metadata_section_header_height">48dp</dimen>
+    <!-- the arrow on the "there is more below this" line, sized to the text beside it -->
+    <dimen name="metadata_hint_icon_size">14dp</dimen>
+    <!-- what the sheet falls back to when the summary cannot be measured, and the share of the
+         screen the resting sheet is never allowed to grow past -->
+    <dimen name="metadata_sheet_min_peek_height">220dp</dimen>
+
     <dimen name="bottom_fade_height">60dp</dimen>
     <dimen name="top_fade_height">70dp</dimen>
     <!-- how far the search pill sits off the grid. Small on purpose: an elevation shadow's spread
