@@ -199,6 +199,7 @@
     <string name="by_extension">Extension</string>
     <string name="show_file_count_section_header">Show file count at section headers</string>
     <string name="grouping_and_sorting">Please note that grouping and sorting are 2 independent fields</string>
+    <string name="grouping_follows_sorting">These groups use the same date as the sorting, so their order follows it</string>
 
     <!-- Widgets -->
     <string name="folder_on_widget">Folder shown on the widget:</string>

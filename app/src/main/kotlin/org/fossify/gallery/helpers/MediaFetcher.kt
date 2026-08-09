@@ -936,7 +936,7 @@ class MediaFetcher(val context: Context) {
                 (savedGrouping and GROUP_SHOW_FILE_COUNT) or
                 (if (sorting and SORT_DESCENDING != 0) GROUP_DESCENDING else 0)
         } else {
-            savedGrouping
+            alignGroupOrderWithSorting(savedGrouping, sorting)
         }
 
         // a hand made order cuts across whatever groups would be formed, show it as the flat list it is
@@ -993,6 +993,32 @@ class MediaFetcher(val context: Context) {
         }
 
         return thumbnailItems
+    }
+
+    /**
+     * Grouping keeps an ascending/descending toggle of its own, which makes sense while the groups
+     * are buckets the sorting has no opinion about - file types, extensions, folders. Group by a day
+     * or a month of the very date the media is sorted by and the two toggles describe one timeline:
+     * asking for oldest first then puts the newest day at the top with its oldest photo inside it.
+     * The sorting is what the user reaches for to say which end of time comes first, so let it decide
+     * the direction of the headers too, and leave the grouping toggle to the buckets it still fits.
+     */
+    private fun alignGroupOrderWithSorting(grouping: Int, sorting: Int): Int {
+        val groupsByTaken = grouping and (GROUP_BY_DATE_TAKEN_DAILY or GROUP_BY_DATE_TAKEN_MONTHLY) != 0
+        val groupsByModified = grouping and (GROUP_BY_LAST_MODIFIED_DAILY or GROUP_BY_LAST_MODIFIED_MONTHLY) != 0
+        val sortsByTaken = sorting and SORT_BY_DATE_TAKEN != 0
+        val sortsByModified = sorting and SORT_BY_DATE_MODIFIED != 0
+
+        val sameDate = (groupsByTaken && sortsByTaken) || (groupsByModified && sortsByModified)
+        if (!sameDate) {
+            return grouping
+        }
+
+        return if (sorting and SORT_DESCENDING != 0) {
+            grouping or GROUP_DESCENDING
+        } else {
+            grouping and GROUP_DESCENDING.inv()
+        }
     }
 
     private fun getFormattedKey(key: String, grouping: Int, today: String, yesterday: String, count: Int): String {
