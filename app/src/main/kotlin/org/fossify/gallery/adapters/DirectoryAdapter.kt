@@ -58,7 +58,6 @@ import org.fossify.commons.helpers.SORT_BY_CUSTOM
 import org.fossify.commons.helpers.VIEW_TYPE_LIST
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isRPlus
-import org.fossify.commons.interfaces.ItemMoveCallback
 import org.fossify.commons.interfaces.ItemTouchHelperContract
 import org.fossify.commons.interfaces.StartReorderDragListener
 import org.fossify.commons.models.FileDirItem
@@ -93,6 +92,7 @@ import org.fossify.gallery.helpers.FOLDER_STYLE_ROUNDED_CORNERS
 import org.fossify.gallery.helpers.FOLDER_STYLE_SQUARE
 import org.fossify.gallery.helpers.LOCATION_INTERNAL
 import org.fossify.gallery.helpers.LOCATION_SD
+import org.fossify.gallery.helpers.PaddedGridMoveCallback
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
@@ -563,7 +563,7 @@ class DirectoryAdapter(
         actMode?.invalidate()
 
         if (startReorderDragListener == null) {
-            val touchHelper = ItemTouchHelper(ItemMoveCallback(this, true))
+            val touchHelper = ItemTouchHelper(PaddedGridMoveCallback(this, true))
             touchHelper.attachToRecyclerView(recyclerView)
 
             startReorderDragListener = object : StartReorderDragListener {

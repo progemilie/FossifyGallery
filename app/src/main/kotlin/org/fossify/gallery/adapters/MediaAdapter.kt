@@ -62,7 +62,6 @@ import org.fossify.commons.helpers.VIEW_TYPE_LIST
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isRPlus
 import org.fossify.commons.helpers.sumByLong
-import org.fossify.commons.interfaces.ItemMoveCallback
 import org.fossify.commons.interfaces.ItemTouchHelperContract
 import org.fossify.commons.models.FileDirItem
 import org.fossify.commons.views.MyGridLayoutManager
@@ -100,6 +99,7 @@ import org.fossify.gallery.extensions.updateFavoritePaths
 import org.fossify.gallery.helpers.DRAG_BORDER_WIDTH_FRACTION
 import org.fossify.gallery.helpers.DRAG_LIFT_DURATION_MS
 import org.fossify.gallery.helpers.DRAG_LIFT_SCALE
+import org.fossify.gallery.helpers.PaddedGridMoveCallback
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.REVEAL_DURATION_MS
@@ -861,6 +861,39 @@ class MediaAdapter(
         return true
     }
 
+    /**
+     * Where the grid is sitting, as the item at the top of it and how far that item has been
+     * scrolled past the top edge. Taken by path rather than by position so it survives a reload
+     * that regroups the list, and handed back rather than kept because a reload builds the new
+     * adapter that has to act on it.
+     */
+    fun getGridPosition(): GridPosition? {
+        val layoutManager = recyclerView.layoutManager as? MyGridLayoutManager ?: return null
+        val position = layoutManager.findFirstVisibleItemPosition()
+        val itemView = layoutManager.findViewByPosition(position) ?: return null
+        val path = (media.getOrNull(position) as? Medium)?.path ?: return null
+        // measured from below the padding, which is where scrollToPositionWithOffset() measures to
+        val offset = if (layoutManager.orientation == RecyclerView.HORIZONTAL) {
+            layoutManager.getDecoratedLeft(itemView) - recyclerView.paddingLeft
+        } else {
+            layoutManager.getDecoratedTop(itemView) - recyclerView.paddingTop
+        }
+
+        return GridPosition(path, offset)
+    }
+
+    /** Puts the grid back where [gridPosition] was taken from, if that item is still in it. */
+    fun restoreGridPosition(gridPosition: GridPosition) {
+        val layoutManager = recyclerView.layoutManager as? MyGridLayoutManager ?: return
+        val position = getItemKeyPosition(gridPosition.path.hashCode())
+        if (position != -1) {
+            layoutManager.scrollToPositionWithOffset(position, gridPosition.offset)
+        }
+    }
+
+    /** A place in the grid, as [getGridPosition] takes it and [restoreGridPosition] puts it back. */
+    data class GridPosition(val path: String, val offset: Int)
+
     private fun isFullyVisible(itemView: View, isHorizontal: Boolean) = if (isHorizontal) {
         itemView.left >= recyclerView.paddingLeft && itemView.right <= recyclerView.width - recyclerView.paddingRight
     } else {
@@ -1316,7 +1349,7 @@ class MediaAdapter(
  * finger - and then that rule can find nothing between the two and the item stops responding. Going
  * by what is under the item needs no such agreement, and it drops where it looks like it will.
  */
-private class NearestCellMoveCallback(adapter: ItemTouchHelperContract) : ItemMoveCallback(adapter, true) {
+private class NearestCellMoveCallback(adapter: ItemTouchHelperContract) : PaddedGridMoveCallback(adapter, true) {
     override fun chooseDropTarget(
         selected: RecyclerView.ViewHolder,
         dropTargets: MutableList<RecyclerView.ViewHolder>,
