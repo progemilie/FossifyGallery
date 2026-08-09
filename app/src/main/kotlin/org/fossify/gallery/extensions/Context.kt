@@ -48,11 +48,13 @@ import org.fossify.commons.extensions.getStringValue
 import org.fossify.commons.extensions.humanizePath
 import org.fossify.commons.extensions.internalStoragePath
 import org.fossify.commons.extensions.isGif
+import org.fossify.commons.extensions.isInDownloadDir
 import org.fossify.commons.extensions.isPathOnOTG
 import org.fossify.commons.extensions.isPathOnSD
 import org.fossify.commons.extensions.isPng
 import org.fossify.commons.extensions.isPortrait
 import org.fossify.commons.extensions.isRawFast
+import org.fossify.commons.extensions.isRestrictedWithSAFSdk30
 import org.fossify.commons.extensions.isSvg
 import org.fossify.commons.extensions.isVideoFast
 import org.fossify.commons.extensions.isWebP
@@ -89,6 +91,7 @@ import org.fossify.gallery.helpers.IsoTypeReader
 import org.fossify.gallery.helpers.LOCATION_INTERNAL
 import org.fossify.gallery.helpers.LOCATION_OTG
 import org.fossify.gallery.helpers.LOCATION_SD
+import org.fossify.gallery.helpers.MAX_QUICK_CHOOSER_FOLDERS
 import org.fossify.gallery.helpers.MediaFetcher
 import org.fossify.gallery.helpers.MyWidgetProvider
 import org.fossify.gallery.helpers.PicassoRoundedCornersTransformation
@@ -118,6 +121,7 @@ import org.fossify.gallery.models.MediaRating
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
 import org.fossify.gallery.svg.SvgSoftwareLayerSetter
+import org.fossify.gallery.views.QuickFolder
 import java.io.File
 import java.io.FileInputStream
 import java.nio.ByteBuffer
@@ -270,6 +274,34 @@ fun Context.movePinnedDirectoriesToFront(dirs: ArrayList<Directory>): ArrayList<
         }
     }
     return dirs
+}
+
+/**
+ * The folders the copy/move quick chooser offers when a button is held, off the main thread.
+ *
+ * Destinations of past copy/move operations lead, most recent first, then the rest in the order the
+ * folder grid would show them. Folders the operation would only fail on - the source itself, the bin,
+ * the favourites bucket, anything a scoped-storage restriction puts out of reach - are left out
+ * rather than offered and then refused, since the chooser has nowhere to explain itself.
+ */
+fun Context.getQuickChooserFolders(sourcePath: String, callback: (List<QuickFolder>) -> Unit) {
+    getCachedDirectories { dirs ->
+        val source = sourcePath.trimEnd('/').getDistinctPath()
+        val reachable = dirs
+            .filter { !it.isRecycleBin() && !it.areFavorites() }
+            .filter { it.path.trimEnd('/').getDistinctPath() != source }
+            .filter { !isRestrictedWithSAFSdk30(it.path) || isInDownloadDir(it.path) }
+            .distinctBy { it.path.getDistinctPath() }
+
+        val byPath = reachable.associateBy { it.path.trimEnd('/').getDistinctPath() }
+        val recent = config.recentCopyMoveDestinations.mapNotNull { byPath[it.getDistinctPath()] }
+        val rest = getSortedDirectories(ArrayList(reachable)).filterNot { it in recent }
+
+        val folders = (recent + rest)
+            .take(MAX_QUICK_CHOOSER_FOLDERS)
+            .map { QuickFolder(it.path.trimEnd('/'), it.name) }
+        callback(folders)
+    }
 }
 
 @Suppress("UNCHECKED_CAST")

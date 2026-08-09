@@ -629,6 +629,26 @@ class Config(context: Context) : BaseConfig(context) {
         }
     }
 
+    /** Destinations of past copy/move operations, most recent first, for the quick chooser to lead with. */
+    var recentCopyMoveDestinations: List<String>
+        get() = prefs.getString(RECENT_COPY_MOVE_DESTINATIONS, "").orEmpty()
+            .split(PATH_SEPARATOR)
+            .filter { it.isNotEmpty() }
+        set(destinations) = prefs.edit()
+            .putString(RECENT_COPY_MOVE_DESTINATIONS, destinations.joinToString(PATH_SEPARATOR))
+            .apply()
+
+    fun addRecentCopyMoveDestination(path: String) {
+        val trimmed = path.trimEnd('/')
+        if (trimmed.isEmpty()) {
+            return
+        }
+
+        recentCopyMoveDestinations = (listOf(trimmed) + recentCopyMoveDestinations)
+            .distinctBy { it.lowercase(Locale.getDefault()) }
+            .take(MAX_RECENT_COPY_MOVE_DESTINATIONS)
+    }
+
     var avoidShowingAllFilesPrompt: Boolean
         get() = prefs.getBoolean(AVOID_SHOWING_ALL_FILES_PROMPT, false)
         set(avoidShowingAllFilesPrompt) = prefs.edit().putBoolean(AVOID_SHOWING_ALL_FILES_PROMPT, avoidShowingAllFilesPrompt).apply()

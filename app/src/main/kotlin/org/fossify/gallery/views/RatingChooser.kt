@@ -44,9 +44,9 @@ class RatingChooser @JvmOverloads constructor(
 
     init {
         orientation = HORIZONTAL
-        setBackgroundResource(R.drawable.rating_chooser_background)
-        elevation = resources.getDimension(R.dimen.rating_chooser_elevation)
-        resources.getDimensionPixelSize(R.dimen.rating_chooser_padding).let {
+        setBackgroundResource(R.drawable.chooser_background)
+        elevation = resources.getDimension(R.dimen.chooser_elevation)
+        resources.getDimensionPixelSize(R.dimen.chooser_padding).let {
             setPadding(it, it, it, it)
         }
 

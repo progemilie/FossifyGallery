@@ -124,6 +124,37 @@ group and dragging any marked item carries the whole group. Orders export/import
 `applyBottomActionsOrder()` rebuilds bottom_actions.xml's horizontal chain rather than reordering
 children — the chain is what spreads the buttons and what skips the GONE ones.
 
+### Choosers held open over a bottom action button
+
+Two buttons answer a hold with a picker the finger drags through without ever lifting off, and a tap
+with the dialog they always had: rating (`views/RatingChooser.kt`) and copy/move
+(`views/FolderChooser.kt`). Both share `chooser_*` dimens and `chooser_background`, and both are
+positioned by `ViewPagerActivity.centerChooserOverButton()`, which clamps them inside the screen —
+the buttons sit wherever the user's bottom-action order put them.
+
+The gesture is a plain `setOnTouchListener` on the button, not a long-click listener: the chooser has
+to appear *during* a touch that is still in flight, so a timer is posted on `ACTION_DOWN` and the
+touch stream keeps arriving on the button (via `requestDisallowInterceptTouchEvent`) rather than
+transferring to the chooser. `ACTION_UP` commits only if a row is highlighted, and calls
+`performClick()` otherwise so a tap still reaches accessibility services. `FolderChooser` deliberately
+starts with nothing highlighted — the finger is over the button, not the list — so a hold and release
+without moving does nothing.
+
+`FolderChooser`'s list is capped and recents-first, built by `Context.getQuickChooserFolders()` off
+`getCachedDirectories`, and **prefetched** into `mQuickChooserFolders` on every media change: it reads
+Room and the filesystem, which is far too slow to run when the hold fires. Folders the copy or move
+would only fail on (the source itself, the bin, favourites, scoped-storage-restricted paths) are left
+out rather than offered, since the chooser has nowhere to show an error. Past destinations live in
+`Config.recentCopyMoveDestinations`, recorded in `copyMoveFilesToFolder()` — which is the tail of
+`tryCopyMoveFilesTo()` split out, so destinations picked through the *dialog* teach the quick list too.
+`views/EdgeAutoScroller.kt` is split off only to keep `FolderChooser` under detekt's function-count
+threshold.
+
+Both choosers go through commons' `copyMoveFilesTo`/`CopyMoveTask` exactly as the dialog does, so the
+"Keep old last-modified value at file operations" setting keeps working untouched. Anything that ever
+bypasses that engine has to reapply `config.keepLastModified` by hand, the way the recycle-bin moves
+in `extensions/Activity.kt` do.
+
 ### The viewer's file metadata sheet
 
 A swipe up over the media in the viewer raises `views/MetadataSheet.kt`, listing every metadata group the file carries.

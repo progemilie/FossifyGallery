@@ -320,11 +320,32 @@ fun BaseSimpleActivity.tryCopyMoveFilesTo(fileDirItems: ArrayList<FileDirItem>, 
     }
 
     val source = fileDirItems[0].getParentPath()
-    PickDirectoryDialog(this, source, true, false, true, false) {
-        val destination = it
-        handleSAFDialog(source) {
-            if (it) {
-                copyMoveFilesTo(fileDirItems, source.trimEnd('/'), destination, isCopyOperation, true, config.shouldShowHidden, callback)
+    PickDirectoryDialog(this, source, true, false, true, false) { destination ->
+        copyMoveFilesToFolder(fileDirItems, destination, isCopyOperation, callback)
+    }
+}
+
+/**
+ * The half of [tryCopyMoveFilesTo] past the destination being picked, for the copy/move quick
+ * chooser, which picks one without a dialog.
+ *
+ * Recording the destination here rather than at either call site is what lets the quick chooser
+ * learn from the folders picked through the dialog too.
+ */
+fun BaseSimpleActivity.copyMoveFilesToFolder(
+    fileDirItems: ArrayList<FileDirItem>,
+    destination: String,
+    isCopyOperation: Boolean,
+    callback: (destinationPath: String) -> Unit,
+) {
+    val source = fileDirItems.first().getParentPath()
+    handleSAFDialog(source) { granted ->
+        if (granted) {
+            copyMoveFilesTo(
+                fileDirItems, source.trimEnd('/'), destination, isCopyOperation, true, config.shouldShowHidden
+            ) { destinationPath ->
+                config.addRecentCopyMoveDestination(destinationPath)
+                callback(destinationPath)
             }
         }
     }

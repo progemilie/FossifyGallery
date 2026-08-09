@@ -33,9 +33,18 @@
 
     </LinearLayout>
 
-    <!-- nudged horizontally at runtime to sit over whichever spot the rating button ended up in -->
+    <!-- both are nudged horizontally at runtime to sit over whichever spot their button ended up
+         in, and only ever one of them is up at a time -->
     <org.fossify.gallery.views.RatingChooser
         android:id="@+id/rating_chooser"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/bottom_chrome"
+        android:layout_marginBottom="@dimen/small_margin"
+        android:visibility="gone" />
+
+    <org.fossify.gallery.views.FolderChooser
+        android:id="@+id/folder_chooser"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_above="@id/bottom_chrome"
