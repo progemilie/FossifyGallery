@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isEmpty
+import androidx.core.view.isNotEmpty
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
@@ -66,6 +67,16 @@ class MetadataSheet @JvmOverloads constructor(
         /** How long the reveal waits for a resting height before coming up without one anyway. */
         private const val MAX_REVEAL_DELAY = 250L
 
+        /**
+         * How long a swipe has to settle before the file it landed on is opened. Scrolling the
+         * thumbnail strip crosses files faster than any of them can be read, and only the one still
+         * on screen when that stops is worth opening.
+         */
+        private const val READ_DELAY = 200L
+
+        /** How long the file swiped away from stays on screen before a slow read is admitted to. */
+        private const val STALE_CONTENT_TIMEOUT = 500L
+
         private const val LABEL_ALPHA = 0.7f
         private const val HANDLE_ALPHA = 0.4f
         private const val DIVIDER_ALPHA = 0.15f
@@ -86,6 +97,42 @@ class MetadataSheet @JvmOverloads constructor(
 
     /** Set between being asked for and coming up, so a layout pass in between can bring it up early. */
     private var revealPending = false
+
+    /**
+     * Opens the file named by [currentPath] and swaps its rows in. Posted by [load] a moment after
+     * the swipe rather than run on the spot, so a scroll through the thumbnail strip opens the file
+     * it stops on instead of every file it passes.
+     */
+    private val readCurrent = Runnable {
+        val path = currentPath
+        ensureBackgroundThread {
+            val metadata = MetadataReader.read(context, path)
+            post {
+                // a fast swipe can land several reads out of order; only the one describing the
+                // file currently on screen gets to draw itself
+                if (currentPath == path) {
+                    removeCallbacks(showReading)
+                    bind(metadata, path)
+                }
+            }
+        }
+    }
+
+    /**
+     * Empties the sheet down to a note that the file is being read. Only ever seen when there is
+     * nothing to keep - the sheet is coming up fresh, or a read has outrun [STALE_CONTENT_TIMEOUT] -
+     * because clearing the rows is a visible step in itself: the summary is what the resting sheet
+     * is measured from, so an empty one drops the hint that sits below it up to the top edge.
+     */
+    private val showReading = Runnable {
+        binding.metadataSheetSummary.removeAllViews()
+        binding.metadataSheetSections.removeAllViews()
+        binding.metadataSheetPlaceholder.apply {
+            setText(R.string.metadata_reading)
+            beVisible()
+        }
+        binding.metadataSheetScroll.scrollTo(0, 0)
+    }
 
     /**
      * Brings the sheet up, once. Posted with a delay by [show] and run ahead of that by
@@ -204,7 +251,9 @@ class MetadataSheet @JvmOverloads constructor(
 
         holder?.beVisible()
         binding.metadataSheetMoreHint.alpha = 1f
-        load(path)
+        // nothing on screen to hold on to, and the reveal is waiting on a resting height that can
+        // only be worked out from the file being come up for, so this one is read straight away
+        load(path, keepCurrentUntilRead = false)
 
         revealPending = true
         postDelayed(reveal, MAX_REVEAL_DELAY)
@@ -212,6 +261,8 @@ class MetadataSheet @JvmOverloads constructor(
 
     fun hide() {
         removeCallbacks(reveal)
+        removeCallbacks(readCurrent)
+        removeCallbacks(showReading)
         if (behavior.state == BottomSheetBehavior.STATE_HIDDEN) {
             // asked for and dropped again before it ever came up, so the state callback that tidies
             // up after the sheet has nothing to fire on
@@ -226,35 +277,37 @@ class MetadataSheet @JvmOverloads constructor(
     /**
      * Describes [path] instead of whatever was on screen, without disturbing how far open the sheet
      * is - this is what a swipe onto the next photo goes through.
+     *
+     * Everything the sheet says about the file swiped away from stays up until the next file's rows
+     * are ready to take their place, so a swipe changes the sheet once rather than emptying it and
+     * filling it again a frame or two later. [keepCurrentUntilRead] is what a caller with nothing
+     * worth keeping turns that off with.
      */
-    fun load(path: String) {
+    fun load(path: String, keepCurrentUntilRead: Boolean = true) {
         if (path.isEmpty()) return
 
         currentPath = path
-        binding.metadataSheetSummary.removeAllViews()
-        binding.metadataSheetSections.removeAllViews()
-        binding.metadataSheetPlaceholder.apply {
-            setText(R.string.metadata_reading)
-            beVisible()
-        }
-        binding.metadataSheetScroll.scrollTo(0, 0)
+        removeCallbacks(readCurrent)
+        removeCallbacks(showReading)
 
-        ensureBackgroundThread {
-            val metadata = MetadataReader.read(context, path)
-            post {
-                // a fast swipe can land several reads out of order; only the one describing the
-                // file currently on screen gets to draw itself
-                if (currentPath == path) {
-                    bind(metadata, path)
-                }
-            }
+        if (keepCurrentUntilRead && binding.metadataSheetSummary.isNotEmpty()) {
+            postDelayed(showReading, STALE_CONTENT_TIMEOUT)
+        } else {
+            showReading.run()
         }
+
+        postDelayed(readCurrent, if (keepCurrentUntilRead) READ_DELAY else 0)
     }
 
     private val holder: View?
         get() = parent as? View
 
+    /** Swaps in everything [path] says about itself at once - rows, hint and resting height. */
     private fun bind(metadata: FileMetadata, path: String) {
+        binding.metadataSheetSummary.removeAllViews()
+        binding.metadataSheetSections.removeAllViews()
+        binding.metadataSheetScroll.scrollTo(0, 0)
+
         binding.metadataSheetPlaceholder.apply {
             setText(R.string.metadata_unavailable)
             beVisibleIf(metadata.summary.isEmpty() && metadata.sections.isEmpty())
@@ -270,7 +323,9 @@ class MetadataSheet @JvmOverloads constructor(
 
         // nothing to promise below the fold if there are no sections to open
         binding.metadataSheetMoreHint.beVisibleIf(metadata.sections.isNotEmpty())
-        updatePeekHeight()
+        // not animated: the rows it is the height of are going up in this same frame, so a resting
+        // sheet that settles into its new height afterwards only reads as the sheet twitching
+        updatePeekHeight(animate = false)
     }
 
     /**
@@ -279,7 +334,7 @@ class MetadataSheet @JvmOverloads constructor(
      * The peek is measured rather than read off the laid out views: it has to be right before the
      * sheet is revealed, which is a layout pass earlier than the rows it is worked out from.
      */
-    private fun updatePeekHeight() {
+    private fun updatePeekHeight(animate: Boolean = isSheetVisible) {
         if (width == 0 || height == 0 || binding.metadataSheetSummary.isEmpty()) return
 
         val peekContent = binding.metadataSheetPeek.heightMeasuredAt(width)
@@ -291,7 +346,7 @@ class MetadataSheet @JvmOverloads constructor(
         val floor = resources.getDimensionPixelSize(R.dimen.metadata_sheet_min_peek_height)
         val peek = wanted.coerceIn(minOf(floor, ceiling), ceiling)
         if (peek != behavior.peekHeight) {
-            behavior.setPeekHeight(peek, isSheetVisible)
+            behavior.setPeekHeight(peek, animate)
         }
 
         if (revealPending) {
