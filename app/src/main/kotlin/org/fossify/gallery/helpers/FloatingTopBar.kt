@@ -112,7 +112,6 @@ class FloatingTopBar(
             glass = GlassPanel(pill.context).apply {
                 cornerRadius = pillRadius
                 blurRadius = Glass.SEARCH_PILL_RADIUS
-                frost(contentBehind)
                 pill.addView(
                     this, 0,
                     FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
@@ -120,7 +119,9 @@ class FloatingTopBar(
             }
         }
 
-        glass?.updateColors()
+        // re-frosted rather than merely recoloured: the pill never leaves the screen for the panel to
+        // notice a change on its way back, and this runs on every resume, settings screen included
+        glass?.frost(contentBehind)
     }
 
     fun attachTo(recyclerView: RecyclerView) {

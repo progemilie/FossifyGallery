@@ -155,6 +155,8 @@
     <string name="metadata_section_media">Media</string>
     <string name="metadata_section_tracks">Tracks</string>
 
+    <string name="glass_ui">Glass UI</string>
+
     <string name="transform">Transform</string>
     <string name="crop">Crop</string>
     <string name="draw">Draw</string>

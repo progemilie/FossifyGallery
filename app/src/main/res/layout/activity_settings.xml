@@ -59,6 +59,21 @@
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
+            <RelativeLayout
+                android:id="@+id/settings_glass_ui_holder"
+                style="@style/SettingsHolderSwitchStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <org.fossify.commons.views.MyMaterialSwitch
+                    android:id="@+id/settings_glass_ui"
+                    style="@style/SettingsSwitchStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/glass_ui" />
+
+            </RelativeLayout>
+
             <include
                 android:id="@+id/settings_color_customization_divider"
                 layout="@layout/divider" />

@@ -7,6 +7,7 @@ import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.getProperBackgroundColor
 import org.fossify.commons.extensions.getProperTextColor
 import org.fossify.commons.helpers.isSPlus
+import org.fossify.gallery.extensions.config
 
 /**
  * The frosted glass the app lays over its own content - the search pill, the choosers held open over
@@ -45,6 +46,9 @@ object Glass {
 
     /** There is no cheap hardware blur below Android 12, so panels are painted flat there instead. */
     fun isSupported() = isSPlus()
+
+    /** Whether panels actually frost: the platform can, and the user has left the Glass UI on. */
+    fun isEnabled(context: Context) = isSupported() && context.config.glassUI
 
     /** What a panel is a copy of, and what its blur has to be cleared to frame by frame. */
     fun baseColor(context: Context) = context.getProperBackgroundColor()

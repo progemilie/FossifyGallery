@@ -19,8 +19,8 @@ import org.fossify.gallery.helpers.Glass
 /**
  * A panel of the app's frosted glass ([Glass]): rounded, and filled with a blurred copy of whatever
  * is drawn behind it. [frost] is what points it at the content to copy - until that is called, and
- * always where the platform has no cheap blur to offer, it paints itself flat in the colour the blur
- * would have been tinted with.
+ * wherever the glass is off (the Glass UI setting, or a platform with no cheap blur to offer), it
+ * paints itself flat in the colour the blur would have been tinted with.
  */
 open class GlassPanel @JvmOverloads constructor(
     context: Context,
@@ -29,6 +29,10 @@ open class GlassPanel @JvmOverloads constructor(
 ) : BlurView(context, attrs, defStyleAttr) {
 
     private var backdrop: BlurViewFacade? = null
+    private var contentBehind: ViewGroup? = null
+
+    // whether the blur is actually running; false leaves the panel a flat fill
+    private var isFrosted = false
 
     // read once per theme rather than per frame, since draw() is on the scrolling path
     private var flatFill = Color.TRANSPARENT
@@ -71,13 +75,26 @@ open class GlassPanel @JvmOverloads constructor(
      */
     protected open fun onGlassShown() = Unit
 
-    /** Starts frosting whatever [contentBehind] draws under this panel. */
+    /** Starts frosting whatever [contentBehind] draws under this panel. Safe to call again. */
     fun frost(contentBehind: ViewGroup) {
-        if (backdrop != null || !Glass.isSupported()) {
-            return
+        this.contentBehind = contentBehind
+        syncGlass()
+    }
+
+    /**
+     * Brings the panel in line with the Glass UI setting, which the user can turn off long after the
+     * panel was built. A blur cannot be taken back out of a BlurView once it is set up, so it is
+     * switched off instead and the panel falls back to the flat fill it wears on older platforms.
+     */
+    private fun syncGlass() {
+        val contentBehind = contentBehind
+        val enabled = Glass.isEnabled(context)
+        if (enabled && backdrop == null && contentBehind != null) {
+            backdrop = setupWith(contentBehind).setBlurRadius(blurRadius)
         }
 
-        backdrop = setupWith(contentBehind).setBlurRadius(blurRadius)
+        isFrosted = enabled && backdrop != null
+        backdrop?.setBlurEnabled(isFrosted)
         updateColors()
         syncAutoUpdate()
     }
@@ -87,7 +104,7 @@ open class GlassPanel @JvmOverloads constructor(
         flatFill = Glass.flatFill(context)
 
         val backdrop = backdrop
-        if (backdrop == null) {
+        if (!isFrosted || backdrop == null) {
             background = GradientDrawable().also {
                 it.cornerRadius = cornerRadius
                 it.setColor(flatFill)
@@ -122,7 +139,7 @@ open class GlassPanel @JvmOverloads constructor(
      * would feed the panel its own colour back frame after frame until nothing else was left of it.
      */
     override fun draw(canvas: Canvas) {
-        if (backdrop != null && canvas.isHardwareAccelerated) {
+        if (isFrosted && canvas.isHardwareAccelerated) {
             canvas.drawColor(flatFill)
         }
 
@@ -131,8 +148,7 @@ open class GlassPanel @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        updateColors()
-        syncAutoUpdate()
+        syncGlass()
     }
 
     // reached from View's own constructor for a panel laid out GONE, which is why nothing here may
@@ -140,9 +156,11 @@ open class GlassPanel @JvmOverloads constructor(
     override fun onVisibilityChanged(changedView: View, visibility: Int) {
         super.onVisibilityChanged(changedView, visibility)
         if (isShown) {
-            // panels that spend most of their life hidden are worth a fresh look at the theme
-            updateColors()
+            // panels that spend most of their life hidden are worth a fresh look at the theme and at
+            // the setting, either of which may have changed since they were last up
+            syncGlass()
             onGlassShown()
+            return
         }
 
         syncAutoUpdate()
@@ -150,7 +168,7 @@ open class GlassPanel @JvmOverloads constructor(
 
     // a blur is a copy of the screen every frame, so it is only ever kept up while on screen
     private fun syncAutoUpdate() {
-        backdrop?.setBlurAutoUpdate(isShown && !isFrostPaused)
+        backdrop?.setBlurAutoUpdate(isFrosted && isShown && !isFrostPaused)
     }
 }
 

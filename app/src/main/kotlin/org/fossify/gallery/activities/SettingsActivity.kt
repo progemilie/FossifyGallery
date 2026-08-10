@@ -55,6 +55,7 @@ class SettingsActivity : SimpleActivity() {
 
     private fun setupSettingItems() {
         setupCustomizeColors()
+        setupGlassUI()
         setupUseEnglish()
         setupLanguage()
         setupChangeDateTimeFormat()
@@ -165,6 +166,15 @@ class SettingsActivity : SimpleActivity() {
     private fun setupCustomizeColors() {
         binding.settingsColorCustomizationHolder.setOnClickListener {
             startCustomizationActivity()
+        }
+    }
+
+    private fun setupGlassUI() {
+        binding.settingsGlassUiHolder.beVisibleIf(Glass.isSupported())
+        binding.settingsGlassUi.isChecked = config.glassUI
+        binding.settingsGlassUiHolder.setOnClickListener {
+            binding.settingsGlassUi.toggle()
+            config.glassUI = binding.settingsGlassUi.isChecked
         }
     }
 
@@ -1056,6 +1066,7 @@ class SettingsActivity : SimpleActivity() {
                 put(SHOW_THUMBNAIL_VIDEO_DURATION, config.showThumbnailVideoDuration)
                 put(SHOW_THUMBNAIL_FILE_TYPES, config.showThumbnailFileTypes)
                 put(MARK_FAVORITE_ITEMS, config.markFavoriteItems)
+                put(GLASS_UI, config.glassUI)
                 put(SCROLL_HORIZONTALLY, config.scrollHorizontally)
                 put(ENABLE_PULL_TO_REFRESH, config.enablePullToRefresh)
                 put(MAX_BRIGHTNESS, config.maxBrightness)
@@ -1202,6 +1213,7 @@ class SettingsActivity : SimpleActivity() {
                 SHOW_THUMBNAIL_VIDEO_DURATION -> config.showThumbnailVideoDuration = value.toBoolean()
                 SHOW_THUMBNAIL_FILE_TYPES -> config.showThumbnailFileTypes = value.toBoolean()
                 MARK_FAVORITE_ITEMS -> config.markFavoriteItems = value.toBoolean()
+                GLASS_UI -> config.glassUI = value.toBoolean()
                 SCROLL_HORIZONTALLY -> config.scrollHorizontally = value.toBoolean()
                 ENABLE_PULL_TO_REFRESH -> config.enablePullToRefresh = value.toBoolean()
                 MAX_BRIGHTNESS -> config.maxBrightness = value.toBoolean()

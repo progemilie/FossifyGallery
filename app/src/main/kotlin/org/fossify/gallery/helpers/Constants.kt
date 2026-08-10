@@ -104,6 +104,7 @@ const val LIMIT_FOLDER_TITLE = "folder_limit_title"
 const val THUMBNAIL_SPACING = "thumbnail_spacing"
 const val FILE_ROUNDED_CORNERS = "file_rounded_corners"
 const val CUSTOM_FOLDERS_ORDER = "custom_folders_order"
+const val GLASS_UI = "glass_ui"
 const val CUSTOM_MEDIA_ORDER_FOLDERS = "custom_media_order_folders"
 const val RECENT_COPY_MOVE_DESTINATIONS = "recent_copy_move_destinations"
 
