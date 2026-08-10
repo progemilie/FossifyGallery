@@ -67,11 +67,7 @@ class MetadataSheet @JvmOverloads constructor(
         /** How long the reveal waits for a resting height before coming up without one anyway. */
         private const val MAX_REVEAL_DELAY = 250L
 
-        /**
-         * How long a swipe has to settle before the file it landed on is opened. Scrolling the
-         * thumbnail strip crosses files faster than any of them can be read, and only the one still
-         * on screen when that stops is worth opening.
-         */
+        /** How long a swipe has to settle before the file it landed on is opened. */
         private const val READ_DELAY = 200L
 
         /** How long the file swiped away from stays on screen before a slow read is admitted to. */
@@ -100,8 +96,7 @@ class MetadataSheet @JvmOverloads constructor(
 
     /**
      * Opens the file named by [currentPath] and swaps its rows in. Posted by [load] a moment after
-     * the swipe rather than run on the spot, so a scroll through the thumbnail strip opens the file
-     * it stops on instead of every file it passes.
+     * the swipe rather than run on the spot.
      */
     private val readCurrent = Runnable {
         val path = currentPath
@@ -279,8 +274,7 @@ class MetadataSheet @JvmOverloads constructor(
      * is - this is what a swipe onto the next photo goes through.
      *
      * Everything the sheet says about the file swiped away from stays up until the next file's rows
-     * are ready to take their place, so a swipe changes the sheet once rather than emptying it and
-     * filling it again a frame or two later. [keepCurrentUntilRead] is what a caller with nothing
+     * are ready to take their place. [keepCurrentUntilRead] is what a caller with nothing
      * worth keeping turns that off with.
      */
     fun load(path: String, keepCurrentUntilRead: Boolean = true) {
