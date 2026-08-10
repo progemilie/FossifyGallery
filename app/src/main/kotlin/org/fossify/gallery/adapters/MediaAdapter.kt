@@ -74,6 +74,8 @@ import org.fossify.gallery.databinding.ThumbnailSectionBinding
 import org.fossify.gallery.databinding.VideoItemGridBinding
 import org.fossify.gallery.databinding.VideoItemListBinding
 import org.fossify.gallery.dialogs.DeleteWithRememberDialog
+import org.fossify.gallery.dialogs.RateMediumDialog
+import org.fossify.gallery.extensions.canBeRated
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.fixDateTaken
 import org.fossify.gallery.extensions.getShortcutImage
@@ -96,6 +98,7 @@ import org.fossify.gallery.extensions.tryCopyMoveFilesTo
 import org.fossify.gallery.extensions.updateDBMediaPath
 import org.fossify.gallery.extensions.updateFavorite
 import org.fossify.gallery.extensions.updateFavoritePaths
+import org.fossify.gallery.extensions.updateFilesRating
 import org.fossify.gallery.helpers.DRAG_BORDER_WIDTH_FRACTION
 import org.fossify.gallery.helpers.DRAG_LIFT_DURATION_MS
 import org.fossify.gallery.helpers.DRAG_LIFT_SCALE
@@ -255,6 +258,7 @@ class MediaAdapter(
             findItem(R.id.cab_set_as).isVisible = isOneItemSelected
             findItem(R.id.cab_resize).isVisible = canResize(selectedItems)
             findItem(R.id.cab_mirror).isVisible = selectedItems.any { it.isImage() }
+            findItem(R.id.cab_rate).isVisible = !isInRecycleBin && selectedItems.any { it.path.canBeRated() }
             findItem(R.id.cab_confirm_selection).isVisible = isAGetIntent && allowMultiplePicks && selectedKeys.isNotEmpty()
             findItem(R.id.cab_restore_recycle_bin_files).isVisible = selectedPaths.all { it.startsWith(activity.recycleBinPath) }
             findItem(R.id.cab_create_shortcut).isVisible = isOneItemSelected
@@ -276,6 +280,7 @@ class MediaAdapter(
             R.id.cab_edit -> editFile()
             R.id.cab_hide -> toggleFileVisibility(true)
             R.id.cab_unhide -> toggleFileVisibility(false)
+            R.id.cab_rate -> rateSelection()
             R.id.cab_add_to_favorites -> toggleFavorites(true)
             R.id.cab_remove_from_favorites -> toggleFavorites(false)
             R.id.cab_restore_recycle_bin_files -> restoreFiles()
@@ -442,6 +447,31 @@ class MediaAdapter(
                 activity.toggleFileVisibility(it.path, hide)
             }
             activity.runOnUiThread {
+                listener?.refreshItems()
+                finishActMode()
+            }
+        }
+    }
+
+    /** Gives the whole selection one rating. */
+    private fun rateSelection() {
+        val rateable = getSelectedItems().filter { it.path.canBeRated() }
+        if (rateable.isEmpty()) {
+            activity.toast(R.string.rating_unsupported_format)
+            return
+        }
+
+        val sharedRating = rateable.map { it.rating }.distinct().singleOrNull() ?: 0
+        RateMediumDialog(activity, sharedRating) { rating ->
+            activity.updateFilesRating(rateable.map { it.path }, rating) { ratedPaths ->
+                val rated = ratedPaths.toHashSet()
+                media.forEachIndexed { index, item ->
+                    if (item is Medium && rated.contains(item.path)) {
+                        item.rating = rating
+                        notifyItemChanged(index)
+                    }
+                }
+
                 listener?.refreshItems()
                 finishActMode()
             }

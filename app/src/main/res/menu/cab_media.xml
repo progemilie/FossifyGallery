@@ -108,6 +108,11 @@
         android:title="@string/remove_from_favorites"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/cab_rate"
+        android:showAsAction="never"
+        android:title="@string/rate"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/cab_restore_recycle_bin_files"
         android:showAsAction="never"
         android:title="@string/restore_selected_files"

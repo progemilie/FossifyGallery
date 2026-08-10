@@ -88,14 +88,7 @@ fun BaseSimpleActivity.updateFileRating(path: String, rating: Int, callback: (su
     ensureWriteAccess(path) {
         ensureBackgroundThread {
             val success = try {
-                val file = File(path)
-                val lastModified = file.lastModified()
-                if (saveFileRating(path, rating)) {
-                    if (lastModified != 0L) {
-                        file.setLastModified(lastModified)
-                        updateLastModified(path, lastModified)
-                    }
-
+                if (rateFileKeepingDate(path, rating)) {
                     // after the date is back on disk, so the rescan records the restored value
                     // rather than the one the write just produced
                     rescanPaths(arrayListOf(path)) {
@@ -103,7 +96,6 @@ fun BaseSimpleActivity.updateFileRating(path: String, rating: Int, callback: (su
                     }
                 }
 
-                storeRating(path, rating)
                 true
             } catch (e: Exception) {
                 runOnUiThread { showErrorToast(e) }
@@ -116,6 +108,79 @@ fun BaseSimpleActivity.updateFileRating(path: String, rating: Int, callback: (su
             runOnUiThread { callback(success) }
         }
     }
+}
+
+/**
+ * Gives every rateable path in [paths] the same [rating] (0 clears it), off the main thread, and
+ * calls [callback] on the main thread with the paths that were actually rated.
+ */
+@Suppress("TooGenericExceptionCaught")
+fun BaseSimpleActivity.updateFilesRating(
+    paths: List<String>,
+    rating: Int,
+    callback: (ratedPaths: List<String>) -> Unit
+) {
+    val rateable = paths.filter { it.canBeRated() }
+    if (rateable.size < paths.size) {
+        toast(R.string.rating_unsupported_format)
+    }
+
+    if (rateable.isEmpty()) {
+        callback(emptyList())
+        return
+    }
+
+    // a path that needs a grant is the one worth asking about, so a selection spanning an SD card
+    // and internal storage asks for the card rather than for whichever file came first
+    val accessPath = rateable.firstOrNull { needsStupidWritePermissions(it) } ?: rateable.first()
+    ensureWriteAccess(accessPath) {
+        ensureBackgroundThread {
+            val rated = ArrayList<String>(rateable.size)
+            val rewritten = ArrayList<String>(rateable.size)
+            var failure: Exception? = null
+            rateable.forEach { path ->
+                try {
+                    if (rateFileKeepingDate(path, rating)) {
+                        rewritten.add(path)
+                    }
+
+                    rated.add(path)
+                } catch (e: Exception) {
+                    failure = e
+                } catch (ignored: OutOfMemoryError) {
+                }
+            }
+
+            if (rewritten.isNotEmpty()) {
+                val parents = rewritten.map { it.getParentPath() }.distinct()
+                rescanPaths(rewritten) {
+                    parents.forEach { updateDirectoryPath(it) }
+                }
+            }
+
+            runOnUiThread {
+                failure?.let { showErrorToast(it) }
+                callback(rated)
+            }
+        }
+    }
+}
+
+/**
+ * Writes [rating] into [path], puts the file's last-modified date back and records the rating in the
+ * caches. Returns whether the file itself was touched. Blocking.
+ */
+private fun Context.rateFileKeepingDate(path: String, rating: Int): Boolean {
+    val file = File(path)
+    val lastModified = file.lastModified()
+    val written = saveFileRating(path, rating)
+    if (written && lastModified != 0L) {
+        file.setLastModified(lastModified)
+        updateLastModified(path, lastModified)
+    }
+
+    storeRating(path, rating)
+    return written
 }
 
 /**
