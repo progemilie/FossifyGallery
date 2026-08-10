@@ -291,6 +291,8 @@ fun Context.getQuickChooserFolders(sourcePath: String, callback: (List<QuickFold
         val rest = getSortedDirectories(ArrayList(reachable)).filterNot { it in recent }
 
         val folders = (recent + rest)
+            // two recents spelled differently resolve to one folder, which would otherwise offer it twice
+            .distinctBy { it.path.trimEnd('/').getDistinctPath() }
             .take(MAX_QUICK_CHOOSER_FOLDERS)
             .map { QuickFolder(it.path.trimEnd('/'), it.name) }
             .reversed()

@@ -46,8 +46,13 @@ class FolderChooser @JvmOverloads constructor(
     private var pendingScrollToEnd = false
 
     /** The folder the finger sits over, or null when it sits somewhere that means "never mind". */
-    var selected: QuickFolder? = null
-        private set(value) {
+    val selected: QuickFolder?
+        get() = folders.getOrNull(selectedIndex)
+
+    // tracked by position rather than by value, so two rows that name the same folder cannot both
+    // answer to it and light up together
+    private var selectedIndex = NO_SELECTION
+        set(value) {
             if (field != value) {
                 field = value
                 updateRowHighlights()
@@ -99,7 +104,7 @@ class FolderChooser @JvmOverloads constructor(
 
     fun setFolders(folders: List<QuickFolder>) {
         this.folders = folders
-        selected = null
+        selectedIndex = NO_SELECTION
         rows.removeAllViews()
         folders.forEach { rows.addView(buildRow(it)) }
 
@@ -143,7 +148,7 @@ class FolderChooser @JvmOverloads constructor(
         val screenLeft = locationOnScreen(this)[0]
         if (rawX < screenLeft || rawX > screenLeft + width) {
             // off to one side, which is how the gesture is abandoned
-            selected = null
+            selectedIndex = NO_SELECTION
             autoScroller.stop()
             return
         }
@@ -158,14 +163,14 @@ class FolderChooser @JvmOverloads constructor(
 
     private fun updateSelectionForY(rawY: Float) {
         val viewportTop = locationOnScreen(scroller)[1]
-        selected = if (rawY > viewportTop + scroller.height) {
+        selectedIndex = if (rawY > viewportTop + scroller.height) {
             // below the list is the button the finger came off, so nothing is picked yet
-            null
+            NO_SELECTION
         } else {
             // clamped rather than cleared, so dragging up past the top holds on to the topmost row and
             // keeps the list scrolling instead of stranding the gesture at the very edge it runs out on
             val offsetInList = (rawY - viewportTop).coerceAtLeast(0f) + scroller.scrollY
-            folders.getOrNull((offsetInList / rowHeight).toInt())
+            (offsetInList / rowHeight).toInt().takeIf { it in folders.indices } ?: NO_SELECTION
         }
     }
 
@@ -182,7 +187,7 @@ class FolderChooser @JvmOverloads constructor(
         val highlight = context.getProperPrimaryColor()
         repeat(rows.childCount) { index ->
             val row = rows.getChildAt(index) as TextView
-            val isSelected = folders.getOrNull(index) == selected
+            val isSelected = index == selectedIndex
             row.setBackgroundResource(if (isSelected) R.drawable.chooser_row_selected else 0)
             row.background?.setTint(highlight)
             row.setTextColor(if (isSelected) highlight.getContrastColor() else Color.WHITE)
@@ -197,5 +202,6 @@ class FolderChooser @JvmOverloads constructor(
 
     private companion object {
         const val DIMMED_ALPHA = 0.3f
+        const val NO_SELECTION = -1
     }
 }
