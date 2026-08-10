@@ -388,6 +388,10 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(SHOW_THUMBNAIL_STRIP, true)
         set(showThumbnailStrip) = prefs.edit { putBoolean(SHOW_THUMBNAIL_STRIP, showThumbnailStrip) }
 
+    var glassUI: Boolean
+        get() = prefs.getBoolean(GLASS_UI, true)
+        set(glassUI) = prefs.edit { putBoolean(GLASS_UI, glassUI) }
+
     var hideExtendedDetails: Boolean
         get() = prefs.getBoolean(HIDE_EXTENDED_DETAILS, true)
         set(hideExtendedDetails) = prefs.edit().putBoolean(HIDE_EXTENDED_DETAILS, hideExtendedDetails).apply()

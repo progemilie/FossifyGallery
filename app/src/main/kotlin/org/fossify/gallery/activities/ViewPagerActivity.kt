@@ -318,6 +318,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         setupOptionsMenu()
         setupThumbnailStrip()
         setupMetadataSheet()
+        setupChoosers()
         refreshMenuItems()
 
         window.decorView.setBackgroundColor(getProperBackgroundColor())
@@ -1414,6 +1415,16 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             setFolders(mQuickChooserFolders)
             revealChooserOverButton(this, button, R.dimen.folder_chooser_end_margin)
         }
+    }
+
+    /**
+     * The holder rather than the pager it is a copy of: a blur redraws its root by hand, and a view
+     * drawn that way is drawn without its own scroll - straight off the pager, every copy comes back
+     * showing the first photo of the album whatever page is actually up.
+     */
+    private fun setupChoosers() {
+        binding.ratingChooser.frost(binding.fragmentHolder)
+        binding.folderChooser.frost(binding.fragmentHolder)
     }
 
     /** GONE rather than not-VISIBLE, since both spend their first frame laid out but not yet drawn. */
