@@ -105,6 +105,16 @@ const val THUMBNAIL_SPACING = "thumbnail_spacing"
 const val FILE_ROUNDED_CORNERS = "file_rounded_corners"
 const val CUSTOM_FOLDERS_ORDER = "custom_folders_order"
 const val CUSTOM_MEDIA_ORDER_FOLDERS = "custom_media_order_folders"
+const val RECENT_COPY_MOVE_DESTINATIONS = "recent_copy_move_destinations"
+
+/** Separates paths in preferences that hold a list of them; paths themselves may contain commas. */
+const val PATH_SEPARATOR = "|||"
+
+const val MAX_RECENT_COPY_MOVE_DESTINATIONS = 12
+
+/** How many folders the copy/move quick chooser offers, recents first. */
+const val MAX_QUICK_CHOOSER_FOLDERS = 12
+const val MAX_VISIBLE_QUICK_CHOOSER_FOLDERS = 5
 const val AVOID_SHOWING_ALL_FILES_PROMPT = "avoid_showing_all_files_prompt"
 const val SEARCH_ALL_FILES_BY_DEFAULT = "search_all_files_by_default"
 const val LAST_EXPORTED_FAVORITES_FOLDER = "last_exported_favorites_folder"

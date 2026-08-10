@@ -124,6 +124,19 @@ group and dragging any marked item carries the whole group. Orders export/import
 `applyBottomActionsOrder()` rebuilds bottom_actions.xml's horizontal chain rather than reordering
 children — the chain is what spreads the buttons and what skips the GONE ones.
 
+### Choosers held open over a bottom action button
+
+Two buttons answer a hold with a picker the finger drags through without ever lifting off, and a tap
+with the dialog they always had: rating (`views/RatingChooser.kt`) and copy/move
+(`views/FolderChooser.kt`). Both share `chooser_*` dimens and `chooser_background`.
+
+`revealChooserOverButton()` lays a chooser out **INVISIBLE** and only makes it VISIBLE once
+`centerChooserOverButton()` has run.
+
+The list is **prefetched** into `mQuickChooserFolders` on every media change: it reads Room and the
+filesystem, far too slow to run when the hold fires. Past destinations live in
+`Config.recentCopyMoveDestinations`, recorded in `copyMoveFilesToFolder()`
+
 ### The viewer's file metadata sheet
 
 A swipe up over the media in the viewer raises `views/MetadataSheet.kt`, listing every metadata group the file carries.
@@ -160,8 +173,9 @@ no longer paints an opaque band under its own bar.
 
 ## Style
 
-Keep code comments concise and not too long. Comments dont need to explain small UI details.
+Keep code comments CONCISE and NOT TOO LONG. Comments dont need to explain small UI details.
 Comment things that are not obvious and might raise questions otherwise. Longer comments are
 warranted when it is not immediatelly evident what the purpose of something is.
 
-Dont make insignificant updates to CLAUDE.md file. Only for large features that change core functionality.
+DO NOT make insignificant updates to CLAUDE.md file. Only for large features that change core functionality.
+A UI feature does not need a large block of text in the CLAUDE.md file. Try to keep the file less than 200 lines.

@@ -32,6 +32,7 @@ import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
 import androidx.activity.addCallback
+import androidx.annotation.DimenRes
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat.Type
@@ -50,6 +51,7 @@ import com.google.android.material.appbar.AppBarLayout
 import org.fossify.commons.dialogs.RenameItemDialog
 import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.beGone
+import org.fossify.commons.extensions.beInvisible
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.convertToBitmap
@@ -74,6 +76,7 @@ import org.fossify.commons.extensions.internalStoragePath
 import org.fossify.commons.extensions.isAStorageRootFolder
 import org.fossify.commons.extensions.isExternalStorageManager
 import org.fossify.commons.extensions.isGif
+import org.fossify.commons.extensions.isGone
 import org.fossify.commons.extensions.isMediaFile
 import org.fossify.commons.extensions.isPortrait
 import org.fossify.commons.extensions.isRawFast
@@ -112,10 +115,12 @@ import org.fossify.gallery.dialogs.SaveAsDialog
 import org.fossify.gallery.dialogs.SlideshowDialog
 import org.fossify.gallery.extensions.canBeRated
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.extensions.copyMoveFilesToFolder
 import org.fossify.gallery.extensions.favoritesDB
 import org.fossify.gallery.extensions.fixDateTaken
 import org.fossify.gallery.extensions.getFavoritePaths
 import org.fossify.gallery.extensions.getMediumExtendedDetails
+import org.fossify.gallery.extensions.getQuickChooserFolders
 import org.fossify.gallery.extensions.getShortcutImage
 import org.fossify.gallery.extensions.handleMediaManagementPrompt
 import org.fossify.gallery.extensions.hideSystemUI
@@ -199,6 +204,7 @@ import org.fossify.gallery.helpers.getPermissionToRequest
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
 import org.fossify.gallery.views.MetadataSheet
+import org.fossify.gallery.views.QuickFolder
 import java.io.File
 import kotlin.math.min
 
@@ -238,6 +244,12 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     // fires the star chooser once the rating button has been held long enough, and is cancelled by
     // anything that ends the touch before then - that shorter touch is a tap, not a hold
     private var mRatingChooserRunnable: Runnable? = null
+
+    // the same for the folder chooser the copy and move buttons share
+    private var mFolderChooserRunnable: Runnable? = null
+
+    // read while a button is held, so it is fetched ahead of time rather than off the gesture
+    private var mQuickChooserFolders = emptyList<QuickFolder>()
 
     private val mHeaderDetailsHandler = Handler(Looper.getMainLooper())
     private var mHeaderDetailsRunnable: Runnable? = null
@@ -600,6 +612,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     private fun initBottomActions() {
         initBottomActionButtons()
         initBottomActionsLayout()
+        refreshQuickChooserFolders()
     }
 
     private fun initFavorites() {
@@ -821,7 +834,14 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
     }
 
-    private fun copyMoveTo(isCopyOperation: Boolean) {
+    private fun checkMediaManagementAndCopyMoveTo(destination: String, isCopyOperation: Boolean) {
+        handleMediaManagementPrompt {
+            copyMoveTo(isCopyOperation, destination)
+        }
+    }
+
+    /** With no [destination] the picker asks for one; the quick chooser has already got one. */
+    private fun copyMoveTo(isCopyOperation: Boolean, destination: String? = null) {
         val currPath = getCurrentPath()
         if (!isCopyOperation && currPath.startsWith(recycleBinPath)) {
             toast(org.fossify.commons.R.string.moving_recycle_bin_items_disabled, Toast.LENGTH_LONG)
@@ -829,7 +849,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
 
         val fileDirItems = arrayListOf(FileDirItem(currPath, currPath.getFilenameFromPath()))
-        tryCopyMoveFilesTo(fileDirItems, isCopyOperation) {
+        val onCopiedMoved: (String) -> Unit = {
             val newPath = "$it/${currPath.getFilenameFromPath()}"
             rescanPaths(arrayListOf(newPath)) {
                 fixDateTaken(arrayListOf(newPath), false)
@@ -840,6 +860,16 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 refreshViewPager()
                 updateFavoritePaths(fileDirItems, it)
             }
+
+            // the folder just used has become the most recent destination, and a move may have
+            // emptied the one it came from
+            refreshQuickChooserFolders()
+        }
+
+        if (destination == null) {
+            tryCopyMoveFilesTo(fileDirItems, isCopyOperation, onCopiedMoved)
+        } else {
+            copyMoveFilesToFolder(fileDirItems, destination, isCopyOperation, onCopiedMoved)
         }
     }
 
@@ -1171,16 +1201,10 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
 
         binding.bottomActions.bottomCopy.beVisibleIf(visibleBottomActions and BOTTOM_ACTION_COPY != 0)
-        binding.bottomActions.bottomCopy.setOnLongClickListener { toast(org.fossify.commons.R.string.copy); true }
-        binding.bottomActions.bottomCopy.setOnClickListener {
-            checkMediaManagementAndCopy(true)
-        }
+        setupCopyMoveButton(binding.bottomActions.bottomCopy, isCopyOperation = true)
 
         binding.bottomActions.bottomMove.beVisibleIf(visibleBottomActions and BOTTOM_ACTION_MOVE != 0)
-        binding.bottomActions.bottomMove.setOnLongClickListener { toast(org.fossify.commons.R.string.move); true }
-        binding.bottomActions.bottomMove.setOnClickListener {
-            moveFileTo()
-        }
+        setupCopyMoveButton(binding.bottomActions.bottomMove, isCopyOperation = false)
 
         binding.bottomActions.bottomResize.beVisibleIf(visibleBottomActions and BOTTOM_ACTION_RESIZE != 0 && currentMedium?.isImage() == true)
         binding.bottomActions.bottomResize.setOnLongClickListener { toast(org.fossify.commons.R.string.resize); true }
@@ -1189,11 +1213,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
     }
 
-    /**
-     * Hold the button and a row of stars appears above it; slide left and right without lifting off
-     * to pick a rating, and left of the first star to clear it. A plain tap opens the dialog
-     * instead, which is the same choice Aves makes for its rate button.
-     */
     // the listener below does call performClick() on a tap, which is the thing this check exists to
     // make sure of - it just cannot see that through the lambda
     @SuppressLint("ClickableViewAccessibility")
@@ -1213,7 +1232,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 }
 
                 MotionEvent.ACTION_MOVE -> {
-                    if (binding.ratingChooser.isVisible()) {
+                    if (isRatingChooserUp()) {
                         binding.ratingChooser.rating = binding.ratingChooser.ratingForPosition(event.rawX)
                     }
                 }
@@ -1221,7 +1240,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 MotionEvent.ACTION_UP -> {
                     view.isPressed = false
                     cancelRatingChooserTimer(view)
-                    if (binding.ratingChooser.isVisible()) {
+                    if (isRatingChooserUp()) {
                         val chosen = binding.ratingChooser.rating
                         binding.ratingChooser.beGone()
                         applyRating(chosen)
@@ -1265,15 +1284,118 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         val medium = getCurrentMedium() ?: return
         binding.ratingChooser.apply {
             rating = medium.rating
-            beVisible()
-            // its width is only known once it has been laid out, and centering needs that width
-            post { centerRatingChooserOverButton() }
+            revealChooserOverButton(this, binding.bottomActions.bottomRating, R.dimen.chooser_edge_margin)
         }
     }
 
-    private fun centerRatingChooserOverButton() {
-        val chooser = binding.ratingChooser
-        val button = binding.bottomActions.bottomRating
+    // the listener below does call performClick() on a tap, which is the thing this check exists to
+    // make sure of - it just cannot see that through the lambda
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupCopyMoveButton(button: View, isCopyOperation: Boolean) {
+        button.setOnClickListener {
+            if (isCopyOperation) {
+                checkMediaManagementAndCopy(true)
+            } else {
+                moveFileTo()
+            }
+        }
+
+        button.setOnTouchListener { view, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    view.isPressed = true
+                    view.parent?.requestDisallowInterceptTouchEvent(true)
+                    mFolderChooserRunnable = Runnable {
+                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        showFolderChooser(view)
+                    }.also { binding.folderChooser.postDelayed(it, ViewConfiguration.getLongPressTimeout().toLong()) }
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    if (isFolderChooserUp()) {
+                        binding.folderChooser.updateSelectionFor(event.rawX, event.rawY)
+                    }
+                }
+
+                MotionEvent.ACTION_UP -> {
+                    view.isPressed = false
+                    cancelFolderChooserTimer()
+                    if (isFolderChooserUp()) {
+                        val chosen = binding.folderChooser.selected
+                        hideFolderChooser()
+                        if (chosen != null) {
+                            checkMediaManagementAndCopyMoveTo(chosen.path, isCopyOperation)
+                        }
+                    } else {
+                        // through performClick rather than straight to the picker, so the tap is
+                        // still announced to accessibility services
+                        view.performClick()
+                    }
+                }
+
+                MotionEvent.ACTION_CANCEL -> {
+                    view.isPressed = false
+                    cancelFolderChooserTimer()
+                    hideFolderChooser()
+                }
+            }
+
+            true
+        }
+    }
+
+    private fun cancelFolderChooserTimer() {
+        mFolderChooserRunnable?.let { binding.folderChooser.removeCallbacks(it) }
+        mFolderChooserRunnable = null
+    }
+
+    /**
+     * Kept warm rather than fetched when a button is held: the list comes off Room and the filesystem,
+     * which is too slow to have a gesture waiting on it.
+     */
+    private fun refreshQuickChooserFolders() {
+        val currentPath = getCurrentPath()
+        if (currentPath.isEmpty()) {
+            return
+        }
+
+        getQuickChooserFolders(currentPath.getParentPath()) {
+            runOnUiThread { mQuickChooserFolders = it }
+        }
+    }
+
+    private fun showFolderChooser(button: View) {
+        if (mQuickChooserFolders.isEmpty()) {
+            // nothing to offer, so let go and the tap that follows opens the full picker instead
+            return
+        }
+
+        binding.folderChooser.apply {
+            setFolders(mQuickChooserFolders)
+            revealChooserOverButton(this, button, R.dimen.folder_chooser_end_margin)
+        }
+    }
+
+    /** GONE rather than not-VISIBLE, since both spend their first frame laid out but not yet drawn. */
+    private fun isRatingChooserUp() = !binding.ratingChooser.isGone()
+
+    private fun isFolderChooserUp() = !binding.folderChooser.isGone()
+
+    // lays a chooser out unseen, then positions it and only then draws it.
+    private fun revealChooserOverButton(chooser: View, button: View, @DimenRes endMarginId: Int) {
+        chooser.beInvisible()
+        chooser.post {
+            centerChooserOverButton(chooser, button, resources.getDimensionPixelSize(endMarginId))
+            chooser.beVisible()
+        }
+    }
+
+    private fun hideFolderChooser() {
+        binding.folderChooser.stopAutoScroll()
+        binding.folderChooser.beGone()
+    }
+
+    private fun centerChooserOverButton(chooser: View, button: View, endMargin: Int) {
         if (chooser.width == 0) {
             return
         }
@@ -1283,11 +1405,10 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         val chooserLocation = IntArray(2)
         chooser.getLocationOnScreen(chooserLocation)
 
-        val margin = resources.getDimensionPixelSize(R.dimen.rating_chooser_edge_margin)
         val untranslatedLeft = chooserLocation[0] - chooser.translationX
         val wanted = buttonLocation[0] + button.width / 2f - chooser.width / 2f
-        val furthestLeft = margin.toFloat()
-        val furthestRight = maxOf(furthestLeft, (realScreenSize.x - chooser.width - margin).toFloat())
+        val furthestLeft = resources.getDimensionPixelSize(R.dimen.chooser_edge_margin).toFloat()
+        val furthestRight = maxOf(furthestLeft, (realScreenSize.x - chooser.width - endMargin).toFloat())
         chooser.translationX = wanted.coerceIn(furthestLeft, furthestRight) - untranslatedLeft
     }
 
@@ -1854,6 +1975,9 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             refreshMenuItems()
             binding.viewerThumbnailStrip.setSelectedPosition(position)
             scheduleSwipe()
+            // showing everything at once means the folder swiped to may not be the one swiped from,
+            // and the chooser must not offer the file's own folder
+            refreshQuickChooserFolders()
         }
     }
 

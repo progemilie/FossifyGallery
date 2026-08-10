@@ -13,6 +13,7 @@ import org.fossify.commons.helpers.SORT_DESCENDING
 import org.fossify.commons.helpers.VIEW_TYPE_GRID
 import org.fossify.gallery.BuildConfig
 import org.fossify.gallery.R
+import org.fossify.gallery.extensions.getDistinctPath
 import org.fossify.gallery.models.AlbumCover
 import java.util.Arrays
 import java.util.Locale
@@ -627,6 +628,28 @@ class Config(context: Context) : BaseConfig(context) {
         customMediaOrderFolders = HashSet(customMediaOrderFolders).apply {
             remove(path.lowercase(Locale.getDefault()))
         }
+    }
+
+    /** Destinations of past copy/move operations, most recent first, for the quick chooser to lead with. */
+    var recentCopyMoveDestinations: List<String>
+        get() = prefs.getString(RECENT_COPY_MOVE_DESTINATIONS, "").orEmpty()
+            .split(PATH_SEPARATOR)
+            .filter { it.isNotEmpty() }
+        set(destinations) = prefs.edit()
+            .putString(RECENT_COPY_MOVE_DESTINATIONS, destinations.joinToString(PATH_SEPARATOR))
+            .apply()
+
+    fun addRecentCopyMoveDestination(path: String) {
+        val trimmed = path.trimEnd('/')
+        if (trimmed.isEmpty()) {
+            return
+        }
+
+        // by resolved path rather than by the string: the same folder reaches this as /sdcard/... one
+        // time and /storage/emulated/0/... the next, and both spellings would be kept as two folders
+        recentCopyMoveDestinations = (listOf(trimmed) + recentCopyMoveDestinations)
+            .distinctBy { it.getDistinctPath() }
+            .take(MAX_RECENT_COPY_MOVE_DESTINATIONS)
     }
 
     var avoidShowingAllFilesPrompt: Boolean
