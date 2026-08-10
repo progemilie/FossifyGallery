@@ -23,7 +23,9 @@ class RatingChooser @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : GlassPanel(context, attrs, defStyleAttr) {
+) : HoldChooser(context, attrs, defStyleAttr) {
+
+    override val endMarginId = R.dimen.chooser_edge_margin
 
     private val stars = ArrayList<ImageView>(XmpRating.MAX_RATING)
     private val starMargin = resources.getDimensionPixelSize(R.dimen.rating_chooser_star_margin)
@@ -80,8 +82,12 @@ class RatingChooser @JvmOverloads constructor(
 
     override fun onGlassShown() = updateIcons()
 
+    override fun updateSelectionFor(rawX: Float, rawY: Float) {
+        rating = ratingForPosition(rawX)
+    }
+
     // The rating the finger currently sits over, given its position on screen.
-    fun ratingForPosition(rawX: Float): Int {
+    private fun ratingForPosition(rawX: Float): Int {
         if (stars.isEmpty() || width == 0) {
             return rating
         }
