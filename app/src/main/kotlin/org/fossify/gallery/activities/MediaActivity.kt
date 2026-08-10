@@ -544,6 +544,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
     private fun setupReorderBar() {
         binding.mediaReorderBar.apply {
+            reorderMoveToTop.setOnClickListener { getMediaAdapter()?.moveSelectionToEdge(toTop = true) }
+            reorderMoveToBottom.setOnClickListener { getMediaAdapter()?.moveSelectionToEdge(toTop = false) }
             reorderCancel.setOnClickListener { cancelReordering() }
             reorderSave.setOnClickListener { saveReordering() }
         }
@@ -561,7 +563,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         val primaryColor = getProperPrimaryColor()
         binding.mediaReorderBar.apply {
             root.backgroundTintList = ColorStateList.valueOf(getBottomNavigationBackgroundColor())
-            reorderIcon.applyColorFilter(textColor)
+            reorderMoveToTop.applyColorFilter(textColor)
+            reorderMoveToBottom.applyColorFilter(textColor)
             reorderHint.setTextColor(textColor)
 
             reorderCancel.setTextColor(textColor)
@@ -579,12 +582,24 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
      * The hint carries whatever is the useful thing to know next: how to pick an item up while
      * nothing is marked, what a drag will take along once something is, and - while a group is off
      * the grid travelling with the finger - how many items are in the air.
+     *
+     * The two send-to-an-end buttons have nothing to act on until something is marked, so they stay
+     * in place but dimmed until then rather than appearing and moving the rest of the bar along.
      */
-    private fun updateReorderHint(markedCount: Int, carriedCount: Int) {
-        binding.mediaReorderBar.reorderHint.text = when {
+    private fun updateReorderState(markedCount: Int, carriedCount: Int) {
+        val hint = when {
             carriedCount > 1 -> resources.getQuantityString(R.plurals.reorder_moving_items, carriedCount, carriedCount)
             markedCount > 0 -> resources.getQuantityString(R.plurals.reorder_selected_items, markedCount, markedCount)
             else -> getString(R.string.reorder_media_by_dragging)
+        }
+
+        binding.mediaReorderBar.apply {
+            reorderHint.text = hint
+            val canMove = markedCount > 0
+            listOf(reorderMoveToTop, reorderMoveToBottom).forEach {
+                it.isEnabled = canMove
+                it.alpha = if (canMove) 1f else MEDIUM_ALPHA
+            }
         }
     }
 
@@ -619,7 +634,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         mGridBottomPadding = binding.mediaGrid.paddingBottom
         setupInsetPadding()
         binding.mediaGrid.updatePadding(bottom = 0)
-        getMediaAdapter()?.onReorderStateChanged = ::updateReorderHint
+        getMediaAdapter()?.onReorderStateChanged = ::updateReorderState
         getMediaAdapter()?.setReordering(true, flatMedia)
         handleGridSpacing(flatMedia)
         setupLayoutManager()

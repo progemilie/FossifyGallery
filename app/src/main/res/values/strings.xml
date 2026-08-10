@@ -46,6 +46,8 @@
         <item quantity="one">Moving %d item</item>
         <item quantity="other">Moving %d items</item>
     </plurals>
+    <string name="reorder_move_to_top">Move marked items to the top</string>
+    <string name="reorder_move_to_bottom">Move marked items to the bottom</string>
     <string name="custom_order_saved">Custom order saved</string>
     <string name="custom_order_reset">Custom order reset</string>
     <string name="reorder_needs_more_items">There is nothing to reorder here</string>

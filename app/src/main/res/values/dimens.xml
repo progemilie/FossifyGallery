@@ -35,7 +35,6 @@
     <dimen name="reorder_bar_elevation">6dp</dimen>
     <dimen name="reorder_button_corner_radius">20dp</dimen>
     <dimen name="reorder_button_height">40dp</dimen>
-    <dimen name="reorder_icon_size">20dp</dimen>
     <dimen name="drag_lift_elevation">10dp</dimen>
 
     <!-- shared by every chooser that pops up above a held bottom action button -->

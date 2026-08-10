@@ -769,6 +769,36 @@ class MediaAdapter(
         notifyDataSetChanged()
     }
 
+    /**
+     * Sends every marked item to one end of the grid at once, as an alternative to dragging a group
+     * the length of a long folder. The marked items keep the order they are in on the grid rather
+     * than the order they were ticked in, which is what dragging a group does too.
+     *
+     * The grid is left showing them: after the move the items are at an end the view is as likely as
+     * not nowhere near, and a move nothing visibly happened after reads as a move that did nothing.
+     */
+    fun moveSelectionToEdge(toTop: Boolean) {
+        if (!isReordering || reorderSelection.isEmpty()) {
+            return
+        }
+
+        val marked = media.filterIsInstance<Medium>().filter { reorderSelection.contains(it.path) }
+        if (marked.isEmpty()) {
+            return
+        }
+
+        val markedPaths = marked.mapTo(HashSet()) { it.path }
+        media.removeAll { it is Medium && markedPaths.contains(it.path) }
+        media.addAll(if (toTop) 0 else media.size, marked)
+        notifyDataSetChanged()
+        val layoutManager = recyclerView.layoutManager as? MyGridLayoutManager
+        if (toTop) {
+            layoutManager?.scrollToPositionWithOffset(0, 0)
+        } else {
+            layoutManager?.scrollToPosition(media.lastIndex)
+        }
+    }
+
     fun getReorderedPaths(): List<String> {
         // a save that lands while a drag is still carrying items must not go out without them
         dropCarriedItems()
