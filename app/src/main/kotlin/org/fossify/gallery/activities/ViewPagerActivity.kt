@@ -1417,10 +1417,14 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
     }
 
-    /** The media is all either chooser ever covers, so it is all either one has to frost. */
+    /**
+     * The holder rather than the pager it is a copy of: a blur redraws its root by hand, and a view
+     * drawn that way is drawn without its own scroll - straight off the pager, every copy comes back
+     * showing the first photo of the album whatever page is actually up.
+     */
     private fun setupChoosers() {
-        binding.ratingChooser.frost(binding.viewPager)
-        binding.folderChooser.frost(binding.viewPager)
+        binding.ratingChooser.frost(binding.fragmentHolder)
+        binding.folderChooser.frost(binding.fragmentHolder)
     }
 
     /** GONE rather than not-VISIBLE, since both spend their first frame laid out but not yet drawn. */

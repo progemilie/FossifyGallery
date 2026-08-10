@@ -2,6 +2,7 @@ package org.fossify.gallery.views
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.ColorFilter
 import android.graphics.Outline
 import android.graphics.PixelFormat
@@ -28,6 +29,9 @@ open class GlassPanel @JvmOverloads constructor(
 ) : BlurView(context, attrs, defStyleAttr) {
 
     private var backdrop: BlurViewFacade? = null
+
+    // read once per theme rather than per frame, since draw() is on the scrolling path
+    private var flatFill = Color.TRANSPARENT
 
     /** How hard this panel frosts what is behind it. */
     var blurRadius = Glass.DEFAULT_RADIUS
@@ -80,11 +84,13 @@ open class GlassPanel @JvmOverloads constructor(
 
     /** Re-reads the theme, which is the only place any of these colours come from. */
     fun updateColors() {
+        flatFill = Glass.flatFill(context)
+
         val backdrop = backdrop
         if (backdrop == null) {
             background = GradientDrawable().also {
                 it.cornerRadius = cornerRadius
-                it.setColor(Glass.flatFill(context))
+                it.setColor(flatFill)
             }
 
             return
@@ -104,6 +110,23 @@ open class GlassPanel @JvmOverloads constructor(
             // lift rides on the tint instead - the panel parts company with the app behind it without
             // the frost parting company with the content it is a copy of
             .setOverlayColor(Glass.overlay(context))
+    }
+
+    /**
+     * A copy can only hold what the platform will redraw into a bitmap, and a video's surface is not
+     * that - the copy comes back with a hole punched where it was, and the panel would be a window
+     * onto the sharp, unblurred thing it is supposed to be frosting. Laying the flat fill down first
+     * means anything the copy could not reach is simply a panel without a blur behind it.
+     *
+     * Only ever onto the screen: a copy is taken into a software canvas, and painting the fill there
+     * would feed the panel its own colour back frame after frame until nothing else was left of it.
+     */
+    override fun draw(canvas: Canvas) {
+        if (backdrop != null && canvas.isHardwareAccelerated) {
+            canvas.drawColor(flatFill)
+        }
+
+        super.draw(canvas)
     }
 
     override fun onAttachedToWindow() {
