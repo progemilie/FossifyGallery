@@ -9,7 +9,7 @@
     android:elevation="@dimen/reorder_bar_elevation"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="@dimen/activity_margin"
+    android:paddingStart="@dimen/medium_margin"
     android:paddingTop="@dimen/medium_margin"
     android:paddingEnd="@dimen/medium_margin"
     android:paddingBottom="@dimen/medium_margin"
@@ -17,23 +17,29 @@
     tools:visibility="visible">
 
     <ImageView
-        android:id="@+id/reorder_icon"
-        android:layout_width="@dimen/reorder_icon_size"
-        android:layout_height="@dimen/reorder_icon_size"
-        android:contentDescription="@null"
-        android:src="@drawable/ic_drag_handle_vector" />
+        android:id="@+id/reorder_move_to_top"
+        android:layout_width="@dimen/reorder_button_height"
+        android:layout_height="@dimen/reorder_button_height"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/reorder_move_to_top"
+        android:padding="@dimen/medium_margin"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_move_to_top_vector" />
 
-    <org.fossify.commons.views.MyTextView
-        android:id="@+id/reorder_hint"
+    <ImageView
+        android:id="@+id/reorder_move_to_bottom"
+        android:layout_width="@dimen/reorder_button_height"
+        android:layout_height="@dimen/reorder_button_height"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/reorder_move_to_bottom"
+        android:padding="@dimen/medium_margin"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_move_to_bottom_vector" />
+
+    <Space
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/medium_margin"
-        android:layout_marginEnd="@dimen/medium_margin"
-        android:layout_weight="1"
-        android:ellipsize="end"
-        android:maxLines="2"
-        android:text="@string/reorder_media_by_dragging"
-        android:textSize="@dimen/smaller_text_size" />
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/reorder_cancel"
