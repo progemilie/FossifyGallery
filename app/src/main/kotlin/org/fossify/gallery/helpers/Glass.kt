@@ -36,6 +36,13 @@ object Glass {
     private const val MAX_LIFT = 0.20f
     private const val MIN_LIFT = 0.05f
 
+    // WCAG's floor for anything that is not text, and how far an icon is carried towards black at a
+    // time looking for it. A colour that cannot reach it is left as dark as it got: past this much
+    // darkening it is no longer the colour that was asked for.
+    private const val MIN_ICON_CONTRAST = 3.0
+    private const val DARKENING_STEP = 0.05f
+    private const val MAX_DARKENING = 0.6f
+
     // Rec. 601 luma weights: perceived brightness, in which a mid grey lands near the middle. The
     // relative luminance androidx works in linearises first, which would read that same grey as dark
     // and hand it most of the lift.
@@ -79,4 +86,25 @@ object Glass {
 
     /** What a panel's own text and icons have to be painted in to read against it. */
     fun contentColor(context: Context) = context.getProperTextColor()
+
+    /**
+     * An icon that keeps a colour of its own - a star's amber - carried far enough from the panel to
+     * still read on it. The light theme's glass is near white, where colours chosen to glow against a
+     * dark panel wash out; darkening them until they clear [MIN_ICON_CONTRAST] leaves the dark theme's
+     * panels, which they already stand out from, untouched.
+     */
+    fun readableOnGlass(context: Context, color: Int): Int {
+        val panel = tint(context)
+        var darkened = color
+        var darkening = 0f
+        while (
+            darkening < MAX_DARKENING &&
+            ColorUtils.calculateContrast(darkened, panel) < MIN_ICON_CONTRAST
+        ) {
+            darkening += DARKENING_STEP
+            darkened = ColorUtils.blendARGB(color, Color.BLACK, darkening)
+        }
+
+        return darkened
+    }
 }

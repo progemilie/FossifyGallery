@@ -5,11 +5,15 @@ import android.util.AttributeSet
 import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
+import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.Glass
 import org.fossify.gallery.helpers.XmpRating
 import kotlin.math.ceil
+
+/** How far an empty star is held back from the panel's full content colour. */
+private const val IDLE_ICON_ALPHA = 0.65f
 
 /**
  * The row of stars that pops up above the rating button while it is being held,
@@ -103,15 +107,9 @@ class RatingChooser @JvmOverloads constructor(
     private fun isRtl() = layoutDirection == LAYOUT_DIRECTION_RTL
 
     private fun updateIcons() {
-        // the clear slot is the only icon that has to read against the glass rather than stand out
-        // from it, so it follows the theme where the stars keep their own colours
-        val clearColor = if (rating == 0) {
-            Glass.contentColor(context)
-        } else {
-            ContextCompat.getColor(context, R.color.star_disabled)
-        }
-
-        clearSlot.applyColorFilter(clearColor)
+        val idleColor = Glass.contentColor(context).adjustAlpha(IDLE_ICON_ALPHA)
+        clearSlot.applyColorFilter(if (rating == 0) Glass.contentColor(context) else idleColor)
+        val filledColor = Glass.readableOnGlass(context, ContextCompat.getColor(context, R.color.star_enabled))
 
         stars.forEachIndexed { index, star ->
             val isFilled = index < rating
@@ -123,8 +121,7 @@ class RatingChooser @JvmOverloads constructor(
                 }
             )
 
-            val color = if (isFilled) R.color.star_enabled else R.color.star_disabled
-            star.applyColorFilter(ContextCompat.getColor(context, color))
+            star.applyColorFilter(if (isFilled) filledColor else idleColor)
         }
     }
 }
