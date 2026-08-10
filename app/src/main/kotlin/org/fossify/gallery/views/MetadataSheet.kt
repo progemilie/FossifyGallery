@@ -6,12 +6,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import androidx.activity.addCallback
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isEmpty
 import androidx.core.view.isNotEmpty
-import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -19,20 +19,16 @@ import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
-import org.fossify.commons.extensions.copyToClipboard
 import org.fossify.commons.extensions.getProperBackgroundColor
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.extensions.getProperTextColor
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.gallery.R
-import org.fossify.gallery.databinding.ItemMetadataRowBinding
-import org.fossify.gallery.databinding.ItemMetadataSectionBinding
+import org.fossify.gallery.activities.BaseViewerActivity
 import org.fossify.gallery.databinding.MetadataSheetBinding
+import org.fossify.gallery.extensions.showFileOnMap
 import org.fossify.gallery.helpers.MetadataReader
 import org.fossify.gallery.models.FileMetadata
-import org.fossify.gallery.models.MetadataSection
-import org.fossify.gallery.models.MetadataTag
-import java.text.NumberFormat
 
 /**
  * The panel the viewer pulls up from the bottom, listing everything the file on screen says about
@@ -84,6 +80,10 @@ class MetadataSheet @JvmOverloads constructor(
     private val textColor = context.getProperTextColor()
     private val labelColor = textColor.adjustAlpha(LABEL_ALPHA)
     private val primaryColor = context.getProperPrimaryColor()
+
+    private val rows = MetadataRows(context, textColor, labelColor, primaryColor) { path ->
+        viewer?.showFileOnMap(path)
+    }
 
     /** The file currently described, so a load that lands after a swipe can be recognised as stale. */
     private var currentPath = ""
@@ -141,14 +141,37 @@ class MetadataSheet @JvmOverloads constructor(
         }
     }
 
-    /** Called once the sheet has finished sliding out of view, by drag or otherwise. */
-    var onHidden: (() -> Unit)? = null
+    /** The viewer the sheet is opening over, once [attachTo] has said which. */
+    private var viewer: BaseViewerActivity? = null
 
-    /** Called when the coordinates row is tapped, with the path of the file it describes. */
-    var onLocationClicked: ((String) -> Unit)? = null
+    /** What the viewer wants to know when the sheet has finished sliding out of view. */
+    private var onHidden: (() -> Unit)? = null
 
     val isSheetVisible: Boolean
         get() = isAttachedToWindow && behavior.state != BottomSheetBehavior.STATE_HIDDEN
+
+    /**
+     * Wires the sheet to the viewer it lives in: the coordinates row opens the map, the back gesture
+     * puts the sheet away rather than leaving the screen, and the navigation bar is handed its own
+     * icons back for as long as the sheet covers it. [onHidden] is whatever else that viewer has to
+     * put right once the sheet is gone.
+     */
+    fun attachTo(viewer: BaseViewerActivity, onHidden: () -> Unit = {}) {
+        this.viewer = viewer
+        this.onHidden = {
+            viewer.updateNavigationBarIconsForPanel(false)
+            onHidden()
+        }
+
+        viewer.onBackPressedDispatcher.addCallback(viewer) {
+            if (isSheetVisible) {
+                hide()
+            } else {
+                isEnabled = false
+                viewer.onBackPressedDispatcher.onBackPressed()
+            }
+        }
+    }
 
     init {
         orientation = VERTICAL
@@ -244,6 +267,8 @@ class MetadataSheet @JvmOverloads constructor(
             return
         }
 
+        viewer?.updateNavigationBarIconsForPanel(true)
+
         holder?.beVisible()
         binding.metadataSheetMoreHint.alpha = 1f
         // nothing on screen to hold on to, and the reveal is waiting on a resting height that can
@@ -308,11 +333,11 @@ class MetadataSheet @JvmOverloads constructor(
         }
 
         metadata.summary.forEach { tag ->
-            binding.metadataSheetSummary.addView(buildRow(binding.metadataSheetSummary, tag, path))
+            binding.metadataSheetSummary.addView(rows.buildRow(binding.metadataSheetSummary, tag, path))
         }
 
         metadata.sections.forEach { section ->
-            binding.metadataSheetSections.addView(buildSection(binding.metadataSheetSections, section, path))
+            binding.metadataSheetSections.addView(rows.buildSection(binding.metadataSheetSections, section, path))
         }
 
         // nothing to promise below the fold if there are no sections to open
@@ -347,58 +372,6 @@ class MetadataSheet @JvmOverloads constructor(
             removeCallbacks(reveal)
             reveal.run()
         }
-    }
-
-    private fun buildRow(parent: ViewGroup, tag: MetadataTag, path: String): View {
-        val row = ItemMetadataRowBinding.inflate(LayoutInflater.from(context), parent, false)
-        row.metadataRowLabel.setTextColor(labelColor)
-        row.metadataRowLabel.text = tag.name
-        row.metadataRowValue.text = tag.value
-
-        if (tag.opensMap) {
-            row.metadataRowValue.setTextColor(primaryColor)
-            row.root.setOnClickListener { onLocationClicked?.invoke(path) }
-        } else {
-            row.metadataRowValue.setTextColor(textColor)
-        }
-
-        row.root.setOnLongClickListener {
-            context.copyToClipboard("${tag.name}: ${tag.value}")
-            true
-        }
-
-        return row.root
-    }
-
-    private fun buildSection(parent: ViewGroup, section: MetadataSection, path: String): View {
-        val view = ItemMetadataSectionBinding.inflate(LayoutInflater.from(context), parent, false)
-        view.metadataSectionTitle.setTextColor(primaryColor)
-        view.metadataSectionTitle.text = section.name
-        view.metadataSectionCount.setTextColor(labelColor)
-        view.metadataSectionCount.text = NumberFormat.getIntegerInstance().format(section.tags.size)
-        view.metadataSectionChevron.setColorFilter(labelColor)
-        view.metadataSectionBody.beGone()
-
-        view.metadataSectionHeader.setOnClickListener {
-            val expanding = !view.metadataSectionBody.isVisible
-            if (expanding && view.metadataSectionBody.isEmpty()) {
-                section.tags.forEach { tag ->
-                    view.metadataSectionBody.addView(buildRow(view.metadataSectionBody, tag, path))
-                }
-            }
-
-            view.metadataSectionBody.beVisibleIf(expanding)
-            view.metadataSectionChevron.setImageResource(
-                if (expanding) {
-                    org.fossify.commons.R.drawable.ic_chevron_up_vector
-                } else {
-                    org.fossify.commons.R.drawable.ic_chevron_down_vector
-                }
-            )
-            view.metadataSectionChevron.setColorFilter(labelColor)
-        }
-
-        return view.root
     }
 }
 

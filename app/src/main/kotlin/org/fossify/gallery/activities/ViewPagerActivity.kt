@@ -21,18 +21,13 @@ import android.graphics.Color
 import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.os.Handler
-import android.os.Looper
 import android.provider.MediaStore
-import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
-import androidx.activity.addCallback
-import androidx.annotation.DimenRes
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat.Type
@@ -51,7 +46,6 @@ import com.google.android.material.appbar.AppBarLayout
 import org.fossify.commons.dialogs.RenameItemDialog
 import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.beGone
-import org.fossify.commons.extensions.beInvisible
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.convertToBitmap
@@ -76,7 +70,6 @@ import org.fossify.commons.extensions.internalStoragePath
 import org.fossify.commons.extensions.isAStorageRootFolder
 import org.fossify.commons.extensions.isExternalStorageManager
 import org.fossify.commons.extensions.isGif
-import org.fossify.commons.extensions.isGone
 import org.fossify.commons.extensions.isMediaFile
 import org.fossify.commons.extensions.isPortrait
 import org.fossify.commons.extensions.isRawFast
@@ -85,7 +78,6 @@ import org.fossify.commons.extensions.isVideoFast
 import org.fossify.commons.extensions.isVisible
 import org.fossify.commons.extensions.needsStupidWritePermissions
 import org.fossify.commons.extensions.onGlobalLayout
-import org.fossify.commons.extensions.realScreenSize
 import org.fossify.commons.extensions.recycleBinPath
 import org.fossify.commons.extensions.rescanPaths
 import org.fossify.commons.extensions.scanPathRecursively
@@ -119,13 +111,11 @@ import org.fossify.gallery.extensions.copyMoveFilesToFolder
 import org.fossify.gallery.extensions.favoritesDB
 import org.fossify.gallery.extensions.fixDateTaken
 import org.fossify.gallery.extensions.getFavoritePaths
-import org.fossify.gallery.extensions.getMediumExtendedDetails
 import org.fossify.gallery.extensions.getQuickChooserFolders
 import org.fossify.gallery.extensions.getShortcutImage
 import org.fossify.gallery.extensions.handleMediaManagementPrompt
 import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.isDownloadsFolder
-import org.fossify.gallery.extensions.joinAsExtendedDetails
 import org.fossify.gallery.extensions.launchResizeImageDialog
 import org.fossify.gallery.extensions.launchSettings
 import org.fossify.gallery.extensions.mediaDB
@@ -145,7 +135,7 @@ import org.fossify.gallery.extensions.tryDeleteFileDirItem
 import org.fossify.gallery.extensions.updateDBMediaPath
 import org.fossify.gallery.extensions.updateFavorite
 import org.fossify.gallery.extensions.updateFavoritePaths
-import org.fossify.gallery.extensions.updateFileRatingIfSupported
+import org.fossify.gallery.extensions.updateFileRating
 import org.fossify.gallery.fragments.PhotoFragment
 import org.fossify.gallery.fragments.VideoFragment
 import org.fossify.gallery.fragments.ViewPagerFragment
@@ -200,11 +190,13 @@ import org.fossify.gallery.helpers.TYPE_PORTRAITS
 import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.TYPE_VIDEOS
+import org.fossify.gallery.helpers.ViewerHeader
 import org.fossify.gallery.helpers.getPermissionToRequest
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
 import org.fossify.gallery.views.MetadataSheet
 import org.fossify.gallery.views.QuickFolder
+import org.fossify.gallery.views.holdToChoose
 import java.io.File
 import kotlin.math.min
 
@@ -213,10 +205,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     companion object {
         private const val REQUEST_VIEW_VIDEO = 1
         private const val SAVED_PATH = "current_path"
-
-        // long enough to sit out the photos a scrolling thumbnail strip passes over, short enough
-        // that landing on one and reading about it feels like the same moment
-        private const val HEADER_DETAILS_DELAY = 200L
     }
 
     private var mPath = ""
@@ -246,20 +234,12 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     private var mIgnoredPaths = ArrayList<String>()
     private var mOriginalBrightness: Float? = null
 
-    // fires the star chooser once the rating button has been held long enough, and is cancelled by
-    // anything that ends the touch before then - that shorter touch is a tap, not a hold
-    private var mRatingChooserRunnable: Runnable? = null
-
-    // the same for the folder chooser the copy and move buttons share
-    private var mFolderChooserRunnable: Runnable? = null
-
     // read while a button is held, so it is fetched ahead of time rather than off the gesture
     private var mQuickChooserFolders = emptyList<QuickFolder>()
 
-    private val mHeaderDetailsHandler = Handler(Looper.getMainLooper())
-    private var mHeaderDetailsRunnable: Runnable? = null
-
     private val binding by viewBinding(ActivityMediumBinding::inflate)
+
+    private val viewerHeader by lazy { ViewerHeader(this, binding.viewerHeader) }
 
     private val metadataSheet: MetadataSheet
         get() = binding.metadataSheetHolder.metadataSheet
@@ -317,7 +297,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
         setupOptionsMenu()
         setupThumbnailStrip()
-        setupMetadataSheet()
+        metadataSheet.attachTo(this) { refreshMenuItems() }
         setupChoosers()
         refreshMenuItems()
 
@@ -583,7 +563,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             isShowingRecycleBin -> RECYCLE_BIN
             else -> mPath.getParentPath()
         }
-        binding.viewerHeader.viewerHeaderFilename.text = mPath.getFilenameFromPath()
+        viewerHeader.setFilename(mPath.getFilenameFromPath())
 
         binding.viewPager.onGlobalLayout {
             if (!isDestroyed) {
@@ -1069,23 +1049,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
     private fun getCurrentFragment() = (binding.viewPager.adapter as? MyPagerAdapter)?.getCurrentFragment(binding.viewPager.currentItem)
 
-    private fun setupMetadataSheet() {
-        metadataSheet.onLocationClicked = { path -> showFileOnMap(path) }
-        metadataSheet.onHidden = {
-            updateNavigationBarIconsForPanel(false)
-            refreshMenuItems()
-        }
-
-        onBackPressedDispatcher.addCallback(this) {
-            if (metadataSheet.isSheetVisible) {
-                metadataSheet.hide()
-            } else {
-                isEnabled = false
-                onBackPressedDispatcher.onBackPressed()
-            }
-        }
-    }
-
     private fun showProperties() {
         if (getCurrentMedium() == null) {
             return
@@ -1105,7 +1068,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
 
         stopSlideshow()
-        updateNavigationBarIconsForPanel(true)
         metadataSheet.show(path)
     }
 
@@ -1254,53 +1216,19 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
     }
 
-    // the listener below does call performClick() on a tap, which is the thing this check exists to
-    // make sure of - it just cannot see that through the lambda
-    @SuppressLint("ClickableViewAccessibility")
     private fun setupRatingButton(currentMedium: Medium?) {
         val button = binding.bottomActions.bottomRating
         button.beVisibleIf(canRate(currentMedium))
         button.setOnClickListener { showRatingDialog() }
-        button.setOnTouchListener { view, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    view.isPressed = true
-                    view.parent?.requestDisallowInterceptTouchEvent(true)
-                    mRatingChooserRunnable = Runnable {
-                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                        showRatingChooser()
-                    }.also { view.postDelayed(it, ViewConfiguration.getLongPressTimeout().toLong()) }
-                }
-
-                MotionEvent.ACTION_MOVE -> {
-                    if (isRatingChooserUp()) {
-                        binding.ratingChooser.rating = binding.ratingChooser.ratingForPosition(event.rawX)
-                    }
-                }
-
-                MotionEvent.ACTION_UP -> {
-                    view.isPressed = false
-                    cancelRatingChooserTimer(view)
-                    if (isRatingChooserUp()) {
-                        val chosen = binding.ratingChooser.rating
-                        binding.ratingChooser.beGone()
-                        applyRating(chosen)
-                    } else {
-                        // through performClick rather than straight to the dialog, so the tap is
-                        // still announced to accessibility services
-                        view.performClick()
-                    }
-                }
-
-                MotionEvent.ACTION_CANCEL -> {
-                    view.isPressed = false
-                    cancelRatingChooserTimer(view)
-                    binding.ratingChooser.beGone()
-                }
-            }
-
-            true
-        }
+        button.holdToChoose(
+            chooser = binding.ratingChooser,
+            onOpen = {
+                val medium = getCurrentMedium()
+                medium?.let { binding.ratingChooser.rating = it.rating }
+                medium != null
+            },
+            onChosen = { applyRating(binding.ratingChooser.rating) }
+        )
     }
 
     private fun canRate(medium: Medium?): Boolean {
@@ -1316,22 +1244,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             (getCurrentPhotoFragment()?.mCurrentRotationDegrees ?: 0) == 0
     }
 
-    private fun cancelRatingChooserTimer(view: View) {
-        mRatingChooserRunnable?.let { view.removeCallbacks(it) }
-        mRatingChooserRunnable = null
-    }
-
-    private fun showRatingChooser() {
-        val medium = getCurrentMedium() ?: return
-        binding.ratingChooser.apply {
-            rating = medium.rating
-            revealChooserOverButton(this, binding.bottomActions.bottomRating, R.dimen.chooser_edge_margin)
-        }
-    }
-
-    // the listener below does call performClick() on a tap, which is the thing this check exists to
-    // make sure of - it just cannot see that through the lambda
-    @SuppressLint("ClickableViewAccessibility")
     private fun setupCopyMoveButton(button: View, isCopyOperation: Boolean) {
         button.setOnClickListener {
             if (isCopyOperation) {
@@ -1341,53 +1253,23 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             }
         }
 
-        button.setOnTouchListener { view, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    view.isPressed = true
-                    view.parent?.requestDisallowInterceptTouchEvent(true)
-                    mFolderChooserRunnable = Runnable {
-                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                        showFolderChooser(view)
-                    }.also { binding.folderChooser.postDelayed(it, ViewConfiguration.getLongPressTimeout().toLong()) }
+        button.holdToChoose(
+            chooser = binding.folderChooser,
+            onOpen = {
+                // with nothing to offer the hold is ignored, and letting go opens the full picker
+                if (mQuickChooserFolders.isEmpty()) {
+                    false
+                } else {
+                    binding.folderChooser.setFolders(mQuickChooserFolders)
+                    true
                 }
-
-                MotionEvent.ACTION_MOVE -> {
-                    if (isFolderChooserUp()) {
-                        binding.folderChooser.updateSelectionFor(event.rawX, event.rawY)
-                    }
-                }
-
-                MotionEvent.ACTION_UP -> {
-                    view.isPressed = false
-                    cancelFolderChooserTimer()
-                    if (isFolderChooserUp()) {
-                        val chosen = binding.folderChooser.selected
-                        hideFolderChooser()
-                        if (chosen != null) {
-                            checkMediaManagementAndCopyMoveTo(chosen.path, isCopyOperation)
-                        }
-                    } else {
-                        // through performClick rather than straight to the picker, so the tap is
-                        // still announced to accessibility services
-                        view.performClick()
-                    }
-                }
-
-                MotionEvent.ACTION_CANCEL -> {
-                    view.isPressed = false
-                    cancelFolderChooserTimer()
-                    hideFolderChooser()
+            },
+            onChosen = {
+                binding.folderChooser.selected?.let { folder ->
+                    checkMediaManagementAndCopyMoveTo(folder.path, isCopyOperation)
                 }
             }
-
-            true
-        }
-    }
-
-    private fun cancelFolderChooserTimer() {
-        mFolderChooserRunnable?.let { binding.folderChooser.removeCallbacks(it) }
-        mFolderChooserRunnable = null
+        )
     }
 
     /**
@@ -1405,18 +1287,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
     }
 
-    private fun showFolderChooser(button: View) {
-        if (mQuickChooserFolders.isEmpty()) {
-            // nothing to offer, so let go and the tap that follows opens the full picker instead
-            return
-        }
-
-        binding.folderChooser.apply {
-            setFolders(mQuickChooserFolders)
-            revealChooserOverButton(this, button, R.dimen.folder_chooser_end_margin)
-        }
-    }
-
     /**
      * The holder rather than the pager it is a copy of: a blur redraws its root by hand, and a view
      * drawn that way is drawn without its own scroll - straight off the pager, every copy comes back
@@ -1425,42 +1295,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     private fun setupChoosers() {
         binding.ratingChooser.frost(binding.fragmentHolder)
         binding.folderChooser.frost(binding.fragmentHolder)
-    }
-
-    /** GONE rather than not-VISIBLE, since both spend their first frame laid out but not yet drawn. */
-    private fun isRatingChooserUp() = !binding.ratingChooser.isGone()
-
-    private fun isFolderChooserUp() = !binding.folderChooser.isGone()
-
-    // lays a chooser out unseen, then positions it and only then draws it.
-    private fun revealChooserOverButton(chooser: View, button: View, @DimenRes endMarginId: Int) {
-        chooser.beInvisible()
-        chooser.post {
-            centerChooserOverButton(chooser, button, resources.getDimensionPixelSize(endMarginId))
-            chooser.beVisible()
-        }
-    }
-
-    private fun hideFolderChooser() {
-        binding.folderChooser.stopAutoScroll()
-        binding.folderChooser.beGone()
-    }
-
-    private fun centerChooserOverButton(chooser: View, button: View, endMargin: Int) {
-        if (chooser.width == 0) {
-            return
-        }
-
-        val buttonLocation = IntArray(2)
-        button.getLocationOnScreen(buttonLocation)
-        val chooserLocation = IntArray(2)
-        chooser.getLocationOnScreen(chooserLocation)
-
-        val untranslatedLeft = chooserLocation[0] - chooser.translationX
-        val wanted = buttonLocation[0] + button.width / 2f - chooser.width / 2f
-        val furthestLeft = resources.getDimensionPixelSize(R.dimen.chooser_edge_margin).toFloat()
-        val furthestRight = maxOf(furthestLeft, (realScreenSize.x - chooser.width - endMargin).toFloat())
-        chooser.translationX = wanted.coerceIn(furthestLeft, furthestRight) - untranslatedLeft
     }
 
     private fun showRatingDialog() {
@@ -1474,7 +1308,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             return
         }
 
-        updateFileRatingIfSupported(medium.path, rating) { success ->
+        updateFileRating(medium.path, rating) { success ->
             if (success) {
                 // the media list this screen was handed shares its items with the grid behind it,
                 // so the grid is up to date the moment this is
@@ -1956,17 +1790,11 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
     }
 
-    /**
-     * The top bar's heading: the file name, with the extended details packed onto the lines below
-     * it when they are turned on. Sitting inside the toolbar means fading the top bar out for
-     * fullscreen takes the whole heading with it.
-     */
     private fun updateHeader() {
         runOnUiThread {
             val medium = getCurrentMedium()
-            binding.viewerHeader.viewerHeaderFilename.text =
-                medium?.path?.getFilenameFromPath() ?: mPath.getFilenameFromPath()
-            updateHeaderDetails(medium)
+            viewerHeader.setFilename(medium?.path?.getFilenameFromPath() ?: mPath.getFilenameFromPath())
+            viewerHeader.showDetails(medium) { getCurrentPath() == medium?.path }
 
             // an open sheet follows the swipe onto the next photo rather than going on describing
             // the one that has left the screen
@@ -1974,35 +1802,6 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 metadataSheet.load(medium?.path ?: mPath)
             }
         }
-    }
-
-    private fun updateHeaderDetails(medium: Medium?) {
-        val detailsView = binding.viewerHeader.viewerHeaderDetails
-        mHeaderDetailsRunnable?.let { mHeaderDetailsHandler.removeCallbacks(it) }
-        if (medium == null || !config.showExtendedDetails) {
-            detailsView.beGone()
-            return
-        }
-
-        // held back a moment because reading the details opens the file, and scrolling the
-        // thumbnail strip crosses photos faster than any of them can be opened. Only the one still
-        // on screen when that pauses is worth opening
-        mHeaderDetailsRunnable = Runnable {
-            // reading them opens the file, and swiping on is not going to wait for that
-            ensureBackgroundThread {
-                val details =
-                    getMediumExtendedDetails(medium, skipName = true).joinAsExtendedDetails()
-
-                runOnUiThread {
-                    // a fast swipe can land several of these out of order - only the one describing
-                    // what is on screen now gets to write itself into the header
-                    if (getCurrentPath() == medium.path) {
-                        detailsView.text = details
-                        detailsView.beVisibleIf(details.isNotEmpty())
-                    }
-                }
-            }
-        }.also { mHeaderDetailsHandler.postDelayed(it, HEADER_DETAILS_DELAY) }
     }
 
     private fun getCurrentMedium(): Medium? {

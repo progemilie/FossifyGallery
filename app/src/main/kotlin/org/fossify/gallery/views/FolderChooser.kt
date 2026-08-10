@@ -27,7 +27,9 @@ class FolderChooser @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : GlassPanel(context, attrs, defStyleAttr) {
+) : HoldChooser(context, attrs, defStyleAttr) {
+
+    override val endMarginId = R.dimen.folder_chooser_end_margin
 
     private val rowHeight = resources.getDimensionPixelSize(R.dimen.folder_chooser_row_height)
     private val rowPadding = resources.getDimensionPixelSize(R.dimen.folder_chooser_row_padding)
@@ -150,7 +152,7 @@ class FolderChooser @JvmOverloads constructor(
     }
 
     /** Re-reads what the finger at [rawX], [rawY] is over, starting or stopping the edge scroll to match. */
-    fun updateSelectionFor(rawX: Float, rawY: Float) {
+    override fun updateSelectionFor(rawX: Float, rawY: Float) {
         lastTouchY = rawY
         val screenLeft = locationOnScreen(this)[0]
         if (rawX < screenLeft || rawX > screenLeft + width) {
@@ -166,7 +168,8 @@ class FolderChooser @JvmOverloads constructor(
         autoScroller.update(rawY)
     }
 
-    fun stopAutoScroll() = autoScroller.stop()
+    // the list keeps scrolling itself while the finger rests near an edge, which has to end with it
+    override fun onChooserClosed() = autoScroller.stop()
 
     private fun updateSelectionForY(rawY: Float) {
         val viewportTop = locationOnScreen(scroller)[1]

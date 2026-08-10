@@ -6,7 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.widget.FrameLayout
+import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import org.fossify.commons.extensions.onGlobalLayout
 import org.fossify.commons.views.MySearchMenu
 import org.fossify.gallery.R
 import org.fossify.gallery.views.GlassPanel
@@ -32,6 +35,10 @@ class FloatingTopBar(
     private var travelledSinceTurn = 0
     private var isHidden = false
     private var glass: GlassPanel? = null
+
+    private var grid: RecyclerView? = null
+    private var refreshLayout: SwipeRefreshLayout? = null
+    private var gridNeedsRoom: () -> Boolean = { true }
 
     private val pillRadius =
         resources.getDimension(org.fossify.commons.R.dimen.material_dialog_corner_radius)
@@ -124,9 +131,40 @@ class FloatingTopBar(
         glass?.frost(contentBehind)
     }
 
-    fun attachTo(recyclerView: RecyclerView) {
-        recyclerView.removeOnScrollListener(this)
-        recyclerView.addOnScrollListener(this)
+    /**
+     * Takes the bar off its band of colour and hangs it over [grid]: it pans with that grid, the
+     * grid keeps its first row clear of it by padding rather than by starting below it, and
+     * [refreshLayout]'s spinner drops in from under the bar rather than from behind it.
+     *
+     * [gridNeedsRoom] is asked again whenever the room is measured, for a screen that sometimes has
+     * something else keeping clear of the bar on the grid's behalf.
+     */
+    fun floatOver(
+        grid: RecyclerView,
+        refreshLayout: SwipeRefreshLayout,
+        gridNeedsRoom: () -> Boolean = { true },
+    ) {
+        this.grid = grid
+        this.refreshLayout = refreshLayout
+        this.gridNeedsRoom = gridNeedsRoom
+
+        makeFloating()
+        grid.removeOnScrollListener(this)
+        grid.addOnScrollListener(this)
+        onHeightChanged = ::keepGridClear
+        topBar.onGlobalLayout { keepGridClear() }
+    }
+
+    /**
+     * Hands the grid the room the bar takes up. Set here rather than in the layout because the
+     * bar's height is the status bar inset plus its own, and only the running app knows the first.
+     */
+    fun keepGridClear() {
+        val barHeight = occupiedHeight
+        grid?.updatePadding(top = if (gridNeedsRoom()) barHeight else 0)
+
+        val travel = resources.getDimensionPixelSize(R.dimen.refresh_spinner_travel)
+        refreshLayout?.setProgressViewOffset(false, barHeight, barHeight + travel)
     }
 
     override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {

@@ -7,7 +7,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.View
-import androidx.activity.addCallback
 import androidx.core.graphics.drawable.toDrawable
 import com.google.android.material.appbar.AppBarLayout
 import org.fossify.commons.extensions.beGone
@@ -45,9 +44,7 @@ import org.fossify.gallery.BuildConfig
 import org.fossify.gallery.R
 import org.fossify.gallery.databinding.FragmentHolderBinding
 import org.fossify.gallery.extensions.config
-import org.fossify.gallery.extensions.getMediumExtendedDetails
 import org.fossify.gallery.extensions.hideSystemUI
-import org.fossify.gallery.extensions.joinAsExtendedDetails
 import org.fossify.gallery.extensions.openEditor
 import org.fossify.gallery.extensions.openPath
 import org.fossify.gallery.extensions.setAs
@@ -74,6 +71,7 @@ import org.fossify.gallery.helpers.TYPE_PORTRAITS
 import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.TYPE_VIDEOS
+import org.fossify.gallery.helpers.ViewerHeader
 import org.fossify.gallery.helpers.applyBottomActionsOrder
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.views.MetadataSheet
@@ -90,6 +88,8 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
     var mIsVideo = false
 
     private val binding by viewBinding(FragmentHolderBinding::inflate)
+
+    private val viewerHeader by lazy { ViewerHeader(this, binding.viewerHeader) }
 
     private val metadataSheet: MetadataSheet
         get() = binding.metadataSheetHolder.metadataSheet
@@ -114,29 +114,12 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
         }
 
         setupOptionsMenu()
-        setupMetadataSheet()
+        // the same sheet the gallery's own viewer uses, so a photo opened from another app
+        // describes itself the same way
+        metadataSheet.attachTo(this)
         refreshMenuItems()
         requestMediaPermissions {
             checkIntent(savedInstanceState)
-        }
-    }
-
-    /**
-     * Same sheet the gallery's own viewer uses, so a photo opened from another app describes itself
-     * the same way. It only has a real file to read when the intent handed one over, which is also
-     * the only case the Properties menu item shows up in.
-     */
-    private fun setupMetadataSheet() {
-        metadataSheet.onLocationClicked = { path -> showFileOnMap(path) }
-        metadataSheet.onHidden = { updateNavigationBarIconsForPanel(false) }
-
-        onBackPressedDispatcher.addCallback(this) {
-            if (metadataSheet.isSheetVisible) {
-                metadataSheet.hide()
-            } else {
-                isEnabled = false
-                onBackPressedDispatcher.onBackPressed()
-            }
         }
     }
 
@@ -300,28 +283,14 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
     }
 
     /**
-     * Same heading the pager viewer uses - file name, with the extended details underneath when
-     * they are on. Opened through an intent the medium is often a content uri with no file behind
-     * it, in which case there are no details to read and only the name shows.
+     * The same heading the pager viewer uses. Opened through an intent the medium is often a content
+     * uri with no file behind it, in which case there are no details to read and only the name shows.
+     * Nothing here can be swiped away from, so the details are read straight away.
      */
     private fun updateHeader() {
         val medium = mMedium ?: return
-        binding.viewerHeader.viewerHeaderFilename.text = medium.name
-
-        val detailsView = binding.viewerHeader.viewerHeaderDetails
-        if (!config.showExtendedDetails) {
-            detailsView.beGone()
-            return
-        }
-
-        ensureBackgroundThread {
-            val details = getMediumExtendedDetails(medium, skipName = true).joinAsExtendedDetails()
-
-            runOnUiThread {
-                detailsView.text = details
-                detailsView.beVisibleIf(details.isNotEmpty())
-            }
-        }
+        viewerHeader.setFilename(medium.name)
+        viewerHeader.showDetails(medium, delay = 0)
     }
 
     private fun launchGesturePlayer() {
@@ -405,7 +374,6 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
             return
         }
 
-        updateNavigationBarIconsForPanel(true)
         metadataSheet.show(path)
     }
 

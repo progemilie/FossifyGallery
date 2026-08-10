@@ -93,7 +93,7 @@
     <ID>LargeClass:EditActivity.kt$EditActivity : BaseCropActivity</ID>
     <ID>LargeClass:MainActivity.kt$MainActivity : SimpleActivityDirectoryOperationsListener</ID>
     <ID>LargeClass:MediaActivity.kt$MediaActivity : SimpleActivityMediaOperationsListener</ID>
-    <ID>LargeClass:MediaAdapter.kt$MediaAdapter : MyRecyclerViewAdapterItemTouchHelperContractOnPopupTextUpdate</ID>
+    <ID>LargeClass:MediaAdapter.kt$MediaAdapter : MyRecyclerViewAdapterOnPopupTextUpdate</ID>
     <ID>LargeClass:MediaFetcher.kt$MediaFetcher</ID>
     <ID>LargeClass:PhotoFragment.kt$PhotoFragment : ViewPagerFragment</ID>
     <ID>LargeClass:SettingsActivity.kt$SettingsActivity : SimpleActivity</ID>
@@ -516,7 +516,7 @@
     <ID>TooManyFunctions:ManageFoldersAdapter.kt$ManageFoldersAdapter : MyRecyclerViewAdapter</ID>
     <ID>TooManyFunctions:ManageHiddenFoldersAdapter.kt$ManageHiddenFoldersAdapter : MyRecyclerViewAdapter</ID>
     <ID>TooManyFunctions:MediaActivity.kt$MediaActivity : SimpleActivityMediaOperationsListener</ID>
-    <ID>TooManyFunctions:MediaAdapter.kt$MediaAdapter : MyRecyclerViewAdapterItemTouchHelperContractOnPopupTextUpdate</ID>
+    <ID>TooManyFunctions:MediaAdapter.kt$MediaAdapter : MyRecyclerViewAdapterOnPopupTextUpdate</ID>
     <ID>TooManyFunctions:MediaFetcher.kt$MediaFetcher</ID>
     <ID>TooManyFunctions:Medium.kt$Medium : SerializableThumbnailItem</ID>
     <ID>TooManyFunctions:MediumDao.kt$MediumDao</ID>

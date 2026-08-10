@@ -2,7 +2,6 @@ package org.fossify.gallery.activities
 
 import android.app.WallpaperManager
 import android.content.Intent
-import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Handler
@@ -19,16 +18,12 @@ import com.bumptech.glide.request.transition.Transition
 import org.fossify.commons.dialogs.ConfirmationDialog
 import org.fossify.commons.dialogs.CreateNewFolderDialog
 import org.fossify.commons.dialogs.RadioGroupDialog
-import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.appLockManager
-import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.areSystemAnimationsEnabled
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.deleteFiles
-import org.fossify.commons.extensions.getBottomNavigationBackgroundColor
-import org.fossify.commons.extensions.getContrastColor
 import org.fossify.commons.extensions.getDoesFilePathExist
 import org.fossify.commons.extensions.getFilenameFromPath
 import org.fossify.commons.extensions.getIsPathDirectory
@@ -40,7 +35,6 @@ import org.fossify.commons.extensions.getTimeFormat
 import org.fossify.commons.extensions.handleHiddenFolderPasswordProtection
 import org.fossify.commons.extensions.handleLockedFolderOpening
 import org.fossify.commons.extensions.hideKeyboard
-import org.fossify.commons.extensions.onGlobalLayout
 import org.fossify.commons.extensions.isExternalStorageManager
 import org.fossify.commons.extensions.isGone
 import org.fossify.commons.extensions.isMediaFile
@@ -52,8 +46,6 @@ import org.fossify.commons.extensions.toast
 import org.fossify.commons.extensions.viewBinding
 import org.fossify.commons.helpers.FAVORITES
 import org.fossify.commons.helpers.IS_FROM_GALLERY
-import org.fossify.commons.helpers.LOWER_ALPHA
-import org.fossify.commons.helpers.MEDIUM_ALPHA
 import org.fossify.commons.helpers.REQUEST_EDIT_IMAGE
 import org.fossify.commons.helpers.SORT_BY_CUSTOM
 import org.fossify.commons.helpers.SORT_BY_RANDOM
@@ -67,6 +59,7 @@ import org.fossify.commons.views.MyGridLayoutManager
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.gallery.R
 import org.fossify.gallery.adapters.MediaAdapter
+import org.fossify.gallery.adapters.MediaGridNavigator
 import org.fossify.gallery.asynctasks.GetMediaAsynctask
 import org.fossify.gallery.databases.GalleryDatabase
 import org.fossify.gallery.databinding.ActivityMediaBinding
@@ -112,6 +105,7 @@ import org.fossify.gallery.helpers.MediaFetcher
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.PICKED_PATHS
 import org.fossify.gallery.helpers.RECYCLE_BIN
+import org.fossify.gallery.helpers.ReorderBar
 import org.fossify.gallery.helpers.SET_WALLPAPER_INTENT
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_FAVORITES
@@ -121,6 +115,7 @@ import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
 import org.fossify.gallery.helpers.SLIDESHOW_START_ON_ENTER
 import org.fossify.gallery.helpers.VIDEO_PLAYER_APP
 import org.fossify.gallery.helpers.VIDEO_PLAYER_SYSTEM
+import org.fossify.gallery.helpers.ViewerReturn
 import org.fossify.gallery.interfaces.MediaOperationsListener
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
@@ -143,12 +138,10 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private var mLoadedInitialPhotos = false
     private var mShowLoadingIndicator = true
     private var mWasFullscreenViewOpen = false
-    private var mLastViewedPath = ""
-    private var mRevealPending = false
     private var mLastSearchedText = ""
     private var mIsReordering = false
     private var mGridBottomPadding = 0
-    private var mGridPositionToRestore: MediaAdapter.GridPosition? = null
+    private var mGridPositionToRestore: MediaGridNavigator.GridPosition? = null
     private var mLatestMediaId = 0L
     private var mLatestMediaDateId = 0L
     private var mLastMediaHandler = Handler()
@@ -169,10 +162,10 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
     private val binding by viewBinding(ActivityMediaBinding::inflate)
     private val floatingTopBar by lazy { FloatingTopBar(binding.mediaMenu, binding.mediaHolder) }
+    private val reorderBar by lazy { ReorderBar(binding.mediaReorderBar) }
+    private val viewerReturn = ViewerReturn()
 
     companion object {
-        private const val REQUEST_VIEW_MEDIA = 1
-
         var mMedia = ArrayList<ThumbnailItem>()
     }
 
@@ -277,14 +270,14 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         }
 
         binding.loadingIndicator.setIndicatorColor(getProperPrimaryColor())
-        updateReorderBarColors()
+        reorderBar.updateColors()
         binding.mediaEmptyTextPlaceholder.setTextColor(getProperTextColor())
         binding.mediaEmptyTextPlaceholder2.setTextColor(getProperPrimaryColor())
         binding.mediaEmptyTextPlaceholder2.bringToFront()
 
         // the grid still holds what it had when the viewer was opened, so point the item out now
         // rather than only once the refresh below comes back. it stays pending if it is not there
-        revealLastViewedItem()
+        viewerReturn.reveal(getMediaAdapter()?.gridNavigator)
 
         // do not refresh Random sorted files after opening a fullscreen image and going Back
         val isRandomSorting = config.getFolderSorting(mPath) and SORT_BY_RANDOM != 0
@@ -364,12 +357,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 mMedia.clear()
                 refreshItems()
             }
-        } else if (requestCode == REQUEST_VIEW_MEDIA) {
-            // the viewer tells us what it ended up on after swiping, keep the tapped path otherwise
-            val viewedPath = resultData?.getStringExtra(PATH).orEmpty()
-            if (viewedPath.isNotEmpty()) {
-                mLastViewedPath = viewedPath
-            }
+        } else if (requestCode == ViewerReturn.REQUEST_CODE) {
+            viewerReturn.onViewerResult(resultData)
         }
         super.onActivityResult(requestCode, resultCode, resultData)
     }
@@ -472,9 +461,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 putExtra(SHOW_ALL, mShowAll)
                 putExtra(SLIDESHOW_START_ON_ENTER, true)
                 putExtra(IS_FROM_GALLERY, true)
-                mLastViewedPath = item.path
-                mRevealPending = true
-                startActivityForResult(this, REQUEST_VIEW_MEDIA)
+                viewerReturn.opening(item.path)
+                startActivityForResult(this, ViewerReturn.REQUEST_CODE)
             }
         }
     }
@@ -485,26 +473,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         floatingTopBar.makeFloating()
     }
 
-    /**
-     * The grid runs the full height of the window with the search bar floating over the top of it,
-     * so the grid keeps its first row clear of the bar by padding rather than by starting below it,
-     * and the refresh spinner has to drop in from under the bar rather than from behind it.
-     */
     private fun setupFloatingTopBar() {
-        floatingTopBar.makeFloating()
-        floatingTopBar.attachTo(binding.mediaGrid)
-        floatingTopBar.onHeightChanged = ::keepGridClearOfTopBar
-        binding.mediaMenu.onGlobalLayout { keepGridClearOfTopBar() }
-    }
-
-    private fun keepGridClearOfTopBar() {
-        val barHeight = floatingTopBar.occupiedHeight
-        // set here rather than in the layout because the bar's height is the status bar inset plus
-        // its own, and only the running app knows the first of those
-        binding.mediaGrid.updatePadding(top = barHeight)
-
-        val travel = resources.getDimensionPixelSize(R.dimen.refresh_spinner_travel)
-        binding.mediaRefreshLayout.setProgressViewOffset(false, barHeight, barHeight + travel)
+        floatingTopBar.floatOver(binding.mediaGrid, binding.mediaRefreshLayout)
     }
 
     // repainted on every resume rather than set once: the fades are drawn in the theme's own
@@ -532,9 +502,9 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             // height of the bar, which already carries this inset
             padTopSystem = listOf(binding.mediaMenu, binding.mediaEmptyTextPlaceholder),
             padBottomImeAndSystem = if (mIsReordering) {
-                listOf(binding.mediaReorderBar.root)
+                listOf(reorderBar.root)
             } else {
-                listOf(binding.mediaGrid, binding.mediaReorderBar.root)
+                listOf(binding.mediaGrid, reorderBar.root)
             }
         )
     }
@@ -543,52 +513,9 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private fun getPathToUse() = (if (mShowAll) SHOW_ALL else mPath).ifEmpty { SHOW_ALL }
 
     private fun setupReorderBar() {
-        binding.mediaReorderBar.apply {
-            reorderMoveToTop.setOnClickListener { getMediaAdapter()?.moveSelectionToEdge(toTop = true) }
-            reorderMoveToBottom.setOnClickListener { getMediaAdapter()?.moveSelectionToEdge(toTop = false) }
-            reorderCancel.setOnClickListener { cancelReordering() }
-            reorderSave.setOnClickListener { saveReordering() }
-        }
-
-        updateReorderBarColors()
-    }
-
-    /**
-     * Paints the bar in the current theme - it is built once but the colors can change under it, so
-     * this runs again on every resume. Save is filled with the accent color to read as the action
-     * that ends the arrangement, Cancel only gets an outline to stay the quieter of the two.
-     */
-    private fun updateReorderBarColors() {
-        val textColor = getProperTextColor()
-        val primaryColor = getProperPrimaryColor()
-        binding.mediaReorderBar.apply {
-            root.backgroundTintList = ColorStateList.valueOf(getBottomNavigationBackgroundColor())
-            reorderMoveToTop.applyColorFilter(textColor)
-            reorderMoveToBottom.applyColorFilter(textColor)
-
-            reorderCancel.setTextColor(textColor)
-            reorderCancel.strokeColor = ColorStateList.valueOf(textColor.adjustAlpha(MEDIUM_ALPHA))
-            reorderCancel.rippleColor = ColorStateList.valueOf(textColor.adjustAlpha(LOWER_ALPHA))
-
-            val onPrimaryColor = primaryColor.getContrastColor()
-            reorderSave.backgroundTintList = ColorStateList.valueOf(primaryColor)
-            reorderSave.setTextColor(onPrimaryColor)
-            reorderSave.rippleColor = ColorStateList.valueOf(onPrimaryColor.adjustAlpha(LOWER_ALPHA))
-        }
-    }
-
-    /**
-     * The two send-to-an-end buttons have nothing to act on until something is marked, so they stay
-     * in place but dimmed until then rather than appearing and moving the rest of the bar along.
-     */
-    private fun updateReorderState(markedCount: Int) {
-        binding.mediaReorderBar.apply {
-            val canMove = markedCount > 0
-            listOf(reorderMoveToTop, reorderMoveToBottom).forEach {
-                it.isEnabled = canMove
-                it.alpha = if (canMove) 1f else MEDIUM_ALPHA
-            }
-        }
+        reorderBar.onMoveToEdge = { toTop -> getMediaAdapter()?.reorderMode?.moveSelectionToEdge(toTop) }
+        reorderBar.onCancel = ::cancelReordering
+        reorderBar.onSave = ::saveReordering
     }
 
     /**
@@ -614,7 +541,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
         mIsReordering = true
         binding.mediaRefreshLayout.isEnabled = false
-        binding.mediaReorderBar.root.beVisible()
+        reorderBar.show()
         // the bar brings its own solid background, so the darkening behind it would only muddy it
         binding.mediaBottomFade.beGone()
         updateTopBarPanning()
@@ -622,8 +549,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         mGridBottomPadding = binding.mediaGrid.paddingBottom
         setupInsetPadding()
         binding.mediaGrid.updatePadding(bottom = 0)
-        getMediaAdapter()?.onReorderStateChanged = ::updateReorderState
-        getMediaAdapter()?.setReordering(true, flatMedia)
+        getMediaAdapter()?.reorderMode?.onSelectionChanged = reorderBar::setMarkedCount
+        getMediaAdapter()?.reorderMode?.setActive(true, flatMedia)
         handleGridSpacing(flatMedia)
         setupLayoutManager()
         refreshMenuItems()
@@ -636,13 +563,13 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
         stopReordering()
         // hand the untouched list back, whatever was dragged around only ever lived in the adapter
-        getMediaAdapter()?.setReordering(false, mMedia)
+        getMediaAdapter()?.reorderMode?.setActive(false, mMedia)
         handleGridSpacing()
         setupLayoutManager()
     }
 
     private fun saveReordering() {
-        val orderedPaths = getMediaAdapter()?.getReorderedPaths()
+        val orderedPaths = getMediaAdapter()?.reorderMode?.orderedPaths()
         if (orderedPaths.isNullOrEmpty()) {
             cancelReordering()
             return
@@ -651,10 +578,10 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         val pathToUse = getPathToUse()
         // the reload at the end of this builds the grid over again, which would drop it back at the
         // top of a folder the arrangement was as likely as not made well down
-        mGridPositionToRestore = getMediaAdapter()?.getGridPosition()
+        mGridPositionToRestore = getMediaAdapter()?.gridNavigator?.currentPosition()
         stopReordering()
         // keep the dragged order on screen, reloadMedia() below replaces it with the saved one
-        getMediaAdapter()?.setReordering(false)
+        getMediaAdapter()?.reorderMode?.setActive(false)
 
         ensureBackgroundThread {
             saveCustomMediaOrder(pathToUse, orderedPaths)
@@ -672,7 +599,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
     private fun stopReordering() {
         mIsReordering = false
-        binding.mediaReorderBar.root.beGone()
+        reorderBar.hide()
         binding.mediaBottomFade.beVisible()
         updateTopBarPanning()
         setupInsetPadding()
@@ -843,7 +770,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
         setupScrollDirection()
         restoreGridPosition()
-        revealLastViewedItem()
+        viewerReturn.reveal(getMediaAdapter()?.gridNavigator)
     }
 
     // a reload starts the grid at the top, which is no use to someone who was just arranging the
@@ -852,20 +779,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         val gridPosition = mGridPositionToRestore ?: return
         val adapter = getMediaAdapter() ?: return
         mGridPositionToRestore = null
-        adapter.restoreGridPosition(gridPosition)
-    }
-
-    // point out the thumbnail the fullscreen viewer was just left from, it is easy to lose track of
-    // it after swiping through a bunch of media
-    private fun revealLastViewedItem() {
-        if (!mRevealPending) {
-            return
-        }
-
-        // keep the request around if the item is not there yet, a pending refresh may still bring it
-        if (getMediaAdapter()?.revealItem(mLastViewedPath) == true) {
-            mRevealPending = false
-        }
+        adapter.gridNavigator.restore(gridPosition)
     }
 
     private fun setupScrollDirection() {
@@ -1294,8 +1208,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             finish()
         } else {
             mWasFullscreenViewOpen = true
-            mLastViewedPath = path
-            mRevealPending = true
+            viewerReturn.opening(path)
             if (!path.isVideoFast()) {
                 openInViewPager(path)
                 return
@@ -1317,7 +1230,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             putExtra(SHOW_FAVORITES, mPath == FAVORITES)
             putExtra(SHOW_RECYCLE_BIN, mPath == RECYCLE_BIN)
             putExtra(IS_FROM_GALLERY, true)
-            startActivityForResult(this, REQUEST_VIEW_MEDIA)
+            startActivityForResult(this, ViewerReturn.REQUEST_CODE)
         }
     }
 

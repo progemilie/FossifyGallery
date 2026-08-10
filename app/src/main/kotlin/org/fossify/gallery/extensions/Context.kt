@@ -48,13 +48,11 @@ import org.fossify.commons.extensions.getStringValue
 import org.fossify.commons.extensions.humanizePath
 import org.fossify.commons.extensions.internalStoragePath
 import org.fossify.commons.extensions.isGif
-import org.fossify.commons.extensions.isInDownloadDir
 import org.fossify.commons.extensions.isPathOnOTG
 import org.fossify.commons.extensions.isPathOnSD
 import org.fossify.commons.extensions.isPng
 import org.fossify.commons.extensions.isPortrait
 import org.fossify.commons.extensions.isRawFast
-import org.fossify.commons.extensions.isRestrictedWithSAFSdk30
 import org.fossify.commons.extensions.isSvg
 import org.fossify.commons.extensions.isVideoFast
 import org.fossify.commons.extensions.isWebP
@@ -91,7 +89,6 @@ import org.fossify.gallery.helpers.IsoTypeReader
 import org.fossify.gallery.helpers.LOCATION_INTERNAL
 import org.fossify.gallery.helpers.LOCATION_OTG
 import org.fossify.gallery.helpers.LOCATION_SD
-import org.fossify.gallery.helpers.MAX_QUICK_CHOOSER_FOLDERS
 import org.fossify.gallery.helpers.MediaFetcher
 import org.fossify.gallery.helpers.MyWidgetProvider
 import org.fossify.gallery.helpers.PicassoRoundedCornersTransformation
@@ -106,22 +103,17 @@ import org.fossify.gallery.helpers.TYPE_PORTRAITS
 import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.TYPE_VIDEOS
-import org.fossify.gallery.helpers.XmpRating
 import org.fossify.gallery.interfaces.DateTakensDao
 import org.fossify.gallery.interfaces.DirectoryDao
 import org.fossify.gallery.interfaces.FavoritesDao
-import org.fossify.gallery.interfaces.MediaOrderDao
-import org.fossify.gallery.interfaces.MediaRatingsDao
 import org.fossify.gallery.interfaces.MediumDao
 import org.fossify.gallery.interfaces.WidgetsDao
 import org.fossify.gallery.models.AlbumCover
 import org.fossify.gallery.models.Directory
 import org.fossify.gallery.models.Favorite
-import org.fossify.gallery.models.MediaRating
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
 import org.fossify.gallery.svg.SvgSoftwareLayerSetter
-import org.fossify.gallery.views.QuickFolder
 import java.io.File
 import java.io.FileInputStream
 import java.nio.ByteBuffer
@@ -153,98 +145,7 @@ val Context.favoritesDB: FavoritesDao
 val Context.dateTakensDB: DateTakensDao
     get() = GalleryDatabase.getInstance(applicationContext).DateTakensDao()
 
-val Context.mediaOrderDB: MediaOrderDao
-    get() = GalleryDatabase.getInstance(applicationContext).MediaOrderDao()
-
-val Context.mediaRatingsDB: MediaRatingsDao
-    get() = GalleryDatabase.getInstance(applicationContext).MediaRatingsDao()
-
 val Context.recycleBin: File get() = filesDir
-
-/**
- * How a rating reads to a person: the stars themselves, or a word for having none. Matches how Aves
- * labels its rating sections.
- */
-fun Context.getRatingLabel(rating: Int) = if (rating <= 0) {
-    getString(R.string.unrated)
-} else {
-    "★".repeat(rating.coerceAtMost(XmpRating.MAX_RATING))
-}
-
-/**
- * Records that [path] is now rated [rating], both in the rating cache and on the media row the grid
- * reads back. Blocking, call it off the main thread.
- */
-fun Context.storeRating(path: String, rating: Int) {
-    val file = File(path)
-    try {
-        mediaRatingsDB.insert(
-            MediaRating(
-                fullPath = path.lowercase(Locale.getDefault()),
-                parentPath = path.getParentPath().lowercase(Locale.getDefault()),
-                rating = rating,
-                lastModified = file.lastModified(),
-                size = file.length()
-            )
-        )
-    } catch (ignored: Exception) {
-    }
-
-    try {
-        mediaDB.updateRating(path, rating)
-    } catch (ignored: Exception) {
-    }
-}
-
-/**
- * Persists the order the user arranged [paths] in for [path], and marks the folder as custom
- * ordered so [Config.hasCustomMediaOrder] can answer without touching the database. Blocking, call
- * it off the main thread.
- */
-fun Context.saveCustomMediaOrder(path: String, paths: List<String>) {
-    val folderPath = path.lowercase(Locale.getDefault())
-    mediaOrderDB.replaceFolderOrder(folderPath, paths)
-    config.addCustomMediaOrderFolder(folderPath)
-}
-
-/**
- * The saved order of [path] as a path -> position map, empty if the folder has none. Blocking,
- * call it off the main thread.
- */
-fun Context.getCustomMediaOrder(path: String): Map<String, Int> {
-    val folderPath = path.lowercase(Locale.getDefault())
-    if (!config.hasCustomMediaOrder(folderPath)) {
-        return emptyMap()
-    }
-
-    val positions = HashMap<String, Int>()
-    try {
-        mediaOrderDB.getOrderedPaths(folderPath).forEachIndexed { index, mediumPath ->
-            positions[mediumPath.lowercase(Locale.getDefault())] = index
-        }
-    } catch (ignored: Exception) {
-    }
-
-    // the index and the table drifted apart somehow, do not keep claiming an order that is not there
-    if (positions.isEmpty()) {
-        config.removeCustomMediaOrderFolder(folderPath)
-    }
-
-    return positions
-}
-
-/**
- * Drops the custom order of [path], leaving the folder to be sorted as any other. Blocking, call it
- * off the main thread.
- */
-fun Context.removeCustomMediaOrder(path: String) {
-    val folderPath = path.lowercase(Locale.getDefault())
-    config.removeCustomMediaOrderFolder(folderPath)
-    try {
-        mediaOrderDB.deleteFolderOrder(folderPath)
-    } catch (ignored: Exception) {
-    }
-}
 
 fun Context.movePinnedDirectoriesToFront(dirs: ArrayList<Directory>): ArrayList<Directory> {
     val foundFolders = ArrayList<Directory>()
@@ -274,30 +175,6 @@ fun Context.movePinnedDirectoriesToFront(dirs: ArrayList<Directory>): ArrayList<
         }
     }
     return dirs
-}
-
-// The folders the copy/move quick chooser offers when a button is held, off the main thread.
-fun Context.getQuickChooserFolders(sourcePath: String, callback: (List<QuickFolder>) -> Unit) {
-    getCachedDirectories { dirs ->
-        val source = sourcePath.trimEnd('/').getDistinctPath()
-        val reachable = dirs
-            .filter { !it.isRecycleBin() && !it.areFavorites() }
-            .filter { it.path.trimEnd('/').getDistinctPath() != source }
-            .filter { !isRestrictedWithSAFSdk30(it.path) || isInDownloadDir(it.path) }
-            .distinctBy { it.path.getDistinctPath() }
-
-        val byPath = reachable.associateBy { it.path.trimEnd('/').getDistinctPath() }
-        val recent = config.recentCopyMoveDestinations.mapNotNull { byPath[it.getDistinctPath()] }
-        val rest = getSortedDirectories(ArrayList(reachable)).filterNot { it in recent }
-
-        val folders = (recent + rest)
-            // two recents spelled differently resolve to one folder, which would otherwise offer it twice
-            .distinctBy { it.path.trimEnd('/').getDistinctPath() }
-            .take(MAX_QUICK_CHOOSER_FOLDERS)
-            .map { QuickFolder(it.path.trimEnd('/'), it.name) }
-            .reversed()
-        callback(folders)
-    }
 }
 
 @Suppress("UNCHECKED_CAST")

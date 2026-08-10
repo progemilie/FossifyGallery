@@ -107,11 +107,12 @@ Sort-by-custom for media (upstream has it for folders only). The `media_order` R
 arranged paths keyed by lowercased folder path — kept out of the media table because media rows are
 dropped and reinserted on every rescan. `Config.customMediaOrderFolders` is only an *index* of which
 folders have an order, so `hasCustomMediaOrder()` can be answered on the main thread where Room
-would throw; the table is the authority. Access via `extensions/Context.kt`
+would throw; the table is the authority. Access via `extensions/CustomMediaOrder.kt`
 (`saveCustomMediaOrder`/`getCustomMediaOrder`/`removeCustomMediaOrder`) — all blocking, all off the
 main thread.
 
-Reordering is a mode of `MediaAdapter` driven by `MediaActivity`'s reorder bar: multi-select marks a
+Reordering lives in `adapters/MediaReorderMode.kt`, which drives `MediaAdapter` rather than living
+inside it, and is put up by `MediaActivity` through `helpers/ReorderBar.kt`: multi-select marks a
 group and dragging any marked item carries the whole group. Orders export/import as plain text via
 `helpers/CustomOrderIO.kt`.
 
@@ -128,10 +129,12 @@ children — the chain is what spreads the buttons and what skips the GONE ones.
 
 Two buttons answer a hold with a picker the finger drags through without ever lifting off, and a tap
 with the dialog they always had: rating (`views/RatingChooser.kt`) and copy/move
-(`views/FolderChooser.kt`). Both share the `chooser_*` dimens and are `GlassPanel`s.
+(`views/FolderChooser.kt`). Both share the `chooser_*` dimens and are `views/HoldChooser.kt`s, which
+is a `GlassPanel` plus the gesture: `View.holdToChoose()` is what puts one on a button, so a screen
+only says what fills the chooser and what to do with the choice.
 
-`revealChooserOverButton()` lays a chooser out **INVISIBLE** and only makes it VISIBLE once
-`centerChooserOverButton()` has run.
+`revealOver()` lays a chooser out **INVISIBLE** and only makes it VISIBLE once it has been
+positioned over the button.
 
 The list is **prefetched** into `mQuickChooserFolders` on every media change: it reads Room and the
 filesystem, far too slow to run when the hold fires. Past destinations live in
@@ -149,11 +152,13 @@ A swipe up over the media in the viewer raises `views/MetadataSheet.kt`, listing
   want of a hand-written mapping. `ExifInterface` fills in for formats the library cannot parse;
   `MediaMetadataRetriever` and `MediaExtractor` cover video.
 - `helpers/MetadataSummary.kt` picks the pinned rows; `helpers/MetadataFormat.kt` holds the pure
-  value formatting. Splitting those out is what keeps each file under detekt's function-count
-  threshold — check `./gradlew detekt` before folding them back together.
-- `BaseViewerActivity.updateNavigationBarIconsForPanel()` hands the navigation bar back its normal
-  icons while the sheet covers it — the viewer otherwise forces light icons, which vanish against a
-  light-theme sheet.
+  value formatting; `views/MetadataRows.kt` inflates them. Splitting those out is what keeps each
+  file under detekt's function-count threshold — check `./gradlew detekt` before folding them back
+  together.
+- `MetadataSheet.attachTo()` is the whole of a viewer's wiring: the map row, the back gesture, and
+  `BaseViewerActivity.updateNavigationBarIconsForPanel()`, which hands the navigation bar back its
+  normal icons while the sheet covers it — the viewer otherwise forces light icons, which vanish
+  against a light-theme sheet.
 
 ### Chrome that floats over the content
 

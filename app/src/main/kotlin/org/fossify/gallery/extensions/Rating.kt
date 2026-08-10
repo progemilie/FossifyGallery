@@ -14,8 +14,49 @@ import org.fossify.commons.extensions.updateLastModified
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.XmpRating
+import org.fossify.gallery.databases.GalleryDatabase
+import org.fossify.gallery.interfaces.MediaRatingsDao
+import org.fossify.gallery.models.MediaRating
 import java.io.File
 import java.util.Locale
+
+val Context.mediaRatingsDB: MediaRatingsDao
+    get() = GalleryDatabase.getInstance(applicationContext).MediaRatingsDao()
+
+/**
+ * How a rating reads to a person: the stars themselves, or a word for having none. Matches how Aves
+ * labels its rating sections.
+ */
+fun Context.getRatingLabel(rating: Int) = if (rating <= 0) {
+    getString(R.string.unrated)
+} else {
+    "★".repeat(rating.coerceAtMost(XmpRating.MAX_RATING))
+}
+
+/**
+ * Records that [path] is now rated [rating], both in the rating cache and on the media row the grid
+ * reads back. Blocking, call it off the main thread.
+ */
+fun Context.storeRating(path: String, rating: Int) {
+    val file = File(path)
+    try {
+        mediaRatingsDB.insert(
+            MediaRating(
+                fullPath = path.lowercase(Locale.getDefault()),
+                parentPath = path.getParentPath().lowercase(Locale.getDefault()),
+                rating = rating,
+                lastModified = file.lastModified(),
+                size = file.length()
+            )
+        )
+    } catch (ignored: Exception) {
+    }
+
+    try {
+        mediaDB.updateRating(path, rating)
+    } catch (ignored: Exception) {
+    }
+}
 
 // the formats androidx's ExifInterface is able to write metadata back into. everything else can be
 // read, but a rating could never be saved to it, so the action is not offered for those
@@ -75,7 +116,8 @@ private fun ExifInterface.getXmpPacket() = getAttributeBytes(ExifInterface.TAG_X
 
 /**
  * Sets the rating of [path] to [rating] (0 clears it), off the main thread, and calls [callback] on
- * the main thread with whether it worked.
+ * the main thread with whether it worked. A format that cannot carry a rating is refused with an
+ * explanation, so no caller has to make that check for itself.
  *
  * The file's last-modified date is put back afterwards no matter how "keep last modified" is set:
  * rating a photo is not a change to the photo, and letting it re-date the file would reshuffle
@@ -85,6 +127,12 @@ private fun ExifInterface.getXmpPacket() = getAttributeBytes(ExifInterface.TAG_X
  */
 @Suppress("TooGenericExceptionCaught") // anything the write throws lands the user in the same place: the toast
 fun BaseSimpleActivity.updateFileRating(path: String, rating: Int, callback: (success: Boolean) -> Unit) {
+    if (!path.canBeRated()) {
+        toast(R.string.rating_unsupported_format)
+        callback(false)
+        return
+    }
+
     ensureWriteAccess(path) {
         ensureBackgroundThread {
             val success = try {
@@ -181,18 +229,4 @@ private fun Context.rateFileKeepingDate(path: String, rating: Int): Boolean {
 
     storeRating(path, rating)
     return written
-}
-
-/**
- * Refuses the rating with an explanation when the file's format cannot carry one, so the caller
- * does not have to repeat the check everywhere the action is reachable from.
- */
-fun BaseSimpleActivity.updateFileRatingIfSupported(path: String, rating: Int, callback: (success: Boolean) -> Unit) {
-    if (!path.canBeRated()) {
-        toast(R.string.rating_unsupported_format)
-        callback(false)
-        return
-    }
-
-    updateFileRating(path, rating, callback)
 }

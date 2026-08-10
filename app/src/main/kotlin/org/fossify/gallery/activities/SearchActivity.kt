@@ -23,6 +23,7 @@ import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.VIDEO_PLAYER_APP
 import org.fossify.gallery.helpers.VIDEO_PLAYER_SYSTEM
+import org.fossify.gallery.helpers.ViewerReturn
 import org.fossify.gallery.interfaces.MediaOperationsListener
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
@@ -33,17 +34,12 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
 
     private var mLastSearchedText = ""
 
-    private var mLastViewedPath = ""
-    private var mRevealPending = false
+    private val viewerReturn = ViewerReturn()
 
     private var mCurrAsyncTask: GetMediaAsynctask? = null
     private var mAllMedia = ArrayList<ThumbnailItem>()
 
     private val binding by viewBinding(ActivitySearchBinding::inflate)
-
-    companion object {
-        private const val REQUEST_VIEW_MEDIA = 1
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,30 +57,14 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
     override fun onResume() {
         super.onResume()
         updateMenuColors()
-        revealLastViewedItem()
+        viewerReturn.reveal(getMediaAdapter()?.gridNavigator)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
-        if (requestCode == REQUEST_VIEW_MEDIA) {
-            // the viewer tells us what it ended up on after swiping, keep the tapped path otherwise
-            val viewedPath = resultData?.getStringExtra(PATH).orEmpty()
-            if (viewedPath.isNotEmpty()) {
-                mLastViewedPath = viewedPath
-            }
+        if (requestCode == ViewerReturn.REQUEST_CODE) {
+            viewerReturn.onViewerResult(resultData)
         }
         super.onActivityResult(requestCode, resultCode, resultData)
-    }
-
-    // point out the thumbnail the fullscreen viewer was just left from, it is easy to lose track of
-    // it after swiping through a bunch of media
-    private fun revealLastViewedItem() {
-        if (!mRevealPending) {
-            return
-        }
-
-        if (getMediaAdapter()?.revealItem(mLastViewedPath) == true) {
-            mRevealPending = false
-        }
     }
 
     override fun onDestroy() {
@@ -192,8 +172,7 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
     }
 
     private fun itemClicked(path: String) {
-        mLastViewedPath = path
-        mRevealPending = true
+        viewerReturn.opening(path)
         if (!path.isVideoFast()) {
             openInViewPager(path)
             return
@@ -211,7 +190,7 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
             putExtra(PATH, path)
             putExtra(SHOW_ALL, false)
             putExtra(IS_FROM_GALLERY, true)
-            startActivityForResult(this, REQUEST_VIEW_MEDIA)
+            startActivityForResult(this, ViewerReturn.REQUEST_CODE)
         }
     }
 

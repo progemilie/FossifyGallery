@@ -11,7 +11,6 @@ import android.provider.MediaStore.Video
 import android.view.ViewGroup
 import android.widget.RelativeLayout
 import android.widget.Toast
-import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.RecyclerView
 import org.fossify.commons.dialogs.CreateNewFolderDialog
 import org.fossify.commons.dialogs.FilePickerDialog
@@ -55,7 +54,6 @@ import org.fossify.commons.extensions.isRawFast
 import org.fossify.commons.extensions.isSvg
 import org.fossify.commons.extensions.isVideoFast
 import org.fossify.commons.extensions.launchMoreAppsFromUsIntent
-import org.fossify.commons.extensions.onGlobalLayout
 import org.fossify.commons.extensions.recycleBinPath
 import org.fossify.commons.extensions.sdCardPath
 import org.fossify.commons.extensions.showErrorToast
@@ -509,7 +507,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             binding.directoriesRefreshLayout.isEnabled =
                 text.isEmpty() && config.enablePullToRefresh
             binding.directoriesSwitchSearching.beVisibleIf(text.isNotEmpty())
-            keepGridClearOfTopBar()
+            floatingTopBar.keepGridClear()
         }
 
         binding.mainMenu.requireToolbar().setOnMenuItemClickListener { menuItem ->
@@ -542,29 +540,12 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         floatingTopBar.makeFloating()
     }
 
-    /**
-     * The folder list runs the full height of the window with the search bar floating over the top
-     * of it, so it keeps its first row clear of the bar by padding rather than by starting below
-     * it, and the refresh spinner has to drop in from under the bar rather than from behind it.
-     */
     private fun setupFloatingTopBar() {
-        floatingTopBar.makeFloating()
-        floatingTopBar.attachTo(binding.directoriesGrid)
-        floatingTopBar.onHeightChanged = ::keepGridClearOfTopBar
-        binding.mainMenu.onGlobalLayout { keepGridClearOfTopBar() }
-    }
-
-    private fun keepGridClearOfTopBar() {
-        val barHeight = floatingTopBar.occupiedHeight
-        // the switch-to-file-search link keeps clear of the bar itself and the list is laid out
-        // below the link, so while it is up the list has no room left to make for itself
-        val roomToMake = if (binding.directoriesSwitchSearching.isVisible()) 0 else barHeight
-        // set here rather than in the layout because the bar's height is the status bar inset plus
-        // its own, and only the running app knows the first of those
-        binding.directoriesGrid.updatePadding(top = roomToMake)
-
-        val travel = resources.getDimensionPixelSize(R.dimen.refresh_spinner_travel)
-        binding.directoriesRefreshLayout.setProgressViewOffset(false, barHeight, barHeight + travel)
+        floatingTopBar.floatOver(binding.directoriesGrid, binding.directoriesRefreshLayout) {
+            // the switch-to-file-search link keeps clear of the bar itself and the list is laid out
+            // below the link, so while it is up the list has no room left to make for itself
+            !binding.directoriesSwitchSearching.isVisible()
+        }
     }
 
     // repainted on every resume rather than set once: the fades are drawn in the theme's own
