@@ -7,6 +7,7 @@ import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.gallery.R
+import org.fossify.gallery.helpers.Glass
 import org.fossify.gallery.helpers.XmpRating
 import kotlin.math.ceil
 
@@ -18,12 +19,13 @@ class RatingChooser @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : LinearLayout(context, attrs, defStyleAttr) {
+) : GlassPanel(context, attrs, defStyleAttr) {
 
     private val stars = ArrayList<ImageView>(XmpRating.MAX_RATING)
     private val starMargin = resources.getDimensionPixelSize(R.dimen.rating_chooser_star_margin)
     private val starSize = resources.getDimensionPixelSize(R.dimen.rating_chooser_star_size)
     private val clearGap = resources.getDimensionPixelSize(R.dimen.rating_chooser_clear_gap)
+    private val row = LinearLayout(context)
     private val clearSlot: ImageView
 
     var rating: Int = 0
@@ -36,26 +38,29 @@ class RatingChooser @JvmOverloads constructor(
         }
 
     init {
-        orientation = HORIZONTAL
-        setBackgroundResource(R.drawable.chooser_background)
+        cornerRadius = resources.getDimension(R.dimen.chooser_corner_radius)
+        blurRadius = Glass.CHOOSER_RADIUS
         elevation = resources.getDimension(R.dimen.chooser_elevation)
         resources.getDimensionPixelSize(R.dimen.chooser_padding).let {
             setPadding(it, it, it, it)
         }
 
+        row.orientation = LinearLayout.HORIZONTAL
+        addView(row, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
+
         clearSlot = ImageView(context).apply {
-            layoutParams = LayoutParams(starSize, starSize).apply {
+            layoutParams = LinearLayout.LayoutParams(starSize, starSize).apply {
                 marginStart = starMargin
                 marginEnd = clearGap
             }
             setImageResource(org.fossify.commons.R.drawable.ic_block_vector)
             contentDescription = context.getString(R.string.clear_rating)
         }
-        addView(clearSlot)
+        row.addView(clearSlot)
 
         repeat(XmpRating.MAX_RATING) {
             val star = ImageView(context).apply {
-                layoutParams = LayoutParams(starSize, starSize).apply {
+                layoutParams = LinearLayout.LayoutParams(starSize, starSize).apply {
                     marginStart = starMargin
                     marginEnd = starMargin
                 }
@@ -63,11 +68,13 @@ class RatingChooser @JvmOverloads constructor(
             }
 
             stars.add(star)
-            addView(star)
+            row.addView(star)
         }
 
         updateIcons()
     }
+
+    override fun onGlassShown() = updateIcons()
 
     // The rating the finger currently sits over, given its position on screen.
     fun ratingForPosition(rawX: Float): Int {
@@ -76,7 +83,7 @@ class RatingChooser @JvmOverloads constructor(
         }
 
         val location = IntArray(2)
-        getLocationOnScreen(location)
+        row.getLocationOnScreen(location)
 
         // measured off where the stars actually landed rather than off the whole chooser, so the
         // clear slot is not mistaken for part of the scale. taking the outer bounds of the row
@@ -96,8 +103,15 @@ class RatingChooser @JvmOverloads constructor(
     private fun isRtl() = layoutDirection == LAYOUT_DIRECTION_RTL
 
     private fun updateIcons() {
-        val clearColor = if (rating == 0) R.color.rating_clear_enabled else R.color.star_disabled
-        clearSlot.applyColorFilter(ContextCompat.getColor(context, clearColor))
+        // the clear slot is the only icon that has to read against the glass rather than stand out
+        // from it, so it follows the theme where the stars keep their own colours
+        val clearColor = if (rating == 0) {
+            Glass.contentColor(context)
+        } else {
+            ContextCompat.getColor(context, R.color.star_disabled)
+        }
+
+        clearSlot.applyColorFilter(clearColor)
 
         stars.forEachIndexed { index, star ->
             val isFilled = index < rating

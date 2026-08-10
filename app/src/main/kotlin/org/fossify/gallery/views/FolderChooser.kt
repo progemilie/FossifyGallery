@@ -1,7 +1,6 @@
 package org.fossify.gallery.views
 
 import android.content.Context
-import android.graphics.Color
 import android.text.TextUtils
 import android.util.AttributeSet
 import android.util.TypedValue
@@ -16,6 +15,7 @@ import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.getContrastColor
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.gallery.R
+import org.fossify.gallery.helpers.Glass
 import org.fossify.gallery.helpers.MAX_VISIBLE_QUICK_CHOOSER_FOLDERS
 import org.fossify.commons.R as commonsR
 
@@ -27,11 +27,12 @@ class FolderChooser @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : LinearLayout(context, attrs, defStyleAttr) {
+) : GlassPanel(context, attrs, defStyleAttr) {
 
     private val rowHeight = resources.getDimensionPixelSize(R.dimen.folder_chooser_row_height)
     private val rowPadding = resources.getDimensionPixelSize(R.dimen.folder_chooser_row_padding)
     private val textSize = resources.getDimension(R.dimen.folder_chooser_text_size)
+    private val column = LinearLayout(context)
     private val rows = LinearLayout(context)
     private val scroller = ScrollView(context)
     private val scrollUp: ImageView
@@ -60,17 +61,20 @@ class FolderChooser @JvmOverloads constructor(
         }
 
     init {
-        orientation = VERTICAL
-        setBackgroundResource(R.drawable.chooser_background)
+        cornerRadius = resources.getDimension(R.dimen.chooser_corner_radius)
+        blurRadius = Glass.CHOOSER_RADIUS
         elevation = resources.getDimension(R.dimen.chooser_elevation)
         resources.getDimensionPixelSize(R.dimen.chooser_padding).let {
             setPadding(it, it, it, it)
         }
 
-        scrollUp = buildIndicator(commonsR.drawable.ic_chevron_up_vector)
-        addView(scrollUp)
+        column.orientation = LinearLayout.VERTICAL
+        addView(column, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
 
-        rows.orientation = VERTICAL
+        scrollUp = buildIndicator(commonsR.drawable.ic_chevron_up_vector)
+        column.addView(scrollUp)
+
+        rows.orientation = LinearLayout.VERTICAL
         scroller.apply {
             isVerticalScrollBarEnabled = false
             overScrollMode = OVER_SCROLL_NEVER
@@ -79,10 +83,10 @@ class FolderChooser @JvmOverloads constructor(
             isEnabled = false
             addView(rows, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         }
-        addView(scroller, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
+        column.addView(scroller, LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
 
         scrollDown = buildIndicator(commonsR.drawable.ic_chevron_down_vector)
-        addView(scrollDown)
+        column.addView(scrollDown)
 
         autoScroller = EdgeAutoScroller(
             scroller = scroller,
@@ -96,22 +100,25 @@ class FolderChooser @JvmOverloads constructor(
     }
 
     private fun buildIndicator(iconId: Int) = ImageView(context).apply {
-        layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, rowHeight / 2)
+        layoutParams = LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, rowHeight / 2)
         setImageResource(iconId)
-        applyColorFilter(Color.WHITE)
         contentDescription = null
     }
 
+    /** Filling the list is also what repaints it, so a theme changed since is picked up on opening. */
     fun setFolders(folders: List<QuickFolder>) {
         this.folders = folders
         selectedIndex = NO_SELECTION
         rows.removeAllViews()
         folders.forEach { rows.addView(buildRow(it)) }
 
+        scrollUp.applyColorFilter(Glass.contentColor(context))
+        scrollDown.applyColorFilter(Glass.contentColor(context))
+
         // an explicit height is what makes the list scroll at all, and every row is exactly
         // rowHeight tall so the cap lands on a row boundary rather than halfway through one
         val isScrollable = folders.size > MAX_VISIBLE_QUICK_CHOOSER_FOLDERS
-        scroller.layoutParams = (scroller.layoutParams as LayoutParams).apply {
+        scroller.layoutParams = (scroller.layoutParams as LinearLayout.LayoutParams).apply {
             height = if (isScrollable) rowHeight * MAX_VISIBLE_QUICK_CHOOSER_FOLDERS else LayoutParams.WRAP_CONTENT
         }
 
@@ -130,14 +137,14 @@ class FolderChooser @JvmOverloads constructor(
     }
 
     private fun buildRow(folder: QuickFolder) = TextView(context).apply {
-        layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, rowHeight)
+        layoutParams = LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, rowHeight)
         text = folder.name
         gravity = Gravity.CENTER_VERTICAL
         isSingleLine = true
         ellipsize = TextUtils.TruncateAt.MIDDLE
         minWidth = resources.getDimensionPixelSize(R.dimen.folder_chooser_min_row_width)
         maxWidth = resources.getDimensionPixelSize(R.dimen.folder_chooser_max_row_width)
-        setTextColor(Color.WHITE)
+        setTextColor(Glass.contentColor(context))
         setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize)
         setPadding(rowPadding, 0, rowPadding, 0)
     }
@@ -190,7 +197,7 @@ class FolderChooser @JvmOverloads constructor(
             val isSelected = index == selectedIndex
             row.setBackgroundResource(if (isSelected) R.drawable.chooser_row_selected else 0)
             row.background?.setTint(highlight)
-            row.setTextColor(if (isSelected) highlight.getContrastColor() else Color.WHITE)
+            row.setTextColor(if (isSelected) highlight.getContrastColor() else Glass.contentColor(context))
         }
     }
 

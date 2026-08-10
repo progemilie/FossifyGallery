@@ -5,6 +5,4 @@
 
     <color name="star_enabled">#FFC107</color>
     <color name="star_disabled">#9E9E9E</color>
-    <color name="rating_clear_enabled">#FFFFFFFF</color>
-    <color name="chooser_background">#F0424242</color>
 </resources>

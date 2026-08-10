@@ -128,7 +128,7 @@ children — the chain is what spreads the buttons and what skips the GONE ones.
 
 Two buttons answer a hold with a picker the finger drags through without ever lifting off, and a tap
 with the dialog they always had: rating (`views/RatingChooser.kt`) and copy/move
-(`views/FolderChooser.kt`). Both share `chooser_*` dimens and `chooser_background`.
+(`views/FolderChooser.kt`). Both share the `chooser_*` dimens and are `GlassPanel`s.
 
 `revealChooserOverButton()` lays a chooser out **INVISIBLE** and only makes it VISIBLE once
 `centerChooserOverButton()` has run.
@@ -170,6 +170,10 @@ no longer paints an opaque band under its own bar.
   it over the grid) and the grid gets no top inset of its own; `keepGridClearOfTopBar()` pads it by
   the bar's measured height, which already carries the status bar inset. Doing it in the layout
   instead double-counts the inset.
+- **Frosted glass** — the search pill and both choosers are the same material: `helpers/Glass.kt`
+  holds every colour and radius, `views/GlassPanel.kt` is the `BlurView` that wears it. A panel is
+  told what to copy with `frost(contentBehind)`, which need not be an ancestor, and paints itself
+  flat where the platform has no cheap blur (below Android 12).
 
 ## Style
 

@@ -318,6 +318,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         setupOptionsMenu()
         setupThumbnailStrip()
         setupMetadataSheet()
+        setupChoosers()
         refreshMenuItems()
 
         window.decorView.setBackgroundColor(getProperBackgroundColor())
@@ -1414,6 +1415,12 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             setFolders(mQuickChooserFolders)
             revealChooserOverButton(this, button, R.dimen.folder_chooser_end_margin)
         }
+    }
+
+    /** The media is all either chooser ever covers, so it is all either one has to frost. */
+    private fun setupChoosers() {
+        binding.ratingChooser.frost(binding.viewPager)
+        binding.folderChooser.frost(binding.viewPager)
     }
 
     /** GONE rather than not-VISIBLE, since both spend their first frame laid out but not yet drawn. */
