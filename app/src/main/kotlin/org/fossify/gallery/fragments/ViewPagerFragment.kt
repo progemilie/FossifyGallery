@@ -17,6 +17,9 @@ abstract class ViewPagerFragment : Fragment() {
     private var mCloseDownThreshold = 100f
     private var mIgnoreCloseDown = false
 
+    /** Whether the gesture in progress was picked up at its ACTION_DOWN, so its end says anything. */
+    private var mTrackingGesture = false
+
     abstract fun fullscreenToggled(isFullscreen: Boolean)
 
     interface FragmentListener {
@@ -56,9 +59,35 @@ abstract class ViewPagerFragment : Fragment() {
         }
     }
 
-    protected fun handleEvent(event: MotionEvent) {
+    /**
+     * Whether the media is sitting still rather than zoomed or panned, asked of the fragment as a
+     * whole rather than of one of its views - see [handleViewerEvent].
+     */
+    open fun isFlickEligible() = true
+
+    /**
+     * Runs the flick detection over an event the fragment's own views did not get to see, which the
+     * viewer feeds in from [android.app.Activity.dispatchTouchEvent].
+     *
+     * Safe to call alongside the views' own listeners: [handleEvent] answers only the first
+     * ACTION_UP of a gesture, so whichever path sees the whole gesture takes the flick and the
+     * other finds nothing left to do.
+     */
+    fun handleViewerEvent(event: MotionEvent) = handleEvent(event) { isFlickEligible() }
+
+    /**
+     * Turns a vertical flick over the media into a metadata panel or a closed viewer.
+     *
+     * [isEligible] - "is the media sitting still rather than zoomed or panned" - is asked once per
+     * gesture, at its ACTION_DOWN, and that answer holds until the finger lifts. Asking it per event
+     * tears a gesture in half whenever it changes under one: a swipe begun while the image is still
+     * decoding has its ACTION_DOWN dropped and its ACTION_UP let through, and is then measured
+     * against a touch-down that never happened.
+     */
+    protected fun handleEvent(event: MotionEvent, isEligible: () -> Boolean = { true }) {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                mTrackingGesture = isEligible()
                 mTouchDownTime = System.currentTimeMillis()
                 mTouchDownX = event.rawX
                 mTouchDownY = event.rawY
@@ -66,11 +95,15 @@ abstract class ViewPagerFragment : Fragment() {
 
             MotionEvent.ACTION_POINTER_DOWN -> mIgnoreCloseDown = true
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                val wasTracking = mTrackingGesture
+                mTrackingGesture = false
+
                 val diffX = mTouchDownX - event.rawX
                 val diffY = mTouchDownY - event.rawY
 
                 val downGestureDuration = System.currentTimeMillis() - mTouchDownTime
-                val isFlick = !mIgnoreCloseDown &&
+                val isFlick = wasTracking &&
+                    !mIgnoreCloseDown &&
                     abs(diffY) > abs(diffX) &&
                     downGestureDuration < MAX_CLOSE_DOWN_GESTURE_DURATION
 

@@ -227,6 +227,11 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     private var mIsSlideshowActive = false
     private var mPrevHashcode = 0
 
+    private var mPagerScrollState = ViewPager.SCROLL_STATE_IDLE
+
+    /** Whether the gesture in progress began while the pager was still moving; see [dispatchTouchEvent]. */
+    private var mPagerTookGesture = false
+
     private var mSlideshowHandler = Handler()
     private var mSlideshowInterval = SLIDESHOW_DEFAULT_INTERVAL
     private var mSlideshowMoveBackwards = false
@@ -267,6 +272,41 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
     override val isPanelCoveringNavigationBar: Boolean
         get() = metadataSheet.isSheetVisible
+
+    /**
+     * Makes sure the fragment under the finger sees a whole flick, which the view it started on
+     * cannot be relied on to deliver. Two ways a gesture goes missing:
+     *
+     * - ViewPager reads a touch landing while its scroller is still settling from the last page
+     *   change as a drag already under way, and keeps every event of it to itself. That is the
+     *   flick up for the metadata panel made straight after swiping to the next photo, and it is
+     *   forwarded here from its ACTION_DOWN on. The pager makes nothing of a vertical drag anyway.
+     * - A photo still loading leaves its view uninterested in the ACTION_DOWN, and a view that
+     *   turns the ACTION_DOWN down is not sent the rest of the gesture - the flick's beginning is
+     *   seen and its end delivered elsewhere. The end is replayed below, after the ordinary
+     *   dispatch has had its chance.
+     *
+     * Both are safe to feed in: a gesture is answered once, by whichever path saw all of it, and
+     * one that never reached the media in the first place - a button, the thumbnail strip, the
+     * brightness slider - has no beginning on record and so is not finished here either.
+     */
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
+            mPagerTookGesture = mPagerScrollState != ViewPager.SCROLL_STATE_IDLE
+        }
+
+        if (mPagerTookGesture) {
+            getCurrentFragment()?.handleViewerEvent(ev)
+        }
+
+        val handled = super.dispatchTouchEvent(ev)
+
+        if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) {
+            getCurrentFragment()?.handleViewerEvent(ev)
+        }
+
+        return handled
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -1982,6 +2022,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     }
 
     override fun onPageScrollStateChanged(state: Int) {
+        mPagerScrollState = state
         if (state == ViewPager.SCROLL_STATE_IDLE && getCurrentMedium() != null) {
             checkOrientation()
         }
