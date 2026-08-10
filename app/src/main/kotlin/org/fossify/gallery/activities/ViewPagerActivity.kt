@@ -135,7 +135,7 @@ import org.fossify.gallery.extensions.tryDeleteFileDirItem
 import org.fossify.gallery.extensions.updateDBMediaPath
 import org.fossify.gallery.extensions.updateFavorite
 import org.fossify.gallery.extensions.updateFavoritePaths
-import org.fossify.gallery.extensions.updateFileRatingIfSupported
+import org.fossify.gallery.extensions.updateFileRating
 import org.fossify.gallery.fragments.PhotoFragment
 import org.fossify.gallery.fragments.VideoFragment
 import org.fossify.gallery.fragments.ViewPagerFragment
@@ -1308,7 +1308,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             return
         }
 
-        updateFileRatingIfSupported(medium.path, rating) { success ->
+        updateFileRating(medium.path, rating) { success ->
             if (success) {
                 // the media list this screen was handed shares its items with the grid behind it,
                 // so the grid is up to date the moment this is

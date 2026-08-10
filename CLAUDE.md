@@ -107,7 +107,7 @@ Sort-by-custom for media (upstream has it for folders only). The `media_order` R
 arranged paths keyed by lowercased folder path — kept out of the media table because media rows are
 dropped and reinserted on every rescan. `Config.customMediaOrderFolders` is only an *index* of which
 folders have an order, so `hasCustomMediaOrder()` can be answered on the main thread where Room
-would throw; the table is the authority. Access via `extensions/Context.kt`
+would throw; the table is the authority. Access via `extensions/CustomMediaOrder.kt`
 (`saveCustomMediaOrder`/`getCustomMediaOrder`/`removeCustomMediaOrder`) — all blocking, all off the
 main thread.
 
