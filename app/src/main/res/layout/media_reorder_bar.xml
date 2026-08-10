@@ -36,17 +36,10 @@
         android:scaleType="fitCenter"
         android:src="@drawable/ic_move_to_bottom_vector" />
 
-    <org.fossify.commons.views.MyTextView
-        android:id="@+id/reorder_hint"
+    <Space
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/small_margin"
-        android:layout_marginEnd="@dimen/medium_margin"
-        android:layout_weight="1"
-        android:ellipsize="end"
-        android:maxLines="2"
-        android:text="@string/reorder_media_by_dragging"
-        android:textSize="@dimen/smaller_text_size" />
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/reorder_cancel"

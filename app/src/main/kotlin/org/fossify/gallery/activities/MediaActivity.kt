@@ -565,7 +565,6 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             root.backgroundTintList = ColorStateList.valueOf(getBottomNavigationBackgroundColor())
             reorderMoveToTop.applyColorFilter(textColor)
             reorderMoveToBottom.applyColorFilter(textColor)
-            reorderHint.setTextColor(textColor)
 
             reorderCancel.setTextColor(textColor)
             reorderCancel.strokeColor = ColorStateList.valueOf(textColor.adjustAlpha(MEDIUM_ALPHA))
@@ -579,22 +578,11 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     }
 
     /**
-     * The hint carries whatever is the useful thing to know next: how to pick an item up while
-     * nothing is marked, what a drag will take along once something is, and - while a group is off
-     * the grid travelling with the finger - how many items are in the air.
-     *
      * The two send-to-an-end buttons have nothing to act on until something is marked, so they stay
      * in place but dimmed until then rather than appearing and moving the rest of the bar along.
      */
-    private fun updateReorderState(markedCount: Int, carriedCount: Int) {
-        val hint = when {
-            carriedCount > 1 -> resources.getQuantityString(R.plurals.reorder_moving_items, carriedCount, carriedCount)
-            markedCount > 0 -> resources.getQuantityString(R.plurals.reorder_selected_items, markedCount, markedCount)
-            else -> getString(R.string.reorder_media_by_dragging)
-        }
-
+    private fun updateReorderState(markedCount: Int) {
         binding.mediaReorderBar.apply {
-            reorderHint.text = hint
             val canMove = markedCount > 0
             listOf(reorderMoveToTop, reorderMoveToBottom).forEach {
                 it.isEnabled = canMove

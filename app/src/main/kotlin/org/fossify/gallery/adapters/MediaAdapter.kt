@@ -159,8 +159,8 @@ class MediaAdapter(
     private var carriedItems = emptyList<Medium>()
     private var draggedPath: String? = null
 
-    // told what is marked and what a drag is carrying, so the reorder bar can say so
-    var onReorderStateChanged: ((marked: Int, carried: Int) -> Unit)? = null
+    // told how many items are marked, so the reorder bar can enable what acts on them
+    var onReorderStateChanged: ((marked: Int) -> Unit)? = null
 
     private var scrollHorizontally = config.scrollHorizontally
     private var animateGifs = config.animateGifs
@@ -1243,7 +1243,7 @@ class MediaAdapter(
 
     private fun indexOfPath(path: String) = media.indexOfFirst { (it as? Medium)?.path == path }
 
-    private fun notifyReorderState() = onReorderStateChanged?.invoke(reorderSelection.size, carriedItems.size)
+    private fun notifyReorderState() = onReorderStateChanged?.invoke(reorderSelection.size)
 
     /**
      * Pulls the picked up thumbnail out of the grid - smaller, ringed in the accent color and
