@@ -139,6 +139,9 @@ class PhotoFragment : ViewPagerFragment() {
     private var mInitialZoom = 1f
     private var mHasInitialZoom = false
 
+    /** Stops [mInitialZoom] following the image once the zoom can be the viewer's own doing. */
+    private var mWasGesturesViewTouched = false
+
     private var mStoredAllowDeepZoomableImages = false
     private var mStoredShowHighestQuality = false
 
@@ -186,21 +189,19 @@ class PhotoFragment : ViewPagerFragment() {
             // the down gesture is on, since swiping up opens the metadata sheet either way, and
             // handleEvent is what decides which of the two a given flick was
             gifView.setOnTouchListener { v, event ->
-                handleEvent(event) { gifViewFrame.controller.state.zoom == 1f }
+                handleEvent(event) { isGifUnzoomed() }
                 false
             }
 
             setupGesturesViewStateListener()
             gesturesView.setOnTouchListener { v, event ->
-                handleEvent(event) { abs(mCurrentGestureViewZoom - mInitialZoom) < MAX_ZOOM_EQUALITY_TOLERANCE }
+                handleEvent(event) { isGesturesViewUnzoomed() }
+                mWasGesturesViewTouched = true
                 false
             }
 
             subsamplingView.setOnTouchListener { v, event ->
-                // scale is 0 until the tiles are decoded, and isZoomedOut() measures it against a
-                // full scale worked out from dimensions the view does not have yet - an image no
-                // one has had the chance to zoom into is zoomed out
-                handleEvent(event) { subsamplingView.scale == 0f || subsamplingView.isZoomedOut() }
+                handleEvent(event) { isSubsamplingViewUnzoomed() }
                 false
             }
         }
@@ -423,6 +424,7 @@ class PhotoFragment : ViewPagerFragment() {
 
     private fun loadImage() {
         mHasInitialZoom = false
+        mWasGesturesViewTouched = false
         checkScreenDimensions()
 
         if (mMedium.isPortrait() && context != null) {
@@ -497,6 +499,7 @@ class PhotoFragment : ViewPagerFragment() {
 
     private fun loadBitmap(addZoomableView: Boolean = true) {
         mHasInitialZoom = false
+        mWasGesturesViewTouched = false
         if (context == null) return
         val path = getFilePathToShow()
         if (path.isWebP()) {
@@ -634,6 +637,25 @@ class PhotoFragment : ViewPagerFragment() {
         }
     }
 
+    private fun isGifUnzoomed() = binding.gifViewFrame.controller.state.zoom == 1f
+
+    private fun isGesturesViewUnzoomed() = abs(mCurrentGestureViewZoom - mInitialZoom) < MAX_ZOOM_EQUALITY_TOLERANCE
+
+    /**
+     * scale is 0 until the tiles are decoded, and isZoomedOut() measures it against a full scale
+     * worked out from dimensions the view does not have yet - an image no one has had the chance to
+     * zoom into is zoomed out.
+     */
+    private fun isSubsamplingViewUnzoomed() =
+        binding.subsamplingView.scale == 0f || binding.subsamplingView.isZoomedOut()
+
+    /** Whichever of the three views is the one currently showing the photo. */
+    override fun isFlickEligible() = when {
+        binding.gifViewFrame.isVisible() -> isGifUnzoomed()
+        mIsSubsamplingVisible -> isSubsamplingViewUnzoomed()
+        else -> isGesturesViewUnzoomed()
+    }
+
     private fun setupGesturesViewStateListener() {
         binding.gesturesView.controller.addOnStateChangeListener(object : GestureController.OnStateChangeListener {
             override fun onStateChanged(state: State) {
@@ -649,6 +671,15 @@ class PhotoFragment : ViewPagerFragment() {
                     }
                     settings.doubleTapZoom = target.coerceAtMost(settings.maxZoom)
                     mHasInitialZoom = true
+                }
+
+                // the low-res preview and the full image are two separate loads into the same
+                // view, and they come to rest at different zooms; a reference taken once is left
+                // describing whichever arrived first, and every later flick is read as a drag on a
+                // zoomed image. Follow the image until the viewer touches it, after which a
+                // changed zoom is theirs and worth measuring against
+                if (!mWasGesturesViewTouched) {
+                    mInitialZoom = state.zoom
                 }
 
                 mCurrentGestureViewZoom = state.zoom

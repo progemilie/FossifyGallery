@@ -60,6 +60,22 @@ abstract class ViewPagerFragment : Fragment() {
     }
 
     /**
+     * Whether the media is sitting still rather than zoomed or panned, asked of the fragment as a
+     * whole rather than of one of its views - see [handleViewerEvent].
+     */
+    open fun isFlickEligible() = true
+
+    /**
+     * Runs the flick detection over an event the fragment's own views did not get to see, which the
+     * viewer feeds in from [android.app.Activity.dispatchTouchEvent].
+     *
+     * Safe to call alongside the views' own listeners: [handleEvent] answers only the first
+     * ACTION_UP of a gesture, so whichever path sees the whole gesture takes the flick and the
+     * other finds nothing left to do.
+     */
+    fun handleViewerEvent(event: MotionEvent) = handleEvent(event) { isFlickEligible() }
+
+    /**
      * Turns a vertical flick over the media into a metadata panel or a closed viewer.
      *
      * [isEligible] - "is the media sitting still rather than zoomed or panned" - is asked once per

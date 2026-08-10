@@ -240,7 +240,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             }
 
             videoSurfaceFrame.setOnTouchListener { view, event ->
-                handleEvent(event) { videoSurfaceFrame.controller.state.zoom == 1f }
+                handleEvent(event) { isFlickEligible() }
                 handleTouchHoldEvent(event)
                 if (mIsLongPressActive) {
                     return@setOnTouchListener true
@@ -949,6 +949,8 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             mTextureView.layoutParams = this
         }
     }
+
+    override fun isFlickEligible() = binding.videoSurfaceFrame.controller.state.zoom == 1f
 
     private fun handleTouchHoldEvent(event: MotionEvent) {
         when (event.actionMasked) {
