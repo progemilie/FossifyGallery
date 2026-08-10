@@ -186,20 +186,21 @@ class PhotoFragment : ViewPagerFragment() {
             // the down gesture is on, since swiping up opens the metadata sheet either way, and
             // handleEvent is what decides which of the two a given flick was
             gifView.setOnTouchListener { v, event ->
-                if (gifViewFrame.controller.state.zoom == 1f) handleEvent(event)
+                handleEvent(event) { gifViewFrame.controller.state.zoom == 1f }
                 false
             }
 
             setupGesturesViewStateListener()
             gesturesView.setOnTouchListener { v, event ->
-                if (abs(mCurrentGestureViewZoom - mInitialZoom) < MAX_ZOOM_EQUALITY_TOLERANCE) {
-                    handleEvent(event)
-                }
+                handleEvent(event) { abs(mCurrentGestureViewZoom - mInitialZoom) < MAX_ZOOM_EQUALITY_TOLERANCE }
                 false
             }
 
             subsamplingView.setOnTouchListener { v, event ->
-                if (subsamplingView.isZoomedOut()) handleEvent(event)
+                // scale is 0 until the tiles are decoded, and isZoomedOut() measures it against a
+                // full scale worked out from dimensions the view does not have yet - an image no
+                // one has had the chance to zoom into is zoomed out
+                handleEvent(event) { subsamplingView.scale == 0f || subsamplingView.isZoomedOut() }
                 false
             }
         }
