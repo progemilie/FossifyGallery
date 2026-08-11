@@ -29,6 +29,7 @@ import org.fossify.commons.dialogs.RenameItemsDialog
 import org.fossify.commons.dialogs.SecurityDialog
 import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.beGone
+import org.fossify.commons.extensions.beInvisibleIf
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.containsNoMedia
@@ -69,10 +70,13 @@ import org.fossify.gallery.databinding.DirectoryItemGridSquareBinding
 import org.fossify.gallery.databinding.DirectoryItemListBinding
 import org.fossify.gallery.dialogs.ConfirmDeleteFolderDialog
 import org.fossify.gallery.dialogs.ExcludeFolderDialog
+import org.fossify.gallery.dialogs.FolderGroupNameDialog
 import org.fossify.gallery.dialogs.PickMediumDialog
 import org.fossify.gallery.extensions.addNoMedia
+import org.fossify.gallery.extensions.addToFolderGroup
 import org.fossify.gallery.extensions.checkAppendingHidden
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.extensions.createFolderGroup
 import org.fossify.gallery.extensions.directoryDB
 import org.fossify.gallery.extensions.emptyAndDisableTheRecycleBin
 import org.fossify.gallery.extensions.emptyTheRecycleBin
@@ -80,9 +84,13 @@ import org.fossify.gallery.extensions.favoritesDB
 import org.fossify.gallery.extensions.fixDateTaken
 import org.fossify.gallery.extensions.getShortcutImage
 import org.fossify.gallery.extensions.isThisOrParentFolderHidden
+import org.fossify.gallery.extensions.loadFolderGroupCell
 import org.fossify.gallery.extensions.loadImage
 import org.fossify.gallery.extensions.mediaDB
+import org.fossify.gallery.extensions.removeFolderGroups
 import org.fossify.gallery.extensions.removeNoMedia
+import org.fossify.gallery.extensions.renameFolderGroup
+import org.fossify.gallery.extensions.saveFolderGroupOrder
 import org.fossify.gallery.extensions.showRecycleBinEmptyingDialog
 import org.fossify.gallery.extensions.tryCopyMoveFilesTo
 import org.fossify.gallery.helpers.DIRECTORY
@@ -92,6 +100,7 @@ import org.fossify.gallery.helpers.FOLDER_STYLE_ROUNDED_CORNERS
 import org.fossify.gallery.helpers.FOLDER_STYLE_SQUARE
 import org.fossify.gallery.helpers.LOCATION_INTERNAL
 import org.fossify.gallery.helpers.LOCATION_SD
+import org.fossify.gallery.helpers.MAX_FOLDER_GROUP_COVERS
 import org.fossify.gallery.helpers.PaddedGridMoveCallback
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.RECYCLE_BIN
@@ -117,6 +126,10 @@ class DirectoryAdapter(
     recyclerView: MyRecyclerView,
     val isPickIntent: Boolean,
     val swipeRefreshLayout: SwipeRefreshLayout? = null,
+    // set while the grid is showing one folder group's contents, so a hand made order lands on
+    // that group's member list rather than on the global folder order. the screen keeps this in
+    // step as the user walks in and out of groups - the adapter itself is not rebuilt for it
+    var openGroupId: Long = 0L,
     itemClick: (Any) -> Unit
 ) :
     MyRecyclerViewAdapter(activity, recyclerView, itemClick), ItemTouchHelperContract,
@@ -175,13 +188,17 @@ class DirectoryAdapter(
             return
         }
 
+        val selectedGroups = getSelectedGroups()
+        val selectedFolders = getSelectedFolders()
+        val anyGroupSelected = selectedGroups.isNotEmpty()
         val isOneItemSelected = isOneItemSelected()
         menu.apply {
             findItem(R.id.cab_move_to_top).isVisible = isDragAndDropping
             findItem(R.id.cab_move_to_bottom).isVisible = isDragAndDropping
 
-            findItem(R.id.cab_rename).isVisible = !selectedPaths.contains(FAVORITES) && !selectedPaths.contains(RECYCLE_BIN)
-            findItem(R.id.cab_change_cover_image).isVisible = isOneItemSelected
+            findItem(R.id.cab_rename).isVisible = !anyGroupSelected &&
+                !selectedPaths.contains(FAVORITES) && !selectedPaths.contains(RECYCLE_BIN)
+            findItem(R.id.cab_change_cover_image).isVisible = isOneItemSelected && !anyGroupSelected
 
             findItem(R.id.cab_lock).isVisible = selectedPaths.any { !config.isFolderProtected(it) }
             findItem(R.id.cab_unlock).isVisible = selectedPaths.any { config.isFolderProtected(it) }
@@ -189,10 +206,14 @@ class DirectoryAdapter(
             findItem(R.id.cab_empty_recycle_bin).isVisible = isOneItemSelected && selectedPaths.first() == RECYCLE_BIN
             findItem(R.id.cab_empty_disable_recycle_bin).isVisible = isOneItemSelected && selectedPaths.first() == RECYCLE_BIN
 
-            findItem(R.id.cab_create_shortcut).isVisible = isOneItemSelected
+            findItem(R.id.cab_create_shortcut).isVisible = isOneItemSelected && !anyGroupSelected
+            // a group is not a folder, so there is nothing to delete that ungrouping would not
+            // undo - and deleting one would have to mean deleting every folder under it
+            findItem(R.id.cab_delete).isVisible = !anyGroupSelected
 
+            checkGroupBtnVisibility(this, selectedGroups, selectedFolders)
             checkHideBtnVisibility(this, selectedPaths)
-            checkPinBtnVisibility(this, selectedPaths)
+            checkPinBtnVisibility(this, getSelectedTilePaths())
         }
     }
 
@@ -223,6 +244,10 @@ class DirectoryAdapter(
             R.id.cab_delete -> askConfirmDelete()
             R.id.cab_select_photo -> tryChangeAlbumCover(false)
             R.id.cab_use_default -> tryChangeAlbumCover(true)
+            R.id.cab_group_folders -> groupSelectedFolders()
+            R.id.cab_add_to_group -> addSelectedFoldersToGroup()
+            R.id.cab_ungroup_folders -> ungroupSelectedGroups()
+            R.id.cab_rename_group -> renameSelectedGroup()
         }
     }
 
@@ -241,8 +266,14 @@ class DirectoryAdapter(
             notifyDataSetChanged()
 
             val reorderedFoldersList = dirs.map { it.path }
-            config.customFoldersOrder = TextUtils.join("|||", reorderedFoldersList)
-            config.directorySorting = SORT_BY_CUSTOM
+            if (openGroupId != 0L) {
+                // inside a group the order is the group's own, and it is what the collage reads -
+                // the global folder order has nothing to say about folders it never shows
+                activity.saveFolderGroupOrder(openGroupId, reorderedFoldersList)
+            } else {
+                config.customFoldersOrder = TextUtils.join("|||", reorderedFoldersList)
+                config.directorySorting = SORT_BY_CUSTOM
+            }
         }
 
         isDragAndDropping = false
@@ -251,7 +282,9 @@ class DirectoryAdapter(
     override fun onViewRecycled(holder: ViewHolder) {
         super.onViewRecycled(holder)
         if (!activity.isDestroyed) {
-            Glide.with(activity).clear(bindItem(holder.itemView).dirThumbnail)
+            val binding = bindItem(holder.itemView)
+            Glide.with(activity).clear(binding.dirThumbnail)
+            binding.dirGroupThumbnail.clearCells { Glide.with(activity).clear(it) }
         }
     }
 
@@ -267,6 +300,81 @@ class DirectoryAdapter(
         val pinnedFolders = config.pinnedFolders
         menu.findItem(R.id.cab_pin).isVisible = selectedPaths.any { !pinnedFolders.contains(it) }
         menu.findItem(R.id.cab_unpin).isVisible = selectedPaths.any { pinnedFolders.contains(it) }
+    }
+
+    /**
+     * What the selection can be made into. Folders alone can become a new group; folders picked
+     * alongside exactly one group join that group instead. Two groups offer nothing - merging them
+     * would have to guess which name to keep.
+     */
+    private fun checkGroupBtnVisibility(
+        menu: Menu,
+        selectedGroups: List<Directory>,
+        selectedFolders: List<Directory>
+    ) {
+        val groupableFolders = selectedFolders.filter { it.canBeGrouped() }
+        menu.findItem(R.id.cab_group_folders).isVisible =
+            selectedGroups.isEmpty() && groupableFolders.isNotEmpty()
+        menu.findItem(R.id.cab_add_to_group).isVisible =
+            selectedGroups.size == 1 && groupableFolders.isNotEmpty()
+        menu.findItem(R.id.cab_ungroup_folders).isVisible =
+            selectedGroups.isNotEmpty() && selectedFolders.isEmpty()
+        menu.findItem(R.id.cab_rename_group).isVisible =
+            selectedGroups.size == 1 && selectedFolders.isEmpty()
+    }
+
+    private fun groupSelectedFolders() {
+        val paths = groupablePaths()
+        if (paths.isEmpty()) {
+            return
+        }
+
+        FolderGroupNameDialog(activity, R.string.new_group) { name ->
+            activity.createFolderGroup(name, paths)
+            finishActMode()
+            listener?.refreshItems()
+        }
+    }
+
+    private fun addSelectedFoldersToGroup() {
+        val group = getSelectedGroups().singleOrNull() ?: return
+        val paths = groupablePaths()
+        if (paths.isEmpty()) {
+            return
+        }
+
+        activity.addToFolderGroup(group.folderGroupId(), paths)
+        finishActMode()
+        listener?.refreshItems()
+    }
+
+    private fun ungroupSelectedGroups() {
+        val ids = getSelectedGroups().map { it.folderGroupId() }
+        if (ids.isEmpty()) {
+            return
+        }
+
+        activity.removeFolderGroups(ids)
+        finishActMode()
+        listener?.refreshItems()
+    }
+
+    private fun renameSelectedGroup() {
+        val group = getSelectedGroups().singleOrNull() ?: return
+        FolderGroupNameDialog(activity, R.string.rename_group, group.name) { name ->
+            activity.renameFolderGroup(group.folderGroupId(), name)
+            finishActMode()
+            listener?.refreshItems()
+        }
+    }
+
+    /**
+     * The selected folders that can go into a group, in the order the grid holds them rather than
+     * the order they happened to be tapped - that order becomes the group's, and the collage.
+     */
+    private fun groupablePaths(): List<String> {
+        val selected = getSelectedFolders().filter { it.canBeGrouped() }.map { it.path }.toHashSet()
+        return dirs.map { it.path }.filter { selected.contains(it) }
     }
 
     private fun moveSelectedItemsToTop() {
@@ -292,7 +400,9 @@ class DirectoryAdapter(
     }
 
     private fun showProperties() {
-        if (selectedKeys.size <= 1) {
+        // one selected group is several folders, so it takes the multi path dialog even though
+        // only one tile is selected
+        if (selectedKeys.size <= 1 && getSelectedGroups().isEmpty()) {
             val path = getFirstSelectedItemPath() ?: return
             if (path != FAVORITES && path != RECYCLE_BIN) {
                 activity.handleLockedFolderOpening(path) { success ->
@@ -546,10 +656,11 @@ class DirectoryAdapter(
     }
 
     private fun pinFolders(pin: Boolean) {
+        // by tile: pinning a group holds the group at the top, not each of its folders separately
         if (pin) {
-            config.addPinnedFolders(getSelectedPaths().toHashSet())
+            config.addPinnedFolders(getSelectedTilePaths().toHashSet())
         } else {
-            config.removePinnedFolders(getSelectedPaths().toHashSet())
+            config.removePinnedFolders(getSelectedTilePaths().toHashSet())
         }
 
         currentDirectoriesHash = 0
@@ -798,7 +909,21 @@ class DirectoryAdapter(
 
     private fun getSelectedItems() = selectedKeys.mapNotNull { getItemWithKey(it) } as ArrayList<Directory>
 
-    private fun getSelectedPaths() = getSelectedItems().map { it.path } as ArrayList<String>
+    private fun getSelectedGroups() = getSelectedItems().filter { it.isFolderGroup() }
+
+    private fun getSelectedFolders() = getSelectedItems().filter { !it.isFolderGroup() }
+
+    /**
+     * The real folders the selection stands for: a group is replaced by its members, so hiding,
+     * excluding, locking, copying and moving reach every folder under a selected group. Anything
+     * that means the tile itself rather than what it holds wants [getSelectedTilePaths].
+     */
+    private fun getSelectedPaths() = getSelectedItems()
+        .flatMap { if (it.isFolderGroup()) it.groupMembers.map { member -> member.path } else listOf(it.path) }
+        .toMutableList() as ArrayList<String>
+
+    /** The selection as the grid holds it, a group standing under its own synthetic path. */
+    private fun getSelectedTilePaths() = getSelectedItems().map { it.path } as ArrayList<String>
 
     private fun getFirstSelectedItem() = getItemWithKey(selectedKeys.first())
 
@@ -878,41 +1003,8 @@ class DirectoryAdapter(
                 }
             }
 
-            if (lockedFolderPaths.contains(directory.path)) {
-                dirLock.beVisible()
-                dirLock.background = ColorDrawable(root.context.getProperBackgroundColor())
-                dirLock.applyColorFilter(root.context.getProperBackgroundColor().getContrastColor())
-            } else {
-                dirLock.beGone()
-                val roundedCorners = when {
-                    isListViewType -> ROUNDED_CORNERS_SMALL
-                    folderStyle == FOLDER_STYLE_SQUARE -> ROUNDED_CORNERS_NONE
-                    else -> ROUNDED_CORNERS_BIG
-                }
-
-                dirThumbnail.setBackgroundResource(
-                    when (roundedCorners) {
-                        ROUNDED_CORNERS_SMALL -> R.drawable.placeholder_rounded_small
-                        ROUNDED_CORNERS_BIG -> R.drawable.placeholder_rounded_big
-                        else -> R.drawable.placeholder_square
-                    }
-                )
-
-                activity.loadImage(
-                    type = thumbnailType,
-                    path = directory.tmb,
-                    target = dirThumbnail,
-                    horizontalScroll = scrollHorizontally,
-                    animateGifs = animateGifs,
-                    cropThumbnails = cropThumbnails,
-                    roundCorners = roundedCorners,
-                    signature = directory.getKey(),
-                    onError = {
-                        dirThumbnail.scaleType = ImageView.ScaleType.CENTER
-                        dirThumbnail.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_vector_warning_colored))
-                    }
-                )
-            }
+            val isGroup = directory.isFolderGroup()
+            bindThumbnail(this, directory, thumbnailType, isGroup, isSelected)
 
             dirPin.beVisibleIf(pinnedFolders.contains(directory.path))
             dirLocation.beVisibleIf(directory.location != LOCATION_INTERNAL)
@@ -933,7 +1025,14 @@ class DirectoryAdapter(
                 nameCount += " (${directory.subfoldersMediaCount})"
             }
 
-            if (groupDirectSubfolders) {
+            if (isGroup) {
+                // how many folders stand under the tile, which the collage stops saying past four
+                nameCount += " · " + resources.getQuantityString(
+                    R.plurals.folders_in_group,
+                    directory.groupMembers.size,
+                    directory.groupMembers.size
+                )
+            } else if (groupDirectSubfolders) {
                 if (directory.subfoldersCount > 1) {
                     nameCount += " [${directory.subfoldersCount}]"
                 }
@@ -964,6 +1063,90 @@ class DirectoryAdapter(
                     }
                     false
                 }
+            }
+        }
+    }
+
+    /** Draws the tile's cover: a locked folder's padlock, a group's collage, or a folder's own. */
+    private fun bindThumbnail(
+        binding: DirectoryItemBinding,
+        directory: Directory,
+        thumbnailType: Int,
+        isGroup: Boolean,
+        isSelected: Boolean
+    ) = binding.apply {
+        // the badge and the selection check share the corner, and the check has to win it
+        dirGroupBadge.beVisibleIf(isGroup && !isSelected)
+        dirGroupThumbnail.beVisibleIf(isGroup)
+        // the collage draws in the thumbnail's place, so the thumbnail itself has to give up both
+        // its image and the placeholder behind it or they show through the cell gaps
+        dirThumbnail.beInvisibleIf(isGroup)
+
+        if (lockedFolderPaths.contains(directory.path)) {
+            dirLock.beVisible()
+            dirLock.background = ColorDrawable(root.context.getProperBackgroundColor())
+            dirLock.applyColorFilter(root.context.getProperBackgroundColor().getContrastColor())
+            return@apply
+        }
+
+        dirLock.beGone()
+        val roundedCorners = when {
+            isListViewType -> ROUNDED_CORNERS_SMALL
+            folderStyle == FOLDER_STYLE_SQUARE -> ROUNDED_CORNERS_NONE
+            else -> ROUNDED_CORNERS_BIG
+        }
+
+        val placeholder = when (roundedCorners) {
+            ROUNDED_CORNERS_SMALL -> R.drawable.placeholder_rounded_small
+            ROUNDED_CORNERS_BIG -> R.drawable.placeholder_rounded_big
+            else -> R.drawable.placeholder_square
+        }
+
+        if (isGroup) {
+            bindGroupThumbnail(this, directory, roundedCorners, placeholder)
+            return@apply
+        }
+
+        dirThumbnail.setBackgroundResource(placeholder)
+        activity.loadImage(
+            type = thumbnailType,
+            path = directory.tmb,
+            target = dirThumbnail,
+            horizontalScroll = scrollHorizontally,
+            animateGifs = animateGifs,
+            cropThumbnails = cropThumbnails,
+            roundCorners = roundedCorners,
+            signature = directory.getKey(),
+            onError = {
+                dirThumbnail.scaleType = ImageView.ScaleType.CENTER
+                dirThumbnail.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_vector_warning_colored))
+            }
+        )
+    }
+
+    /**
+     * Draws a folder group's cover: its leading members' thumbnails, laid out by how many there
+     * are. The corners are cut by the collage clipping itself, so the cells are loaded plain.
+     */
+    private fun bindGroupThumbnail(
+        binding: DirectoryItemBinding,
+        directory: Directory,
+        roundedCorners: Int,
+        placeholder: Int
+    ) {
+        val members = directory.groupMembers.take(MAX_FOLDER_GROUP_COVERS)
+        val radius = when (roundedCorners) {
+            ROUNDED_CORNERS_SMALL -> resources.getDimension(org.fossify.commons.R.dimen.rounded_corner_radius_small)
+            ROUNDED_CORNERS_BIG -> resources.getDimension(org.fossify.commons.R.dimen.rounded_corner_radius_big)
+            else -> 0f
+        }
+
+        binding.dirGroupThumbnail.apply {
+            setCornerRadius(radius)
+            setBorderColor(properPrimaryColor)
+            prepareCells(members.size, placeholder).forEachIndexed { index, cell ->
+                val member = members[index]
+                activity.loadFolderGroupCell(member.tmb, cell, member.getKey())
             }
         }
     }

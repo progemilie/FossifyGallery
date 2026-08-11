@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- two folders one behind the other: what marks a tile in the grid as a folder group -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M9 41q-1.25 0-2.125-0.875T6 38V14q0-0.65 0.425-1.075Q6.85 12.5 7.5 12.5q0.65 0 1.075 0.425Q9 13.35 9 14v24h30q0.65 0 1.075 0.425Q40.5 38.85 40.5 39.5q0 0.65-0.425 1.075Q39.65 41 39 41z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M15 34q-1.25 0-2.125-0.875T12 31V10q0-1.25 0.875-2.125T15 7h9.5q0.6 0 1.15 0.25 0.55 0.25 0.95 0.65L28.5 10H39q1.25 0 2.125 0.875T42 13v18q0 1.25-0.875 2.125T39 34z" />
+</vector>

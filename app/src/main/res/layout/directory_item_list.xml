@@ -17,6 +17,29 @@
         android:layout_width="@dimen/list_view_folder_thumbnail_size"
         android:layout_height="@dimen/list_view_folder_thumbnail_size" />
 
+    <org.fossify.gallery.views.FolderGroupThumbnail
+        android:id="@+id/dir_group_thumbnail"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignStart="@+id/dir_thumbnail"
+        android:layout_alignTop="@+id/dir_thumbnail"
+        android:layout_alignEnd="@+id/dir_thumbnail"
+        android:layout_alignBottom="@+id/dir_thumbnail"
+        android:visibility="gone" />
+
+    <ImageView
+        android:id="@+id/dir_group_badge"
+        android:layout_width="@dimen/folder_group_badge_size"
+        android:layout_height="@dimen/folder_group_badge_size"
+        android:layout_alignTop="@+id/dir_thumbnail"
+        android:layout_alignEnd="@+id/dir_thumbnail"
+        android:layout_margin="@dimen/medium_margin"
+        android:background="@drawable/circle_black_background"
+        android:contentDescription="@string/folder_group"
+        android:padding="@dimen/tiny_margin"
+        android:src="@drawable/ic_folder_group_vector"
+        android:visibility="gone" />
+
     <ImageView
         android:id="@+id/dir_lock"
         android:layout_width="match_parent"

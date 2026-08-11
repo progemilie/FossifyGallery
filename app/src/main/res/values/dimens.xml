@@ -97,4 +97,8 @@
     <dimen name="top_bar_show_threshold">8dp</dimen>
     <!-- how far below the floating bar a pull to refresh spinner comes to rest -->
     <dimen name="refresh_spinner_travel">64dp</dimen>
+    <!-- folder groups: the gap between a group tile's collage cells, and the frame around it -->
+    <dimen name="folder_group_cell_gap">2dp</dimen>
+    <dimen name="folder_group_border_width">1dp</dimen>
+    <dimen name="folder_group_badge_size">22dp</dimen>
 </resources>

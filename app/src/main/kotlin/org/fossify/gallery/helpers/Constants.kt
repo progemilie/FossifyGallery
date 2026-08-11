@@ -107,6 +107,16 @@ const val CUSTOM_FOLDERS_ORDER = "custom_folders_order"
 const val GLASS_UI = "glass_ui"
 const val CUSTOM_MEDIA_ORDER_FOLDERS = "custom_media_order_folders"
 const val RECENT_COPY_MOVE_DESTINATIONS = "recent_copy_move_destinations"
+const val FOLDER_GROUPS = "folder_groups"
+
+/**
+ * What a folder group's tile carries instead of a real path. Nothing on disk answers to it, so it
+ * can never collide with a folder, and everything keyed by path carries the tile unchanged.
+ */
+const val FOLDER_GROUP_PATH_PREFIX = "folder_group:"
+
+/** How many members a group's collage draws; the rest of the group is not shown on the tile. */
+const val MAX_FOLDER_GROUP_COVERS = 4
 
 /** Separates paths in preferences that hold a list of them; paths themselves may contain commas. */
 const val PATH_SEPARATOR = "|||"

@@ -6,6 +6,7 @@ import com.bumptech.glide.signature.ObjectKey
 import org.fossify.commons.extensions.formatDate
 import org.fossify.commons.extensions.formatSize
 import org.fossify.commons.helpers.*
+import org.fossify.gallery.helpers.FOLDER_GROUP_PATH_PREFIX
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.TransformedMedia
 
@@ -26,7 +27,11 @@ data class Directory(
     // used with "Group direct subfolders" enabled
     @Ignore var subfoldersCount: Int = 0,
     @Ignore var subfoldersMediaCount: Int = 0,
-    @Ignore var containsMediaFilesDirectly: Boolean = true
+    @Ignore var containsMediaFilesDirectly: Boolean = true,
+
+    // the folders standing under this tile when it is a folder group, empty for a real folder.
+    // never persisted - a group tile is built for display only, see extensions/FolderGroups.kt
+    @Ignore var groupMembers: List<Directory> = emptyList()
 ) {
 
     constructor() : this(null, "", "", "", 0, 0L, 0L, 0L, 0, 0, "", 0, 0)
@@ -43,6 +48,14 @@ data class Directory(
     fun areFavorites() = path == FAVORITES
 
     fun isRecycleBin() = path == RECYCLE_BIN
+
+    fun isFolderGroup() = path.startsWith(FOLDER_GROUP_PATH_PREFIX)
+
+    // the two sentinel folders stand for a query rather than a place on disk, and a group is not a
+    // folder at all - none of the three can be bundled under a folder group
+    fun canBeGrouped() = !isFolderGroup() && !areFavorites() && !isRecycleBin()
+
+    fun folderGroupId() = path.removePrefix(FOLDER_GROUP_PATH_PREFIX).toLongOrNull() ?: 0L
 
     // the cover is a media file in its own right, so transforming it has to change this key too -
     // the folder's own modified time doesn't move when the app rewrites a file's Exif in place

@@ -357,6 +357,19 @@
     <string name="faq_18_text">Our apps have no ads whatsoever. If you see them during video playback, you must be using some other apps video player. Try finding your default video player in the device settings, then do a \"Clear defaults\" on it. The next time you invoke some video intent you will see an app picker prompt, where you can select what app you want to use.</string>
     <!-- Fork -->
     <string name="fork_version_placeholder">%1$s (fork %2$s)</string>
+    <!-- Folder groups -->
+    <string name="folder_group">Folder group</string>
+    <string name="group_folders">Group folders</string>
+    <string name="add_to_group">Add to group</string>
+    <string name="ungroup_folders">Ungroup</string>
+    <string name="rename_group">Rename group</string>
+    <string name="group_name">Group name</string>
+    <string name="new_group">New group</string>
+    <string name="empty_group_name">Please enter a group name</string>
+    <plurals name="folders_in_group">
+        <item quantity="one">%d folder</item>
+        <item quantity="other">%d folders</item>
+    </plurals>
     <!--
         Haven't found some strings? There's more at
         https://github.com/FossifyOrg/Commons/tree/master/commons/src/main/res

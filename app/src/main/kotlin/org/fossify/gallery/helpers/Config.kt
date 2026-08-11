@@ -15,6 +15,7 @@ import org.fossify.gallery.BuildConfig
 import org.fossify.gallery.R
 import org.fossify.gallery.extensions.getDistinctPath
 import org.fossify.gallery.models.AlbumCover
+import org.fossify.gallery.models.FolderGroup
 import java.util.Arrays
 import java.util.Locale
 
@@ -318,6 +319,25 @@ class Config(context: Context) : BaseConfig(context) {
     fun parseAlbumCovers(): ArrayList<AlbumCover> {
         val listType = object : TypeToken<List<AlbumCover>>() {}.type
         return Gson().fromJson<ArrayList<AlbumCover>>(albumCovers, listType) ?: ArrayList(1)
+    }
+
+    // folder groups are a display grouping only, so they are kept here rather than in Room: the
+    // folder grid needs them on the main thread, where a Room query would throw
+    private var folderGroups: String
+        get() = prefs.getString(FOLDER_GROUPS, "")!!
+        set(folderGroups) = prefs.edit().putString(FOLDER_GROUPS, folderGroups).apply()
+
+    fun parseFolderGroups(): ArrayList<FolderGroup> {
+        val listType = object : TypeToken<List<FolderGroup>>() {}.type
+        return try {
+            Gson().fromJson<ArrayList<FolderGroup>>(folderGroups, listType) ?: ArrayList(1)
+        } catch (ignored: Exception) {
+            ArrayList(1)
+        }
+    }
+
+    fun saveFolderGroups(groups: List<FolderGroup>) {
+        folderGroups = Gson().toJson(groups)
     }
 
     var hideSystemUI: Boolean
