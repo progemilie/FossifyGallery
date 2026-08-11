@@ -28,9 +28,33 @@ import java.io.InputStream
 data class ThumbnailSource(val path: String)
 
 /**
- * Serves [ThumbnailSource]s, handing everything it cannot answer from the embedded copy to whichever
- * loader would have taken the path anyway - so paths that are not files at all (OTG content uris)
- * and formats that carry nothing inside them go on loading exactly as before.
+ * Hands a [ThumbnailSource] to the loaders that would have taken its path, unread. A path resolves
+ * to several kinds of data and only one of them - the byte stream - has an embedded copy worth
+ * substituting; a video frame is decoded from a file descriptor, so leaving the descriptors
+ * unregistered would leave every video without a thumbnail at all.
+ */
+class ThumbnailSourcePassThroughLoader<Data>(
+    private val delegate: ModelLoader<String, Data>
+) : ModelLoader<ThumbnailSource, Data> {
+
+    override fun handles(model: ThumbnailSource) = true
+
+    override fun buildLoadData(model: ThumbnailSource, width: Int, height: Int, options: Options) =
+        delegate.buildLoadData(model.path, width, height, options)
+
+    class Factory<Data>(private val dataClass: Class<Data>) :
+        ModelLoaderFactory<ThumbnailSource, Data> {
+        override fun build(multiFactory: MultiModelLoaderFactory) =
+            ThumbnailSourcePassThroughLoader(multiFactory.build(String::class.java, dataClass))
+
+        override fun teardown() = Unit
+    }
+}
+
+/**
+ * Serves the byte stream of a [ThumbnailSource], handing everything it cannot answer from the
+ * embedded copy to whichever loader would have taken the path anyway - so paths that are not files
+ * at all (OTG content uris) and formats that carry nothing inside them go on loading as before.
  */
 class ExifThumbnailLoader(
     private val delegate: ModelLoader<String, InputStream>
