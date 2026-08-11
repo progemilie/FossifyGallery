@@ -97,6 +97,7 @@ import org.fossify.gallery.helpers.ROUNDED_CORNERS_NONE
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_SMALL
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.THUMBNAIL_FADE_DURATION_MS
+import org.fossify.gallery.helpers.ThumbnailSource
 import org.fossify.gallery.helpers.TYPE_GIFS
 import org.fossify.gallery.helpers.TYPE_IMAGES
 import org.fossify.gallery.helpers.TYPE_PORTRAITS
@@ -747,7 +748,9 @@ fun Context.loadImageBase(
 
     WebpBitmapFactory.sUseSystemDecoder = false // CVE-2023-4863
     var builder = Glide.with(applicationContext)
-        .load(path)
+        // not the path itself: a thumbnail is small enough to come out of the copy stored inside
+        // the photo, where there is one big enough. See ThumbnailSource
+        .load(ThumbnailSource(path))
         .apply(options)
         .set(WebpDownsampler.USE_SYSTEM_DECODER, false) // CVE-2023-4863
         .transition(getOptionalCrossFadeTransition(crossFadeDuration))

@@ -13,6 +13,7 @@ import com.bumptech.glide.load.DecodeFormat
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import org.fossify.gallery.databinding.ViewerThumbnailStripItemBinding
+import org.fossify.gallery.helpers.ThumbnailSource
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.svg.SvgSoftwareLayerSetter
 
@@ -25,15 +26,6 @@ class ViewerThumbnailAdapter(
     private val thumbnailSize: Int,
     private val onItemClick: (position: Int) -> Unit,
 ) : RecyclerView.Adapter<ViewerThumbnailAdapter.ThumbnailViewHolder>() {
-
-    companion object {
-        /**
-         * The fraction of the thumbnail's resolution Glide decodes first. A quarter-size bitmap is
-         * roughly a sixteenth of the work, so it lands while the finger is still moving and the
-         * full one replaces it in place - a strip being scrolled never has to show an empty cell.
-         */
-        private const val PREVIEW_QUALITY = 0.25f
-    }
 
     private var media = emptyList<Medium>()
 
@@ -96,10 +88,11 @@ class ViewerThumbnailAdapter(
 
         Glide.with(context)
             .asBitmap()
-            .load(medium.path)
+            // a strip thumbnail is small enough that the copy stored inside the photo is nearly
+            // always both good enough and far quicker to read. See ThumbnailSource
+            .load(ThumbnailSource(medium.path))
             .apply(options)
             .set(WebpDownsampler.USE_SYSTEM_DECODER, false) // CVE-2023-4863
-            .thumbnail(PREVIEW_QUALITY)
             .into(target)
     }
 
