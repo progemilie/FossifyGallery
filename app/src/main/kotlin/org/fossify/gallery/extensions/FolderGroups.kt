@@ -42,6 +42,24 @@ fun Context.createFolderGroup(name: String, paths: List<String>): FolderGroup {
     return group
 }
 
+/**
+ * Makes the group named [name] hold exactly [paths], creating it if there is none. Matching by
+ * name is what lets an import run twice without leaving two tiles behind - the file has no id to
+ * go on, and a name is what the user recognises the group by.
+ */
+fun Context.replaceFolderGroup(name: String, paths: List<String>): FolderGroup {
+    val groups = folderGroups()
+    val existing = groups.firstOrNull { it.name.equals(name, true) }
+    if (existing == null) {
+        return createFolderGroup(name, paths)
+    }
+
+    groups.detach(paths)
+    existing.paths = paths.toMutableList()
+    config.saveFolderGroups(groups.filter { it.paths.isNotEmpty() })
+    return existing
+}
+
 /** Appends [paths] to the group [id] holds, dropping them from whatever group had them before. */
 fun Context.addToFolderGroup(id: Long, paths: List<String>) {
     val groups = folderGroups()

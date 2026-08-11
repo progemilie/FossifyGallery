@@ -1078,32 +1078,32 @@
             </RelativeLayout>
 
             <RelativeLayout
-                android:id="@+id/settings_export_custom_order_holder"
+                android:id="@+id/settings_export_order_groups_holder"
                 style="@style/SettingsHolderTextViewOneLinerStyle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
                 <org.fossify.commons.views.MyTextView
-                    android:id="@+id/settings_export_custom_order"
+                    android:id="@+id/settings_export_order_groups"
                     style="@style/SettingsTextLabelStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/export_custom_order" />
+                    android:text="@string/export_order_and_groups" />
 
             </RelativeLayout>
 
             <RelativeLayout
-                android:id="@+id/settings_import_custom_order_holder"
+                android:id="@+id/settings_import_order_groups_holder"
                 style="@style/SettingsHolderTextViewOneLinerStyle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
                 <org.fossify.commons.views.MyTextView
-                    android:id="@+id/settings_import_custom_order"
+                    android:id="@+id/settings_import_order_groups"
                     style="@style/SettingsTextLabelStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/import_custom_order" />
+                    android:text="@string/import_order_and_groups" />
 
             </RelativeLayout>
 

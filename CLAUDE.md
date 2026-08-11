@@ -123,8 +123,16 @@ main thread.
 
 Reordering lives in `adapters/MediaReorderMode.kt`, which drives `MediaAdapter` rather than living
 inside it, and is put up by `MediaActivity` through `helpers/ReorderBar.kt`: multi-select marks a
-group and dragging any marked item carries the whole group. Orders export/import as plain text via
-`helpers/CustomOrderIO.kt`.
+group and dragging any marked item carries the whole group.
+
+### Order & groups export
+
+`helpers/OrderAndGroupsIO.kt` carries all three hand made arrangements — folder groups, the folder
+grid's order, each folder's media order — in one plain text file of bracketed sections. Groups go
+out by name, not by id: a `folder_group:<id>` means nothing on the install reading it back, so the
+folder order names them the same way and import remaps them. **Import drops anything naming a file
+or folder that is not there, and drops a section left empty by that.** The sentinel folders
+(`show_all`, favorites, recycle bin) are exempt — nothing can stat them.
 
 ### The viewer's bottom action bar
 
