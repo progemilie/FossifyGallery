@@ -71,7 +71,13 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
     private val itemWidth = resources.getDimensionPixelSize(R.dimen.viewer_strip_item_width)
     private val stripAdapter = ViewerThumbnailAdapter(
         thumbnailSize = resources.getDimensionPixelSize(R.dimen.viewer_strip_thumbnail_size),
-        onItemClick = ::pick
+        // a tapped thumbnail is brought to the middle and the pager sent after it, the same two
+        // steps a thumbnail scrolled to the middle goes through
+        onItemClick = { position ->
+            committedPosition = position
+            centerOn(position, smooth = true)
+            onMediumPicked?.invoke(position)
+        }
     )
 
     // what the pager has been told to show. It only parts ways with the middle of the strip for the
@@ -146,6 +152,9 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
         centerOn(position, smooth = false)
     }
 
+    /** The file at [path] has been changed in place; draw its thumbnail again. */
+    fun reload(path: String) = stripAdapter.reload(path)
+
     /** Follows the pager: what it swiped to is what the strip centers. */
     fun setSelectedPosition(position: Int, smooth: Boolean = true) {
         if (position !in 0 until stripAdapter.itemCount) {
@@ -219,12 +228,6 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
                 binding.viewerThumbnailShade.alpha = OFF_CENTRE_SHADE * (1f - nearness)
             }
         }
-    }
-
-    private fun pick(position: Int) {
-        committedPosition = position
-        centerOn(position, smooth = true)
-        onMediumPicked?.invoke(position)
     }
 
     /**

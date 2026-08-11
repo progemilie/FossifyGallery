@@ -953,9 +953,10 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             saveMirroredImageToFile(path, path, true) {
                 runOnUiThread {
                     refreshMenuItems()
-                    // nothing requeries the pager for an in-place edit, so tell the fragment
-                    // showing the mirrored file to draw itself again
+                    // nothing requeries the pager for an in-place edit, so tell the two things
+                    // showing the mirrored file to draw it again
                     getCurrentPhotoFragment()?.reloadImageIgnoringCache()
+                    binding.viewerThumbnailStrip.reload(path)
                 }
             }
         }
@@ -993,8 +994,13 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                     val photoFragment = getCurrentPhotoFragment() ?: return@ensureBackgroundThread
                     saveRotatedImageToFile(currPath, newPath, photoFragment.mCurrentRotationDegrees, true) {
                         toast(org.fossify.commons.R.string.file_saved)
-                        getCurrentPhotoFragment()?.mCurrentRotationDegrees = 0
-                        refreshMenuItems()
+                        runOnUiThread {
+                            getCurrentPhotoFragment()?.mCurrentRotationDegrees = 0
+                            refreshMenuItems()
+                            // saving over the file it came from is an in-place edit like the mirror
+                            // above, and leaves the strip drawing the turn that has just been saved
+                            binding.viewerThumbnailStrip.reload(newPath)
+                        }
                     }
                 }
             }

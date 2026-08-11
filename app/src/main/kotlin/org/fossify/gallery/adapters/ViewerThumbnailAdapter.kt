@@ -35,6 +35,19 @@ class ViewerThumbnailAdapter(
         notifyDataSetChanged()
     }
 
+    /**
+     * Draws [path] again, for a file this app has just changed in place. Nothing about the [Medium]
+     * moved, so nothing here would otherwise rebind - and a thumbnail already on screen goes on
+     * showing the bitmap it was given however thoroughly the caches behind it were emptied.
+     */
+    fun reload(path: String) {
+        media.forEachIndexed { index, medium ->
+            if (medium.path == path) {
+                notifyItemChanged(index)
+            }
+        }
+    }
+
     override fun getItemCount() = media.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ThumbnailViewHolder {
