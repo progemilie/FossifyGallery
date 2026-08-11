@@ -167,6 +167,7 @@ import org.fossify.gallery.helpers.IS_VIEW_INTENT
 import org.fossify.gallery.helpers.MAX_PRINT_SIDE_SIZE
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.PORTRAIT_PATH
+import org.fossify.gallery.helpers.QUICK_CHOOSER_REFRESH_DELAY
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROTATE_BY_ASPECT_RATIO
 import org.fossify.gallery.helpers.ROTATE_BY_DEVICE_ROTATION
@@ -236,6 +237,11 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
     // read while a button is held, so it is fetched ahead of time rather than off the gesture
     private var mQuickChooserFolders = emptyList<QuickFolder>()
+
+    // the folder mQuickChooserFolders was last worked out for, so swiping about inside one album
+    // does not keep asking for the same answer
+    private var mQuickChooserSource = ""
+    private var mPendingQuickChooserRefresh: Runnable? = null
 
     private val binding by viewBinding(ActivityMediumBinding::inflate)
 
@@ -884,7 +890,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
             // the folder just used has become the most recent destination, and a move may have
             // emptied the one it came from
-            refreshQuickChooserFolders()
+            refreshQuickChooserFolders(force = true)
         }
 
         if (destination == null) {
@@ -1273,18 +1279,28 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     }
 
     /**
-     * Kept warm rather than fetched when a button is held: the list comes off Room and the filesystem,
-     * which is too slow to have a gesture waiting on it.
+     * Kept warm rather than fetched when a button is held: the list comes off Room and a MediaStore
+     * scan for .nomedia markers, which is too slow to have a gesture waiting on it.
+     *
+     * It also only depends on which folder the file sits in, so swiping through an album never asks
+     * for it twice, and a swipe crossing several folders - which is all "show all" is - only pays
+     * for the one it comes to rest on. [force] is for the cases where the same folder now has a
+     * different answer: a move may have emptied a folder, and using one makes it the most recent
+     * destination.
      */
-    private fun refreshQuickChooserFolders() {
-        val currentPath = getCurrentPath()
-        if (currentPath.isEmpty()) {
+    private fun refreshQuickChooserFolders(force: Boolean = false) {
+        val source = getCurrentPath().getParentPath()
+        if (source.isEmpty() || (!force && source == mQuickChooserSource)) {
             return
         }
 
-        getQuickChooserFolders(currentPath.getParentPath()) {
-            runOnUiThread { mQuickChooserFolders = it }
-        }
+        mQuickChooserSource = source
+        mPendingQuickChooserRefresh?.let { binding.root.removeCallbacks(it) }
+        mPendingQuickChooserRefresh = Runnable {
+            getQuickChooserFolders(source) {
+                runOnUiThread { mQuickChooserFolders = it }
+            }
+        }.also { binding.root.postDelayed(it, QUICK_CHOOSER_REFRESH_DELAY) }
     }
 
     /**

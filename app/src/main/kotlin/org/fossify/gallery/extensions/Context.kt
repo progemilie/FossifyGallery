@@ -640,6 +640,16 @@ fun Context.loadImage(
             skipMemoryCacheAtPaths = skipMemoryCacheAtPaths,
             animate = animateGifs,
             tryLoadingWithPicasso = type == TYPE_IMAGES && path.isPng(),
+            // half the bytes per thumbnail: half as much to write while decoding, and twice as many
+            // of them held in the memory cache before one has to be decoded over again. Glide keeps
+            // the deeper format by itself for anything carrying transparency, so this only ever
+            // applies where it costs nothing to see. Rounded corners are cut with an alpha mask,
+            // which would convert the bitmap straight back, so those are left alone
+            decodeFormat = if (roundCorners == ROUNDED_CORNERS_NONE) {
+                DecodeFormat.PREFER_RGB_565
+            } else {
+                DecodeFormat.PREFER_ARGB_8888
+            },
             onError = onError
         )
     }
@@ -689,6 +699,7 @@ fun Context.loadImageBase(
     animate: Boolean = false,
     tryLoadingWithPicasso: Boolean = false,
     crossFadeDuration: Int = THUMBNAIL_FADE_DURATION_MS,
+    decodeFormat: DecodeFormat = DecodeFormat.PREFER_ARGB_8888,
     onError: (() -> Unit)? = null
 ) {
     val options = RequestOptions()
@@ -696,7 +707,7 @@ fun Context.loadImageBase(
         .skipMemoryCache(skipMemoryCacheAtPaths?.contains(path) == true)
         .priority(Priority.LOW)
         .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
-        .format(DecodeFormat.PREFER_ARGB_8888)
+        .format(decodeFormat)
 
     if (cropThumbnails) {
         options.optionalTransform(CenterCrop())
