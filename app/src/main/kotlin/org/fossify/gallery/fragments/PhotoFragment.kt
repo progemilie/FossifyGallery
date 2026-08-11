@@ -94,6 +94,7 @@ import org.fossify.gallery.helpers.MyGlideImageDecoder
 import org.fossify.gallery.helpers.NORMAL_TILE_DPI
 import org.fossify.gallery.helpers.PicassoRegionDecoder
 import org.fossify.gallery.helpers.SHOULD_INIT_FRAGMENT
+import org.fossify.gallery.helpers.ThumbnailSource
 import org.fossify.gallery.helpers.WEIRD_TILE_DPI
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.svg.SvgSoftwareLayerSetter
@@ -582,7 +583,9 @@ class PhotoFragment : ViewPagerFragment() {
      */
     private fun buildLowResRequest(path: String, options: RequestOptions): RequestBuilder<Drawable> {
         return Glide.with(requireContext())
-            .load(path)
+            // the copy stored inside the photo stands in for this whenever it is big enough, which
+            // is the difference between the first paint costing a whole decode and next to nothing
+            .load(ThumbnailSource(path))
             .apply(
                 options.clone()
                     .override(LOW_RES_IMAGE_SIZE)

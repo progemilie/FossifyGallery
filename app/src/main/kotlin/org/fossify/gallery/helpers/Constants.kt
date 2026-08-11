@@ -115,6 +115,13 @@ const val MAX_RECENT_COPY_MOVE_DESTINATIONS = 12
 
 /** How many folders the copy/move quick chooser offers, recents first. */
 const val MAX_QUICK_CHOOSER_FOLDERS = 12
+
+/**
+ * How long a swipe has to come to rest before the quick chooser's folders are looked up for where
+ * it landed. Long enough that flicking through a mixed grid crosses folders for free, short enough
+ * that the list is ready by the time a button could be held.
+ */
+const val QUICK_CHOOSER_REFRESH_DELAY = 250L
 const val MAX_VISIBLE_QUICK_CHOOSER_FOLDERS = 5
 const val AVOID_SHOWING_ALL_FILES_PROMPT = "avoid_showing_all_files_prompt"
 const val SEARCH_ALL_FILES_BY_DEFAULT = "search_all_files_by_default"

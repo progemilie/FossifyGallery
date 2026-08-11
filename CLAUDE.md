@@ -94,6 +94,16 @@ Both Glide and Picasso are used deliberately for different jobs:
   and `helpers/PicassoRoundedCornersTransformation.kt`/`RotateTransformation.kt`.
 - Video playback uses `androidx.media3.exoplayer`.
 
+Nothing small is decoded from a whole photo if the photo carries a copy of itself. Anything drawing
+a thumbnail loads a `ThumbnailSource` rather than a path, and `helpers/ExifThumbnailLoader.kt` swaps
+in the file's embedded copy whenever there is one at least as big as the size being asked for,
+falling back to the file itself otherwise. Worth it because `inSampleSize` saves the inverse
+transform but not the pass over the entropy-coded data: a 12MP JPEG costs the same ~37ms decoded to
+26px as to 358px, against ~3ms for the 512x384 copy inside it. The copy is stored the same way up as
+the photo and says nothing about itself, so the loader gives it an Exif header carrying the photo's
+own orientation - without which a rotated or mirrored photo would come out of the grid facing a
+different way from the viewer.
+
 Cache keys everywhere are derived from path + last-modified + size (`Medium.getSignature()`,
 `Directory.getKey()`). **Anything that edits a file in place must call
 `TransformedMedia.onTransformed(path)`** (`helpers/TransformedMedia.kt`) before touching caches —

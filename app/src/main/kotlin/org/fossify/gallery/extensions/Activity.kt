@@ -47,6 +47,7 @@ import org.fossify.gallery.dialogs.ResizeWithPathDialog
 import org.fossify.gallery.helpers.DIRECTORY
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.TEMP_FOLDER_NAME
+import org.fossify.gallery.helpers.TransformedMedia
 import org.fossify.gallery.models.DateTaken
 import java.io.*
 import java.text.SimpleDateFormat
@@ -719,6 +720,7 @@ fun BaseSimpleActivity.saveRotatedImageToFile(oldPath: String, newPath: String, 
 
             copyFile(tmpPath, newPath)
             rescanPaths(arrayListOf(newPath))
+            TransformedMedia.onTransformed(newPath)
             fileTransformedSuccessfully(newPath, oldLastModified)
 
             it.flush()
@@ -743,6 +745,11 @@ fun Activity.tryRotateByExif(path: String, degrees: Int, showToasts: Boolean, ca
         val file = File(path)
         val oldLastModified = file.lastModified()
         if (saveImageRotation(path, degrees)) {
+            // an Exif turn leaves every field a cache key is built from where it was, so without
+            // this the key does not move - and emptying the caches is not enough on its own, since
+            // Glide holds on to a bitmap for as long as a view is still showing it. Same reason
+            // tryMirrorByExif records its transform (see TransformedMedia)
+            TransformedMedia.onTransformed(path)
             fileTransformedSuccessfully(path, oldLastModified)
             callback.invoke()
             if (showToasts) {

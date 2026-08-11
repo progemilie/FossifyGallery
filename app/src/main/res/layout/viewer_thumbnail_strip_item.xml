@@ -3,25 +3,27 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/viewer_thumbnail_item"
     android:layout_width="@dimen/viewer_strip_item_width"
-    android:layout_height="@dimen/viewer_strip_thumbnail_size"
+    android:layout_height="@dimen/viewer_strip_thumbnail_height"
     android:clickable="true"
     android:focusable="true">
 
     <!-- scaled as a whole so the shade over an unselected thumbnail shrinks along with it, which
          is why it cannot be folded into the cell around it: the cell has to stay the width the
-         strip steps by however small the thumbnail inside it is drawn -->
+         strip steps by however small the thumbnail inside it is drawn.
+
+         Its background is both the placeholder and the rounded shape the adapter clips it to -->
     <FrameLayout
         android:id="@+id/viewer_thumbnail_holder"
         tools:ignore="UselessParent"
-        android:layout_width="@dimen/viewer_strip_thumbnail_size"
-        android:layout_height="@dimen/viewer_strip_thumbnail_size"
-        android:layout_gravity="center">
+        android:layout_width="@dimen/viewer_strip_thumbnail_width"
+        android:layout_height="@dimen/viewer_strip_thumbnail_height"
+        android:layout_gravity="center"
+        android:background="@drawable/viewer_strip_placeholder">
 
         <ImageView
             android:id="@+id/viewer_thumbnail_image"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/viewer_strip_placeholder"
             android:contentDescription="@null"
             android:scaleType="centerCrop"
             tools:src="@mipmap/ic_launcher" />

@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- what a thumbnail cell looks like before its photo has been decoded. Deliberately not the
-     black the grid uses: the strip floats over a photo with black around it, and a black cell
-     there is a hole rather than a thumbnail on its way -->
+<!-- what a thumbnail cell looks like before its photo has been decoded, and the shape the decoded
+     one is clipped to. Deliberately not the black the grid uses: the strip floats over a photo with
+     black around it, and a black cell there is a hole rather than a thumbnail on its way -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <solid android:color="#33FFFFFF" />
+    <corners android:radius="@dimen/viewer_strip_thumbnail_radius" />
 </shape>

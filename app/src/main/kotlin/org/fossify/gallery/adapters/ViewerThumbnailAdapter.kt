@@ -13,6 +13,7 @@ import com.bumptech.glide.load.DecodeFormat
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import org.fossify.gallery.databinding.ViewerThumbnailStripItemBinding
+import org.fossify.gallery.helpers.ThumbnailSource
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.svg.SvgSoftwareLayerSetter
 
@@ -22,18 +23,10 @@ import org.fossify.gallery.svg.SvgSoftwareLayerSetter
  * sets that on the children itself rather than going through a binding for it.
  */
 class ViewerThumbnailAdapter(
-    private val thumbnailSize: Int,
+    private val thumbnailWidth: Int,
+    private val thumbnailHeight: Int,
     private val onItemClick: (position: Int) -> Unit,
 ) : RecyclerView.Adapter<ViewerThumbnailAdapter.ThumbnailViewHolder>() {
-
-    companion object {
-        /**
-         * The fraction of the thumbnail's resolution Glide decodes first. A quarter-size bitmap is
-         * roughly a sixteenth of the work, so it lands while the finger is still moving and the
-         * full one replaces it in place - a strip being scrolled never has to show an empty cell.
-         */
-        private const val PREVIEW_QUALITY = 0.25f
-    }
 
     private var media = emptyList<Medium>()
 
@@ -41,6 +34,19 @@ class ViewerThumbnailAdapter(
     fun setItems(newMedia: List<Medium>) {
         media = newMedia
         notifyDataSetChanged()
+    }
+
+    /**
+     * Draws [path] again, for a file this app has just changed in place. Nothing about the [Medium]
+     * moved, so nothing here would otherwise rebind - and a thumbnail already on screen goes on
+     * showing the bitmap it was given however thoroughly the caches behind it were emptied.
+     */
+    fun reload(path: String) {
+        media.forEachIndexed { index, medium ->
+            if (medium.path == path) {
+                notifyItemChanged(index)
+            }
+        }
     }
 
     override fun getItemCount() = media.size
@@ -51,6 +57,11 @@ class ViewerThumbnailAdapter(
         )
 
         return ThumbnailViewHolder(binding).apply {
+            // rounds the thumbnail and the shade over it in one step, against the holder's own
+            // background. Rounding the bitmap instead - Glide's RoundedCorners - would cost the
+            // RGB_565 below: corners need transparency and 565 has none, so it would come back
+            // ARGB_8888 at twice the memory. The XML attribute for this is API 31, hence in code
+            binding.viewerThumbnailHolder.clipToOutline = true
             binding.root.setOnClickListener {
                 if (bindingAdapterPosition != RecyclerView.NO_POSITION) {
                     onItemClick(bindingAdapterPosition)
@@ -77,7 +88,10 @@ class ViewerThumbnailAdapter(
                 .`as`(PictureDrawable::class.java)
                 .listener(SvgSoftwareLayerSetter())
                 .load(medium.path)
-                .apply(RequestOptions().signature(medium.getKey()).override(thumbnailSize))
+                .apply(
+                    RequestOptions().signature(medium.getKey())
+                        .override(thumbnailWidth, thumbnailHeight)
+                )
                 .into(target)
             return
         }
@@ -85,7 +99,7 @@ class ViewerThumbnailAdapter(
         WebpBitmapFactory.sUseSystemDecoder = false // CVE-2023-4863
         val options = RequestOptions()
             .signature(medium.getKey())
-            .override(thumbnailSize)
+            .override(thumbnailWidth, thumbnailHeight)
             .centerCrop()
             .dontAnimate()
             // a thumbnail this small has no use for a third byte per channel, and half the bitmap
@@ -96,10 +110,11 @@ class ViewerThumbnailAdapter(
 
         Glide.with(context)
             .asBitmap()
-            .load(medium.path)
+            // a strip thumbnail is small enough that the copy stored inside the photo is nearly
+            // always both good enough and far quicker to read. See ThumbnailSource
+            .load(ThumbnailSource(medium.path))
             .apply(options)
             .set(WebpDownsampler.USE_SYSTEM_DECODER, false) // CVE-2023-4863
-            .thumbnail(PREVIEW_QUALITY)
             .into(target)
     }
 
