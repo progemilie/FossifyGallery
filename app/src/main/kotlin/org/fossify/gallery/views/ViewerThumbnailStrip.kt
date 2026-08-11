@@ -15,6 +15,7 @@ import org.fossify.gallery.adapters.ViewerThumbnailAdapter
 import org.fossify.gallery.models.Medium
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.sign
 
 /**
  * The row of thumbnails between the photo and the bottom actions in the fullscreen viewer, ported
@@ -57,8 +58,37 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
         private const val OFF_CENTRE_SCALE = 0.92f
         private const val OFF_CENTRE_SHADE = 0.45f
 
+        /**
+         * How many thumbnails out from the middle the gaps take to close. The widest gap is the one
+         * beside the middle thumbnail - what is left of [R.dimen.viewer_strip_item_width] once the
+         * thumbnail has taken its share - each one after it is tighter than the last, and from here
+         * outwards they are all [R.dimen.viewer_strip_gap_tight].
+         */
+        private const val GAP_CLOSING_ITEMS = 3f
+
         /** Thumbnails held ready either side of the strip, so a scroll back over them is instant. */
         private const val VIEW_CACHE_SIZE = 8
+
+        /**
+         * Passes over how far past the ends of the strip to lay out. Two would do on a phone held
+         * upright, where the pull is a fraction of a thumbnail; the third is for a strip wide
+         * enough that the pull is wider than the thumbnail it is applied to.
+         */
+        private const val EDGE_SETTLING_PASSES = 3
+
+        /**
+         * How much narrower than the widest one, in pixels, all the gaps within [items] item widths
+         * of the middle add up to being - which is how far towards the middle the thumbnail out
+         * there is drawn. Every gap closes by [closedPerStep] more than the one inside it, so the
+         * sum over a distance grows with its square, until [GAP_CLOSING_ITEMS] out where the gaps
+         * stop closing and each further one takes off the same as the last.
+         */
+        private fun gapsClosedWithin(items: Float, closedPerStep: Float) =
+            if (items <= GAP_CLOSING_ITEMS) {
+                closedPerStep * items * items / 2f
+            } else {
+                closedPerStep * GAP_CLOSING_ITEMS * (items - GAP_CLOSING_ITEMS / 2f)
+            }
     }
 
     /** Called with the position now in the middle of the strip, so the pager can follow it. */
@@ -69,8 +99,17 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
     private val centeringInterpolator = DecelerateInterpolator(CENTERING_DECELERATION)
 
     private val itemWidth = resources.getDimensionPixelSize(R.dimen.viewer_strip_item_width)
+    private val thumbnailWidth =
+        resources.getDimensionPixelSize(R.dimen.viewer_strip_thumbnail_width)
+
+    /** How much more of the gap each step out from the middle closes than the step before it. */
+    private val gapClosedPerStep = (
+        itemWidth - thumbnailWidth - resources.getDimensionPixelSize(R.dimen.viewer_strip_gap_tight)
+        ) / GAP_CLOSING_ITEMS
+
     private val stripAdapter = ViewerThumbnailAdapter(
-        thumbnailSize = resources.getDimensionPixelSize(R.dimen.viewer_strip_thumbnail_size),
+        thumbnailWidth = thumbnailWidth,
+        thumbnailHeight = resources.getDimensionPixelSize(R.dimen.viewer_strip_thumbnail_height),
         // a tapped thumbnail is brought to the middle and the pager sent after it, the same two
         // steps a thumbnail scrolled to the middle goes through
         onItemClick = { position ->
@@ -86,7 +125,7 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
     private var isUserScrolling = false
 
     init {
-        layoutManager = LinearLayoutManager(context, HORIZONTAL, false)
+        layoutManager = StripLayoutManager()
         adapter = stripAdapter
         setHasFixedSize(true)
         setItemViewCacheSize(VIEW_CACHE_SIZE)
@@ -207,10 +246,16 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
     }
 
     /**
-     * Sizes and shades every thumbnail by how near the middle of the strip it currently is. Done
-     * from the children's own positions on each scroll frame rather than by telling the adapter
-     * which item is selected: an adapter change lands a frame later and then animates from there,
-     * which reads as the highlight trailing behind the thumbnails it is supposed to be marking.
+     * Sizes and shades every thumbnail by how near the middle of the strip it currently is, and
+     * draws it pulled towards the middle by however much of the gaps between here and there has
+     * been closed. Done from the children's own positions on each scroll frame rather than by
+     * telling the adapter which item is selected: an adapter change lands a frame later and then
+     * animates from there, which reads as the highlight trailing behind the thumbnails it is
+     * supposed to be marking.
+     *
+     * The cells stay evenly spaced where they were laid out - only what is drawn moves - so the
+     * snapping and [centeredPosition], which both measure laid out positions, are untouched by any
+     * of this.
      */
     private fun updateChildDecorations() {
         val middle = width / 2f
@@ -220,13 +265,38 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
             val binding =
                 (getChildViewHolder(child) as? ViewerThumbnailAdapter.ThumbnailViewHolder)?.binding
             if (binding != null) {
-                val distance = abs((child.left + child.right) / 2f - middle)
+                val offset = (child.left + child.right) / 2f - middle
+                val distance = abs(offset)
                 val nearness = (1f - distance / falloff).coerceIn(0f, 1f)
                 val scale = OFF_CENTRE_SCALE + (1f - OFF_CENTRE_SCALE) * nearness
                 binding.viewerThumbnailHolder.scaleX = scale
                 binding.viewerThumbnailHolder.scaleY = scale
                 binding.viewerThumbnailShade.alpha = OFF_CENTRE_SHADE * (1f - nearness)
+                child.translationX =
+                    -sign(offset) * gapsClosedWithin(distance / itemWidth, gapClosedPerStep)
             }
+        }
+    }
+
+    /**
+     * Lays out as far past both ends of the strip as the thumbnail there is pulled inwards by
+     * [gapsClosedWithin]. A thumbnail is only laid out while the place it would sit without the
+     * compression is on screen, so without this the ends of the strip would be a sliver of nothing.
+     */
+    private inner class StripLayoutManager : LinearLayoutManager(context, HORIZONTAL, false) {
+        override fun calculateExtraLayoutSpace(state: State, extraLayoutSpace: IntArray) {
+            super.calculateExtraLayoutSpace(state, extraLayoutSpace)
+            // how far out the thumbnail drawn at the edge was laid out, which is the edge plus the
+            // pull that brought it back - and the pull depends on where it was laid out, so the two
+            // are settled against each other. Each pass moves it a small fraction of the last
+            var pastTheEnd = 0f
+            repeat(EDGE_SETTLING_PASSES) {
+                pastTheEnd =
+                    gapsClosedWithin((width / 2f + pastTheEnd) / itemWidth, gapClosedPerStep)
+            }
+
+            extraLayoutSpace[0] = max(extraLayoutSpace[0], pastTheEnd.toInt() + 1)
+            extraLayoutSpace[1] = max(extraLayoutSpace[1], pastTheEnd.toInt() + 1)
         }
     }
 

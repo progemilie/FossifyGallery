@@ -23,7 +23,8 @@ import org.fossify.gallery.svg.SvgSoftwareLayerSetter
  * sets that on the children itself rather than going through a binding for it.
  */
 class ViewerThumbnailAdapter(
-    private val thumbnailSize: Int,
+    private val thumbnailWidth: Int,
+    private val thumbnailHeight: Int,
     private val onItemClick: (position: Int) -> Unit,
 ) : RecyclerView.Adapter<ViewerThumbnailAdapter.ThumbnailViewHolder>() {
 
@@ -56,6 +57,11 @@ class ViewerThumbnailAdapter(
         )
 
         return ThumbnailViewHolder(binding).apply {
+            // rounds the thumbnail and the shade over it in one step, against the holder's own
+            // background. Rounding the bitmap instead - Glide's RoundedCorners - would cost the
+            // RGB_565 below: corners need transparency and 565 has none, so it would come back
+            // ARGB_8888 at twice the memory. The XML attribute for this is API 31, hence in code
+            binding.viewerThumbnailHolder.clipToOutline = true
             binding.root.setOnClickListener {
                 if (bindingAdapterPosition != RecyclerView.NO_POSITION) {
                     onItemClick(bindingAdapterPosition)
@@ -82,7 +88,10 @@ class ViewerThumbnailAdapter(
                 .`as`(PictureDrawable::class.java)
                 .listener(SvgSoftwareLayerSetter())
                 .load(medium.path)
-                .apply(RequestOptions().signature(medium.getKey()).override(thumbnailSize))
+                .apply(
+                    RequestOptions().signature(medium.getKey())
+                        .override(thumbnailWidth, thumbnailHeight)
+                )
                 .into(target)
             return
         }
@@ -90,7 +99,7 @@ class ViewerThumbnailAdapter(
         WebpBitmapFactory.sUseSystemDecoder = false // CVE-2023-4863
         val options = RequestOptions()
             .signature(medium.getKey())
-            .override(thumbnailSize)
+            .override(thumbnailWidth, thumbnailHeight)
             .centerCrop()
             .dontAnimate()
             // a thumbnail this small has no use for a third byte per channel, and half the bitmap

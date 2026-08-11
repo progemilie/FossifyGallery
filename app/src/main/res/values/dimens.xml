@@ -66,11 +66,20 @@
          otherwise put their chooser against the screen edge -->
     <dimen name="folder_chooser_end_margin">60dp</dimen>
 
-    <dimen name="viewer_strip_thumbnail_size">40dp</dimen>
-    <dimen name="viewer_strip_item_width">42dp</dimen>
+    <!-- taller than wide, the way the photos themselves usually are -->
+    <dimen name="viewer_strip_thumbnail_width">35dp</dimen>
+    <dimen name="viewer_strip_thumbnail_height">40dp</dimen>
+    <dimen name="viewer_strip_thumbnail_radius">5dp</dimen>
+    <!-- the thumbnail plus the widest gap, which is the one beside the middle thumbnail; the gaps
+         close towards viewer_strip_gap_tight from there outwards. See ViewerThumbnailStrip -->
+    <dimen name="viewer_strip_item_width">41dp</dimen>
+    <dimen name="viewer_strip_gap_tight">1dp</dimen>
     <dimen name="viewer_strip_padding_top">10dp</dimen>
     <dimen name="viewer_strip_padding_bottom">2dp</dimen>
-    <dimen name="viewer_strip_height">54dp</dimen>
+    <dimen name="viewer_strip_height">50dp</dimen>
+    <!-- how far the strip sits into the empty top of the bottom action bar, which is all that
+         separates the thumbnails from the buttons. See ViewPagerActivity.setupThumbnailStrip -->
+    <dimen name="viewer_strip_drop_into_actions">10dp</dimen>
 
     <dimen name="metadata_sheet_corner_radius">20dp</dimen>
     <dimen name="metadata_sheet_handle_height">28dp</dimen>

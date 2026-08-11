@@ -1111,7 +1111,14 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         ViewCompat.setOnApplyWindowInsetsListener(binding.viewerThumbnailStrip) { view, insets ->
             val systemBottom = insets.getInsetsIgnoringVisibility(Type.systemBars()).bottom
             view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                bottomMargin = if (binding.bottomActions.root.isVisible()) 0 else systemBottom
+                // the thumbnails already reach the bottom of the strip, so the only space left
+                // between them and the buttons is the bar's own padding above them - the strip is
+                // let down into it rather than made to sit a whole gap clear of the bar
+                bottomMargin = if (binding.bottomActions.root.isVisible()) {
+                    -resources.getDimensionPixelSize(R.dimen.viewer_strip_drop_into_actions)
+                } else {
+                    systemBottom
+                }
             }
             insets
         }
