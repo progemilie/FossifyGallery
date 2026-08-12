@@ -1,6 +1,7 @@
 package org.fossify.gallery.extensions
 
 import android.content.Context
+import org.fossify.commons.extensions.getDoesFilePathExist
 import org.fossify.commons.helpers.SORT_BY_COUNT
 import org.fossify.commons.helpers.SORT_BY_NAME
 import org.fossify.commons.helpers.SORT_BY_PATH
@@ -133,5 +134,30 @@ private fun Context.folderGroupSortValue(
 
             leading?.toString().orEmpty()
         }
+    }
+}
+
+/**
+ * Drops members that are no longer on disk and deletes any group left with none. Only outright
+ * absence counts - a folder merely hidden or filtered out of the current scan is still a member,
+ * or turning a filter on for a minute would cost the user the group. Blocking, call it off the
+ * main thread.
+ */
+fun Context.pruneFolderGroups() {
+    val otgPath = config.OTGPath
+    val groups = folderGroups()
+    var changed = false
+
+    groups.forEach { group ->
+        val alive = group.paths.filter { getDoesFilePathExist(it, otgPath) }
+        if (alive.size != group.paths.size) {
+            group.paths = alive.toMutableList()
+            changed = true
+        }
+    }
+
+    val remaining = groups.filter { it.paths.isNotEmpty() }
+    if (changed || remaining.size != groups.size) {
+        config.saveFolderGroups(remaining)
     }
 }

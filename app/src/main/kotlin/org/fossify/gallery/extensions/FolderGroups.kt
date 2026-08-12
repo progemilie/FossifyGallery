@@ -1,7 +1,6 @@
 package org.fossify.gallery.extensions
 
 import android.content.Context
-import org.fossify.commons.extensions.getDoesFilePathExist
 import org.fossify.gallery.models.FolderGroup
 import java.util.Locale
 
@@ -68,6 +67,18 @@ fun Context.addToFolderGroup(id: Long, paths: List<String>) {
     config.saveFolderGroups(groups.filter { it.paths.isNotEmpty() })
 }
 
+/**
+ * Takes [paths] out of the group [id] holds; they go back to standing on their own in the grid.
+ * A group emptied by this is dissolved with them - a group of nothing is not a group.
+ */
+fun Context.removeFromFolderGroup(id: Long, paths: Collection<String>) {
+    val groups = folderGroups()
+    val group = groups.firstOrNull { it.id == id } ?: return
+    val keys = paths.mapTo(HashSet()) { it.groupKey() }
+    group.paths.removeAll { keys.contains(it.groupKey()) }
+    config.saveFolderGroups(groups.filter { it.paths.isNotEmpty() })
+}
+
 /** Dissolves the groups [ids] name; their folders go back to standing on their own. */
 fun Context.removeFolderGroups(ids: Collection<Long>) {
     config.saveFolderGroups(folderGroups().filterNot { ids.contains(it.id) })
@@ -88,29 +99,4 @@ fun Context.saveFolderGroupOrder(id: Long, paths: List<String>) {
     val moved = paths.mapTo(HashSet()) { it.groupKey() }
     group.paths = (paths + group.paths.filterNot { moved.contains(it.groupKey()) }).toMutableList()
     config.saveFolderGroups(groups)
-}
-
-/**
- * Drops members that are no longer on disk and deletes any group left with none. Only outright
- * absence counts - a folder merely hidden or filtered out of the current scan is still a member,
- * or turning a filter on for a minute would cost the user the group. Blocking, call it off the
- * main thread.
- */
-fun Context.pruneFolderGroups() {
-    val otgPath = config.OTGPath
-    val groups = folderGroups()
-    var changed = false
-
-    groups.forEach { group ->
-        val alive = group.paths.filter { getDoesFilePathExist(it, otgPath) }
-        if (alive.size != group.paths.size) {
-            group.paths = alive.toMutableList()
-            changed = true
-        }
-    }
-
-    val remaining = groups.filter { it.paths.isNotEmpty() }
-    if (changed || remaining.size != groups.size) {
-        config.saveFolderGroups(remaining)
-    }
 }

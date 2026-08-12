@@ -362,6 +362,7 @@
     <string name="group_folders">Group folders</string>
     <string name="add_to_group">Add to group</string>
     <string name="ungroup_folders">Ungroup</string>
+    <string name="remove_from_group">Remove from group</string>
     <string name="rename_group">Rename group</string>
     <string name="group_name">Group name</string>
     <string name="new_group">New group</string>

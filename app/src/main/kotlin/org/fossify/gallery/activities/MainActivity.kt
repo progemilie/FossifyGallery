@@ -9,6 +9,7 @@ import android.provider.MediaStore
 import android.provider.MediaStore.Images
 import android.provider.MediaStore.Video
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.RelativeLayout
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
@@ -16,6 +17,7 @@ import org.fossify.commons.dialogs.CreateNewFolderDialog
 import org.fossify.commons.dialogs.FilePickerDialog
 import org.fossify.commons.dialogs.RadioGroupDialog
 import org.fossify.commons.extensions.appLaunched
+import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.appLockManager
 import org.fossify.commons.extensions.areSystemAnimationsEnabled
 import org.fossify.commons.extensions.beGone
@@ -207,6 +209,9 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     // rebuild it without waiting for another scan
     private var mLastFullDirs = ArrayList<Directory>()
 
+    // whether the list's entrance animation has already had its turn, see shouldAnimateLayout()
+    private var mDidLayoutAnimation = false
+
     private var mStoredAnimateGifs = true
     private var mStoredCropThumbnails = true
     private var mStoredScrollHorizontally = true
@@ -351,7 +356,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         val styleString =
             "${config.folderStyle}${config.showFolderMediaCount}${config.limitFolderTitle}"
         if (mStoredStyleString != styleString) {
-            setupAdapter(mDirs, forceRecreate = true)
+            setupAdapter(lastFullDirs(), forceRecreate = true)
         }
 
         binding.directoriesFastscroller.updateColors(primaryColor)
@@ -372,27 +377,45 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             tryLoadGallery()
         }
 
-        updateSearchHint()
+        updateTopBarForGroup()
     }
 
     /**
-     * The search pill doubles as the only place with room to say where the grid is: while a folder
-     * group is open it carries the group's name instead of the usual prompt.
+     * The search pill is the only chrome these screens have, so it doubles as where the grid says
+     * it is: while a folder group is open it carries the group's name instead of the usual prompt,
+     * and its magnifier becomes the way back out.
      */
-    private fun updateSearchHint() {
+    private fun updateTopBarForGroup() {
         val openGroup = if (mCurrentGroupId == 0L) {
             null
         } else {
             folderGroups().firstOrNull { it.id == mCurrentGroupId }
         }
 
-        val hint = when {
-            openGroup != null -> openGroup.name
-            config.searchAllFilesByDefault -> getString(org.fossify.commons.R.string.search_files)
-            else -> getString(org.fossify.commons.R.string.search_folders)
+        binding.mainMenu.updateHintText(
+            when {
+                openGroup != null -> openGroup.name
+                config.searchAllFilesByDefault -> getString(org.fossify.commons.R.string.search_files)
+                else -> getString(org.fossify.commons.R.string.search_folders)
+            }
+        )
+
+        val icon = binding.mainMenu
+            .findViewById<ImageView>(org.fossify.commons.R.id.top_toolbar_search_icon) ?: return
+
+        if (openGroup == null) {
+            icon.setImageResource(org.fossify.commons.R.drawable.ic_search_vector)
+            icon.contentDescription = getString(org.fossify.commons.R.string.search)
+            icon.setOnClickListener(null)
+            // back to inert, or it would keep swallowing taps meant for the search field
+            icon.isClickable = false
+        } else {
+            icon.setImageResource(org.fossify.commons.R.drawable.ic_arrow_left_vector)
+            icon.contentDescription = getString(org.fossify.commons.R.string.back)
+            icon.setOnClickListener { closeFolderGroup() }
         }
 
-        binding.mainMenu.updateHintText(hint)
+        icon.applyColorFilter(getProperTextColor())
     }
 
     override fun onPause() {
@@ -762,7 +785,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             refreshMenuItems()
             setupLayoutManager()
             binding.directoriesGrid.adapter = null
-            setupAdapter(getRecyclerAdapter()?.dirs ?: mDirs)
+            setupAdapter(lastFullDirs())
         }
     }
 
@@ -1617,7 +1640,8 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
                     binding.directoriesGrid.adapter = this
                     setupScrollDirection()
 
-                    if (config.viewTypeFolders == VIEW_TYPE_LIST && areSystemAnimationsEnabled) {
+                    if (shouldAnimateLayout()) {
+                        mDidLayoutAnimation = true
                         binding.directoriesGrid.scheduleLayoutAnimation()
                     }
                 }
@@ -1649,12 +1673,26 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
      * nothing to say about them.
      */
     private fun collapseFolderGroups(dirs: ArrayList<Directory>): ArrayList<Directory> {
+        // the open group can be dissolved from under this screen - its last folder taken out of
+        // it, or a scan finding them all gone - and then there is nothing left to be standing in
+        if (mCurrentGroupId != 0L && folderGroups().none { it.id == mCurrentGroupId }) {
+            mCurrentGroupId = 0L
+            runOnUiThread { updateTopBarForGroup() }
+        }
+
         if (mCurrentGroupId == 0L && mCurrentPathPrefix.isNotEmpty()) {
             return dirs
         }
 
         return applyFolderGroups(dirs, mCurrentGroupId)
     }
+
+    /**
+     * The whole folder list the grid was last built from. Inside a group the adapter holds only
+     * that group's folders, so anything rebuilding the adapter has to start here instead - handing
+     * it what is on screen would filter an already filtered list down to nothing.
+     */
+    private fun lastFullDirs() = mLastFullDirs.ifEmpty { mDirs }
 
     /**
      * Narrows the grid to what matches [textToSearch]. Group tiles match on their own name, and
@@ -1675,16 +1713,27 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     private fun openFolderGroup(id: Long) {
         mCurrentGroupId = id
         binding.mainMenu.closeSearch()
-        updateSearchHint()
+        updateTopBarForGroup()
         setupAdapter(mLastFullDirs, "")
         binding.directoriesGrid.scrollToPosition(0)
     }
 
     private fun closeFolderGroup() {
         mCurrentGroupId = 0L
-        updateSearchHint()
+        updateTopBarForGroup()
         setupAdapter(mLastFullDirs, "")
     }
+
+    /**
+     * Whether the list's staggered entrance animation should run. It starts every row at alpha 0
+     * and walks them in one after another, so anything that lays the grid out again before a row's
+     * turn comes leaves that row invisible - which is what rebuilding the adapter for a view type
+     * change did, and what emptied the screen outright inside a folder group, where there are few
+     * enough rows that all of them were still waiting. It is a flourish for the first list the
+     * screen shows; nothing is lost by it not running again.
+     */
+    private fun shouldAnimateLayout() = config.viewTypeFolders == VIEW_TYPE_LIST &&
+        areSystemAnimationsEnabled && !mDidLayoutAnimation
 
     private fun setupScrollDirection() {
         val scrollHorizontally =

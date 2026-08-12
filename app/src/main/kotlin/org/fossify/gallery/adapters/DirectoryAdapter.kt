@@ -88,6 +88,7 @@ import org.fossify.gallery.extensions.loadFolderGroupCell
 import org.fossify.gallery.extensions.loadImage
 import org.fossify.gallery.extensions.mediaDB
 import org.fossify.gallery.extensions.removeFolderGroups
+import org.fossify.gallery.extensions.removeFromFolderGroup
 import org.fossify.gallery.extensions.removeNoMedia
 import org.fossify.gallery.extensions.renameFolderGroup
 import org.fossify.gallery.extensions.saveFolderGroupOrder
@@ -246,6 +247,7 @@ class DirectoryAdapter(
             R.id.cab_use_default -> tryChangeAlbumCover(true)
             R.id.cab_group_folders -> groupSelectedFolders()
             R.id.cab_add_to_group -> addSelectedFoldersToGroup()
+            R.id.cab_remove_from_group -> removeSelectedFromGroup()
             R.id.cab_ungroup_folders -> ungroupSelectedGroups()
             R.id.cab_rename_group -> renameSelectedGroup()
         }
@@ -313,8 +315,11 @@ class DirectoryAdapter(
         selectedFolders: List<Directory>
     ) {
         val groupableFolders = selectedFolders.filter { it.canBeGrouped() }
+        // inside a group the folders are already in one, so the only move left is out of it
         menu.findItem(R.id.cab_group_folders).isVisible =
-            selectedGroups.isEmpty() && groupableFolders.isNotEmpty()
+            openGroupId == 0L && selectedGroups.isEmpty() && groupableFolders.isNotEmpty()
+        menu.findItem(R.id.cab_remove_from_group).isVisible =
+            openGroupId != 0L && selectedFolders.isNotEmpty()
         menu.findItem(R.id.cab_add_to_group).isVisible =
             selectedGroups.size == 1 && groupableFolders.isNotEmpty()
         menu.findItem(R.id.cab_ungroup_folders).isVisible =
@@ -344,6 +349,17 @@ class DirectoryAdapter(
         }
 
         activity.addToFolderGroup(group.folderGroupId(), paths)
+        finishActMode()
+        listener?.refreshItems()
+    }
+
+    private fun removeSelectedFromGroup() {
+        val paths = getSelectedFolders().map { it.path }
+        if (openGroupId == 0L || paths.isEmpty()) {
+            return
+        }
+
+        activity.removeFromFolderGroup(openGroupId, paths)
         finishActMode()
         listener?.refreshItems()
     }
@@ -965,7 +981,11 @@ class DirectoryAdapter(
 
     private fun setupView(view: View, directory: Directory, holder: ViewHolder) {
         val isSelected = selectedKeys.contains(directory.path.hashCode())
+        val isGroup = directory.isFolderGroup()
         bindItem(view).apply {
+            // a group tile stands under a synthetic path that names nothing on disk, so the list
+            // row has no parent folder to show for it
+            dirPath?.beVisibleIf(!isGroup)
             dirPath?.text = "${directory.path.substringBeforeLast("/")}/"
             val thumbnailType = when {
                 directory.tmb.isVideoFast() -> TYPE_VIDEOS
@@ -1003,7 +1023,6 @@ class DirectoryAdapter(
                 }
             }
 
-            val isGroup = directory.isFolderGroup()
             bindThumbnail(this, directory, thumbnailType, isGroup, isSelected)
 
             dirPin.beVisibleIf(pinnedFolders.contains(directory.path))
