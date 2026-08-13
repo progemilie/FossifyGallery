@@ -125,6 +125,25 @@ Reordering lives in `adapters/MediaReorderMode.kt`, which drives `MediaAdapter` 
 inside it, and is put up by `MediaActivity` through `helpers/ReorderBar.kt`: multi-select marks a
 group and dragging any marked item carries the whole group.
 
+### Folder groups
+
+Several folders drawn under one tile in the folder grid. Nothing moves on disk. Definitions live in
+`Config` as JSON (`extensions/FolderGroups.kt`) rather than in Room, because the grid reads them on
+the main thread. A tile is a `Directory` under a synthetic `folder_group:<id>` path so selection,
+pinning and the custom folder order carry it with no case of their own, and it holds its members in
+`groupMembers`.
+
+Two rules keep the grid honest, both in `extensions/FolderGroupTiles.kt`:
+- **A tile never reaches Room or the scan.** `expandFolderGroups()` puts one back into its folders;
+  `MainActivity.getCurrentlyDisplayedDirs()` and `updateDirectories()` are the gates.
+- **`applyFolderGroups()` says nothing about which group is open**, so the scan thread can build the
+  root view while `MainActivity.narrowToOpenGroup()` picks the open group's members on the main
+  thread, in the same pass that hands them to the adapter. Splitting those two apart is what used to
+  leave the grid showing one state while the screen believed another.
+
+While a group is open the grid is *not* the library — anything re-scanning or re-sorting has to work
+from `mDirsIgnoringSearch`, never from what the adapter holds.
+
 ### Order & groups export
 
 `helpers/OrderAndGroupsIO.kt` carries all three hand made arrangements — folder groups, the folder

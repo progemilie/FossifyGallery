@@ -18,25 +18,19 @@ import org.fossify.gallery.models.FolderGroup
  */
 
 /**
- * Turns [dirs] into what the grid should show.
- *
- * At the root every grouped folder is taken out and one tile per group put in its place, sorted
- * back among the loose folders on values aggregated from its members. With [openGroupId] set only
- * that group's folders remain, in the order the group holds them.
+ * Turns [dirs] into what the grid shows at the root of the folder list: every grouped folder is
+ * taken out and one tile per group put in its place, sorted back among the loose folders on values
+ * aggregated from its members. A tile carries its members in [Directory.groupMembers], which is
+ * what opening the group then draws - so this says nothing about which group is open, and can be
+ * worked out on the scan thread while that decision stays on the main one.
  *
  * The tiles are built here and nowhere else - they are never written to Room, never scanned, and
  * [expandFolderGroups] takes them apart again on the way back out.
  */
-fun Context.applyFolderGroups(dirs: ArrayList<Directory>, openGroupId: Long): ArrayList<Directory> {
+fun Context.applyFolderGroups(dirs: ArrayList<Directory>): ArrayList<Directory> {
     val groups = folderGroups()
     if (groups.isEmpty()) {
-        return if (openGroupId == 0L) dirs else ArrayList()
-    }
-
-    if (openGroupId != 0L) {
-        val group = groups.firstOrNull { it.id == openGroupId } ?: return ArrayList()
-        val byPath = dirs.associateBy { it.path.groupKey() }
-        return group.paths.mapNotNullTo(ArrayList()) { byPath[it.groupKey()] }
+        return dirs
     }
 
     val groupOfPath = HashMap<String, FolderGroup>()
@@ -138,12 +132,12 @@ private fun Context.folderGroupSortValue(
 }
 
 /**
- * Drops members that are no longer on disk and deletes any group left with none. Only outright
- * absence counts - a folder merely hidden or filtered out of the current scan is still a member,
- * or turning a filter on for a minute would cost the user the group. Blocking, call it off the
- * main thread.
+ * Drops members that are no longer on disk and deletes any group left with none, returning whether
+ * anything changed - the grid has to be redrawn if it did. Only outright absence counts: a folder
+ * merely hidden or filtered out of the current scan is still a member, or turning a filter on for a
+ * minute would cost the user the group. Blocking, call it off the main thread.
  */
-fun Context.pruneFolderGroups() {
+fun Context.pruneFolderGroups(): Boolean {
     val otgPath = config.OTGPath
     val groups = folderGroups()
     var changed = false
@@ -157,7 +151,10 @@ fun Context.pruneFolderGroups() {
     }
 
     val remaining = groups.filter { it.paths.isNotEmpty() }
-    if (changed || remaining.size != groups.size) {
-        config.saveFolderGroups(remaining)
+    if (!changed && remaining.size == groups.size) {
+        return false
     }
+
+    config.saveFolderGroups(remaining)
+    return true
 }

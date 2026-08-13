@@ -184,13 +184,16 @@ class DirectoryAdapter(
     override fun getItemCount() = dirs.size
 
     override fun prepareActionMode(menu: Menu) {
-        val selectedPaths = getSelectedPaths()
-        if (selectedPaths.isEmpty()) {
+        val selectedItems = getSelectedItems()
+        if (selectedItems.isEmpty()) {
             return
         }
 
-        val selectedGroups = getSelectedGroups()
-        val selectedFolders = getSelectedFolders()
+        // worked out from the one lookup: each getSelected* call walks the whole grid per key
+        val selectedPaths = folderPathsOf(selectedItems)
+        val selectedTilePaths = selectedItems.map { it.path } as ArrayList<String>
+        val selectedGroups = selectedItems.filter { it.isFolderGroup() }
+        val selectedFolders = selectedItems.filter { !it.isFolderGroup() }
         val anyGroupSelected = selectedGroups.isNotEmpty()
         val isOneItemSelected = isOneItemSelected()
         menu.apply {
@@ -204,8 +207,9 @@ class DirectoryAdapter(
             findItem(R.id.cab_lock).isVisible = selectedPaths.any { !config.isFolderProtected(it) }
             findItem(R.id.cab_unlock).isVisible = selectedPaths.any { config.isFolderProtected(it) }
 
-            findItem(R.id.cab_empty_recycle_bin).isVisible = isOneItemSelected && selectedPaths.first() == RECYCLE_BIN
-            findItem(R.id.cab_empty_disable_recycle_bin).isVisible = isOneItemSelected && selectedPaths.first() == RECYCLE_BIN
+            val isRecycleBinSelected = isOneItemSelected && selectedPaths.firstOrNull() == RECYCLE_BIN
+            findItem(R.id.cab_empty_recycle_bin).isVisible = isRecycleBinSelected
+            findItem(R.id.cab_empty_disable_recycle_bin).isVisible = isRecycleBinSelected
 
             findItem(R.id.cab_create_shortcut).isVisible = isOneItemSelected && !anyGroupSelected
             // a group is not a folder, so there is nothing to delete that ungrouping would not
@@ -214,7 +218,7 @@ class DirectoryAdapter(
 
             checkGroupBtnVisibility(this, selectedGroups, selectedFolders)
             checkHideBtnVisibility(this, selectedPaths)
-            checkPinBtnVisibility(this, getSelectedTilePaths())
+            checkPinBtnVisibility(this, selectedTilePaths)
         }
     }
 
@@ -566,7 +570,8 @@ class DirectoryAdapter(
     private fun updateFolderNames() {
         val includedFolders = config.includedFolders
         val hidden = activity.getString(R.string.hidden)
-        dirs.forEach {
+        // a group tile is named by the user, and its path names nothing that could be hidden
+        dirs.filterNot { it.isFolderGroup() }.forEach {
             it.name = activity.checkAppendingHidden(it.path, hidden, includedFolders, ArrayList())
         }
         listener?.updateDirectories(dirs.toMutableList() as ArrayList)
@@ -930,13 +935,15 @@ class DirectoryAdapter(
     private fun getSelectedFolders() = getSelectedItems().filter { !it.isFolderGroup() }
 
     /**
-     * The real folders the selection stands for: a group is replaced by its members, so hiding,
-     * excluding, locking, copying and moving reach every folder under a selected group. Anything
-     * that means the tile itself rather than what it holds wants [getSelectedTilePaths].
+     * The real folders [items] stand for: a group is replaced by its members, so hiding, excluding,
+     * locking, copying and moving reach every folder under a selected group. Anything that means
+     * the tile itself rather than what it holds wants [getSelectedTilePaths].
      */
-    private fun getSelectedPaths() = getSelectedItems()
-        .flatMap { if (it.isFolderGroup()) it.groupMembers.map { member -> member.path } else listOf(it.path) }
+    private fun folderPathsOf(items: List<Directory>) = items
+        .flatMap { if (it.isFolderGroup()) it.groupMembers.map(Directory::path) else listOf(it.path) }
         .toMutableList() as ArrayList<String>
+
+    private fun getSelectedPaths() = folderPathsOf(getSelectedItems())
 
     /** The selection as the grid holds it, a group standing under its own synthetic path. */
     private fun getSelectedTilePaths() = getSelectedItems().map { it.path } as ArrayList<String>
@@ -1031,7 +1038,21 @@ class DirectoryAdapter(
                 dirLocation.setImageResource(if (directory.location == LOCATION_SD) org.fossify.commons.R.drawable.ic_sd_card_vector else org.fossify.commons.R.drawable.ic_usb_vector)
             }
 
-            photoCnt.text = directory.subfoldersMediaCount.toString()
+            // how many folders stand under a group tile, which the collage stops saying past four.
+            // it goes on the count line and never into the name: a tile is barely one word wide,
+            // and a name pushed onto a second line leaves the whole row of tiles ragged
+            photoCnt.text = if (isGroup) {
+                val folders = resources.getQuantityString(
+                    R.plurals.folders_in_group,
+                    directory.groupMembers.size,
+                    directory.groupMembers.size
+                )
+
+                "$folders · ${directory.subfoldersMediaCount}"
+            } else {
+                directory.subfoldersMediaCount.toString()
+            }
+
             photoCnt.beVisibleIf(showMediaCount == FOLDER_MEDIA_CNT_LINE)
 
             if (limitFolderTitle) {
@@ -1044,17 +1065,8 @@ class DirectoryAdapter(
                 nameCount += " (${directory.subfoldersMediaCount})"
             }
 
-            if (isGroup) {
-                // how many folders stand under the tile, which the collage stops saying past four
-                nameCount += " · " + resources.getQuantityString(
-                    R.plurals.folders_in_group,
-                    directory.groupMembers.size,
-                    directory.groupMembers.size
-                )
-            } else if (groupDirectSubfolders) {
-                if (directory.subfoldersCount > 1) {
-                    nameCount += " [${directory.subfoldersCount}]"
-                }
+            if (groupDirectSubfolders && !isGroup && directory.subfoldersCount > 1) {
+                nameCount += " [${directory.subfoldersCount}]"
             }
 
             dirName.text = nameCount
@@ -1163,6 +1175,9 @@ class DirectoryAdapter(
         binding.dirGroupThumbnail.apply {
             setCornerRadius(radius)
             setBorderColor(properPrimaryColor)
+            // a rebind can drop cells the last one had going, and a request left in flight would
+            // land in a cell this group never asked to fill
+            clearCells { Glide.with(activity).clear(it) }
             prepareCells(members.size, placeholder).forEachIndexed { index, cell ->
                 val member = members[index]
                 activity.loadFolderGroupCell(member.tmb, cell, member.getKey())

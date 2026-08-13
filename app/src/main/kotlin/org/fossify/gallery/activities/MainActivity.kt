@@ -9,7 +9,6 @@ import android.provider.MediaStore
 import android.provider.MediaStore.Images
 import android.provider.MediaStore.Video
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.RelativeLayout
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
@@ -17,7 +16,6 @@ import org.fossify.commons.dialogs.CreateNewFolderDialog
 import org.fossify.commons.dialogs.FilePickerDialog
 import org.fossify.commons.dialogs.RadioGroupDialog
 import org.fossify.commons.extensions.appLaunched
-import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.appLockManager
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
@@ -198,15 +196,16 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     private var mZoomListener: MyRecyclerView.MyZoomListener? = null
     private var mLastMediaFetcher: MediaFetcher? = null
     private var mDirs = ArrayList<Directory>()
+
+    // the whole folder list the grid was last built from, before a search or an open folder group
+    // narrowed it. Anything rebuilding the grid starts here - handing it what is on screen would
+    // filter an already filtered list down and lose the rest of the library with it
     private var mDirsIgnoringSearch = ArrayList<Directory>()
 
     // the folder group whose contents the grid is showing, 0 while it is showing the root. Only
-    // the view changes - the scan below keeps working on the real folders throughout
+    // the view changes - the scan below keeps working on the real folders throughout. Written and
+    // read on the main thread alone, so the grid can never be narrowed to a group it has left
     private var mCurrentGroupId = 0L
-
-    // the last full folder list the grid was built from, kept so opening and leaving a group can
-    // rebuild it without waiting for another scan
-    private var mLastFullDirs = ArrayList<Directory>()
 
     private var mStoredAnimateGifs = true
     private var mStoredCropThumbnails = true
@@ -352,7 +351,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         val styleString =
             "${config.folderStyle}${config.showFolderMediaCount}${config.limitFolderTitle}"
         if (mStoredStyleString != styleString) {
-            setupAdapter(lastFullDirs(), forceRecreate = true)
+            setupAdapter(mDirsIgnoringSearch, forceRecreate = true)
         }
 
         binding.directoriesFastscroller.updateColors(primaryColor)
@@ -379,15 +378,11 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     /**
      * The search pill is the only chrome these screens have, so it doubles as where the grid says
      * it is: while a folder group is open it carries the group's name instead of the usual prompt,
-     * and its magnifier becomes the way back out.
+     * and its magnifier becomes the way back out. Both are the pill's own hooks - it keeps drawing
+     * its icon, including through a search opening and closing over the top.
      */
     private fun updateTopBarForGroup() {
-        val openGroup = if (mCurrentGroupId == 0L) {
-            null
-        } else {
-            folderGroups().firstOrNull { it.id == mCurrentGroupId }
-        }
-
+        val openGroup = folderGroups().firstOrNull { it.id == mCurrentGroupId }
         binding.mainMenu.updateHintText(
             when {
                 openGroup != null -> openGroup.name
@@ -396,22 +391,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             }
         )
 
-        val icon = binding.mainMenu
-            .findViewById<ImageView>(org.fossify.commons.R.id.top_toolbar_search_icon) ?: return
-
-        if (openGroup == null) {
-            icon.setImageResource(org.fossify.commons.R.drawable.ic_search_vector)
-            icon.contentDescription = getString(org.fossify.commons.R.string.search)
-            icon.setOnClickListener(null)
-            // back to inert, or it would keep swallowing taps meant for the search field
-            icon.isClickable = false
-        } else {
-            icon.setImageResource(org.fossify.commons.R.drawable.ic_arrow_left_vector)
-            icon.contentDescription = getString(org.fossify.commons.R.string.back)
-            icon.setOnClickListener { closeFolderGroup() }
-        }
-
-        icon.applyColorFilter(getProperTextColor())
+        binding.mainMenu.toggleForceArrowBackIcon(openGroup != null)
     }
 
     override fun onPause() {
@@ -551,6 +531,9 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
                 launchSearchActivity()
             }
         }
+
+        // only ever reached while a folder group is open - that is when the pill wears the arrow
+        binding.mainMenu.onNavigateBackClickListener = { closeFolderGroup() }
 
         binding.mainMenu.onSearchTextChangedListener = { text ->
             setupAdapter(mDirsIgnoringSearch, text)
@@ -781,7 +764,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             refreshMenuItems()
             setupLayoutManager()
             binding.directoriesGrid.adapter = null
-            setupAdapter(lastFullDirs())
+            setupAdapter(mDirsIgnoringSearch)
         }
     }
 
@@ -1504,7 +1487,9 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
 
         // only now that a whole scan has been through every folder is a group's missing member
         // really gone rather than just not reached yet
-        pruneFolderGroups()
+        if (pruneFolderGroups()) {
+            setupAdapter(dirs)
+        }
     }
 
     private fun setAsDefaultFolder() {
@@ -1589,66 +1574,42 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         textToSearch: String = binding.mainMenu.getCurrentQuery(),
         forceRecreate: Boolean = false
     ) {
-        val currAdapter = binding.directoriesGrid.adapter
         val distinctDirs = dirs
             .distinctBy { it.path.getDistinctPath() }
             .toMutableList() as ArrayList<Directory>
 
-        mLastFullDirs = distinctDirs
+        // every caller hands the whole folder list in, so this is what a search or an open group
+        // narrows down from - and what they are put back to when they are done
+        mDirsIgnoringSearch = distinctDirs
 
         val sortedDirs = getSortedDirectories(distinctDirs)
-        var dirsToShow = getDirsToShow(
+        val rootDirs = getDirsToShow(
             dirs = sortedDirs,
             allDirs = mDirs,
             currentPathPrefix = mCurrentPathPrefix
         ).clone() as ArrayList<Directory>
 
-        dirsToShow = collapseFolderGroups(dirsToShow)
+        // "Group direct subfolders" shows parent folders standing for their children, and a group
+        // of exact paths has nothing to say about them - the two do not mix
+        val foldersAreGrouped = !config.groupDirectSubfolders
+        val groupedDirs = if (foldersAreGrouped) applyFolderGroups(rootDirs) else rootDirs
 
-        if (currAdapter == null || forceRecreate) {
-            mDirsIgnoringSearch = dirs
-            initZoomListener()
-            DirectoryAdapter(
-                activity = this,
-                dirs = dirsToShow,
-                listener = this,
-                recyclerView = binding.directoriesGrid,
-                isPickIntent = isPickIntent(intent) || isGetAnyContentIntent(intent),
-                swipeRefreshLayout = binding.directoriesRefreshLayout,
-                openGroupId = mCurrentGroupId
-            ) {
-                val clickedDir = it as Directory
-                val path = clickedDir.path
-                if (clickedDir.isFolderGroup()) {
-                    openFolderGroup(clickedDir.folderGroupId())
-                } else if (clickedDir.subfoldersCount == 1 || !config.groupDirectSubfolders) {
-                    if (path != config.tempFolderPath) {
-                        itemClicked(path)
-                    }
-                } else {
-                    mCurrentPathPrefix = path
-                    mOpenedSubfolders.add(path)
-                    setupAdapter(mDirs, "")
-                }
-            }.apply {
-                setupZoomListener(mZoomListener)
-                runOnUiThread {
-                    // no entrance animation here: a layout animation on a RecyclerView binds every
-                    // child at alpha 0 and walks them in, and the view is recycled often enough
-                    // that children kept being left at that alpha - blank rows until something
-                    // scrolled them off and back. See the removed layoutAnimation in the layout
-                    binding.directoriesGrid.adapter = this
-                    setupScrollDirection()
-                }
+        runOnUiThread {
+            if (!foldersAreGrouped && mCurrentGroupId != 0L) {
+                // the setting was turned on while a group was open, and there is no longer a tile
+                // for the grid to be standing in
+                leaveOpenGroup()
             }
-        } else {
-            runOnUiThread {
-                if (textToSearch.isNotEmpty()) {
-                    dirsToShow = searchDirs(dirsToShow, textToSearch)
-                }
-                checkPlaceholderVisibility(dirsToShow)
 
-                (binding.directoriesGrid.adapter as? DirectoryAdapter)?.apply {
+            // both narrowings are read and applied here, in the one main thread pass: worked out
+            // on the scan thread they land a group or a keystroke late, and the grid ends up
+            // showing one state while the screen believes another
+            val dirsToShow = searchDirs(narrowToOpenGroup(groupedDirs), textToSearch)
+            checkPlaceholderVisibility(dirsToShow)
+            if (binding.directoriesGrid.adapter == null || forceRecreate) {
+                createDirectoryAdapter(dirsToShow)
+            } else {
+                getRecyclerAdapter()?.apply {
                     openGroupId = mCurrentGroupId
                     updateDirs(dirsToShow)
                 }
@@ -1661,33 +1622,66 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         }, 500)
     }
 
-    /**
-     * Puts the grouped folders in [dirs] under their group's tile, or, while a group is open,
-     * keeps only that group's folders. Left alone inside "Group direct subfolders" navigation:
-     * that mode shows parent folders standing for their children, and a group of exact paths has
-     * nothing to say about them.
-     */
-    private fun collapseFolderGroups(dirs: ArrayList<Directory>): ArrayList<Directory> {
-        // the open group can be dissolved from under this screen - its last folder taken out of
-        // it, or a scan finding them all gone - and then there is nothing left to be standing in
-        if (mCurrentGroupId != 0L && folderGroups().none { it.id == mCurrentGroupId }) {
-            mCurrentGroupId = 0L
-            runOnUiThread { updateTopBarForGroup() }
+    private fun createDirectoryAdapter(dirsToShow: ArrayList<Directory>) {
+        initZoomListener()
+        val adapter = DirectoryAdapter(
+            activity = this,
+            dirs = dirsToShow,
+            listener = this,
+            recyclerView = binding.directoriesGrid,
+            isPickIntent = isPickIntent(intent) || isGetAnyContentIntent(intent),
+            swipeRefreshLayout = binding.directoriesRefreshLayout,
+            openGroupId = mCurrentGroupId
+        ) {
+            val clickedDir = it as Directory
+            val path = clickedDir.path
+            if (clickedDir.isFolderGroup()) {
+                openFolderGroup(clickedDir.folderGroupId())
+            } else if (clickedDir.subfoldersCount == 1 || !config.groupDirectSubfolders) {
+                if (path != config.tempFolderPath) {
+                    itemClicked(path)
+                }
+            } else {
+                mCurrentPathPrefix = path
+                mOpenedSubfolders.add(path)
+                setupAdapter(mDirs, "")
+            }
         }
 
-        if (mCurrentGroupId == 0L && mCurrentPathPrefix.isNotEmpty()) {
-            return dirs
-        }
-
-        return applyFolderGroups(dirs, mCurrentGroupId)
+        adapter.setupZoomListener(mZoomListener)
+        // no entrance animation here: a layout animation on a RecyclerView binds every child at
+        // alpha 0 and walks them in, and the view is recycled often enough that children kept
+        // being left at that alpha - blank rows until something scrolled them off and back. See
+        // the removed layoutAnimation in the layout
+        binding.directoriesGrid.adapter = adapter
+        setupScrollDirection()
     }
 
     /**
-     * The whole folder list the grid was last built from. Inside a group the adapter holds only
-     * that group's folders, so anything rebuilding the adapter has to start here instead - handing
-     * it what is on screen would filter an already filtered list down to nothing.
+     * The open folder group's folders alone, in the order the group holds them, or [dirs] whole
+     * while the grid is at the root. Main thread only - this is what keeps the grid and
+     * [mCurrentGroupId] telling the same story.
      */
-    private fun lastFullDirs() = mLastFullDirs.ifEmpty { mDirs }
+    private fun narrowToOpenGroup(dirs: ArrayList<Directory>): ArrayList<Directory> {
+        if (mCurrentGroupId == 0L) {
+            return dirs
+        }
+
+        val tile = dirs.firstOrNull { it.folderGroupId() == mCurrentGroupId }
+        if (tile != null) {
+            return ArrayList(tile.groupMembers)
+        }
+
+        // no tile for it. either the scan has not reached the group's folders yet, or the group is
+        // gone - its last folder taken out of it, or a scan finding them all missing - and then
+        // there is nothing left to be standing in
+        if (folderGroups().any { it.id == mCurrentGroupId }) {
+            return ArrayList()
+        }
+
+        leaveOpenGroup()
+        return dirs
+    }
 
     /**
      * Narrows the grid to what matches [textToSearch]. Group tiles match on their own name, and
@@ -1695,6 +1689,10 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
      * by the name it has always had.
      */
     private fun searchDirs(dirs: ArrayList<Directory>, textToSearch: String): ArrayList<Directory> {
+        if (textToSearch.isEmpty()) {
+            return dirs
+        }
+
         val candidates = dirs.flatMap {
             if (it.isFolderGroup()) listOf(it) + it.groupMembers else listOf(it)
         }
@@ -1706,17 +1704,33 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     }
 
     private fun openFolderGroup(id: Long) {
-        mCurrentGroupId = id
+        // before the group opens, so the search closing does not rebuild the grid on top of it
         binding.mainMenu.closeSearch()
+        mCurrentGroupId = id
         updateTopBarForGroup()
-        setupAdapter(mLastFullDirs, "")
+        setupAdapter(mDirsIgnoringSearch, "")
         binding.directoriesGrid.scrollToPosition(0)
     }
 
     private fun closeFolderGroup() {
+        val leftGroupId = mCurrentGroupId
+        leaveOpenGroup()
+        setupAdapter(mDirsIgnoringSearch, "")
+
+        // come back out onto the tile that was opened rather than wherever the group's own
+        // scrolling left off
+        val position = getRecyclerAdapter()
+            ?.dirs
+            ?.indexOfFirst { it.folderGroupId() == leftGroupId } ?: -1
+        if (position >= 0) {
+            binding.directoriesGrid.scrollToPosition(position)
+        }
+    }
+
+    /** Puts the grid back at the root of the folder list. Redrawing it is the caller's to do. */
+    private fun leaveOpenGroup() {
         mCurrentGroupId = 0L
         updateTopBarForGroup()
-        setupAdapter(mLastFullDirs, "")
     }
 
     private fun setupScrollDirection() {
@@ -1782,10 +1796,20 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         }
     }
 
-    // expanded: what the grid shows may be group tiles, and a tile names no folder on disk - the
-    // scan and the database both have to be handed the folders standing under it instead
-    private fun getCurrentlyDisplayedDirs() =
-        expandFolderGroups(getRecyclerAdapter()?.dirs ?: ArrayList())
+    /**
+     * The folders the scan and the database are to work on, which is not always what the grid is
+     * showing. A group tile names nothing on disk, so it is taken apart into its members; and while
+     * a group is open, or between an adapter being dropped and the next one being built, the grid
+     * holds part of the library or none of it - handing that over reads the rest back as deleted.
+     */
+    private fun getCurrentlyDisplayedDirs(): ArrayList<Directory> {
+        val shownDirs = getRecyclerAdapter()?.dirs
+        return if (shownDirs == null || mCurrentGroupId != 0L) {
+            ArrayList(mDirsIgnoringSearch)
+        } else {
+            expandFolderGroups(shownDirs)
+        }
+    }
 
     private fun setupLatestMediaId() {
         ensureBackgroundThread {

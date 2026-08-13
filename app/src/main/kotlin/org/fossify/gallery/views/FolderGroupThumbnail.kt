@@ -55,7 +55,6 @@ class FolderGroupThumbnail @JvmOverloads constructor(
 
     init {
         cells.forEach { addView(it) }
-        setWillNotDraw(false)
         clipToOutline = true
         outlineProvider = object : ViewOutlineProvider() {
             override fun getOutline(view: View, outline: Outline) {
@@ -69,19 +68,24 @@ class FolderGroupThumbnail @JvmOverloads constructor(
      * order they should appear. Cells past [count] are hidden and left holding nothing.
      */
     fun prepareCells(count: Int, cellBackground: Int): List<ImageView> {
-        shownCells = count.coerceIn(0, MAX_FOLDER_GROUP_COVERS)
+        val wanted = count.coerceIn(0, MAX_FOLDER_GROUP_COVERS)
+        if (wanted != shownCells) {
+            // the cells are laid out by how many there are, so their bounds have to be worked out
+            // again before the next draw
+            shownCells = wanted
+            requestLayout()
+        }
+
         cells.forEachIndexed { index, cell ->
+            cell.setImageDrawable(null)
             if (index < shownCells) {
                 cell.visibility = VISIBLE
-                cell.setImageDrawable(null)
                 cell.setBackgroundResource(cellBackground)
             } else {
                 cell.visibility = GONE
-                cell.setImageDrawable(null)
             }
         }
 
-        requestLayout()
         return cells.take(shownCells)
     }
 
@@ -132,8 +136,10 @@ class FolderGroupThumbnail @JvmOverloads constructor(
         }
     }
 
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
+    // after the cells rather than before them: the cells reach the edges, so a border drawn under
+    // them would only show in the gaps
+    override fun dispatchDraw(canvas: Canvas) {
+        super.dispatchDraw(canvas)
         if (shownCells == 0 || borderPaint.color == 0) {
             return
         }

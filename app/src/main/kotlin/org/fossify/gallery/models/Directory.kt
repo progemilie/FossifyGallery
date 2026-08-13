@@ -38,7 +38,8 @@ data class Directory(
 
     fun getBubbleText(sorting: Int, context: Context, dateFormat: String? = null, timeFormat: String? = null) = when {
         sorting and SORT_BY_NAME != 0 -> name
-        sorting and SORT_BY_PATH != 0 -> path
+        // a group's path is synthetic and means nothing to the user, its name is what it sorts on
+        sorting and SORT_BY_PATH != 0 -> if (isFolderGroup()) name else path
         sorting and SORT_BY_SIZE != 0 -> size.formatSize()
         sorting and SORT_BY_DATE_MODIFIED != 0 -> modified.formatDate(context, dateFormat, timeFormat)
         sorting and SORT_BY_RANDOM != 0 -> name
