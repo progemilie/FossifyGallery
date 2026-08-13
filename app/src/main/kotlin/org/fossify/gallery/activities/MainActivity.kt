@@ -19,7 +19,6 @@ import org.fossify.commons.dialogs.RadioGroupDialog
 import org.fossify.commons.extensions.appLaunched
 import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.appLockManager
-import org.fossify.commons.extensions.areSystemAnimationsEnabled
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
@@ -208,9 +207,6 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     // the last full folder list the grid was built from, kept so opening and leaving a group can
     // rebuild it without waiting for another scan
     private var mLastFullDirs = ArrayList<Directory>()
-
-    // whether the list's entrance animation has already had its turn, see shouldAnimateLayout()
-    private var mDidLayoutAnimation = false
 
     private var mStoredAnimateGifs = true
     private var mStoredCropThumbnails = true
@@ -1637,13 +1633,12 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             }.apply {
                 setupZoomListener(mZoomListener)
                 runOnUiThread {
+                    // no entrance animation here: a layout animation on a RecyclerView binds every
+                    // child at alpha 0 and walks them in, and the view is recycled often enough
+                    // that children kept being left at that alpha - blank rows until something
+                    // scrolled them off and back. See the removed layoutAnimation in the layout
                     binding.directoriesGrid.adapter = this
                     setupScrollDirection()
-
-                    if (shouldAnimateLayout()) {
-                        mDidLayoutAnimation = true
-                        binding.directoriesGrid.scheduleLayoutAnimation()
-                    }
                 }
             }
         } else {
@@ -1723,17 +1718,6 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         updateTopBarForGroup()
         setupAdapter(mLastFullDirs, "")
     }
-
-    /**
-     * Whether the list's staggered entrance animation should run. It starts every row at alpha 0
-     * and walks them in one after another, so anything that lays the grid out again before a row's
-     * turn comes leaves that row invisible - which is what rebuilding the adapter for a view type
-     * change did, and what emptied the screen outright inside a folder group, where there are few
-     * enough rows that all of them were still waiting. It is a flourish for the first list the
-     * screen shows; nothing is lost by it not running again.
-     */
-    private fun shouldAnimateLayout() = config.viewTypeFolders == VIEW_TYPE_LIST &&
-        areSystemAnimationsEnabled && !mDidLayoutAnimation
 
     private fun setupScrollDirection() {
         val scrollHorizontally =
