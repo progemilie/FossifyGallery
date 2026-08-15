@@ -1,13 +1,9 @@
 package org.fossify.gallery.adapters
 
 import android.animation.Animator
-import android.animation.AnimatorSet
-import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.graphics.Canvas
-import android.graphics.Outline
 import android.graphics.PointF
-import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
 import android.view.HapticFeedbackConstants
@@ -19,25 +15,26 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import org.fossify.commons.adapters.MyRecyclerViewAdapter
-import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.helpers.SORT_BY_CUSTOM
 import org.fossify.commons.interfaces.ItemTouchHelperContract
 import org.fossify.gallery.R
 import org.fossify.gallery.extensions.config
-import org.fossify.gallery.helpers.DRAG_LIFT_DURATION_MS
 import org.fossify.gallery.helpers.DRAG_LIFT_SCALE
 import org.fossify.gallery.helpers.FOLDER_DRAG_MOVE_THRESHOLD
 import org.fossify.gallery.helpers.FOLDER_DROP_BORDER_FRACTION
 import org.fossify.gallery.helpers.FOLDER_DROP_DWELL_MS
+import org.fossify.gallery.helpers.FOLDER_DROP_TARGET_SCALE
+import org.fossify.gallery.helpers.FOLDER_DROP_ZONE
 import org.fossify.gallery.helpers.FOLDER_FLASH_BLINKS
 import org.fossify.gallery.helpers.FOLDER_FLASH_DURATION_MS
 import org.fossify.gallery.helpers.FOLDER_FLY_IN_DURATION_MS
 import org.fossify.gallery.helpers.FOLDER_FLY_IN_SCALE
-import org.fossify.gallery.helpers.FOLDER_DROP_TARGET_SCALE
-import org.fossify.gallery.helpers.FOLDER_DROP_ZONE
 import org.fossify.gallery.helpers.FOLDER_HELD_OVER_SCALE
 import org.fossify.gallery.helpers.FOLDER_LIFT_ALPHA
 import org.fossify.gallery.helpers.PaddedGridMoveCallback
+import org.fossify.gallery.helpers.animateDragLift
+import org.fossify.gallery.helpers.dragAccentRing
+import org.fossify.gallery.helpers.dragPictureOutline
 import org.fossify.gallery.models.Directory
 
 /**
@@ -45,9 +42,6 @@ import org.fossify.gallery.models.Directory
  * held over another goes into a folder group with it. This drives [DirectoryAdapter] rather than
  * living inside it - binding tiles and arranging them by hand are two jobs, and only one is
  * upstream's.
- *
- * The long press that lifts a tile is the one that already selected it, so a folder is ticked and
- * picked up in the same gesture; what the finger does next is what tells the two apart.
  *
  * Two rules keep the drops honest:
  * - **The grid holds still while a lifted tile sits on another one.** Nothing can be dropped onto a
@@ -57,8 +51,6 @@ import org.fossify.gallery.models.Directory
  * - **Only a plain folder is ever carried into something.** Groups do not nest and two of them
  *   cannot be merged, so a lifted group tile can only be moved, never dropped in.
  */
-// a drag is a long conversation - picked up, carried, held over something, dropped - and every step
-// of it is a couple of lines that only makes sense next to the ones around it
 @Suppress("TooManyFunctions")
 class FolderDragMode(
     private val adapter: DirectoryAdapter,
@@ -85,11 +77,7 @@ class FolderDragMode(
     /** Whether letting go now would put the lifted tile into the one under it rather than the grid. */
     val isDroppingIn get() = armedTile != null
 
-    /**
-     * Whether the tile is on its way into another one and its place is no longer ItemTouchHelper's
-     * to say. The settle back it lines up is given no time, but it is still drawn once after it has
-     * ended - and that one frame is enough to put the tile back where it was picked up from.
-     */
+    /** Whether the tile is placing itself, on its way into another one. */
     fun isFlyingIn(holder: RecyclerView.ViewHolder) = flyingView != null && flyingView === holder.itemView
 
     private val itemTouchHelper = ItemTouchHelper(FolderMoveCallback(this))
@@ -105,6 +93,11 @@ class FolderDragMode(
     private var armedTile: RecyclerView.ViewHolder? = null
     private val dwell = Handler(Looper.getMainLooper())
 
+    // the tile that flew into another one and the cell it left, held until the group it was dropped
+    // into is either made or called off
+    private var landedTile: Directory? = null
+    private var landedTilePlace = 0
+
     // how far the tile had been carried when the finger left it. ItemTouchHelper takes that offset
     // back off the view before it hands it over, so a flight measured from where the view then sits
     // would start with the tile jumping home
@@ -113,6 +106,9 @@ class FolderDragMode(
 
     private var liftAnimator: Animator? = null
     private var targetAnimator: Animator? = null
+
+    private val coverOutlineProvider =
+        dragPictureOutline({ adapter.thumbnailCornerRadius }) { it.coverView() }
 
     init {
         // before any tile is held rather than when one is: the helper works out where the finger is
@@ -125,10 +121,7 @@ class FolderDragMode(
         (recyclerView.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
     }
 
-    /**
-     * Takes over the tile's long press. Selecting is left to the adapter's own handling of it, so
-     * the tile is ticked and the action mode raised exactly as they always were.
-     */
+    /** Takes over the tile's long press; the adapter's own handling still ticks it. */
     fun bindItemGestures(holder: MyRecyclerViewAdapter.ViewHolder, dir: Directory) {
         // the view's own long press buzz would land on top of the lighter tap a lift gets
         holder.itemView.isHapticFeedbackEnabled = false
@@ -145,7 +138,10 @@ class FolderDragMode(
     }
 
     /** Lets go of the grid, which outlives the adapters that are put on it. */
-    fun detach() = itemTouchHelper.attachToRecyclerView(null)
+    fun detach() {
+        dwell.removeCallbacksAndMessages(null)
+        itemTouchHelper.attachToRecyclerView(null)
+    }
 
     /** A view let go of mid drag would come back to another tile still lifted or still ringed. */
     fun resetItemState(itemView: View) {
@@ -163,9 +159,27 @@ class FolderDragMode(
         itemView.coverView()?.foreground = null
     }
 
-    /** A hand made order is what a drag rearranges - a group's member order is always one. */
-    fun canReorder() = adapter.openGroupId != 0L ||
-        activity.config.directorySorting and SORT_BY_CUSTOM != 0
+    /** A hand made order is what a drag rearranges, and custom sorting is what makes one. */
+    fun canReorder() = activity.config.directorySorting and SORT_BY_CUSTOM != 0
+
+    /** The folder on its way into a group, which no scan may draw back onto the grid. */
+    val landedTilePath get() = landedTile?.path
+
+    /**
+     * Answers for the tile that flew into another one. [restore] puts it back where it stood, for a
+     * group that was never named; otherwise it stays off the grid for the rebuild to settle.
+     */
+    fun releaseLandedTile(restore: Boolean) {
+        val dir = landedTile ?: return
+        landedTile = null
+        if (!restore) {
+            return
+        }
+
+        val position = landedTilePlace.coerceAtMost(dirs.size)
+        adapter.replaceDirs(ArrayList(dirs).apply { add(position, dir) })
+        adapter.notifyItemInserted(position)
+    }
 
     override fun onRowMoved(fromPosition: Int, toPosition: Int) {
         adapter.onRowMoved(fromPosition, toPosition)
@@ -247,12 +261,26 @@ class FolderDragMode(
             // the tile is in the other one now. it leaves the grid on the frame it lands, and the
             // rest of the grid closes over the cell it left - the group itself is a rescan away,
             // and until then the tile is one the grid could still be asked to draw
-            adapter.takeTileOffGrid(goingIn.dragged)
+            takeLandedTileOffGrid(goingIn.dragged)
             flashTargetRing(goingIn.landing.itemView) {
                 clearTargetHighlight()
                 onDroppedInto(goingIn.dragged, goingIn.target)
             }
         }
+    }
+
+    private fun takeLandedTileOffGrid(dragged: Directory) {
+        val position = dirs.indexOfFirst { it.path == dragged.path }
+        if (position < 0) {
+            return
+        }
+
+        landedTile = dirs[position]
+        landedTilePlace = position
+        // a copy rather than a removal from the list in hand: the screen may still be holding the
+        // one it handed over, and a folder dropped from that reads back as a folder that is gone
+        adapter.replaceDirs(ArrayList(dirs).apply { removeAt(position) })
+        adapter.notifyItemRemoved(position)
     }
 
     /** What the drop puts where, or null when the tile was let go of anywhere but on another one. */
@@ -284,8 +312,8 @@ class FolderDragMode(
         }
 
         val lifted = source.itemView
-        val x = lifted.left + dX + lifted.width / HALVES
-        val y = lifted.top + dY + lifted.height / HALVES
+        val x = lifted.left + dX + lifted.width / 2
+        val y = lifted.top + dY + lifted.height / 2
         val tile = tileUnder(x, y, lifted) ?: return null
         if (!tile.itemView.isInDropZone(x, y)) {
             return null
@@ -318,12 +346,21 @@ class FolderDragMode(
         tile.itemView.apply {
             outlineProvider = coverOutlineProvider
             targetAnimator?.cancel()
-            targetAnimator = scaleTo(
-                FOLDER_DROP_TARGET_SCALE,
-                activity.resources.getDimension(R.dimen.drop_target_elevation)
+            targetAnimator = animateDragLift(
+                scale = FOLDER_DROP_TARGET_SCALE,
+                elevation = activity.resources.getDimension(R.dimen.drop_target_elevation)
             )
 
-            coverView()?.apply { foreground = dropTargetRing(width) }
+            coverView()?.apply {
+                // nothing over the cover itself, which stays the picture the user picks the folder
+                // out by - a photo with something laid over it reads as a different folder
+                foreground = activity.dragAccentRing(
+                    pictureWidth = width,
+                    cornerRadius = adapter.thumbnailCornerRadius,
+                    fraction = FOLDER_DROP_BORDER_FRACTION,
+                    insetCorners = true
+                )
+            }
         }
     }
 
@@ -343,7 +380,7 @@ class FolderDragMode(
             outlineProvider = ViewOutlineProvider.BACKGROUND
             coverView()?.foreground = null
             targetAnimator?.cancel()
-            targetAnimator = scaleTo(1f, 0f)
+            targetAnimator = animateDragLift(1f, 0f)
         }
     }
 
@@ -360,8 +397,8 @@ class FolderDragMode(
         val tile = this
         val from = coverCentre()
         val to = target.coverCentre()
-        val scalesAboutX = left + width / HALVES.toFloat()
-        val scalesAboutY = top + height / HALVES.toFloat()
+        val scalesAboutX = left + width / 2f
+        val scalesAboutY = top + height / 2f
         val startScale = scaleX
         val startX = from.x * startScale + scalesAboutX * (1 - startScale) + lastCarriedX
         val startY = from.y * startScale + scalesAboutY * (1 - startScale) + lastCarriedY
@@ -387,14 +424,18 @@ class FolderDragMode(
 
             doOnEnd {
                 flyingView = null
-                onLanded()
+                // the screen can go while the tile is still in the air, and what waits at the end
+                // of this touches the grid and puts up a dialog
+                if (!activity.isDestroyed) {
+                    onLanded()
+                }
             }
 
             start()
         }
     }
 
-    /** Blinks the ring on the tile that took the drop, so what happened is said on the tile it happened to. */
+    /** Blinks the ring on the tile that took the drop. */
     private fun flashTargetRing(target: View, onDone: () -> Unit) {
         val ring = target.coverView()?.foreground
         if (ring == null) {
@@ -409,18 +450,16 @@ class FolderDragMode(
             addUpdateListener { ring.alpha = it.animatedValue as Int }
             doOnEnd {
                 ring.alpha = OPAQUE
-                onDone()
+                if (!activity.isDestroyed) {
+                    onDone()
+                }
             }
 
             start()
         }
     }
 
-    /**
-     * Pulls the picked up tile out of the grid - smaller, half see through and casting a shadow into
-     * the gap that opens around it - so the moment it is free to be moved is unmistakable. A light
-     * tap goes with it, the finger is on the tile and cannot see it.
-     */
+    /** Pulls the picked up tile out of the grid, with a tap of feedback the finger cannot see. */
     private fun View.liftForDrag() {
         recyclerView.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
         // ItemTouchHelper owns the elevation of whatever it drags, translationZ is ours to lift with
@@ -432,7 +471,7 @@ class FolderDragMode(
     private fun liftTo(scale: Float) {
         val lifted = liftedView ?: return
         liftAnimator?.cancel()
-        liftAnimator = lifted.scaleTo(
+        liftAnimator = lifted.animateDragLift(
             scale = scale,
             elevation = activity.resources.getDimension(R.dimen.drag_lift_elevation),
             alpha = FOLDER_LIFT_ALPHA
@@ -445,69 +484,10 @@ class FolderDragMode(
         // tile faded for good
         outlineProvider = ViewOutlineProvider.BACKGROUND
         liftAnimator?.cancel()
-        liftAnimator = scaleTo(1f, 0f)
-    }
-
-    /**
-     * Animators of our own rather than the view's animate() builder: the grid's item animator uses
-     * that builder for the tiles it slides around and cancels whatever it finds on it, which would
-     * strand a picked up tile half lifted.
-     */
-    private fun View.scaleTo(scale: Float, elevation: Float, alpha: Float = 1f): Animator = AnimatorSet().apply {
-        playTogether(
-            ObjectAnimator.ofFloat(this@scaleTo, View.SCALE_X, scale),
-            ObjectAnimator.ofFloat(this@scaleTo, View.SCALE_Y, scale),
-            ObjectAnimator.ofFloat(this@scaleTo, View.TRANSLATION_Z, elevation),
-            ObjectAnimator.ofFloat(this@scaleTo, View.ALPHA, alpha)
-        )
-        duration = DRAG_LIFT_DURATION_MS
-        start()
-    }
-
-    /**
-     * What a tile wears while the lifted one is held over it: a thin accent ring and nothing over
-     * the cover itself, which stays the picture the user picked the folder out by.
-     *
-     * The radius is the cover's own less half the stroke, because [GradientDrawable] draws the
-     * stroke inside the bounds it is given - at the cover's radius the ring would come out rounder
-     * than the picture and leave its corners sticking out past it.
-     */
-    private fun dropTargetRing(coverWidth: Int): GradientDrawable {
-        val strokeWidth = (coverWidth * FOLDER_DROP_BORDER_FRACTION).coerceIn(
-            activity.resources.getDimension(R.dimen.accent_border_min_width),
-            activity.resources.getDimension(R.dimen.accent_border_max_width)
-        )
-
-        return GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = (adapter.thumbnailCornerRadius - strokeWidth / HALVES).coerceAtLeast(0f)
-            setStroke(strokeWidth.toInt(), activity.getProperPrimaryColor())
-        }
-    }
-
-    /**
-     * The tile carries its name and count below its cover, so a shadow around the whole of it would
-     * sit off the picture. This traces the cover inside it instead, corners and all.
-     */
-    private val coverOutlineProvider = object : ViewOutlineProvider() {
-        override fun getOutline(view: View, outline: Outline) {
-            val cover = view.coverView()
-            if (cover == null || cover.width == 0) {
-                return
-            }
-
-            outline.setRoundRect(
-                cover.left,
-                cover.top,
-                cover.right,
-                cover.bottom,
-                adapter.thumbnailCornerRadius
-            )
-        }
+        liftAnimator = animateDragLift(1f, 0f)
     }
 }
 
-private const val HALVES = 2
 private const val OPAQUE = 255
 
 /** A tile on its way into another one: what flies, what it lands on, and what the two stand for. */
@@ -528,8 +508,8 @@ private fun View.coverView(): View? {
 private fun View.coverCentre(): PointF {
     val cover = coverView() ?: this
     return PointF(
-        left + (cover.left + cover.right) / HALVES.toFloat(),
-        top + (cover.top + cover.bottom) / HALVES.toFloat()
+        left + (cover.left + cover.right) / 2f,
+        top + (cover.top + cover.bottom) / 2f
     )
 }
 
@@ -538,8 +518,8 @@ private fun View.holds(x: Float, y: Float) = x >= left + translationX && x <= ri
 
 /** The middle of the tile, which is what a lifted tile has to be over to be dropped into it. */
 private fun View.isInDropZone(x: Float, y: Float): Boolean {
-    val insetX = width * (1 - FOLDER_DROP_ZONE) / HALVES
-    val insetY = height * (1 - FOLDER_DROP_ZONE) / HALVES
+    val insetX = width * (1 - FOLDER_DROP_ZONE) / 2
+    val insetY = height * (1 - FOLDER_DROP_ZONE) / 2
     return x >= left + translationX + insetX && x <= right + translationX - insetX &&
         y >= top + translationY + insetY && y <= bottom + translationY - insetY
 }

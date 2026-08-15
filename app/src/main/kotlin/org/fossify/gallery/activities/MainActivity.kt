@@ -63,6 +63,7 @@ import org.fossify.commons.extensions.viewBinding
 import org.fossify.commons.helpers.DAY_SECONDS
 import org.fossify.commons.helpers.FAVORITES
 import org.fossify.commons.helpers.PERMISSION_READ_STORAGE
+import org.fossify.commons.helpers.SORT_BY_CUSTOM
 import org.fossify.commons.helpers.SORT_BY_DATE_MODIFIED
 import org.fossify.commons.helpers.SORT_BY_DATE_TAKEN
 import org.fossify.commons.helpers.SORT_BY_SIZE
@@ -1671,7 +1672,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
 
         val tile = dirs.firstOrNull { it.folderGroupId() == mCurrentGroupId }
         if (tile != null) {
-            return ArrayList(tile.groupMembers)
+            return sortGroupMembers(tile.groupMembers)
         }
 
         // no tile for it. either the scan has not reached the group's folders yet, or the group is
@@ -1683,6 +1684,20 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
 
         leaveOpenGroup()
         return dirs
+    }
+
+    /**
+     * The open group's folders in the order the grid is to draw them: whatever sorting the user has
+     * picked, or the group's own arrangement when that sorting is the custom one. The group's is a
+     * hand made order like the root grid's, so the same setting decides which of the two is in
+     * force - and it stays the order the tile's collage reads either way.
+     */
+    private fun sortGroupMembers(members: List<Directory>): ArrayList<Directory> {
+        if (config.directorySorting and SORT_BY_CUSTOM != 0) {
+            return ArrayList(members)
+        }
+
+        return getSortedDirectories(ArrayList(members))
     }
 
     /**

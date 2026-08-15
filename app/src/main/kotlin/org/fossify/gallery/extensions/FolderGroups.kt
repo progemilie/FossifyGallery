@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // one small edit apiece over the one stored list
+
 package org.fossify.gallery.extensions
 
 import android.content.Context
@@ -21,23 +23,38 @@ private fun List<FolderGroup>.detach(paths: Collection<String>) {
     forEach { group -> group.paths.removeAll { keys.contains(it.groupKey()) } }
 }
 
+/**
+ * Saves [groups], dropping any left holding no folders - a group of nothing is not a group - and
+ * clears out what the ones that went stood for. A tile's synthetic path is keyed into the pinned
+ * folders and the folder order like any real one, and left behind there it would attach itself to
+ * whatever group is handed that id next.
+ */
+private fun Context.storeFolderGroups(groups: List<FolderGroup>) {
+    val kept = groups.filter { it.paths.isNotEmpty() }
+    val keptIds = kept.mapTo(HashSet()) { it.id }
+    val gone = folderGroups().filterNot { keptIds.contains(it.id) }.map { it.syntheticPath() }
+    config.saveFolderGroups(kept)
+    if (gone.isNotEmpty()) {
+        config.removePinnedFolders(gone.toHashSet())
+        removeFromCustomFolderOrder(gone)
+    }
+}
+
 fun Context.folderGroups(): ArrayList<FolderGroup> = config.parseFolderGroups()
 
 /** Bundles [paths] under a new group named [name] and returns it. */
 fun Context.createFolderGroup(name: String, paths: List<String>): FolderGroup {
     val groups = folderGroups()
-    // ids are handed out above every one in use rather than by count, so a group deleted and one
-    // added right after cannot end up sharing an id with whatever still points at the old one
-    val group = FolderGroup(
-        id = (groups.maxOfOrNull { it.id } ?: 0L) + 1,
-        name = name,
-        paths = paths.toMutableList()
-    )
+    // counted past the groups themselves so an id is never handed out twice, not even after the
+    // group holding the highest one is dissolved. maxOf covers groups made before the counter did
+    val id = maxOf(config.lastFolderGroupId, groups.maxOfOrNull { it.id } ?: 0L) + 1
+    config.lastFolderGroupId = id
+    val group = FolderGroup(id = id, name = name, paths = paths.toMutableList())
 
     // a folder belongs to one group at a time, so moving it here takes it out of any other
     groups.detach(paths)
     groups.add(group)
-    config.saveFolderGroups(groups.filter { it.paths.isNotEmpty() })
+    storeFolderGroups(groups)
     return group
 }
 
@@ -55,7 +72,7 @@ fun Context.replaceFolderGroup(name: String, paths: List<String>): FolderGroup {
 
     groups.detach(paths)
     existing.paths = paths.toMutableList()
-    config.saveFolderGroups(groups.filter { it.paths.isNotEmpty() })
+    storeFolderGroups(groups)
     return existing
 }
 
@@ -64,7 +81,7 @@ fun Context.addToFolderGroup(id: Long, paths: List<String>) {
     val groups = folderGroups()
     groups.detach(paths)
     groups.firstOrNull { it.id == id }?.paths?.addAll(paths)
-    config.saveFolderGroups(groups.filter { it.paths.isNotEmpty() })
+    storeFolderGroups(groups)
 }
 
 /**
@@ -76,18 +93,18 @@ fun Context.removeFromFolderGroup(id: Long, paths: Collection<String>) {
     val group = groups.firstOrNull { it.id == id } ?: return
     val keys = paths.mapTo(HashSet()) { it.groupKey() }
     group.paths.removeAll { keys.contains(it.groupKey()) }
-    config.saveFolderGroups(groups.filter { it.paths.isNotEmpty() })
+    storeFolderGroups(groups)
 }
 
 /** Dissolves the groups [ids] name; their folders go back to standing on their own. */
 fun Context.removeFolderGroups(ids: Collection<Long>) {
-    config.saveFolderGroups(folderGroups().filterNot { ids.contains(it.id) })
+    storeFolderGroups(folderGroups().filterNot { ids.contains(it.id) })
 }
 
 fun Context.renameFolderGroup(id: Long, name: String) {
     val groups = folderGroups()
     groups.firstOrNull { it.id == id }?.name = name
-    config.saveFolderGroups(groups)
+    storeFolderGroups(groups)
 }
 
 /** Stores the order the user dragged the group's folders into - the collage reads the first four. */
@@ -98,5 +115,5 @@ fun Context.saveFolderGroupOrder(id: Long, paths: List<String>) {
     // search or by hidden folders, and a member missing from the screen is still a member
     val moved = paths.mapTo(HashSet()) { it.groupKey() }
     group.paths = (paths + group.paths.filterNot { moved.contains(it.groupKey()) }).toMutableList()
-    config.saveFolderGroups(groups)
+    storeFolderGroups(groups)
 }

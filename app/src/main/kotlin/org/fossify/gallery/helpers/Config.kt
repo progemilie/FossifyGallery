@@ -340,6 +340,11 @@ class Config(context: Context) : BaseConfig(context) {
         folderGroups = Gson().toJson(groups)
     }
 
+    // kept past the groups themselves so an id is never handed out twice, see createFolderGroup()
+    var lastFolderGroupId: Long
+        get() = prefs.getLong(LAST_FOLDER_GROUP_ID, 0L)
+        set(lastFolderGroupId) = prefs.edit().putLong(LAST_FOLDER_GROUP_ID, lastFolderGroupId).apply()
+
     var hideSystemUI: Boolean
         get() = prefs.getBoolean(HIDE_SYSTEM_UI, false)
         set(hideSystemUI) = prefs.edit().putBoolean(HIDE_SYSTEM_UI, hideSystemUI).apply()

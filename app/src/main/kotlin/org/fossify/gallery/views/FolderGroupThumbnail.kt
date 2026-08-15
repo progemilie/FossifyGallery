@@ -18,7 +18,7 @@ import org.fossify.gallery.helpers.MAX_FOLDER_GROUP_COVERS
 private const val ONE_FULL = 1
 private const val TWO_COLUMNS = 2
 private const val SPLIT_LEFT_WHOLE_RIGHT = 3
-private const val HALVES = 2
+private const val FOUR_QUARTERS = 4
 
 /**
  * A folder group's cover: the group's leading folders drawn as one tile.
@@ -146,14 +146,14 @@ class FolderGroupThumbnail @JvmOverloads constructor(
 
         // inset by half the stroke so the whole of it lands inside the clip rather than half of it
         // being cut away with the corners
-        val inset = borderWidth / HALVES
+        val inset = borderWidth / 2
         borderRect.set(inset, inset, width - inset, height - inset)
         canvas.drawRoundRect(borderRect, cornerRadius, cornerRadius, borderPaint)
     }
 
     private fun layOutCells(width: Int, height: Int) {
-        val midX = (width - gap) / HALVES
-        val midY = (height - gap) / HALVES
+        val midX = (width - gap) / 2
+        val midY = (height - gap) / 2
         val rightStart = midX + gap
         val bottomStart = midY + gap
 
@@ -171,7 +171,7 @@ class FolderGroupThumbnail @JvmOverloads constructor(
                 bounds[2].set(rightStart, 0, width, height)
             }
 
-            MAX_FOLDER_GROUP_COVERS -> {
+            FOUR_QUARTERS -> {
                 bounds[0].set(0, 0, midX, midY)
                 bounds[1].set(rightStart, 0, width, midY)
                 bounds[2].set(0, bottomStart, midX, height)
