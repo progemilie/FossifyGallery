@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One item of an icon row. The weight is what spreads however many of them are up. -->
+<!-- the icon and what it is called are both set on the item it stands for, when the row is built -->
+<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/glass_menu_icon"
+    android:layout_width="0dp"
+    android:layout_height="match_parent"
+    android:layout_weight="1"
+    android:background="?attr/selectableItemBackgroundBorderless"
+    android:padding="@dimen/glass_menu_icon_padding"
+    android:scaleType="centerInside"
+    tools:ignore="ContentDescription,Overdraw" />

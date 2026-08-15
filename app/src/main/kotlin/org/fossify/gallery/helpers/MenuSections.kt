@@ -1,0 +1,136 @@
+package org.fossify.gallery.helpers
+
+import androidx.annotation.DrawableRes
+import androidx.annotation.IdRes
+import org.fossify.gallery.R
+import org.fossify.commons.R as commonsR
+
+/**
+ * How a screen's drop-down is laid out: its items gathered into sections, drawn with a dotted rule
+ * between them. See [org.fossify.gallery.views.GlassMenu] for the panel that reads one.
+ *
+ * A spec only says how items are *arranged*. Whether an item is there at all is left to the screen's
+ * own menu, so naming something the screen has hidden - because it lives on the toolbar, or on the
+ * viewer's bottom bar - simply draws nothing. Anything a spec fails to name is appended to the last
+ * section rather than dropped, so an action can never go missing by being forgotten here.
+ */
+class MenuSpec(val sections: List<List<MenuEntry>>)
+
+/** One line of a section: a labelled row, or a row of icons standing in for several items. */
+sealed interface MenuEntry {
+    data class Row(@param:IdRes val id: Int) : MenuEntry
+
+    data class Icons(val icons: List<MenuIcon>) : MenuEntry
+}
+
+/**
+ * An item drawn as an icon rather than as a row of its own.
+ *
+ * The icon is named here rather than taken from the menu item: the menu gives several of these none,
+ * and the ones it does give are recoloured in place by the screens that own them.
+ */
+data class MenuIcon(@param:IdRes val id: Int, @param:DrawableRes val icon: Int)
+
+private fun row(@IdRes id: Int) = MenuEntry.Row(id)
+
+private fun icons(vararg icons: MenuIcon) = MenuEntry.Icons(icons.toList())
+
+/** The folder grid: how the library is shown, then everything else. */
+val FOLDER_GRID_MENU = MenuSpec(
+    listOf(
+        listOf(
+            row(R.id.sort),
+            row(R.id.filter),
+            row(R.id.change_view_type),
+            row(R.id.column_count),
+        ),
+        listOf(
+            row(R.id.temporarily_show_hidden),
+            row(R.id.stop_showing_hidden),
+            row(R.id.temporarily_show_excluded),
+            row(R.id.stop_showing_excluded),
+            row(R.id.create_new_folder),
+            row(R.id.set_as_default_folder),
+            row(R.id.open_recycle_bin),
+            row(R.id.settings),
+            row(R.id.about),
+            row(R.id.more_apps_from_us),
+        ),
+    )
+)
+
+/** The media grid: how this folder is shown and arranged, then everything else. */
+val MEDIA_GRID_MENU = MenuSpec(
+    listOf(
+        listOf(
+            row(R.id.sort),
+            row(R.id.filter),
+            row(R.id.group),
+            row(R.id.custom_order),
+            row(R.id.reset_custom_order),
+            row(R.id.change_view_type),
+            row(R.id.column_count),
+            row(R.id.toggle_filename),
+        ),
+        listOf(
+            row(R.id.folder_view),
+            row(R.id.open_camera),
+            row(R.id.temporarily_show_hidden),
+            row(R.id.stop_showing_hidden),
+            row(R.id.set_as_default_folder),
+            row(R.id.unset_as_default_folder),
+            row(R.id.create_new_folder),
+            row(R.id.open_recycle_bin),
+            row(R.id.empty_recycle_bin),
+            row(R.id.empty_disable_recycle_bin),
+            row(R.id.restore_all_files),
+            row(R.id.slideshow),
+            row(R.id.settings),
+            row(R.id.about),
+        ),
+    )
+)
+
+/**
+ * The viewer: what changes the image, what is done with the file, then everything else. Change
+ * orientation belongs to the last of those - it locks the *screen* rather than turning the photo.
+ *
+ * Only ever one of each pair in the icon row is up at a time, so it holds four icons at the most.
+ */
+val VIEWER_MENU = MenuSpec(
+    listOf(
+        listOf(
+            row(R.id.menu_rotate),
+            row(R.id.menu_mirror),
+            row(R.id.menu_edit),
+            row(R.id.menu_resize),
+            row(R.id.menu_save_as),
+        ),
+        listOf(
+            icons(
+                MenuIcon(R.id.menu_add_to_favorites, R.drawable.ic_heart_outline_vector),
+                MenuIcon(R.id.menu_remove_from_favorites, commonsR.drawable.ic_heart_vector),
+                MenuIcon(R.id.menu_hide, commonsR.drawable.ic_hide_vector),
+                MenuIcon(R.id.menu_unhide, commonsR.drawable.ic_unhide_vector),
+                MenuIcon(R.id.menu_copy_to, commonsR.drawable.ic_copy_vector),
+                MenuIcon(R.id.menu_move_to, commonsR.drawable.ic_move_vector),
+            ),
+            row(R.id.menu_rename),
+            row(R.id.menu_copy_to_clipboard),
+            row(R.id.menu_open_with),
+            row(R.id.menu_set_as),
+            row(R.id.menu_create_shortcut),
+            row(R.id.menu_share),
+            row(R.id.menu_delete),
+            row(R.id.menu_restore_file),
+        ),
+        listOf(
+            row(R.id.menu_print),
+            row(R.id.menu_show_on_map),
+            row(R.id.menu_change_orientation),
+            row(R.id.menu_slideshow),
+            row(R.id.menu_properties),
+            row(R.id.menu_settings),
+        ),
+    )
+)

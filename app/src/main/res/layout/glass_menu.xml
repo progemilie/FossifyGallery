@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The frosted drop-down the browsing screens open from their three dots.
+
+    The outer frame is padding and nothing else: a shadow is drawn outside the view casting it, and
+    this is the room the panel's shadow needs inside the popup window that holds it.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/glass_menu_frame"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/glass_menu_shadow_room">
+
+    <org.fossify.gallery.views.GlassPanel
+        android:id="@+id/glass_menu_panel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <ScrollView
+            android:id="@+id/glass_menu_scroller"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/glass_menu_column"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="@dimen/glass_menu_padding_vertical"
+                android:paddingBottom="@dimen/glass_menu_padding_vertical" />
+        </ScrollView>
+    </org.fossify.gallery.views.GlassPanel>
+</FrameLayout>

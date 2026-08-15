@@ -157,6 +157,18 @@ are `views/HoldChooser.kt`s — a `GlassPanel` plus the gesture — put on a but
 folder list is **prefetched** into `mQuickChooserFolders` on every media change; it reads Room and
 the filesystem, far too slow to run when the hold fires.
 
+### The three dots' drop-down
+
+`views/GlassMenu.replaceOverflow()` puts a `GlassPanel` in place of the platform's overflow popup on
+all three browsing screens. It builds itself from the toolbar's own `Menu` every time it opens and
+picks through `performIdentifierAction`, so each screen's `refreshMenuItems()` and click listener
+carry over untouched; whatever the toolbar is already showing as a button of its own is left out.
+
+`helpers/MenuSections.kt` holds one `MenuSpec` per screen: the sections, drawn with a dotted rule
+between them, and which items are drawn as a row of icons rather than a row each. **A spec only
+arranges — anything it fails to name is appended to the last section** rather than dropped, so no
+action can go missing by being forgotten there.
+
 ### The viewer's file metadata sheet
 
 A swipe up over the media raises `views/MetadataSheet.kt`, listing every group the file carries.
