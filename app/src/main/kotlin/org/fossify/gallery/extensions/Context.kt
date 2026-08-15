@@ -692,7 +692,7 @@ fun Context.getPathLocation(path: String): Int {
 @SuppressLint("CheckResult")
 fun Context.loadImageBase(
     path: String,
-    target: MySquareImageView,
+    target: ImageView,
     cropThumbnails: Boolean,
     roundCorners: Int,
     signature: ObjectKey,
@@ -821,7 +821,7 @@ fun Context.loadSVG(
 // intended mostly for Android 11 issues, that fail loading PNG files bigger than 10 MB
 fun Context.tryLoadingWithPicasso(
     path: String,
-    view: MySquareImageView,
+    view: ImageView,
     cropThumbnails: Boolean,
     roundCorners: Int,
     signature: ObjectKey

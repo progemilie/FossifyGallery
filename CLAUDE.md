@@ -14,10 +14,8 @@ Gradle module). This repo is a fork.
   Changes that cannot affect the build — docs, CI config, comments — need neither a bump nor a tag.
 - Kotlin 2.3.10, AGP 9.2.0, Gradle wrapper 9.4.1, KSP 2.3.7, Java/Kotlin target 17.
 - compileSdk/targetSdk 36, minSdk 26 (see gradle/libs.versions.toml).
-- One flavor dimension, `licensing`, with two flavors and no flavor-specific Kotlin code —
-  differences are resource-only booleans (donate/Google-ties visibility):
-  - `foss` — F-Droid/IzzyOnDroid build
-  - `gplay` — Google Play build
+- One flavor dimension, `licensing`: `foss` (F-Droid/IzzyOnDroid) and `gplay` (Google Play). No
+  flavor-specific Kotlin — the differences are resource-only booleans.
 - Build types: `debug` (`.debug` application id suffix) and `release` (minified, proguard).
 - Signing: via `keystore.properties` (see `keystore.properties_sample`) or
   `SIGNING_KEY_ALIAS`/`SIGNING_KEY_PASSWORD`/`SIGNING_STORE_FILE`/`SIGNING_STORE_PASSWORD`
@@ -34,55 +32,35 @@ Gradle module). This repo is a fork.
 ./gradlew lint                   # Android Lint (config: lint.xml, baseline: app/lint-baseline.xml)
 ```
 
-Note: there is currently no `app/src/test` or `app/src/androidTest` directory in this repo,
-so `testFossDebugUnitTest` has no tests to execute yet.
+There is no `app/src/test` or `app/src/androidTest` yet, so `testFossDebugUnitTest` runs nothing.
+Lint and Detekt use baseline files to suppress pre-existing issues — new code should not add new
+findings. `.editorconfig` enforces LF, 4-space indent, 160-char max line length.
 
-Lint and Detekt both use baseline files to suppress pre-existing issues — new code should not
-add new findings. `.editorconfig` enforces LF line endings, 4-space indent, 160-char max line
-length.
-
-adb is added to path. It can be used to test in an android emulator.
-The device being emulated is emulator-5554, it is a Pixel_10, API version 37, resolution 1080x2424, density 420dpi
-The device has many folders with many pictures in the /Pictures folder.
+adb is on PATH for testing in the emulator: emulator-5554, a Pixel_10, API 37, 1080x2424 at
+420dpi, with many folders of pictures under /Pictures.
 
 ## Architecture
 
 ### Fossify Commons dependency
 
-Most base classes, shared dialogs, and extension functions come from the external
-`org.fossify:commons` library (`libs.fossify.commons` in app/build.gradle.kts), not from this
-repo. In particular:
-- `SimpleActivity` (app/src/main/kotlin/org/fossify/gallery/activities/SimpleActivity.kt)
-  extends commons' `BaseSimpleActivity`; nearly every activity in the app extends
-  `SimpleActivity` (directly or via `BaseViewerActivity`).
-- `helpers/Config.kt` extends commons' `BaseConfig` for SharedPreferences-backed settings.
-- Shared dialogs (e.g. `FilePickerDialog`) and extensions (`org.fossify.commons.extensions.*`)
-  are used throughout rather than reimplemented here.
+Most base classes, shared dialogs and extension functions come from the external
+`org.fossify:commons` library, not this repo: `SimpleActivity` extends its `BaseSimpleActivity` and
+nearly every screen extends `SimpleActivity`, `helpers/Config.kt` extends its `BaseConfig`, and its
+dialogs and `org.fossify.commons.extensions.*` are used rather than reimplemented.
+
+**Fork features drive the upstream classes from outside wherever that is reasonable** — see
+`FolderDragMode`, `FolderGroupActions` and `MediaReorderMode`, each of which drives an upstream
+adapter rather than living inside it.
 
 ### Package layout (app/src/main/kotlin/org/fossify/gallery/)
 
-- `activities/` — screens: `MainActivity` (folder grid), `MediaActivity` (media grid),
-  `BaseViewerActivity`/`ViewPagerActivity`/`PhotoActivity`/`VideoActivity` (fullscreen
-  swipeable viewer), `EditActivity`/`BaseCropActivity` (photo editor), `SettingsActivity`,
-  `SearchActivity`, folder-management activities, `WidgetConfigureActivity`.
-- `adapters/` — RecyclerView adapters (`DirectoryAdapter`, `MediaAdapter`, `MyPagerAdapter`, ...).
-- `fragments/` — `ViewPagerFragment` base, `PhotoFragment`, `VideoFragment`.
-- `dialogs/` — ~20 AlertDialog wrappers (sort/group/filter, resize, slideshow, ...).
-- `helpers/` — `Config`, `MediaFetcher` (core MediaStore query engine), custom Glide/Picasso
-  decoders and transformations, `MyWidgetProvider`.
-- `interfaces/` — Room DAOs and listener interfaces.
-- `models/` — Room entities (`Directory`, `Medium`, `Widget`, `DateTaken`, `Favorite`,
-  `MediaOrder`) and POJOs.
-- `databases/GalleryDatabase.kt` — single Room DB, singleton via `getInstance(context)`,
-  manual `Migration` objects (currently v4→v12).
-- `asynctasks/GetMediaAsynctask.kt`, `jobs/NewPhotoFetcher.kt` — background media
-  scanning/new-photo detection.
-- `svg/` — Glide module/decoder for SVG support.
-- `views/EditorDrawCanvas.kt` — draw-on-photo editor canvas.
+Conventional `activities/adapters/fragments/dialogs/helpers/models/views/`. The three browsing
+screens are `MainActivity` (folder grid), `MediaActivity` (media grid) and `ViewPagerActivity`
+(fullscreen viewer); `helpers/MediaFetcher.kt` is the MediaStore query engine and
+`databases/GalleryDatabase.kt` the single Room DB (manual migrations, currently v4→v12).
 
-No formal MVVM/MVP — this is activity/fragment + base-class inheritance, with view binding
-enabled (`viewBinding = true`) and state held in activities/adapters/`Config` rather than
-ViewModels.
+No formal MVVM/MVP — activity/fragment plus base-class inheritance, with view binding enabled and
+state held in activities/adapters/`Config` rather than ViewModels.
 
 ### Media loading
 
@@ -94,22 +72,21 @@ Both Glide and Picasso are used deliberately for different jobs:
   and `helpers/PicassoRoundedCornersTransformation.kt`/`RotateTransformation.kt`.
 - Video playback uses `androidx.media3.exoplayer`.
 
-Nothing small is decoded from a whole photo if the photo carries a copy of itself. Anything drawing
-a thumbnail loads a `ThumbnailSource` rather than a path, and `helpers/ExifThumbnailLoader.kt` swaps
-in the file's embedded copy whenever there is one at least as big as the size being asked for,
-falling back to the file itself otherwise. Worth it because `inSampleSize` saves the inverse
-transform but not the pass over the entropy-coded data: a 12MP JPEG costs the same ~37ms decoded to
-26px as to 358px, against ~3ms for the 512x384 copy inside it. The copy is stored the same way up as
-the photo and says nothing about itself, so the loader gives it an Exif header carrying the photo's
-own orientation - without which a rotated or mirrored photo would come out of the grid facing a
-different way from the viewer.
+Nothing small is decoded from a whole photo if the photo carries a copy of itself: anything drawing
+a thumbnail loads a `ThumbnailSource`, and `helpers/ExifThumbnailLoader.kt` swaps in the file's
+embedded copy when it is big enough. Worth it because `inSampleSize` saves the inverse transform but
+not the pass over the entropy-coded data — a 12MP JPEG costs the same ~37ms at any size, against
+~3ms for the 512x384 copy inside it. The loader gives that copy an Exif header carrying the photo's
+own orientation, or a rotated photo faces different ways in the grid and the viewer.
+
+Every Glide thumbnail goes through `loadImageBase()`, which is also where the WebP decoder is held
+to the safe path (CVE-2023-4863).
 
 Cache keys everywhere are derived from path + last-modified + size (`Medium.getSignature()`,
 `Directory.getKey()`). **Anything that edits a file in place must call
-`TransformedMedia.onTransformed(path)`** (`helpers/TransformedMedia.kt`) before touching caches —
-it bumps a per-path version folded into both keys, plus a global generation counter screens use to
-decide whether to rebind stale bitmaps. An edit that leaves size and timestamp unchanged is
-otherwise invisible to every cache in the app.
+`TransformedMedia.onTransformed(path)`** before touching caches — it bumps a per-path version folded
+into both keys, plus a global generation counter screens use to decide whether to rebind stale
+bitmaps. An edit leaving size and timestamp unchanged is otherwise invisible to every cache.
 
 ### Per-folder custom media order
 
@@ -117,78 +94,100 @@ Sort-by-custom for media (upstream has it for folders only). The `media_order` R
 arranged paths keyed by lowercased folder path — kept out of the media table because media rows are
 dropped and reinserted on every rescan. `Config.customMediaOrderFolders` is only an *index* of which
 folders have an order, so `hasCustomMediaOrder()` can be answered on the main thread where Room
-would throw; the table is the authority. Access via `extensions/CustomMediaOrder.kt`
-(`saveCustomMediaOrder`/`getCustomMediaOrder`/`removeCustomMediaOrder`) — all blocking, all off the
-main thread.
+would throw; the table is the authority. Access via `extensions/CustomMediaOrder.kt`, all blocking.
 
-Reordering lives in `adapters/MediaReorderMode.kt`, which drives `MediaAdapter` rather than living
-inside it, and is put up by `MediaActivity` through `helpers/ReorderBar.kt`: multi-select marks a
-group and dragging any marked item carries the whole group. Orders export/import as plain text via
-`helpers/CustomOrderIO.kt`.
+Reordering lives in `adapters/MediaReorderMode.kt` and is put up by `MediaActivity` through
+`helpers/ReorderBar.kt`: multi-select marks a group, dragging any marked item carries the whole
+group. The lift, ring and shadow it shares with the folder grid are in `helpers/DragLift.kt`.
+
+### Folder groups
+
+Several folders drawn under one tile in the folder grid. Nothing moves on disk. Definitions live in
+`Config` as JSON (`extensions/FolderGroups.kt`) rather than in Room, because the grid reads them on
+the main thread. A tile is a `Directory` under a synthetic `folder_group:<id>` path so selection,
+pinning and the custom folder order carry it with no case of their own, and it holds its members in
+`groupMembers`. **Ids are never reused** — a synthetic path outlives its group in those prefs, and
+would otherwise attach itself to the next group made.
+
+Two rules keep the grid honest, both in `extensions/FolderGroupTiles.kt`:
+- **A tile never reaches Room or the scan.** `expandFolderGroups()` puts one back into its folders;
+  `MainActivity.getCurrentlyDisplayedDirs()` and `updateDirectories()` are the gates.
+- **`applyFolderGroups()` says nothing about which group is open**, so the scan thread can build the
+  root view while `MainActivity.narrowToOpenGroup()` picks the open group's members on the main
+  thread, in the same pass that hands them to the adapter. Splitting those two apart is what used to
+  leave the grid showing one state while the screen believed another.
+
+While a group is open the grid is *not* the library — anything re-scanning or re-sorting has to work
+from `mDirsIgnoringSearch`, never from what the adapter holds. Sorting inside a group follows the
+same rule as the root grid: the chosen sorting applies, and sort-by-custom is the hand made order —
+the group's own, which is also what its collage reads.
+
+`adapters/FolderGroupActions.kt` (the action mode's group items) and `adapters/FolderDragMode.kt`
+(the gestures) both drive `DirectoryAdapter` from outside. The drag lifts a tile on the long press
+that selects it, replacing commons' drag-to-range-select on this grid, drops it between tiles to
+arrange them and holds it over one to group the two. **The grid has to hold still under a lifted
+tile** or nothing could be dropped onto anything — hence `FOLDER_DROP_ZONE`, the raised
+`FOLDER_DRAG_MOVE_THRESHOLD`, and change animations being off: a tile ticked mid drag would
+otherwise be drawn twice and the finger carry the wrong copy.
+
+### Order & groups export
+
+`helpers/OrderAndGroupsIO.kt` carries all three hand made arrangements — folder groups, the folder
+grid's order, each folder's media order — in one plain text file of bracketed sections. Groups go
+out by name, not by id, since a `folder_group:<id>` means nothing on the install reading it back.
+**Import drops anything naming a file or folder that is not there, and drops a section left empty by
+that**; the sentinel folders (`show_all`, favorites, recycle bin) are exempt, nothing can stat them.
 
 ### The viewer's bottom action bar
 
 `helpers/BottomAction.kt` is the one table of bit, view id, label and icon that both the bar and
-`ManageBottomActionsDialog` read; an action added there is picked up by both, and
-`parseBottomActionsOrder()` appends whatever a stored order predates rather than dropping it.
-
-`applyBottomActionsOrder()` rebuilds bottom_actions.xml's horizontal chain rather than reordering
-children — the chain is what spreads the buttons and what skips the GONE ones.
+`ManageBottomActionsDialog` read; `parseBottomActionsOrder()` appends whatever a stored order
+predates rather than dropping it. `applyBottomActionsOrder()` rebuilds bottom_actions.xml's
+horizontal chain rather than reordering children — the chain is what spreads the buttons and skips
+the GONE ones.
 
 ### Choosers held open over a bottom action button
 
-Two buttons answer a hold with a picker the finger drags through without ever lifting off, and a tap
-with the dialog they always had: rating (`views/RatingChooser.kt`) and copy/move
-(`views/FolderChooser.kt`). Both share the `chooser_*` dimens and are `views/HoldChooser.kt`s, which
-is a `GlassPanel` plus the gesture: `View.holdToChoose()` is what puts one on a button, so a screen
-only says what fills the chooser and what to do with the choice.
+Rating (`views/RatingChooser.kt`) and copy/move (`views/FolderChooser.kt`) answer a hold with a
+picker the finger drags through without lifting off, and a tap with the dialog they always had. Both
+are `views/HoldChooser.kt`s — a `GlassPanel` plus the gesture — put on a button by
+`View.holdToChoose()`, so a screen only says what fills the chooser and what to do with the choice.
 
-`revealOver()` lays a chooser out **INVISIBLE** and only makes it VISIBLE once it has been
-positioned over the button.
-
-The list is **prefetched** into `mQuickChooserFolders` on every media change: it reads Room and the
-filesystem, far too slow to run when the hold fires. Past destinations live in
-`Config.recentCopyMoveDestinations`, recorded in `copyMoveFilesToFolder()`
+`revealOver()` lays a chooser out **INVISIBLE** and makes it VISIBLE only once positioned. The
+folder list is **prefetched** into `mQuickChooserFolders` on every media change; it reads Room and
+the filesystem, far too slow to run when the hold fires.
 
 ### The viewer's file metadata sheet
 
-A swipe up over the media in the viewer raises `views/MetadataSheet.kt`, listing every metadata group the file carries.
+A swipe up over the media raises `views/MetadataSheet.kt`, listing every group the file carries.
 
-- `helpers/MetadataReader.kt` reads it, off the main thread, **straight off the file every time** —
-  never from Room, MediaStore or the `Medium` the grid was built from, all of which describe the
+- `helpers/MetadataReader.kt` reads it off the main thread and **straight off the file every time**
+  — never from Room, MediaStore or the `Medium` the grid was built from, all of which describe the
   last scan rather than the file as it is now. `com.drewnoakes:metadata-extractor` supplies one
-  directory per group the file stores (JPEG, Exif IFD0, Exif SubIFD, GPS, IPTC, XMP, ICC, PNG-\*,
-  QuickTime, MP4, …) and those become the collapsible sections verbatim, so nothing is dropped for
-  want of a hand-written mapping. `ExifInterface` fills in for formats the library cannot parse;
-  `MediaMetadataRetriever` and `MediaExtractor` cover video.
-- `helpers/MetadataSummary.kt` picks the pinned rows; `helpers/MetadataFormat.kt` holds the pure
-  value formatting; `views/MetadataRows.kt` inflates them. Splitting those out is what keeps each
-  file under detekt's function-count threshold — check `./gradlew detekt` before folding them back
-  together.
-- `MetadataSheet.attachTo()` is the whole of a viewer's wiring: the map row, the back gesture, and
-  `BaseViewerActivity.updateNavigationBarIconsForPanel()`, which hands the navigation bar back its
-  normal icons while the sheet covers it — the viewer otherwise forces light icons, which vanish
-  against a light-theme sheet.
+  directory per group the file stores and those become the sections verbatim, so nothing is dropped
+  for want of a hand-written mapping; `ExifInterface`, `MediaMetadataRetriever` and `MediaExtractor`
+  fill in what it cannot parse.
+- `MetadataSummary.kt` (pinned rows), `MetadataFormat.kt` (value formatting) and
+  `views/MetadataRows.kt` are split out to stay under detekt's function-count threshold.
+- `MetadataSheet.attachTo()` is the whole of a viewer's wiring, including
+  `BaseViewerActivity.updateNavigationBarIconsForPanel()` — the viewer forces light system-bar
+  icons, which vanish against a light-theme sheet.
 
 ### Chrome that floats over the content
 
 The three browsing screens draw content edge to edge with the chrome over it. No immersive mode is
-involved — commons' `EdgeToEdgeActivity` already enables edge to edge; what changed is that the app
-no longer paints an opaque band under its own bar.
+involved — commons' `EdgeToEdgeActivity` already enables it; what changed is that the app no longer
+paints an opaque band under its own bar.
 
-- **Viewer** — the toolbar shows `viewer_header.xml` (file name plus extended details) instead of a
-  title, so the existing fullscreen fade takes it away with the rest of the chrome. Details are
-  built by `extensions/ExtendedDetails.kt` off the main thread and dropped if the user has swiped
-  on. `BaseViewerActivity` forces light system-bar icons — the viewer's chrome is white over the
-  photo in either theme.
-- **Grids** — `MySearchMenu` is the *last* child of the `CoordinatorLayout` (draw order is what puts
-  it over the grid) and the grid gets no top inset of its own; `keepGridClearOfTopBar()` pads it by
-  the bar's measured height, which already carries the status bar inset. Doing it in the layout
-  instead double-counts the inset.
-- **Frosted glass** — the search pill and both choosers are the same material: `helpers/Glass.kt`
-  holds every colour and radius, `views/GlassPanel.kt` is the `BlurView` that wears it. A panel is
-  told what to copy with `frost(contentBehind)`, which need not be an ancestor, and paints itself
-  flat where the platform has no cheap blur (below Android 12).
+- **Viewer** — the toolbar shows `viewer_header.xml` instead of a title, so the existing fullscreen
+  fade takes it away with the rest of the chrome. Details are built by `extensions/ExtendedDetails.kt`
+  off the main thread. `BaseViewerActivity` forces light system-bar icons.
+- **Grids** — `MySearchMenu` is the *last* child of the `CoordinatorLayout` (draw order puts it over
+  the grid) and the grid gets no top inset of its own; `keepGridClearOfTopBar()` pads it by the bar's
+  measured height, which already carries the status bar inset. Doing it in the layout double-counts.
+- **Frosted glass** — `helpers/Glass.kt` holds every colour and radius, `views/GlassPanel.kt` is the
+  `BlurView` that wears it. A panel is told what to copy with `frost(contentBehind)`, which need not
+  be an ancestor, and paints itself flat below Android 12.
 
 ## Style
 

@@ -279,8 +279,8 @@
     <string name="rounded_corners">Rounded corners</string>
     <string name="export_favorite_paths">Export favorites</string>
     <string name="import_favorite_paths">Import favorites</string>
-    <string name="export_custom_order">Export custom order</string>
-    <string name="import_custom_order">Import custom order</string>
+    <string name="export_order_and_groups">Export order &amp; groups</string>
+    <string name="import_order_and_groups">Import order &amp; groups</string>
     <string name="paths_imported_successfully">Paths imported successfully</string>
     <string name="media_management_prompt">To make sure that all file operations work reliably, please make this app a Media management app in your device settings.</string>
     <string name="password_protect_excluded">Password protect excluded folder visibility</string>
@@ -357,6 +357,21 @@
     <string name="faq_18_text">Our apps have no ads whatsoever. If you see them during video playback, you must be using some other apps video player. Try finding your default video player in the device settings, then do a \"Clear defaults\" on it. The next time you invoke some video intent you will see an app picker prompt, where you can select what app you want to use.</string>
     <!-- Fork -->
     <string name="fork_version_placeholder">%1$s (fork %2$s)</string>
+    <!-- Folder groups -->
+    <string name="folder_group">Folder group</string>
+    <string name="group_folders">Group folders</string>
+    <string name="add_to_group">Add to group</string>
+    <string name="ungroup_folders">Ungroup</string>
+    <string name="remove_from_group">Remove from group</string>
+    <string name="rename_group">Rename group</string>
+    <string name="group_name">Group name</string>
+    <string name="new_group">New group</string>
+    <string name="empty_group_name">Please enter a group name</string>
+    <string name="added_to_group">Added to \"%s\"</string>
+    <plurals name="folders_in_group">
+        <item quantity="one">%d folder</item>
+        <item quantity="other">%d folders</item>
+    </plurals>
     <!--
         Haven't found some strings? There's more at
         https://github.com/FossifyOrg/Commons/tree/master/commons/src/main/res

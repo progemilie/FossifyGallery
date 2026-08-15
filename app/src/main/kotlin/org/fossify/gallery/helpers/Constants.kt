@@ -107,6 +107,17 @@ const val CUSTOM_FOLDERS_ORDER = "custom_folders_order"
 const val GLASS_UI = "glass_ui"
 const val CUSTOM_MEDIA_ORDER_FOLDERS = "custom_media_order_folders"
 const val RECENT_COPY_MOVE_DESTINATIONS = "recent_copy_move_destinations"
+const val FOLDER_GROUPS = "folder_groups"
+const val LAST_FOLDER_GROUP_ID = "last_folder_group_id"
+
+/**
+ * What a folder group's tile carries instead of a real path. Nothing on disk answers to it, so it
+ * can never collide with a folder, and everything keyed by path carries the tile unchanged.
+ */
+const val FOLDER_GROUP_PATH_PREFIX = "folder_group:"
+
+/** How many members a group's collage draws; the rest of the group is not shown on the tile. */
+const val MAX_FOLDER_GROUP_COVERS = 4
 
 /** Separates paths in preferences that hold a list of them; paths themselves may contain commas. */
 const val PATH_SEPARATOR = "|||"
@@ -313,6 +324,22 @@ const val REVEAL_DURATION_MS = 400L
 const val DRAG_LIFT_SCALE = 0.9f
 const val DRAG_LIFT_DURATION_MS = 120L
 const val DRAG_BORDER_WIDTH_FRACTION = 0.04f
+
+// dragging a folder tile onto another one, see FolderDragMode. the drop zone is the middle of a
+// tile, leaving the outer band for arranging, and the threshold has to clear the drop zone or the
+// tile being aimed at would step aside before the finger reached its middle
+const val FOLDER_DROP_ZONE = 0.6f
+const val FOLDER_DRAG_MOVE_THRESHOLD = 0.75f
+const val FOLDER_DROP_DWELL_MS = 400L
+const val FOLDER_DROP_TARGET_SCALE = 1.06f
+const val FOLDER_DROP_BORDER_FRACTION = 0.015f
+// a lifted tile covers the one it is held over, so it shrinks out of the way of what lights up
+const val FOLDER_HELD_OVER_SCALE = 0.55f
+const val FOLDER_LIFT_ALPHA = 0.8f
+const val FOLDER_FLY_IN_DURATION_MS = 180L
+const val FOLDER_FLY_IN_SCALE = 0.15f
+const val FOLDER_FLASH_DURATION_MS = 90L
+const val FOLDER_FLASH_BLINKS = 3
 
 fun getPermissionToRequest() = if (isTiramisuPlus()) PERMISSION_READ_MEDIA_IMAGES else PERMISSION_WRITE_STORAGE
 

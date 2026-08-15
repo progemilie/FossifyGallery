@@ -1,11 +1,7 @@
 package org.fossify.gallery.adapters
 
 import android.animation.Animator
-import android.animation.AnimatorSet
-import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
-import android.graphics.Outline
-import android.graphics.drawable.GradientDrawable
 import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.ViewOutlineProvider
@@ -24,9 +20,11 @@ import org.fossify.commons.interfaces.ItemTouchHelperContract
 import org.fossify.gallery.R
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.helpers.DRAG_BORDER_WIDTH_FRACTION
-import org.fossify.gallery.helpers.DRAG_LIFT_DURATION_MS
 import org.fossify.gallery.helpers.DRAG_LIFT_SCALE
 import org.fossify.gallery.helpers.PaddedGridMoveCallback
+import org.fossify.gallery.helpers.animateDragLift
+import org.fossify.gallery.helpers.dragAccentRing
+import org.fossify.gallery.helpers.dragPictureOutline
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
 import java.util.Collections
@@ -287,7 +285,11 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         showCarriedCount(carriedItems.size)
 
         findThumbnail()?.apply {
-            foreground = buildAccentBorder(width)
+            foreground = activity.dragAccentRing(
+                pictureWidth = width,
+                cornerRadius = adapter.thumbnailCornerRadius,
+                fraction = DRAG_BORDER_WIDTH_FRACTION
+            )
         }
     }
 
@@ -330,56 +332,13 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         }
     }
 
-    /**
-     * Animators of our own rather than the view's animate() builder: the grid's item animator uses
-     * that builder for the items it slides around and cancels whatever it finds on it, which would
-     * strand a picked up thumbnail half lifted.
-     */
     private fun View.animateLift(scale: Float, elevation: Float) {
         dragLiftAnimator?.cancel()
-        dragLiftAnimator = AnimatorSet().apply {
-            playTogether(
-                ObjectAnimator.ofFloat(this@animateLift, View.SCALE_X, scale),
-                ObjectAnimator.ofFloat(this@animateLift, View.SCALE_Y, scale),
-                ObjectAnimator.ofFloat(this@animateLift, View.TRANSLATION_Z, elevation)
-            )
-            duration = DRAG_LIFT_DURATION_MS
-            start()
-        }
+        dragLiftAnimator = animateDragLift(scale, elevation)
     }
 
-    /**
-     * An accent ring following the thumbnail's own corners, [DRAG_BORDER_WIDTH_FRACTION] of its
-     * width so it stays in proportion whatever column count the grid is on.
-     */
-    private fun buildAccentBorder(thumbnailWidth: Int): GradientDrawable {
-        val strokeWidth = (thumbnailWidth * DRAG_BORDER_WIDTH_FRACTION).coerceIn(
-            activity.resources.getDimension(R.dimen.accent_border_min_width),
-            activity.resources.getDimension(R.dimen.accent_border_max_width)
-        )
-
-        return GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = adapter.thumbnailCornerRadius
-            setStroke(strokeWidth.toInt(), activity.getProperPrimaryColor())
-        }
-    }
-
-    /**
-     * The item view carries the padding that spaces the grid out, so a shadow around it would sit
-     * off the picture. This traces the thumbnail inside it instead, corners and all.
-     */
-    private val thumbnailOutlineProvider = object : ViewOutlineProvider() {
-        override fun getOutline(view: View, outline: Outline) {
-            outline.setRoundRect(
-                view.paddingLeft,
-                view.paddingTop,
-                view.width - view.paddingRight,
-                view.height - view.paddingBottom,
-                adapter.thumbnailCornerRadius
-            )
-        }
-    }
+    private val thumbnailOutlineProvider =
+        dragPictureOutline({ adapter.thumbnailCornerRadius }) { it.findThumbnail() }
 }
 
 private fun View.findThumbnail() = findViewById<ImageView>(R.id.medium_thumbnail)

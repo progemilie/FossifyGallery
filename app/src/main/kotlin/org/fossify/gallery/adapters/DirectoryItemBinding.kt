@@ -4,6 +4,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import org.fossify.commons.views.MySquareImageView
+import org.fossify.gallery.views.FolderGroupThumbnail
 import org.fossify.gallery.databinding.DirectoryItemGridRoundedCornersBinding
 import org.fossify.gallery.databinding.DirectoryItemGridSquareBinding
 import org.fossify.gallery.databinding.DirectoryItemListBinding
@@ -11,6 +12,8 @@ import org.fossify.gallery.databinding.DirectoryItemListBinding
 interface DirectoryItemBinding {
     val root: ViewGroup
     val dirThumbnail: MySquareImageView
+    val dirGroupThumbnail: FolderGroupThumbnail
+    val dirGroupBadge: ImageView
     val dirPath: TextView?
     val dirCheck: ImageView
     val dirHolder: ViewGroup
@@ -26,6 +29,8 @@ interface DirectoryItemBinding {
 class ListDirectoryItemBinding(val binding: DirectoryItemListBinding) : DirectoryItemBinding {
     override val root: ViewGroup = binding.root
     override val dirThumbnail: MySquareImageView = binding.dirThumbnail
+    override val dirGroupThumbnail: FolderGroupThumbnail = binding.dirGroupThumbnail
+    override val dirGroupBadge: ImageView = binding.dirGroupBadge
     override val dirPath: TextView = binding.dirPath
     override val dirCheck: ImageView = binding.dirCheck
     override val dirHolder: ViewGroup = binding.dirHolder
@@ -43,6 +48,8 @@ fun DirectoryItemListBinding.toItemBinding() = ListDirectoryItemBinding(this)
 class GridDirectoryItemSquareBinding(val binding: DirectoryItemGridSquareBinding) : DirectoryItemBinding {
     override val root: ViewGroup = binding.root
     override val dirThumbnail: MySquareImageView = binding.dirThumbnail
+    override val dirGroupThumbnail: FolderGroupThumbnail = binding.dirGroupThumbnail
+    override val dirGroupBadge: ImageView = binding.dirGroupBadge
     override val dirPath: TextView? = null
     override val dirCheck: ImageView = binding.dirCheck
     override val dirHolder: ViewGroup = binding.dirHolder
@@ -60,6 +67,8 @@ fun DirectoryItemGridSquareBinding.toItemBinding() = GridDirectoryItemSquareBind
 class GridDirectoryItemRoundedCornersBinding(val binding: DirectoryItemGridRoundedCornersBinding) : DirectoryItemBinding {
     override val root: ViewGroup = binding.root
     override val dirThumbnail: MySquareImageView = binding.dirThumbnail
+    override val dirGroupThumbnail: FolderGroupThumbnail = binding.dirGroupThumbnail
+    override val dirGroupBadge: ImageView = binding.dirGroupBadge
     override val dirPath: TextView? = null
     override val dirCheck: ImageView = binding.dirCheck
     override val dirHolder: ViewGroup = binding.dirHolder
