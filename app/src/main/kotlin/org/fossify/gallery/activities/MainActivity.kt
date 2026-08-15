@@ -1607,10 +1607,11 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             val dirsToShow = searchDirs(narrowToOpenGroup(groupedDirs), textToSearch)
             checkPlaceholderVisibility(dirsToShow)
             if (binding.directoriesGrid.adapter == null || forceRecreate) {
-                createDirectoryAdapter(dirsToShow)
+                createDirectoryAdapter(dirsToShow, textToSearch)
             } else {
                 getRecyclerAdapter()?.apply {
                     openGroupId = mCurrentGroupId
+                    isSearchActive = textToSearch.isNotEmpty()
                     updateDirs(dirsToShow)
                 }
             }
@@ -1622,7 +1623,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         }, 500)
     }
 
-    private fun createDirectoryAdapter(dirsToShow: ArrayList<Directory>) {
+    private fun createDirectoryAdapter(dirsToShow: ArrayList<Directory>, textToSearch: String) {
         initZoomListener()
         val adapter = DirectoryAdapter(
             activity = this,
@@ -1648,6 +1649,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             }
         }
 
+        adapter.isSearchActive = textToSearch.isNotEmpty()
         adapter.setupZoomListener(mZoomListener)
         // no entrance animation here: a layout animation on a RecyclerView binds every child at
         // alpha 0 and walks them in, and the view is recycled often enough that children kept

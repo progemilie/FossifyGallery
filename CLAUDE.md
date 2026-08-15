@@ -144,6 +144,13 @@ Two rules keep the grid honest, both in `extensions/FolderGroupTiles.kt`:
 While a group is open the grid is *not* the library — anything re-scanning or re-sorting has to work
 from `mDirsIgnoringSearch`, never from what the adapter holds.
 
+Tiles are dragged rather than only commanded: `adapters/FolderDragMode.kt` lifts a tile on the long
+press that selects it (replacing commons' drag-to-range-select on this grid), drops it between tiles
+to arrange them, and holds it over one to group the two. **The grid has to hold still under a lifted
+tile** or nothing could be dropped onto anything — hence the middle of a tile (`FOLDER_DROP_ZONE`)
+being where arranging stops, the raised `FOLDER_DRAG_MOVE_THRESHOLD`, and change animations being
+off: a tile ticked mid drag would otherwise be drawn twice, and the finger would carry the wrong copy.
+
 ### Order & groups export
 
 `helpers/OrderAndGroupsIO.kt` carries all three hand made arrangements — folder groups, the folder

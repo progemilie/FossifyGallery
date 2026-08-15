@@ -324,6 +324,28 @@ const val DRAG_LIFT_SCALE = 0.9f
 const val DRAG_LIFT_DURATION_MS = 120L
 const val DRAG_BORDER_WIDTH_FRACTION = 0.04f
 
+// dragging a folder tile onto another one. the drop zone is the middle of a tile: the grid does not
+// shift while the lifted tile is over it, so the outer band is what is left for arranging - and the
+// tile has to travel most of its own width before the grid shifts at all, or the tile it is heading
+// for would step aside before the finger ever reached its middle
+const val FOLDER_DROP_ZONE = 0.6f
+const val FOLDER_DRAG_MOVE_THRESHOLD = 0.75f
+const val FOLDER_DROP_DWELL_MS = 400L
+const val FOLDER_DROP_TARGET_SCALE = 1.06f
+// the tile the lifted one is held over says so with a ring and nothing over its cover - a cover is
+// a photo, and anything laid over it changes what the folder looks like rather than marking it
+const val FOLDER_DROP_BORDER_FRACTION = 0.015f
+// a lifted tile covers the one it is held over, so it shrinks out of the way of what lights up
+const val FOLDER_HELD_OVER_SCALE = 0.55f
+const val FOLDER_LIFT_ALPHA = 0.8f
+
+// a tile let go of over another one carries on into it and the tile it went into blinks, rather
+// than the tile flying home to a place it is about to be taken out of anyway
+const val FOLDER_FLY_IN_DURATION_MS = 180L
+const val FOLDER_FLY_IN_SCALE = 0.15f
+const val FOLDER_FLASH_DURATION_MS = 90L
+const val FOLDER_FLASH_BLINKS = 3
+
 fun getPermissionToRequest() = if (isTiramisuPlus()) PERMISSION_READ_MEDIA_IMAGES else PERMISSION_WRITE_STORAGE
 
 fun getPermissionsToRequest(): Collection<Int> {

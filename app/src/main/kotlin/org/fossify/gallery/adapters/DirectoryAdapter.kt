@@ -149,6 +149,25 @@ class DirectoryAdapter(
     private var isDragAndDropping = false
     private var startReorderDragListener: StartReorderDragListener? = null
 
+    // lifting a tile off the grid arranges the whole of it, so it is only offered where the whole
+    // of it is on screen - never in a picker, never under a search
+    private val folderDrag = if (isPickIntent) {
+        null
+    } else {
+        FolderDragMode(this, ::saveDraggedOrder, ::groupDraggedFolder)
+    }
+
+    var isSearchActive = false
+        set(value) {
+            field = value
+            updateDragAvailability()
+        }
+
+    // the tile that flew into another one and the cell it left, kept only until the group it went
+    // into is either made or called off
+    private var landedTile: Directory? = null
+    private var landedTilePlace = 0
+
     private var showMediaCount = config.showFolderMediaCount
     private var folderStyle = config.folderStyle
     private var limitFolderTitle = config.limitFolderTitle
@@ -157,7 +176,10 @@ class DirectoryAdapter(
     var timeFormat = activity.getTimeFormat()
 
     init {
-        setupDragListener(true)
+        // a long press followed by a moving finger lifts the tile (see [FolderDragMode]) rather
+        // than selecting a run of them - the grid answers one gesture, and moving folders is what
+        // it answers with
+        setupDragListener(false)
         fillLockedFolders()
     }
 
@@ -178,6 +200,9 @@ class DirectoryAdapter(
         holder.bindView(dir, true, !isPickIntent) { itemView, adapterPosition ->
             setupView(itemView, dir, holder)
         }
+
+        // after bindView, which is what puts the listeners this takes over on the tile
+        folderDrag?.bindItemGestures(holder, dir)
         bindViewHolder(holder)
     }
 
@@ -270,19 +295,127 @@ class DirectoryAdapter(
     override fun onActionModeDestroyed() {
         if (isDragAndDropping) {
             notifyDataSetChanged()
-
-            val reorderedFoldersList = dirs.map { it.path }
-            if (openGroupId != 0L) {
-                // inside a group the order is the group's own, and it is what the collage reads -
-                // the global folder order has nothing to say about folders it never shows
-                activity.saveFolderGroupOrder(openGroupId, reorderedFoldersList)
-            } else {
-                config.customFoldersOrder = TextUtils.join("|||", reorderedFoldersList)
-                config.directorySorting = SORT_BY_CUSTOM
-            }
+            saveDraggedOrder()
         }
 
         isDragAndDropping = false
+        updateDragAvailability()
+    }
+
+    /**
+     * Keeps the arrangement the grid is holding. Inside a group that is the group's own order, and
+     * it is what the collage reads - the global folder order has nothing to say about folders it
+     * never shows.
+     */
+    private fun saveDraggedOrder() {
+        val reorderedFoldersList = dirs.map { it.path }
+        if (openGroupId != 0L) {
+            activity.saveFolderGroupOrder(openGroupId, reorderedFoldersList)
+            return
+        }
+
+        // folders the grid is not showing - hidden, filtered out, or not yet scanned - keep their
+        // place in the order rather than being dropped from it and re-sorted on the next scan
+        val onScreen = reorderedFoldersList.toHashSet()
+        val offScreen = config.customFoldersOrder
+            .split("|||")
+            .filter { it.isNotEmpty() && !onScreen.contains(it) }
+
+        config.customFoldersOrder = TextUtils.join("|||", reorderedFoldersList + offScreen)
+        config.directorySorting = SORT_BY_CUSTOM
+    }
+
+    /**
+     * Puts [dragged] into the group it was dropped on, or asks what to call the group the two
+     * folders make. The folder dropped on leads the group either way - it is the one that stayed
+     * still, and the collage reads the members in order.
+     */
+    private fun groupDraggedFolder(dragged: Directory, target: Directory) {
+        if (target.isFolderGroup()) {
+            activity.addToFolderGroup(target.folderGroupId(), listOf(dragged.path))
+            activity.toast(activity.getString(R.string.added_to_group, target.name))
+            onFolderGrouped()
+            return
+        }
+
+        FolderGroupNameDialog(
+            activity = activity,
+            titleResId = R.string.new_group,
+            currentName = target.name,
+            // the tile left the grid as it flew into the target, so a dialog closed without a name
+            // has to put it back
+            onCancel = ::putLandedTileBack
+        ) { name ->
+            val group = activity.createFolderGroup(name, listOf(target.path, dragged.path))
+            takeTilePlaceInOrder(group.syntheticPath(), target.path)
+            onFolderGrouped()
+        }
+    }
+
+    /** The grid is about to be rebuilt around the group that was just made. */
+    private fun onFolderGrouped() {
+        landedTile = null
+        finishActMode()
+        listener?.refreshItems()
+    }
+
+    /**
+     * Takes a tile out of the grid as it lands in another one, so the rest of the grid closes over
+     * the cell it left instead of holding it open. The group is only made once the drop has been
+     * answered for, and until the scan that follows lands the folder is still one of [dirs] -
+     * anything rebinding it, ending the action mode included, would draw it back into that cell.
+     */
+    internal fun takeTileOffGrid(dragged: Directory) {
+        val position = dirs.indexOfFirst { it.path == dragged.path }
+        if (position < 0) {
+            return
+        }
+
+        landedTile = dirs[position]
+        landedTilePlace = position
+        // a copy rather than a removal from the list in hand: the screen may still be holding the
+        // one it handed over, and a folder dropped from that reads back as a folder that is gone
+        dirs = ArrayList(dirs).apply { removeAt(position) }
+        currentDirectoriesHash = dirs.hashCode()
+        notifyItemRemoved(position)
+    }
+
+    /** Puts back the tile of a group that was never named, where it stood. */
+    private fun putLandedTileBack() {
+        val dir = landedTile ?: return
+        val position = landedTilePlace.coerceAtMost(dirs.size)
+        landedTile = null
+        dirs = ArrayList(dirs).apply { add(position, dir) }
+        currentDirectoriesHash = dirs.hashCode()
+        notifyItemInserted(position)
+    }
+
+    /**
+     * Stands the new group tile where the folder it was made on stood. Without this a hand made
+     * order says nothing about the tile, which would send it to the end of the grid - and the two
+     * folders would look like they had been dropped somewhere else entirely.
+     */
+    private fun takeTilePlaceInOrder(groupPath: String, replacedPath: String) {
+        if (config.directorySorting and SORT_BY_CUSTOM == 0) {
+            return
+        }
+
+        val order = config.customFoldersOrder.split("|||").map {
+            if (it == replacedPath) groupPath else it
+        }
+
+        config.customFoldersOrder = TextUtils.join("|||", order)
+    }
+
+    private fun updateDragAvailability() {
+        folderDrag?.isEnabled = !isSearchActive && !isDragAndDropping
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
+        // the screen builds a new adapter for a good few settings changes, and a drag still
+        // listening on the grid would hold the old one there for good
+        folderDrag?.detach()
     }
 
     override fun onViewRecycled(holder: ViewHolder) {
@@ -691,6 +824,9 @@ class DirectoryAdapter(
 
     private fun changeOrder() {
         isDragAndDropping = true
+        // the handles own the grid for as long as they are up, so the two drags cannot both be
+        // listening for one
+        updateDragAvailability()
         notifyDataSetChanged()
         actMode?.invalidate()
 
@@ -962,7 +1098,19 @@ class DirectoryAdapter(
     }
 
     fun updateDirs(newDirs: ArrayList<Directory>) {
+        // a scan landing mid drag would rebuild the grid out from under the finger
+        if (folderDrag?.isDragging == true) {
+            return
+        }
+
         val directories = newDirs.clone() as ArrayList<Directory>
+        // a tile that has flown into another one is off the grid whatever a scan that started
+        // before it landed still has to say about the folder
+        val landedPath = landedTile?.path
+        if (landedPath != null) {
+            directories.removeAll { it.path == landedPath }
+        }
+
         // a cover transformed in place (see TransformedMedia) changes nothing this hashcode is
         // built from, so also rebind whenever one happened while this screen was off top
         val transformGeneration = TransformedMedia.generation
@@ -989,6 +1137,8 @@ class DirectoryAdapter(
     private fun setupView(view: View, directory: Directory, holder: ViewHolder) {
         val isSelected = selectedKeys.contains(directory.path.hashCode())
         val isGroup = directory.isFolderGroup()
+        // a view recycled mid drag would come back to another folder still lifted
+        folderDrag?.resetItemState(view)
         bindItem(view).apply {
             // a group tile stands under a synthetic path that names nothing on disk, so the list
             // row has no parent folder to show for it
@@ -1121,12 +1271,7 @@ class DirectoryAdapter(
         }
 
         dirLock.beGone()
-        val roundedCorners = when {
-            isListViewType -> ROUNDED_CORNERS_SMALL
-            folderStyle == FOLDER_STYLE_SQUARE -> ROUNDED_CORNERS_NONE
-            else -> ROUNDED_CORNERS_BIG
-        }
-
+        val roundedCorners = getRoundedCorners()
         val placeholder = when (roundedCorners) {
             ROUNDED_CORNERS_SMALL -> R.drawable.placeholder_rounded_small
             ROUNDED_CORNERS_BIG -> R.drawable.placeholder_rounded_big
@@ -1134,7 +1279,7 @@ class DirectoryAdapter(
         }
 
         if (isGroup) {
-            bindGroupThumbnail(this, directory, roundedCorners, placeholder)
+            bindGroupThumbnail(this, directory, placeholder)
             return@apply
         }
 
@@ -1162,18 +1307,11 @@ class DirectoryAdapter(
     private fun bindGroupThumbnail(
         binding: DirectoryItemBinding,
         directory: Directory,
-        roundedCorners: Int,
         placeholder: Int
     ) {
         val members = directory.groupMembers.take(MAX_FOLDER_GROUP_COVERS)
-        val radius = when (roundedCorners) {
-            ROUNDED_CORNERS_SMALL -> resources.getDimension(org.fossify.commons.R.dimen.rounded_corner_radius_small)
-            ROUNDED_CORNERS_BIG -> resources.getDimension(org.fossify.commons.R.dimen.rounded_corner_radius_big)
-            else -> 0f
-        }
-
         binding.dirGroupThumbnail.apply {
-            setCornerRadius(radius)
+            setCornerRadius(thumbnailCornerRadius)
             setBorderColor(properPrimaryColor)
             // a rebind can drop cells the last one had going, and a request left in flight would
             // land in a cell this group never asked to fill
@@ -1208,6 +1346,24 @@ class DirectoryAdapter(
     }
 
     override fun onChange(position: Int) = dirs.getOrNull(position)?.getBubbleText(directorySorting, activity, dateFormat, timeFormat) ?: ""
+
+    private fun getRoundedCorners() = when {
+        isListViewType -> ROUNDED_CORNERS_SMALL
+        folderStyle == FOLDER_STYLE_SQUARE -> ROUNDED_CORNERS_NONE
+        else -> ROUNDED_CORNERS_BIG
+    }
+
+    /** How round a tile's cover is drawn, for anything that has to trace one - see [FolderDragMode]. */
+    internal val thumbnailCornerRadius: Float
+        get() {
+            val radiusId = when (getRoundedCorners()) {
+                ROUNDED_CORNERS_SMALL -> org.fossify.commons.R.dimen.rounded_corner_radius_small
+                ROUNDED_CORNERS_BIG -> org.fossify.commons.R.dimen.rounded_corner_radius_big
+                else -> return 0f
+            }
+
+            return resources.getDimension(radiusId)
+        }
 
     private fun bindItem(view: View): DirectoryItemBinding {
         return when {

@@ -36,6 +36,8 @@
     <dimen name="reorder_button_corner_radius">20dp</dimen>
     <dimen name="reorder_button_height">40dp</dimen>
     <dimen name="drag_lift_elevation">10dp</dimen>
+    <!-- only enough to draw the tile a lifted one is held over above its neighbours -->
+    <dimen name="drop_target_elevation">4dp</dimen>
 
     <!-- shared by every chooser that pops up above a held bottom action button -->
     <dimen name="chooser_padding">8dp</dimen>

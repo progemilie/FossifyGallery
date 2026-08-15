@@ -367,6 +367,7 @@
     <string name="group_name">Group name</string>
     <string name="new_group">New group</string>
     <string name="empty_group_name">Please enter a group name</string>
+    <string name="added_to_group">Added to \"%s\"</string>
     <plurals name="folders_in_group">
         <item quantity="one">%d folder</item>
         <item quantity="other">%d folders</item>
