@@ -3,6 +3,10 @@
     One tag. The label keeps a fixed share of the width so that every label in a section lines up
     without a table layout; the value takes the rest and wraps, since a tag value is as long as it
     is and truncating it would be the one thing this screen exists not to do.
+
+    The shares are spelled out against a weightSum rather than shared out between whichever views
+    are up: the room for the edit pencil has to be left whether or not the row has one, or the
+    values of the rows that do would start further left than the values of the rows that don't.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -10,7 +14,8 @@
     android:layout_height="wrap_content"
     android:baselineAligned="true"
     android:orientation="horizontal"
-    android:paddingVertical="@dimen/tiny_margin">
+    android:paddingVertical="@dimen/tiny_margin"
+    android:weightSum="1">
 
     <TextView
         android:id="@+id/metadata_row_label"
@@ -26,7 +31,7 @@
         android:id="@+id/metadata_row_value"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="0.62"
+        android:layout_weight="0.55"
         android:maxLines="@integer/metadata_value_max_lines"
         android:ellipsize="end"
         android:textSize="@dimen/normal_text_size"
@@ -36,9 +41,10 @@
     <!-- only the description row wears this; it is what says the row can be written as well as read -->
     <ImageView
         android:id="@+id/metadata_row_edit"
-        android:layout_width="@dimen/metadata_row_edit_size"
+        android:layout_width="0dp"
         android:layout_height="@dimen/metadata_row_edit_size"
         android:layout_gravity="center_vertical"
+        android:layout_weight="0.07"
         android:contentDescription="@string/edit_description"
         android:src="@drawable/ic_edit_vector"
         android:visibility="gone"

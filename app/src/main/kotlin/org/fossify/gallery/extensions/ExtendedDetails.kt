@@ -84,9 +84,6 @@ private fun Context.extendedDetailFields(
     exif: ExifInterface,
 ): List<Pair<Int, () -> String>> = listOf(
     EXT_NAME to { medium.name },
-    // right under the name, where a caption reads as one. an empty one is dropped below with the
-    // rest of the fields the file has nothing to say about
-    EXT_DESCRIPTION to { getFileDescription(medium.path) },
     EXT_PATH to { "${file.parent.trimEnd('/')}/" },
     EXT_SIZE to { file.length().formatSize() },
     EXT_RESOLUTION to { getMediumResolution(medium, file).orEmpty() },
@@ -96,6 +93,8 @@ private fun Context.extendedDetailFields(
     EXT_EXIF_PROPERTIES to { exif.getExifProperties() },
     EXT_GPS to { getLatLonAltitude(medium.path) },
     EXT_ORIENTATION to { exif.getReadableOrientation(this) },
+    // an empty one is dropped along with the rest of the fields the file has nothing to say about
+    EXT_DESCRIPTION to { getFileDescription(medium.path) },
     EXT_RATING to {
         // straight out of the file rather than off the Medium, which may be a copy made before the
         // rating was last changed

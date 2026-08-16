@@ -22,14 +22,6 @@
             android:text="@string/filename" />
 
         <org.fossify.commons.views.MyAppCompatCheckbox
-            android:id="@+id/manage_extended_details_description"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingTop="@dimen/activity_margin"
-            android:paddingBottom="@dimen/activity_margin"
-            android:text="@string/description" />
-
-        <org.fossify.commons.views.MyAppCompatCheckbox
             android:id="@+id/manage_extended_details_path"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -100,6 +92,14 @@
             android:paddingTop="@dimen/activity_margin"
             android:paddingBottom="@dimen/activity_margin"
             android:text="@string/orientation" />
+
+        <org.fossify.commons.views.MyAppCompatCheckbox
+            android:id="@+id/manage_extended_details_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="@dimen/activity_margin"
+            android:paddingBottom="@dimen/activity_margin"
+            android:text="@string/description" />
 
         <org.fossify.commons.views.MyAppCompatCheckbox
             android:id="@+id/manage_extended_details_rating"

@@ -14,7 +14,6 @@ class ManageExtendedDetailsDialog(val activity: BaseSimpleActivity, val callback
         val details = activity.config.extendedDetails
         binding.apply {
             manageExtendedDetailsName.isChecked = details and EXT_NAME != 0
-            manageExtendedDetailsDescription.isChecked = details and EXT_DESCRIPTION != 0
             manageExtendedDetailsPath.isChecked = details and EXT_PATH != 0
             manageExtendedDetailsSize.isChecked = details and EXT_SIZE != 0
             manageExtendedDetailsResolution.isChecked = details and EXT_RESOLUTION != 0
@@ -24,6 +23,7 @@ class ManageExtendedDetailsDialog(val activity: BaseSimpleActivity, val callback
             manageExtendedDetailsExif.isChecked = details and EXT_EXIF_PROPERTIES != 0
             manageExtendedDetailsGpsCoordinates.isChecked = details and EXT_GPS != 0
             manageExtendedDetailsOrientation.isChecked = details and EXT_ORIENTATION != 0
+            manageExtendedDetailsDescription.isChecked = details and EXT_DESCRIPTION != 0
             manageExtendedDetailsRating.isChecked = details and EXT_RATING != 0
         }
 
@@ -40,8 +40,6 @@ class ManageExtendedDetailsDialog(val activity: BaseSimpleActivity, val callback
         binding.apply {
             if (manageExtendedDetailsName.isChecked)
                 result += EXT_NAME
-            if (manageExtendedDetailsDescription.isChecked)
-                result += EXT_DESCRIPTION
             if (manageExtendedDetailsPath.isChecked)
                 result += EXT_PATH
             if (manageExtendedDetailsSize.isChecked)
@@ -60,6 +58,8 @@ class ManageExtendedDetailsDialog(val activity: BaseSimpleActivity, val callback
                 result += EXT_GPS
             if (manageExtendedDetailsOrientation.isChecked)
                 result += EXT_ORIENTATION
+            if (manageExtendedDetailsDescription.isChecked)
+                result += EXT_DESCRIPTION
             if (manageExtendedDetailsRating.isChecked)
                 result += EXT_RATING
         }
