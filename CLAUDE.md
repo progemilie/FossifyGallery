@@ -214,3 +214,7 @@ warranted when it is not immediatelly evident what the purpose of something is.
 
 DO NOT make insignificant updates to CLAUDE.md file. Only for large features that change core functionality.
 A UI feature does not need a large block of text in the CLAUDE.md file. Try to keep the file less than 200 lines.
+
+Update `@CLAUDE-CHANGELOG.md` file after a new version bump and include new user facing changes. Fixes do
+not need to be included, unless they are major. The file should be updated as the last commit before making
+a PR. So if a PR is ordered to be made, first make a commit to change the changelog file.
