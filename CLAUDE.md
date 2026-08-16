@@ -192,8 +192,8 @@ A swipe up over the media raises `views/MetadataSheet.kt`, listing every group t
     row — an empty row is the only way in to writing the first description.
   - **Remove metadata**, offering the `MetadataGroup`s the file actually carries
     (`MetadataStripper.removableGroups()`, which is also what hides the row when there are none), in
-    place or into a copy beside it. The row lives *inside* the peek, so the resting sheet already
-    shows it.
+    place or into a copy beside it. Kept out of the pinned summary but first below the fold, so
+    reading the sheet never offers to write to the file and extending it at all reaches the action.
 
 `helpers/ContainerMetadata.kt` and the per-format walkers beside it (`JpegSegments`, `PngChunks`,
 `WebpChunks`, over the byte plumbing in `ContainerBytes`) do the removal by **copying the file out
