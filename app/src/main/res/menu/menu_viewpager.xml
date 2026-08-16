@@ -120,6 +120,19 @@
         android:showAsAction="never"
         android:title="@string/restore_this_file"
         app:showAsAction="never" />
+    <!-- drawn as an icon in the drop-down, so only one of the pair is ever up at a time -->
+    <item
+        android:id="@+id/menu_show_thumbnail_strip"
+        android:icon="@drawable/ic_thumbnail_strip_vector"
+        android:showAsAction="never"
+        android:title="@string/show_thumbnail_strip_short"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/menu_hide_thumbnail_strip"
+        android:icon="@drawable/ic_thumbnail_strip_off_vector"
+        android:showAsAction="never"
+        android:title="@string/hide_thumbnail_strip_short"
+        app:showAsAction="never" />
     <item
         android:id="@+id/menu_change_orientation"
         android:title="@string/change_orientation"

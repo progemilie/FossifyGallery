@@ -125,6 +125,11 @@ val VIEWER_MENU = MenuSpec(
             row(R.id.menu_restore_file),
         ),
         listOf(
+            // what the viewer shows rather than what it does, so an icon apiece and no row
+            icons(
+                MenuIcon(R.id.menu_show_thumbnail_strip, R.drawable.ic_thumbnail_strip_vector),
+                MenuIcon(R.id.menu_hide_thumbnail_strip, R.drawable.ic_thumbnail_strip_off_vector),
+            ),
             row(R.id.menu_print),
             row(R.id.menu_show_on_map),
             row(R.id.menu_change_orientation),

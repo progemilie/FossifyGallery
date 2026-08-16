@@ -394,6 +394,8 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 findItem(R.id.menu_remove_from_favorites).isVisible =
                     currentMedium.isFavorite && visibleBottomActions and BOTTOM_ACTION_TOGGLE_FAVORITE == 0 && !currentMedium.getIsInRecycleBin()
 
+                findItem(R.id.menu_show_thumbnail_strip).isVisible = !config.showThumbnailStrip
+                findItem(R.id.menu_hide_thumbnail_strip).isVisible = config.showThumbnailStrip
                 findItem(R.id.menu_restore_file).isVisible = currentMedium.path.startsWith(recycleBinPath)
                 findItem(R.id.menu_create_shortcut).isVisible = true
                 findItem(R.id.menu_change_orientation).isVisible = rotationDegrees == 0 && visibleBottomActions and BOTTOM_ACTION_CHANGE_ORIENTATION == 0
@@ -449,6 +451,8 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 R.id.menu_save_as -> saveImageAs()
                 R.id.menu_create_shortcut -> createShortcut()
                 R.id.menu_resize -> resizeImage()
+                R.id.menu_show_thumbnail_strip -> toggleThumbnailStrip()
+                R.id.menu_hide_thumbnail_strip -> toggleThumbnailStrip()
                 R.id.menu_settings -> launchSettings()
                 R.id.menu_copy_to_clipboard -> copyImageToClipboard()
                 else -> return@setOnMenuItemClickListener false
@@ -1104,6 +1108,18 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
         binding.viewerThumbnailStrip.beVisibleIf(config.showThumbnailStrip)
         binding.viewerThumbnailStrip.requestApplyInsets()
+    }
+
+    /**
+     * Puts the thumbnail strip up or away, which is the same setting the app settings hold - a
+     * viewer with the strip in the way of the photo is where anyone would go looking for it.
+     */
+    private fun toggleThumbnailStrip() {
+        config.showThumbnailStrip = !config.showThumbnailStrip
+        binding.viewerThumbnailStrip.beVisibleIf(config.showThumbnailStrip)
+        // the strip and the bottom actions share the space above the navigation bar
+        binding.viewerThumbnailStrip.requestApplyInsets()
+        refreshMenuItems()
     }
 
     private fun setupThumbnailStrip() {
