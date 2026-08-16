@@ -111,9 +111,12 @@ class GlassMenu private constructor(
         val room = resources.getDimensionPixelSize(R.dimen.glass_menu_shadow_room)
         val margin = resources.getDimensionPixelSize(R.dimen.glass_menu_screen_margin)
 
-        // what is left of the screen under the three dots, which a popup left to size itself would
-        // simply hang off the end of rather than scroll inside
-        val anchorBottom = IntArray(2).also { anchor.getLocationOnScreen(it) }[1] + anchor.height
+        // what is left of the window under the three dots, which a popup left to size itself would
+        // simply hang off the end of rather than scroll inside. Measured within the window rather
+        // than on the screen, the height it is taken from being the window's: one the system has put
+        // anywhere but the top of the display - split screen, freeform - has the two disagreeing by
+        // however far down it starts, and the drop-down opening as an empty sliver
+        val anchorBottom = IntArray(2).also { anchor.getLocationInWindow(it) }[1] + anchor.height
         val systemBars = ViewCompat.getRootWindowInsets(anchor)
             ?.getInsets(WindowInsetsCompat.Type.systemBars())?.bottom ?: 0
         roomBelow = anchor.rootView.height - systemBars - anchorBottom - gap - margin
