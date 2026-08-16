@@ -27,8 +27,6 @@
     <string name="no_date_takens_found">Non se atoparon valores de Datas de Captura</string>
     <string name="share_resized">Comparte unha versión reducida</string>
     <string name="switch_to_file_search">Cambiala procura de ficheiros en todolos cartafoles visibles</string>
-    <string name="set_as_default_folder">Poñer como cartafol predeterminado</string>
-    <string name="unset_as_default_folder">Desactivar como cartafol predeterminado</string>
     <string name="reorder_by_dragging">Reordealos cartafois arrastrando</string>
     <string name="reorder_by_dragging_pro">Reordealos cartafoles arrastrando (Pro)</string>
     <string name="restore_to_path">Restaurando a \'%s\'</string>

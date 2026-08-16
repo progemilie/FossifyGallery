@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">Ateratze-dataren baliorik ez da aurkitu</string>
     <string name="share_resized">Partekatu tamaina aldatutako bertsioa</string>
     <string name="switch_to_file_search">Aldatu fitxategi-bilaketa ikusgai dauden karpeta guztien artean</string>
-    <string name="set_as_default_folder">Ezarri lehenetsitako karpeta gisa</string>
-    <string name="unset_as_default_folder">Kendu karpeta lehenetsitako karpeta gisa</string>
     <string name="reorder_by_dragging">Berrordenatu karpetak arrastatuz</string>
     <string name="reorder_by_dragging_pro">Berrordenatu karpetak arrastatuz (Pro)</string>
     <string name="restore_to_path">\'%s\'-ra leheneratzen</string>

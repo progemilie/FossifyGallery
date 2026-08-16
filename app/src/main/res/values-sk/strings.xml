@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">Nenašli sa žiadne dátumy vytvorenia</string>
     <string name="share_resized">Zdieľať verziu so zmenenou veľkosťou</string>
     <string name="switch_to_file_search">Prepnúť na vyhľadávanie súborov vo všetkých viditeľných priečinkoch</string>
-    <string name="set_as_default_folder">Nastaviť ako predvolený priečinok</string>
-    <string name="unset_as_default_folder">Odobrať predvolený priečinok</string>
     <string name="reorder_by_dragging">Zmeniť poradie priečinkov presunutím</string>
     <string name="reorder_by_dragging_pro">Zmeniť poradie priečinkov presunutím (Pro)</string>
     <string name="restore_to_path">Obnovuje sa do \'%s\'</string>

@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">Không tìm thấy ngày chụp</string>
     <string name="share_resized">Chia sẻ phiên bản đã thay đổi kích thước</string>
     <string name="switch_to_file_search">Chuyển sang tìm kiếm tệp trên tất cả thư mục</string>
-    <string name="set_as_default_folder">Đặt làm thư mục mặc định</string>
-    <string name="unset_as_default_folder">Bỏ làm thư mục mặc định</string>
     <string name="reorder_by_dragging">Đổi vị trí thư mục</string>
     <string name="reorder_by_dragging_pro">Đổi vị trí thư mục (Phiên bản Pro)</string>
     <string name="restore_to_path">Đang khôi phục \'%s\'</string>

@@ -8,7 +8,6 @@
     <string name="pin_folder">ફોલ્ડર પિન કરો</string>
     <string name="unpin_folder">ફોલ્ડર નું પિન કાઢી નાંખો</string>
     <string name="pin_to_the_top">એકદમ ઉપર પિન કરો</string>
-    <string name="set_as_default_folder">આને ડિફૌલ્ટ ફોલ્ડર મા સેટ કરો</string>
     <string name="lock_orientation">સ્ક્રીન ફેરવો નઈ</string>
     <string name="reorder_by_dragging_pro">ફોલ્ડરો નો ક્રમ એને ખેંચીને બદલો (પ્રો)</string>
     <string name="full_storage_permission_required">ફોસિફાઈ ગેલેરી ને ફોટા અને વિડિયો દેખાડવા માટે પૂરી અનુમતિ જોડે. તો સેટિંગ &gt; પરવાંગી &gt; ફોટો અને વિડિયો &gt; બધાને મંજૂરી આપો.</string>
@@ -50,7 +49,6 @@
     <string name="rotate">ફેરવો</string>
     <string name="image_editing_failed">ફોટો ફેરફાર સફળ ના થયું</string>
     <string name="include_folders">સમાવિષ્ટ ફોલ્ડરો</string>
-    <string name="unset_as_default_folder">સેટ ડિફૌલ્ટ ફોલ્ડર કદી દો</string>
     <plurals name="restore_confirmation">
         <item quantity="one">પાક્કું તમને %d ફાઇલ રિસ્ટોર કરવી છે ?</item>
         <item quantity="other">પાક્કું તમને %d ફાઇલ રિસ્ટોર કરવી છે ?</item>

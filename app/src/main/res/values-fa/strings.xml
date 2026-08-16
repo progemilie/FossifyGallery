@@ -27,8 +27,6 @@
     <string name="no_date_takens_found">تاریخ عکس‌برداری یافت نشد</string>
     <string name="share_resized">هم‌رسانی نسخهٔ تغییر اندازه یافته</string>
     <string name="switch_to_file_search">تغییر به جست‌وجوی پرونده در میان همهٔ پوشه‌های نمایان</string>
-    <string name="set_as_default_folder">تنظیم به عنوان پوشه‌ی پیش‌گزیده</string>
-    <string name="unset_as_default_folder">برداشتن تنظیم به عنوان پوشه‌ی پیش‌گزیده</string>
     <string name="reorder_by_dragging">مرتب‌سازی پوشه‌ها با کشیدن</string>
     <string name="reorder_by_dragging_pro">مرتب‌سازی پوشه‌ها با کشیدن (حرفه‌ای)</string>
     <string name="filter_media">پالایش رسانه</string>

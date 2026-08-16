@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="fix_date_taken">Corrigir data de captura</string>
-    <string name="set_as_default_folder">Utilizar como pasta padrão</string>
     <string name="images">Imagens</string>
     <string name="share_resized">Partilhar foto redimensionada</string>
     <string name="filter_media">Filtrar multimédia</string>
@@ -36,7 +35,6 @@
     <string name="switch_to_file_search">Trocar para pesquisa de ficheiros em todas as pastas visíveis</string>
     <string name="other_folder">Outra pasta</string>
     <string name="brightness">Brilho</string>
-    <string name="unset_as_default_folder">Deixar de utilizar como pasta padrão</string>
     <string name="open_camera">Abrir câmara</string>
     <string name="show_all">Mostrar conteúdo de todas as pastas</string>
     <string name="no_media_add_included">Não foram encontrados ficheiros multimédia. Pode adicionar manualmente as pastas que contenham esses ficheiros.</string>

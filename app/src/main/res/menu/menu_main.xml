@@ -49,11 +49,6 @@
         android:title="@string/stop_showing_excluded"
         app:showAsAction="never" />
     <item
-        android:id="@+id/set_as_default_folder"
-        android:showAsAction="never"
-        android:title="@string/set_as_default_folder"
-        app:showAsAction="never" />
-    <item
         android:id="@+id/create_new_folder"
         android:showAsAction="never"
         android:title="@string/create_new_folder"

@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">没有找到拍摄日期</string>
     <string name="share_resized">分享调整大小后的版本</string>
     <string name="switch_to_file_search">切换文件搜索范围到所有可见的文件夹</string>
-    <string name="set_as_default_folder">设置为默认文件夹</string>
-    <string name="unset_as_default_folder">取消设置为默认文件夹</string>
     <string name="reorder_by_dragging">通过拖动重新排列文件夹</string>
     <string name="reorder_by_dragging_pro">通过拖动重新排列文件夹 (专业版)</string>
     <string name="restore_to_path">恢复至“%s”</string>

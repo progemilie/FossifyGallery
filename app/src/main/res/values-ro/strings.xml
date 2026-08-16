@@ -27,8 +27,6 @@
     <string name="no_date_takens_found">Nu a fost găsită nicio valoare pentru data creării</string>
     <string name="share_resized">Distribuie o versiune redimensionată</string>
     <string name="switch_to_file_search">Treceți la căutarea de fișiere în toate dosarele vizibile</string>
-    <string name="set_as_default_folder">Setază ca dosar implicit</string>
-    <string name="unset_as_default_folder">Dezactivează ca dosar implicit</string>
     <string name="reorder_by_dragging">Reordonează dosarele prin tragere</string>
     <string name="reorder_by_dragging_pro">Reordonează dosarele prin tragere (Pro)</string>
     <string name="restore_to_path">Restaurare la \"%s</string>

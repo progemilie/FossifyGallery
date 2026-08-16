@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">Inga fotodatum hittades</string>
     <string name="share_resized">Dela en storleksändrad version</string>
     <string name="switch_to_file_search">Växla till filsökning i alla synliga mappar</string>
-    <string name="set_as_default_folder">Använd som standardmapp</string>
-    <string name="unset_as_default_folder">Ta bort som standardmapp</string>
     <string name="reorder_by_dragging">Ordna om mappar genom att dra</string>
     <string name="reorder_by_dragging_pro">Ordna om mappar genom att dra (Pro)</string>
     <string name="restore_to_path">Återställer till \'%s\'</string>

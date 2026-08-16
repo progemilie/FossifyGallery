@@ -29,8 +29,6 @@
     <string name="no_date_takens_found">ไม่พบค่าวันที่ถ่าย</string>
     <string name="share_resized">แชร์เวอร์ชันที่ปรับขนาดแล้ว</string>
     <string name="switch_to_file_search">สลับไปค้นหาไฟล์ในทุกโฟลเดอร์ที่มองเห็น</string>
-    <string name="set_as_default_folder">ตั้งเป็นโฟลเดอร์เริ่มต้น</string>
-    <string name="unset_as_default_folder">ยกเลิกการตั้งเป็นโฟลเดอร์เริ่มต้น</string>
     <string name="reorder_by_dragging">จัดเรียงโฟลเดอร์ใหม่โดยการลาก</string>
     <string name="reorder_by_dragging_pro">จัดเรียงโฟลเดอร์ใหม่โดยการลาก (Pro)</string>
     <string name="restore_to_path">กำลังกู้คืนไปยัง \'%s\'</string>

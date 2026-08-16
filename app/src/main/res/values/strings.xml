@@ -29,8 +29,6 @@
     <string name="no_date_takens_found">No Date Taken values have been found</string>
     <string name="share_resized">Share a resized version</string>
     <string name="switch_to_file_search">Switch to file search across all visible folders</string>
-    <string name="set_as_default_folder">Set as default folder</string>
-    <string name="unset_as_default_folder">Unset as default folder</string>
     <string name="reorder_by_dragging">Reorder folders by dragging</string>
     <string name="reorder_by_dragging_pro">Reorder folders by dragging (Pro)</string>
     <string name="custom_order">Custom order</string>
@@ -357,6 +355,10 @@
     <string name="faq_18_text">Our apps have no ads whatsoever. If you see them during video playback, you must be using some other apps video player. Try finding your default video player in the device settings, then do a \"Clear defaults\" on it. The next time you invoke some video intent you will see an app picker prompt, where you can select what app you want to use.</string>
     <!-- Fork -->
     <string name="fork_version_placeholder">%1$s (fork %2$s)</string>
+    <!-- Startup screen -->
+    <string name="open_on_startup">Open on startup</string>
+    <string name="startup_folder_grid">Folder grid</string>
+    <string name="startup_pick_folder">Choose a folder…</string>
     <!-- Folder groups -->
     <string name="folder_group">Folder group</string>
     <string name="group_folders">Group folders</string>

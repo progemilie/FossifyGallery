@@ -3,7 +3,6 @@
     <string name="other_folder">Fillteán eile</string>
     <string name="show_on_map">Taispeáin ar an léarscáil</string>
     <string name="unknown_location">Suíomh anaithnid</string>
-    <string name="unset_as_default_folder">Díshocraigh mar fhillteán réamhshocraithe</string>
     <string name="reorder_by_dragging">Athordaigh fillteáin trí tharraingt</string>
     <string name="reorder_by_dragging_pro">Athordaigh fillteáin trí tharraingt (Pro)</string>
     <string name="full_storage_permission_required">Teastaíonn rochtain iomlán ó Ghailearaí Fossify chun do ghrianghraif agus físeáin go léir a thaispeáint. Téigh go Socruithe &gt; Ceadanna &gt; Grianghraif agus físeáin &gt; Ceadaigh gach rud.</string>
@@ -74,7 +73,6 @@
     <string name="fix_date_taken">Deisigh Dáta Luach glactha</string>
     <string name="share_resized">Comhroinn leagan athraithe</string>
     <string name="switch_to_file_search">Athraigh go cuardach comhad i ngach fillteán infheicthe</string>
-    <string name="set_as_default_folder">Socraigh mar fhillteán réamhshocraithe</string>
     <string name="restore_to_path">Ag aischur go \'%s\'</string>
     <string name="filter_media">Scag meáin</string>
     <string name="images">Íomhánna</string>

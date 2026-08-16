@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">Не знайдено значень параметра «Дата зйомки»</string>
     <string name="share_resized">Поділитися зображенням іншого розміру</string>
     <string name="switch_to_file_search">Перейти до пошуку файла в усіх видимих теках</string>
-    <string name="set_as_default_folder">Встановити як типову теку</string>
-    <string name="unset_as_default_folder">Скасувати встановлення як типової теки</string>
     <string name="reorder_by_dragging">Сортувати теки шляхом переміщення</string>
     <string name="reorder_by_dragging_pro">Сортувати теки шляхом переміщення (Pro)</string>
     <string name="restore_to_path">Відновлення в «%s»</string>

@@ -3,6 +3,7 @@ package org.fossify.gallery.dialogs
 import android.graphics.Color
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
+import androidx.annotation.StringRes
 import androidx.activity.addCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.RecyclerView
@@ -43,6 +44,8 @@ class PickDirectoryDialog(
     val showFavoritesBin: Boolean,
     val isPickingCopyMoveDestination: Boolean,
     val isPickingFolderForWidget: Boolean,
+    // not every caller is picking a place to put files - the startup setting picks a folder to open
+    @StringRes val titleId: Int = org.fossify.commons.R.string.select_destination,
     val callback: (path: String) -> Unit
 ) {
     private var dialog: AlertDialog? = null
@@ -77,7 +80,7 @@ class PickDirectoryDialog(
         }
 
         builder.apply {
-            activity.setupDialogStuff(binding.root, this, org.fossify.commons.R.string.select_destination) { alertDialog ->
+            activity.setupDialogStuff(binding.root, this, titleId) { alertDialog ->
                 dialog = alertDialog
                 binding.directoriesShowHidden.beVisibleIf(!context.config.shouldShowHidden)
                 binding.directoriesShowHidden.setOnClickListener {

@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">Δεν βρέθηκαν Τιμές Ημερομηνίας όταν ελήφθησαν</string>
     <string name="share_resized">Διαμοιρασμός έκδοσης με αλλαγμένο μέγεθος</string>
     <string name="switch_to_file_search">Εναλλαγή αναζήτησης αρχείων σε όλους τους ορατούς φακέλους</string>
-    <string name="set_as_default_folder">Ορισμός ως προεπιλεγμένου φακέλου</string>
-    <string name="unset_as_default_folder">Κατάργηση ως προεπιλεγμένου φακέλου</string>
     <string name="reorder_by_dragging">Αναδιάταξη φακέλων με μεταφορά</string>
     <string name="reorder_by_dragging_pro">Αναδιάταξη φακέλων με μεταφορά (Pro)</string>
     <string name="restore_to_path">Επαναφορά σε \'%s\'</string>

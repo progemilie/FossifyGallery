@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">Nije pronađen nijedan datum snimanja</string>
     <string name="share_resized">Dijeli verziju promijenjene veličine</string>
     <string name="switch_to_file_search">Prijeđi na pretraživanje datoteka u svim vidljivim mapama</string>
-    <string name="set_as_default_folder">Postavi kao standardnu mapu</string>
-    <string name="unset_as_default_folder">Poništi postavljanje kao standardnu mapu</string>
     <string name="reorder_by_dragging">Promijeni redoslijed mapa povlačenjem</string>
     <string name="reorder_by_dragging_pro">Promijeni redoslijed mapa povlačenjem (Pro)</string>
     <string name="restore_to_path">Obnavlja se u „%s”</string>
