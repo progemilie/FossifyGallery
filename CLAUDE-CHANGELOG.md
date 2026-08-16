@@ -2,7 +2,7 @@
 
 Fork-only changes, newest first. Small fixes are left out.
 
-## v1.10.2 - 2026.08.16 — metadata, settings
+## [v1.10.2] - 2026.08.16 — metadata, settings
 
 - **File descriptions** — read and edit a file's description in the metadata sheet. Stored in the
   file's own XMP, so other apps see it too.
@@ -10,59 +10,59 @@ Fork-only changes, newest first. Small fixes are left out.
   recycle bin, a folder group or any folder.
 - **Thumbnail strip toggle** in the viewer's drop-down menu.
 
-## v1.9.0 - 2026.08.16 — menus
+## [v1.9.0] - 2026.08.16 — menus
 
 - **Glass drop-down menus** on all three browsing screens, matching the other glass effects, with
   items gathered into sections.
 - Viewer actions moved off the toolbar and into the drop-down, so they stop changing places.
 
-## v1.8.0 - 2026.08.15 — folder grid
+## [v1.8.0] - 2026.08.15 — folder grid
 
 - **Folder groups** — several folders under one tile in the folder grid, with a collage cover.
   Nothing moves on disk. Tap to step into the group, group/rename/ungroup from the selection bar.
 - **Drag folder tiles** to arrange the grid, or hold one over another to group them.
 - The export now carries folder groups and the folder grid's own order as well as media orders.
 
-## v1.7.0 - 2026.08.11 — performance
+## [v1.7.0] - 2026.08.11 — performance
 
 - Thumbnails come from the copy stored inside the photo — noticeably faster grids and strip.
 - Grid thumbnails use half the memory, so more stay cached.
 - Reshaped thumbnail strip: rounded corners, tighter towards the ends.
 
-## v1.6.1 - 2026.08.11 — refactor
+## [v1.6.1] - 2026.08.11 — refactor
 
 - Major code refactor, no new features. Most likely version that might have broken something maybe.
 
-## v1.6.0 - 2026.08.10 — design
+## [v1.6.0] - 2026.08.10 — design
 
 - **Glass effect on the quick action UI** — the rating and copy/move choosers wear the same frosted
   material as the search pill and follow the theme.
 - A **Glass UI** switch under Look & feel turns it all off (Android 12+).
 
-## v1.5.0 - 2026.08.10 — ratings
+## [v1.5.0] - 2026.08.10 — ratings
 
 - **Bulk rate** — set a rating on several selected images at once.
 
-## v1.4.0 - 2026.08.10 — custom order
+## [v1.4.0] - 2026.08.10 — custom order
 
 - Custom order: buttons to move the selection straight to the top or bottom.
 
-## v1.3.0 - 2026.08.10 — quick actions
+## [v1.3.0] - 2026.08.10 — quick actions
 
 - **Copy/move quick action** — hold the button to pick a folder without a dialog. Frequently used
   folders appear first.
 
-## v1.2.0 - 2026.08.09 — bottom actions
+## [v1.2.0] - 2026.08.09 — bottom actions
 
 - **Bottom action customization** — drag to reorder the bar, up to 8 actions.
 - Mirror added to the bottom actions.
 
-## v1.1.0 - 2026.08.09 — metadata
+## [v1.1.0] - 2026.08.09 — metadata
 
 - **Metadata viewer** — swipe up while viewing an image, or use the properties button. Lists every
   metadata group the file actually carries, read straight off the file.
 
-## v1.0.0 - 2026.08.09 — viewer, custom order, design
+## [v1.0.0] - 2026.08.09 — viewer, custom order, design
 
 Initial fork work, landed over 2026.08.06–08.09 before fork versions were tracked.
 
@@ -76,3 +76,16 @@ Initial fork work, landed over 2026.08.06–08.09 before fork versions were trac
   the viewer's top bar showing the file name and its details.
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
+
+[v1.10.2]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.10.2
+[v1.9.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.9.0
+[v1.8.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.8.0
+[v1.7.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.7.0
+[v1.6.1]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.6.1
+[v1.6.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.6.0
+[v1.5.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.5.0
+[v1.4.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.4.0
+[v1.3.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.3.0
+[v1.2.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.2.0
+[v1.1.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.1.0
+[v1.0.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.0.0
