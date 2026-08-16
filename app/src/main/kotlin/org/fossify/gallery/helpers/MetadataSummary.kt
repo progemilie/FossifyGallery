@@ -15,7 +15,10 @@ import org.fossify.commons.extensions.formatDate
 import org.fossify.commons.extensions.formatSize
 import org.fossify.commons.extensions.getMimeType
 import org.fossify.commons.extensions.getResolution
+import org.fossify.commons.extensions.isVideoFast
 import org.fossify.gallery.R
+import org.fossify.gallery.extensions.canHaveDescription
+import org.fossify.gallery.extensions.getFileDescription
 import org.fossify.gallery.models.MetadataTag
 import java.io.File
 import java.nio.file.Files
@@ -60,8 +63,13 @@ internal object MetadataSummary {
     private class Rows(private val context: Context) {
         val built = mutableListOf<MetadataTag>()
 
-        fun add(labelRes: Int, value: String?, opensMap: Boolean = false) {
-            built.add(MetadataTag(context.getString(labelRes), value.orEmpty(), opensMap))
+        fun add(
+            labelRes: Int,
+            value: String?,
+            opensMap: Boolean = false,
+            editable: Boolean = false,
+        ) {
+            built.add(MetadataTag(context.getString(labelRes), value.orEmpty(), opensMap, editable))
         }
 
         fun addIfPresent(labelRes: Int, value: String?) {
@@ -71,6 +79,7 @@ internal object MetadataSummary {
         fun addFileFields(file: File, extracted: ExtractedMetadata?, mediaTags: Map<String, String>) {
             val path = file.absolutePath
             add(R.string.metadata_filename, file.name.ifEmpty { path.substringAfterLast('/') })
+            addDescription(path)
             add(
                 labelRes = R.string.metadata_date_taken,
                 value = dateTaken(extracted, mediaTags)?.formatDate(context) ?: NO_VALUE
@@ -86,6 +95,27 @@ internal object MetadataSummary {
             add(R.string.metadata_resolution, resolution(context, path) ?: NO_VALUE)
             addIfPresent(R.string.metadata_format, format(file, extracted))
             add(R.string.metadata_size, file.length().takeIf { it > 0 }?.formatSize() ?: NO_VALUE)
+        }
+
+        /**
+         * The file's own caption, under its name. A file that can be given one always gets the row
+         * whether or not it has anything in it yet - the row is the only way to write one, and one
+         * that appeared only once there was something to show could never be the first thing typed
+         * into. A file that cannot carry one only gets the row if it already says something.
+         */
+        fun addDescription(path: String) {
+            // a video's caption, if it has one at all, is in its container rather than in the Exif
+            // and XMP read here - no point opening it to be told nothing
+            if (path.isVideoFast()) {
+                return
+            }
+
+            val description = getFileDescription(path)
+            if (path.canHaveDescription()) {
+                add(R.string.description, description.ifEmpty { NO_VALUE }, editable = true)
+            } else if (description.isNotEmpty()) {
+                add(R.string.description, description)
+            }
         }
 
         fun addMediaFields(mediaTags: Map<String, String>, trackTags: List<MetadataTag>) {

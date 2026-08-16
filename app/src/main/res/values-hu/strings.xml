@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">Nem találhatók elkészítési dátumok</string>
     <string name="share_resized">Átméretezett verzió megosztása</string>
     <string name="switch_to_file_search">Váltás a fájlkeresésre az összes látható mappában</string>
-    <string name="set_as_default_folder">Beállítás alapértelmezett mappaként</string>
-    <string name="unset_as_default_folder">Eltávolítás mint alapértelmezett mappa</string>
     <string name="reorder_by_dragging">Mappák átrendezése húzással</string>
     <string name="reorder_by_dragging_pro">Mappák átrendezése húzással (Pro)</string>
     <string name="restore_to_path">Helyreállítás ide: „%s”</string>

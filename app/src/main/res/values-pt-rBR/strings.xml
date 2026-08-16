@@ -27,8 +27,6 @@
     <string name="no_date_takens_found">Nenhum valor de data foi encontrado</string>
     <string name="share_resized">Compartilhar uma versão redimensionada</string>
     <string name="switch_to_file_search">Alternar para pesquisa de arquivos em todas as pastas visíveis</string>
-    <string name="set_as_default_folder">Definir como pasta padrão</string>
-    <string name="unset_as_default_folder">Remover como pasta padrão</string>
     <string name="reorder_by_dragging">Reordenar as pastas ao arrastar</string>
     <string name="reorder_by_dragging_pro">Reordenar as pastas ao arrastar (Pro)</string>
     <string name="restore_to_path">Restaurando para \'%s\'</string>

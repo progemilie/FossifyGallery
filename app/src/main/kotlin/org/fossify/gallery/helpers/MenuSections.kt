@@ -50,7 +50,6 @@ val FOLDER_GRID_MENU = MenuSpec(
             row(R.id.temporarily_show_excluded),
             row(R.id.stop_showing_excluded),
             row(R.id.create_new_folder),
-            row(R.id.set_as_default_folder),
             row(R.id.open_recycle_bin),
             row(R.id.settings),
             row(R.id.about),
@@ -77,8 +76,6 @@ val MEDIA_GRID_MENU = MenuSpec(
             row(R.id.open_camera),
             row(R.id.temporarily_show_hidden),
             row(R.id.stop_showing_hidden),
-            row(R.id.set_as_default_folder),
-            row(R.id.unset_as_default_folder),
             row(R.id.create_new_folder),
             row(R.id.open_recycle_bin),
             row(R.id.empty_recycle_bin),
@@ -95,7 +92,7 @@ val MEDIA_GRID_MENU = MenuSpec(
  * The viewer: what changes the image, what is done with the file, then everything else. Change
  * orientation belongs to the last of those - it locks the *screen* rather than turning the photo.
  *
- * Only ever one of each pair in the icon row is up at a time, so it holds four icons at the most.
+ * Only ever one of each pair in an icon row is up at a time, so a row of pairs stays short.
  */
 val VIEWER_MENU = MenuSpec(
     listOf(
@@ -112,6 +109,10 @@ val VIEWER_MENU = MenuSpec(
         ),
         listOf(
             icons(
+                // what the viewer shows rather than what it does to the file, so it leads the row
+                // rather than following the delete that ends it
+                MenuIcon(R.id.menu_show_thumbnail_strip, R.drawable.ic_thumbnail_strip_vector),
+                MenuIcon(R.id.menu_hide_thumbnail_strip, R.drawable.ic_thumbnail_strip_off_vector),
                 MenuIcon(R.id.menu_add_to_favorites, R.drawable.ic_heart_outline_vector),
                 MenuIcon(R.id.menu_remove_from_favorites, commonsR.drawable.ic_heart_vector),
                 MenuIcon(R.id.menu_hide, commonsR.drawable.ic_hide_vector),

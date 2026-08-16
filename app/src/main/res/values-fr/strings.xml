@@ -27,8 +27,6 @@
     <string name="no_date_takens_found">Aucune date de prise trouvée</string>
     <string name="share_resized">Partager une version redimensionnée</string>
     <string name="switch_to_file_search">Basculer vers la recherche de fichiers</string>
-    <string name="set_as_default_folder">Définir comme dossier par défaut</string>
-    <string name="unset_as_default_folder">Ne plus définir comme dossier par défaut</string>
     <string name="reorder_by_dragging">Réordonner par glissement</string>
     <string name="reorder_by_dragging_pro">Réordonner par glissement (Pro)</string>
     <string name="restore_to_path">Restauration vers "%s"</string>

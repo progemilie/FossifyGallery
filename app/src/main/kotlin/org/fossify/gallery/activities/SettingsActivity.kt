@@ -59,6 +59,7 @@ class SettingsActivity : SimpleActivity() {
         setupUseEnglish()
         setupLanguage()
         setupChangeDateTimeFormat()
+        setupOpenOnStartup()
         setupFileLoadingPriority()
         setupManageIncludedFolders()
         setupManageExcludedFolders()
@@ -200,6 +201,60 @@ class SettingsActivity : SimpleActivity() {
         binding.settingsChangeDateTimeFormatHolder.setOnClickListener {
             ChangeDateTimeFormatDialog(this) {}
         }
+    }
+
+    /**
+     * Which screen the app opens on. The picker offers the folder grid, the sentinel folders and
+     * every folder group by name, plus a way through to any folder at all - the folder list is far
+     * too long to be a radio button apiece, and [PickDirectoryDialog] is the grid the user already
+     * knows from copying and moving.
+     */
+    private fun setupOpenOnStartup() {
+        binding.settingsOpenOnStartup.text = startupTargetLabel(config.defaultFolder)
+        binding.settingsOpenOnStartupHolder.setOnClickListener {
+            val targets = startupTargets().toMutableList()
+            // whatever a folder was picked with the folder grid last time, so it can be seen to be
+            // the one that is set and picked again after straying off it
+            val current = config.defaultFolder
+            if (targets.none { it.first == current }) {
+                targets.add(current to startupTargetLabel(current))
+            }
+
+            val items = targets.mapIndexedTo(ArrayList()) { index, (_, label) ->
+                RadioItem(index, label)
+            }
+
+            val pickFolderId = items.size
+            items.add(RadioItem(pickFolderId, getString(R.string.startup_pick_folder)))
+
+            val checked = targets.indexOfFirst { it.first == current }
+            RadioGroupDialog(this@SettingsActivity, items, checked) {
+                if (it as Int == pickFolderId) {
+                    pickStartupFolder()
+                } else {
+                    saveStartupTarget(targets[it].first)
+                }
+            }
+        }
+    }
+
+    private fun pickStartupFolder() {
+        PickDirectoryDialog(
+            activity = this,
+            sourcePath = config.defaultFolder,
+            showOtherFolderButton = true,
+            showFavoritesBin = true,
+            isPickingCopyMoveDestination = false,
+            isPickingFolderForWidget = false,
+            titleId = R.string.open_on_startup
+        ) {
+            saveStartupTarget(it)
+        }
+    }
+
+    private fun saveStartupTarget(target: String) {
+        config.defaultFolder = target
+        binding.settingsOpenOnStartup.text = startupTargetLabel(target)
     }
 
     private fun setupFileLoadingPriority() {

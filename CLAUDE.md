@@ -107,7 +107,9 @@ Several folders drawn under one tile in the folder grid. Nothing moves on disk. 
 the main thread. A tile is a `Directory` under a synthetic `folder_group:<id>` path so selection,
 pinning and the custom folder order carry it with no case of their own, and it holds its members in
 `groupMembers`. **Ids are never reused** — a synthetic path outlives its group in those prefs, and
-would otherwise attach itself to the next group made.
+would otherwise attach itself to the next group made. "Open on startup" (`extensions/StartupScreen.kt`)
+puts one of these paths in `Config.defaultFolder`; a group is stepped into before the first scan
+rather than launched as a screen of its own.
 
 Two rules keep the grid honest, both in `extensions/FolderGroupTiles.kt`:
 - **A tile never reaches Room or the scan.** `expandFolderGroups()` puts one back into its folders;
@@ -184,6 +186,9 @@ A swipe up over the media raises `views/MetadataSheet.kt`, listing every group t
 - `MetadataSheet.attachTo()` is the whole of a viewer's wiring, including
   `BaseViewerActivity.updateNavigationBarIconsForPanel()` — the viewer forces light system-bar
   icons, which vanish against a light-theme sheet.
+- The **description** row is the one thing the sheet writes: `dc:description` in the file's XMP, the
+  way a rating is `xmp:Rating` (`helpers/XmpPacket.kt` is the plumbing both sit on). A file that can
+  carry one always gets the row — an empty row is the only way in to writing the first description.
 
 ### Chrome that floats over the content
 

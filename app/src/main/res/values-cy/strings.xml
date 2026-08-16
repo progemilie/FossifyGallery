@@ -24,8 +24,6 @@
     <string name="fix_date_taken">Cywiro gwerth y Dyddiad y\'i Cymerwyd</string>
     <string name="fixing">Yn cywiro…</string>
     <string name="dates_fixed_successfully">Dyddiadau wedi\'u cywiro\'n llwyddiannus</string>
-    <string name="set_as_default_folder">Gosod fel ffolder ddiofyn</string>
-    <string name="unset_as_default_folder">Dad-osod fel ffolder ddiofyn</string>
     <string name="filter_media">Hidlo cyfryngau</string>
     <string name="images">Delweddau</string>
     <string name="videos">Fideos</string>

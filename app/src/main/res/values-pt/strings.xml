@@ -27,8 +27,6 @@
     <string name="no_date_takens_found">Data de captura não encontrada</string>
     <string name="share_resized">Partilhar foto redimensionada</string>
     <string name="switch_to_file_search">Trocar para pesquisa de ficheiros em todas as pastas visíveis</string>
-    <string name="set_as_default_folder">Utilizar como pasta padrão</string>
-    <string name="unset_as_default_folder">Deixar de utilizar como pasta padrão</string>
     <string name="reorder_by_dragging">Organizar pastas por arrasto</string>
     <string name="reorder_by_dragging_pro">Organizar pastas por arrasto (Pro)</string>
     <string name="restore_to_path">A restaurar para \'%s\'</string>

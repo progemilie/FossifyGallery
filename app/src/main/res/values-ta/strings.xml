@@ -27,8 +27,6 @@
     <string name="no_date_takens_found">தேதி எடுத்த மதிப்புகள் எதுவும் கண்டுபிடிக்கப்படவில்லை</string>
     <string name="share_resized">மறுவளவிடப்பட்ட பதிப்பைப் பகிர்</string>
     <string name="switch_to_file_search">எல்லா தெரியும் அடைவுகளிலும் கோப்பு தேடலுக்கு மாறு</string>
-    <string name="set_as_default_folder">இயல்புநிலை அடைவாக அமை</string>
-    <string name="unset_as_default_folder">இயல்புநிலை அடைவாக அமைக்காதே</string>
     <string name="reorder_by_dragging">பிடித்திழுத்து அடைவுகளை மறுசீரமை</string>
     <string name="reorder_by_dragging_pro">பிடித்திழுத்து அடைவுகளை மறுசீரமை (Pro)</string>
     <string name="filter_media">ஊடகத்தை வடிகட்டு</string>

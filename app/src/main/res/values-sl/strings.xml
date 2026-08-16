@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">Datum posnetka ni bil najden</string>
     <string name="share_resized">Deli pomanjšano verzijo</string>
     <string name="switch_to_file_search">Preklop na iskanje datotek v vseh vidnih mapah</string>
-    <string name="set_as_default_folder">Nastavite kot privzeto mapo</string>
-    <string name="unset_as_default_folder">Odpravljena nastavitev privzete mape</string>
     <string name="reorder_by_dragging">Razporedi mape z vlečenjem</string>
     <string name="reorder_by_dragging_pro">Razporedi mape z vlečenjem (Pro)</string>
     <string name="restore_to_path">Obnovitev v \'%s\'</string>

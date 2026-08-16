@@ -19,6 +19,7 @@ import org.fossify.commons.extensions.getResolution
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.EXT_CAMERA_MODEL
 import org.fossify.gallery.helpers.EXT_DATE_TAKEN
+import org.fossify.gallery.helpers.EXT_DESCRIPTION
 import org.fossify.gallery.helpers.EXT_EXIF_PROPERTIES
 import org.fossify.gallery.helpers.EXT_GPS
 import org.fossify.gallery.helpers.EXT_LAST_MODIFIED
@@ -92,6 +93,8 @@ private fun Context.extendedDetailFields(
     EXT_EXIF_PROPERTIES to { exif.getExifProperties() },
     EXT_GPS to { getLatLonAltitude(medium.path) },
     EXT_ORIENTATION to { exif.getReadableOrientation(this) },
+    // an empty one is dropped along with the rest of the fields the file has nothing to say about
+    EXT_DESCRIPTION to { getFileDescription(medium.path) },
     EXT_RATING to {
         // straight out of the file rather than off the Medium, which may be a copy made before the
         // rating was last changed

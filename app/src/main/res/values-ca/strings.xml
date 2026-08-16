@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">No s\'ha trobat cap valor de data de presa</string>
     <string name="share_resized">Comparteix una versió redimensionada</string>
     <string name="switch_to_file_search">Canvia a la cerca de fitxers per totes les carpetes visibles</string>
-    <string name="set_as_default_folder">Estableix com a carpeta predeterminada</string>
-    <string name="unset_as_default_folder">Desactiva com a carpeta predeterminada</string>
     <string name="reorder_by_dragging">Reordeneu les carpetes arrossegant-les</string>
     <string name="reorder_by_dragging_pro">Reordeneu les carpetes arrossegant-les (Pro)</string>
     <string name="restore_to_path">S\'està restaurant a «%s»</string>

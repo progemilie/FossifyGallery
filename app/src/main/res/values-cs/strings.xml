@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">Nebylo nalezeno žádné datum pořízení</string>
     <string name="share_resized">Sdílet verzi se změněnou velikostí</string>
     <string name="switch_to_file_search">Přepnout na vyhledávání souborů ve všech viditelných složkách</string>
-    <string name="set_as_default_folder">Nastavit jako výchozí složku</string>
-    <string name="unset_as_default_folder">Zrušit nastavení složky jako výchozí</string>
     <string name="reorder_by_dragging">Seřadit složky přetažením</string>
     <string name="reorder_by_dragging_pro">Seřadit složky přetažením (Pro)</string>
     <string name="restore_to_path">Obnovuje se do \'%s\'</string>

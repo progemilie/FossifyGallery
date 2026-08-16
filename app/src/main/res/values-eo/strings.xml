@@ -41,8 +41,6 @@
     <string name="no_media_with_filters">Neniu aŭdvidaĵo estis trovita kun la elektitaj filtroj.</string>
     <string name="change_filters_underlined"><u>Ŝanĝi filtrojn</u></string>
     <string name="switch_to_file_search">Ŝanĝiĝi al serĉo je ĉiuj videblaj dosierujoj</string>
-    <string name="set_as_default_folder">Difini kiel defaŭlta dosierujo</string>
-    <string name="unset_as_default_folder">Maldifini kiel defaŭlta dosierujo</string>
     <string name="reorder_by_dragging">Reordigi dosierujojn per treni</string>
     <string name="reorder_by_dragging_pro">Reordigi dosierujojn per treni (Pro)</string>
     <string name="restore_to_path">Restaŭrado al \"%s\"</string>

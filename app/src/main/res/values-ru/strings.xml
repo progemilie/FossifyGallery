@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">Дата съёмки не найдена</string>
     <string name="share_resized">Поделиться изменённой версией</string>
     <string name="switch_to_file_search">Переключиться на поиск файлов по всем видимым папкам</string>
-    <string name="set_as_default_folder">Сделать папкой по умолчанию</string>
-    <string name="unset_as_default_folder">Отключить как папку по умолчанию</string>
     <string name="reorder_by_dragging">Сортировка папок перетаскиванием</string>
     <string name="reorder_by_dragging_pro">Сортировка папок перетаскиванием (Pro)</string>
     <string name="restore_to_path">Восстановление в \"%s\"</string>

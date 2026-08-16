@@ -57,8 +57,6 @@
     <string name="no_date_takens_found">Значэнні даты ўзяцця не знойдзены</string>
     <string name="share_resized">Абагуліць версію змененага памеру</string>
     <string name="switch_to_file_search">Пераключыцеся на пошук файлаў ва ўсіх бачных папках</string>
-    <string name="set_as_default_folder">Усталяваць у якасці тэчкі па змаўчанні</string>
-    <string name="unset_as_default_folder">Адмяніць у якасці тэчкі па змаўчанні</string>
     <string name="volume">Гучнасць</string>
     <string name="unknown_location">Невядомае месца</string>
     <string name="reorder_by_dragging">Змяніце парадак папак перацягваннем</string>

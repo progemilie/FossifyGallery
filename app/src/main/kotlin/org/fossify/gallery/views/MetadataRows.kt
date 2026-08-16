@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.core.view.isEmpty
 import androidx.core.view.isVisible
 import org.fossify.commons.extensions.beGone
+import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.copyToClipboard
 import org.fossify.gallery.databinding.ItemMetadataRowBinding
@@ -29,6 +30,7 @@ class MetadataRows(
     private val labelColor: Int,
     private val primaryColor: Int,
     private val onLocationClicked: (path: String) -> Unit,
+    private val onDescriptionClicked: (path: String) -> Unit = {},
 ) {
     fun buildRow(parent: ViewGroup, tag: MetadataTag, path: String): View {
         val row = ItemMetadataRowBinding.inflate(LayoutInflater.from(context), parent, false)
@@ -36,11 +38,22 @@ class MetadataRows(
         row.metadataRowLabel.text = tag.name
         row.metadataRowValue.text = tag.value
 
-        if (tag.opensMap) {
-            row.metadataRowValue.setTextColor(primaryColor)
-            row.root.setOnClickListener { onLocationClicked(path) }
-        } else {
-            row.metadataRowValue.setTextColor(textColor)
+        // the two rows that answer a tap say so by wearing the accent colour, the editable one with
+        // a pencil beside it as well - there is nothing else on the sheet to compare it against
+        when {
+            tag.opensMap -> {
+                row.metadataRowValue.setTextColor(primaryColor)
+                row.root.setOnClickListener { onLocationClicked(path) }
+            }
+
+            tag.editable -> {
+                row.metadataRowValue.setTextColor(primaryColor)
+                row.metadataRowEdit.setColorFilter(primaryColor)
+                row.metadataRowEdit.beVisible()
+                row.root.setOnClickListener { onDescriptionClicked(path) }
+            }
+
+            else -> row.metadataRowValue.setTextColor(textColor)
         }
 
         row.root.setOnLongClickListener {

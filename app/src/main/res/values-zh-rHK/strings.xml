@@ -166,8 +166,6 @@
     <string name="excluded">（已排除）</string>
     <string name="no_date_takens_found">未發現拍攝日期</string>
     <string name="switch_to_file_search">將檔案搜尋目標切換成全部的可見資料夾</string>
-    <string name="set_as_default_folder">設為預設資料夾</string>
-    <string name="unset_as_default_folder">取消設為預設資料夾</string>
     <string name="reorder_by_dragging">透過拖曳來重新排序資料夾</string>
     <string name="reorder_by_dragging_pro">透過拖曳來重新排序資料夾 (專業版)</string>
     <string name="restore_to_path">還原到「%s」</string>

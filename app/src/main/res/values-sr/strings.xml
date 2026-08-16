@@ -27,8 +27,6 @@
     <string name="no_date_takens_found">Нису пронађене вредности датума снимања</string>
     <string name="share_resized">Подели верзију са промењеном величином</string>
     <string name="switch_to_file_search">Пребаците се на претрагу датотека у свим видљивим фасциклама</string>
-    <string name="set_as_default_folder">Постави као подразумевани фолдер</string>
-    <string name="unset_as_default_folder">Поништи као подразумевани фолдер</string>
     <string name="reorder_by_dragging">Промените редослед фасцикли превлачењем</string>
     <string name="reorder_by_dragging_pro">Промените редослед директоријума превлачењем (Про)</string>
     <string name="restore_to_path">Враћање на \'%s\'</string>

@@ -152,8 +152,6 @@
     <string name="dates_fixed_successfully">तारीखें सफलतापूर्वक तय हो गईं</string>
     <string name="no_date_takens_found">कोई दिनांक लिया गया मान नहीं पाया गया है</string>
     <string name="share_resized">एक संशोधित वर्शन शेयर करें</string>
-    <string name="set_as_default_folder">डिफ़ॉल्ट फोल्डर के रूप में सेट करें</string>
-    <string name="unset_as_default_folder">डिफ़ॉल्ट फोल्डर के रूप में अनसेट करें</string>
     <string name="reorder_by_dragging">फोल्डरों को खींचकर पुनः व्यवस्थित करें</string>
     <string name="restore_to_path">\'%s\' पर पुनर्स्थापित किया जा रहा है</string>
     <string name="filter_media">मीडिया को फिल्टर करें</string>

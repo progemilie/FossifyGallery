@@ -29,8 +29,6 @@
     <string name="no_date_takens_found">No Date Taken values have been found</string>
     <string name="share_resized">Share a resized version</string>
     <string name="switch_to_file_search">Switch to file search across all visible folders</string>
-    <string name="set_as_default_folder">Set as default folder</string>
-    <string name="unset_as_default_folder">Unset as default folder</string>
     <string name="reorder_by_dragging">Reorder folders by dragging</string>
     <string name="reorder_by_dragging_pro">Reorder folders by dragging (Pro)</string>
     <string name="custom_order">Custom order</string>
@@ -246,6 +244,9 @@
     <string name="one_finger_zoom">Allow one finger zoom at fullscreen media</string>
     <string name="allow_instant_change">Allow instantly changing media by clicking on screen sides</string>
     <string name="show_thumbnail_strip">Show thumbnails</string>
+    <!-- the same setting from the viewer's drop-down, where it is an icon with this as its tooltip -->
+    <string name="show_thumbnail_strip_short">Show the thumbnail strip</string>
+    <string name="hide_thumbnail_strip_short">Hide the thumbnail strip</string>
     <string name="allow_deep_zooming_images">Allow deep zooming images</string>
     <string name="hide_extended_details">Hide extended details when status bar is hidden</string>
     <string name="show_at_bottom">Show some action buttons at the bottom of the screen</string>
@@ -357,6 +358,15 @@
     <string name="faq_18_text">Our apps have no ads whatsoever. If you see them during video playback, you must be using some other apps video player. Try finding your default video player in the device settings, then do a \"Clear defaults\" on it. The next time you invoke some video intent you will see an app picker prompt, where you can select what app you want to use.</string>
     <!-- Fork -->
     <string name="fork_version_placeholder">%1$s (fork %2$s)</string>
+    <!-- Description -->
+    <string name="description">Description</string>
+    <string name="add_description">Add a description</string>
+    <string name="edit_description">Edit description</string>
+    <string name="description_unsupported_format">A description can only be saved into JPG, PNG and WebP files</string>
+    <!-- Startup screen -->
+    <string name="open_on_startup">Open on startup</string>
+    <string name="startup_folder_grid">Folder grid</string>
+    <string name="startup_pick_folder">Choose a folder…</string>
     <!-- Folder groups -->
     <string name="folder_group">Folder group</string>
     <string name="group_folders">Group folders</string>

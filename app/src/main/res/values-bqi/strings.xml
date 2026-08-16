@@ -37,8 +37,6 @@
     <string name="playback_speed">ترات پشک</string>
     <string name="share_resized">یک رسۊوی نوسخه آلشت هندا داڌه وابیڌه</string>
     <string name="switch_to_file_search">آلشت و پیتینیڌن فایل منجا پوی دوبلگه یل دیاری</string>
-    <string name="set_as_default_folder">سامووݩ و عونوان دوبلگه پؽش فرز</string>
-    <string name="unset_as_default_folder">وورداشتن سامووݩ و عونوان دوبلگه پؽش فرز</string>
     <string name="reorder_by_dragging">ترتیب دوبلگه یل وا کشیڌن</string>
     <string name="reorder_by_dragging_pro">ترتیب دوبلگه یل وا کشیڌن (هرفه ای)</string>
     <string name="restore_to_path">وورگندن و «%s»</string>

@@ -26,7 +26,10 @@ import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.gallery.R
 import org.fossify.gallery.activities.BaseViewerActivity
 import org.fossify.gallery.databinding.MetadataSheetBinding
+import org.fossify.gallery.dialogs.EditDescriptionDialog
+import org.fossify.gallery.extensions.getFileDescription
 import org.fossify.gallery.extensions.showFileOnMap
+import org.fossify.gallery.extensions.updateFileDescription
 import org.fossify.gallery.helpers.MetadataReader
 import org.fossify.gallery.models.FileMetadata
 
@@ -81,9 +84,14 @@ class MetadataSheet @JvmOverloads constructor(
     private val labelColor = textColor.adjustAlpha(LABEL_ALPHA)
     private val primaryColor = context.getProperPrimaryColor()
 
-    private val rows = MetadataRows(context, textColor, labelColor, primaryColor) { path ->
-        viewer?.showFileOnMap(path)
-    }
+    private val rows = MetadataRows(
+        context = context,
+        textColor = textColor,
+        labelColor = labelColor,
+        primaryColor = primaryColor,
+        onLocationClicked = { path -> viewer?.showFileOnMap(path) },
+        onDescriptionClicked = { path -> editDescription(path) },
+    )
 
     /** The file currently described, so a load that lands after a swipe can be recognised as stale. */
     private var currentPath = ""
@@ -320,6 +328,28 @@ class MetadataSheet @JvmOverloads constructor(
 
     private val holder: View?
         get() = parent as? View
+
+    /**
+     * Writes the file's own caption, straight from the row showing it. The sheet is read again
+     * afterwards rather than patched: the write may have been refused, and what the file says now
+     * is the only thing worth showing.
+     */
+    private fun editDescription(path: String) {
+        val viewer = viewer ?: return
+        ensureBackgroundThread {
+            val current = getFileDescription(path)
+            post {
+                EditDescriptionDialog(viewer, current) { description ->
+                    viewer.updateFileDescription(path, description) { success ->
+                        if (success) {
+                            load(path, keepCurrentUntilRead = true)
+                            viewer.onCurrentFileChanged()
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /** Swaps in everything [path] says about itself at once - rows, hint and resting height. */
     private fun bind(metadata: FileMetadata, path: String) {

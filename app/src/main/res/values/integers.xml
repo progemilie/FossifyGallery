@@ -10,4 +10,7 @@
          or a maker note is thousands of characters and would bury the rows under it; a long-press
          still copies the value in full -->
     <integer name="metadata_value_max_lines">12</integer>
+
+    <!-- how tall the description editor grows before it scrolls inside itself -->
+    <integer name="description_max_lines">8</integer>
 </resources>

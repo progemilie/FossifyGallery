@@ -106,6 +106,7 @@ import org.fossify.gallery.extensions.getSortedDirectories
 import org.fossify.gallery.extensions.handleExcludedFolderPasswordProtection
 import org.fossify.gallery.extensions.handleMediaManagementPrompt
 import org.fossify.gallery.extensions.isDownloadsFolder
+import org.fossify.gallery.extensions.isStartupTargetGone
 import org.fossify.gallery.extensions.launchAbout
 import org.fossify.gallery.extensions.launchCamera
 import org.fossify.gallery.extensions.launchSettings
@@ -115,6 +116,7 @@ import org.fossify.gallery.extensions.movePinnedDirectoriesToFront
 import org.fossify.gallery.extensions.openRecycleBin
 import org.fossify.gallery.extensions.pruneFolderGroups
 import org.fossify.gallery.extensions.removeInvalidDBDirectories
+import org.fossify.gallery.extensions.startupGroupId
 import org.fossify.gallery.extensions.storeDirectoryItems
 import org.fossify.gallery.extensions.tryDeleteFileDirItem
 import org.fossify.gallery.extensions.updateDBDirectory
@@ -500,7 +502,6 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         if (!mIsThirdPartyIntent) {
             binding.mainMenu.requireToolbar().menu.apply {
                 findItem(R.id.column_count).isVisible = config.viewTypeFolders == VIEW_TYPE_GRID
-                findItem(R.id.set_as_default_folder).isVisible = !config.defaultFolder.isEmpty()
                 findItem(R.id.open_recycle_bin).isVisible =
                     config.useRecycleBin && !config.showRecycleBinAtFolders
                 findItem(R.id.more_apps_from_us).isVisible =
@@ -563,7 +564,6 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
                 R.id.create_new_folder -> createNewFolder()
                 R.id.open_recycle_bin -> openRecycleBin()
                 R.id.column_count -> changeColumnCount()
-                R.id.set_as_default_folder -> setAsDefaultFolder()
                 R.id.more_apps_from_us -> launchMoreAppsFromUsIntent()
                 R.id.settings -> launchSettings()
                 R.id.about -> launchAbout()
@@ -682,15 +682,18 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
                 return@handleMediaPermissions
             }
 
+            var openedStartupScreen = false
             if (!mWasDefaultFolderChecked) {
-                openDefaultFolder()
+                openedStartupScreen = openDefaultFolder()
                 mWasDefaultFolderChecked = true
             }
 
             checkOTGPath()
             checkDefaultSpamFolders()
 
-            if (config.showAll) {
+            // the folders are still fetched behind a startup screen that was opened over this one,
+            // so the grid is ready for whenever it is come back to
+            if (config.showAll && !openedStartupScreen) {
                 showAllMedia()
             } else {
                 getDirectories()
@@ -1498,27 +1501,45 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         }
     }
 
-    private fun setAsDefaultFolder() {
-        config.defaultFolder = ""
-        refreshMenuItems()
-    }
+    /**
+     * Opens whatever screen the user set the app to start on. A folder group is one of this grid's
+     * own states, so it is stepped into rather than launched; everything else is a media screen.
+     *
+     * Run before the first scan, which is what lets a group be opened without the grid being drawn
+     * at the root first: the id is already set by the time the folders arrive.
+     *
+     * Returns whether a media screen was launched, so the caller does not go on to open a second
+     * one over it.
+     */
+    private fun openDefaultFolder(): Boolean {
+        val target = config.defaultFolder
+        val groupId = startupGroupId(target)
+        when {
+            target.isEmpty() -> Unit
 
-    private fun openDefaultFolder() {
-        if (config.defaultFolder.isEmpty()) {
-            return
+            // the folder was deleted or the group dissolved since it was picked
+            isStartupTargetGone(target) -> config.defaultFolder = ""
+
+            groupId != 0L -> {
+                mCurrentGroupId = groupId
+                updateTopBarForGroup()
+            }
+
+            // showing every folder's content is a mode the app is in rather than a folder it opens,
+            // so turning it on is all there is to do - the caller opens it from there
+            target == SHOW_ALL -> config.showAll = true
+
+            else -> {
+                Intent(this, MediaActivity::class.java).apply {
+                    putExtra(DIRECTORY, target)
+                    handleMediaIntent(this)
+                }
+
+                return true
+            }
         }
 
-        val defaultDir = File(config.defaultFolder)
-
-        if ((!defaultDir.exists() || !defaultDir.isDirectory) && (config.defaultFolder != RECYCLE_BIN && config.defaultFolder != FAVORITES)) {
-            config.defaultFolder = ""
-            return
-        }
-
-        Intent(this, MediaActivity::class.java).apply {
-            putExtra(DIRECTORY, config.defaultFolder)
-            handleMediaIntent(this)
-        }
+        return false
     }
 
     private fun checkPlaceholderVisibility(dirs: ArrayList<Directory>) {

@@ -30,8 +30,6 @@
     <string name="no_date_takens_found">Ur yettwaf ara wazalen n uzemz yettwaṭṭfen</string>
     <string name="share_resized">Bḍu lqem yettubedel tiddi-nnes</string>
     <string name="switch_to_file_search">Uɣal ɣer unadi n ufaylu deg akk ikaramen yettbanen</string>
-    <string name="set_as_default_folder">Sbadu d akaram amezwer</string>
-    <string name="unset_as_default_folder">Kkes asbadu d akaram amezwer</string>
     <string name="reorder_by_dragging">Ales amizzwer s uzuɣeṛ</string>
     <string name="reorder_by_dragging_pro">Ales amizzwer n ikaraman s uzuɣeṛ (Pro)</string>
     <string name="include_folders">Ikaraman i d-yeddan</string>

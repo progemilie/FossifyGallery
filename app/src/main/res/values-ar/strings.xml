@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">لم يُعثر على قيم تاريخ التقاط</string>
     <string name="share_resized">شارك الصورة التي تم تغيير حجمها</string>
     <string name="switch_to_file_search">التبديل إلى البحث فى الملفات عبر كافة المجلدات المرئية</string>
-    <string name="set_as_default_folder">عيِّن كمجلد افتراضي</string>
-    <string name="unset_as_default_folder">ألغِ التعيين كمجلد افتراضي</string>
     <string name="reorder_by_dragging">أعد ترتيب المجلدات عن طريق السحب</string>
     <string name="reorder_by_dragging_pro">أعد ترتيب المجلدات عن طريق السحب (Pro)</string>
     <string name="restore_to_path">الاستعادة إلى \'%s\'</string>

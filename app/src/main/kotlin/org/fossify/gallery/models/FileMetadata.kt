@@ -3,12 +3,14 @@ package org.fossify.gallery.models
 /**
  * One name/value pair out of a file's metadata.
  *
- * [opensMap] marks the coordinates row in the summary, the one row that does something when tapped.
+ * Two rows of the summary do something when tapped: [opensMap] marks the coordinates, [editable]
+ * the description, which is the one field of a file this app writes from here.
  */
 data class MetadataTag(
     val name: String,
     val value: String,
     val opensMap: Boolean = false,
+    val editable: Boolean = false,
 )
 
 /**

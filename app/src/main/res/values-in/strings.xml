@@ -27,8 +27,6 @@
     <string name="no_date_takens_found">Tidak ada nilai Tanggal Diambil yang ditemukan</string>
     <string name="share_resized">Bagikan versi yang diubah ukurannya</string>
     <string name="switch_to_file_search">Beralih ke pencarian file di semua folder yang terlihat</string>
-    <string name="set_as_default_folder">Tetapkan sebagai folder default</string>
-    <string name="unset_as_default_folder">Hapus sebagai folder default</string>
     <string name="reorder_by_dragging">Susun ulang folder dengan menyeret</string>
     <string name="reorder_by_dragging_pro">Susun ulang folder dengan menyeret (Pro)</string>
     <string name="restore_to_path">Memulihkan ke \'%s\'</string>

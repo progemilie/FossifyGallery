@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">Липсва дата на заснемане</string>
     <string name="share_resized">Споделяне на преоразмерен вариант</string>
     <string name="switch_to_file_search">Превключване към търсене на файлове във всички видими папки</string>
-    <string name="set_as_default_folder">Задаване като подразбирана папка</string>
-    <string name="unset_as_default_folder">Нулиране на подразбираната папка</string>
     <string name="reorder_by_dragging">Подреждане на папките с влачене</string>
     <string name="reorder_by_dragging_pro">Подреждане на папките с влачене (про)</string>
     <string name="restore_to_path">Възстановяване в „%s“</string>

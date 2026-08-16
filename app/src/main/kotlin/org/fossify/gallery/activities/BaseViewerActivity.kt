@@ -40,6 +40,12 @@ abstract class BaseViewerActivity : SimpleActivity() {
     /** Whether a panel of the app's own is currently drawn over the navigation bar. */
     protected open val isPanelCoveringNavigationBar: Boolean = false
 
+    /**
+     * The metadata of the file on screen has been written from a panel of this viewer's own - the
+     * description sheet - so anything the screen shows about it has to be read again.
+     */
+    open fun onCurrentFileChanged() = Unit
+
     override fun onResume() {
         super.onResume()
         // a viewer's chrome is white over the photo whichever theme the app is in, so the system's

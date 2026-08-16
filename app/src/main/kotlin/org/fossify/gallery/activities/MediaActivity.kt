@@ -366,9 +366,6 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     }
 
     private fun refreshMenuItems() {
-        val isDefaultFolder = !config.defaultFolder.isEmpty()
-                && File(config.defaultFolder).compareTo(File(mPath)) == 0
-
         val menu = binding.mediaMenu.requireToolbar().menu
         // nothing in here should be reachable mid drag, every entry would pull the grid out from
         // under the arrangement the user is in the middle of making. the entries the rules below
@@ -402,9 +399,6 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             findItem(R.id.temporarily_show_hidden).isVisible = !config.shouldShowHidden
             findItem(R.id.stop_showing_hidden).isVisible =
                 (!isRPlus() || isExternalStorageManager()) && config.temporarilyShowHidden
-
-            findItem(R.id.set_as_default_folder).isVisible = !isDefaultFolder
-            findItem(R.id.unset_as_default_folder).isVisible = isDefaultFolder
 
             val viewType = config.getFolderViewType(if (mShowAll) SHOW_ALL else mPath)
             findItem(R.id.column_count).isVisible = viewType == VIEW_TYPE_GRID
@@ -445,8 +439,6 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 R.id.temporarily_show_hidden -> tryToggleTemporarilyShowHidden()
                 R.id.stop_showing_hidden -> tryToggleTemporarilyShowHidden()
                 R.id.column_count -> changeColumnCount()
-                R.id.set_as_default_folder -> setAsDefaultFolder()
-                R.id.unset_as_default_folder -> unsetAsDefaultFolder()
                 R.id.slideshow -> startSlideshow()
                 R.id.settings -> launchSettings()
                 R.id.about -> launchAbout()
@@ -867,6 +859,12 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private fun switchToFolderView() {
         hideKeyboard()
         config.showAll = false
+        // leaving the all-folders view for good, so a startup setting still pointing at it would
+        // drop the user straight back in on the next launch with no way out of the loop
+        if (config.defaultFolder == SHOW_ALL) {
+            config.defaultFolder = ""
+        }
+
         startActivity(Intent(this, MainActivity::class.java))
         finish()
     }
@@ -1379,13 +1377,4 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         }
     }
 
-    private fun setAsDefaultFolder() {
-        config.defaultFolder = mPath
-        refreshMenuItems()
-    }
-
-    private fun unsetAsDefaultFolder() {
-        config.defaultFolder = ""
-        refreshMenuItems()
-    }
 }

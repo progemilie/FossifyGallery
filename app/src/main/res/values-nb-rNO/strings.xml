@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">Ingen verdier for Dato tatt er funnet</string>
     <string name="share_resized">Del versjon med endret størrelse</string>
     <string name="switch_to_file_search">Skift til filsøk i alle synlige mapper</string>
-    <string name="set_as_default_folder">Sett som standardmappe</string>
-    <string name="unset_as_default_folder">Ikke lenger sett som standardmappe</string>
     <string name="reorder_by_dragging">Endre mapperekkefølge ved å dra</string>
     <string name="reorder_by_dragging_pro">Endre mapperekkefølge ved å dra (Pro)</string>
     <string name="restore_to_path">Gjenoppretter til \'%s\'</string>

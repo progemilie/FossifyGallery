@@ -28,8 +28,6 @@
     <string name="no_date_takens_found">未發現拍攝日期</string>
     <string name="share_resized">共享調整尺寸後的版本</string>
     <string name="switch_to_file_search">搜尋所有可見資料夾</string>
-    <string name="set_as_default_folder">設為預設資料夾</string>
-    <string name="unset_as_default_folder">取消設為預設資料夾</string>
     <string name="reorder_by_dragging">拖曳以重新排序資料夾</string>
     <string name="reorder_by_dragging_pro">拖曳以重新排序資料夾（專業版）</string>
     <string name="restore_to_path">還原至「%s」</string>
