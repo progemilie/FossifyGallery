@@ -100,6 +100,13 @@ class MetadataSheet @JvmOverloads constructor(
     private var topInset = 0
     private var callbackRegistered = false
 
+    /**
+     * Whether the sheet has been told what the system bars take. The first insets of a process can
+     * land after the sheet has been filled - it spends the whole of a cold start inside a holder
+     * that is gone - and a resting height worked out before them is a navigation bar short.
+     */
+    private var insetsApplied = false
+
     /** Set between being asked for and coming up, so a layout pass in between can bring it up early. */
     private var revealPending = false
 
@@ -222,6 +229,7 @@ class MetadataSheet @JvmOverloads constructor(
             // behind the buttons
             binding.metadataSheetPeek.updatePadding(bottom = system.bottom)
 
+            insetsApplied = true
             updateTopMargin()
             updatePeekHeight()
             insets
@@ -237,26 +245,34 @@ class MetadataSheet @JvmOverloads constructor(
     }
 
     /**
-     * Stops the fully expanded sheet at the status bar. The behaviour takes the child's top margin
-     * as its expanded offset, but part of that clearance may already have been paid for by an
-     * ancestor - the viewer pads its content holder by the display cutout - so the margin is worked
-     * out from where the holder actually sits on screen rather than from the inset alone. Adding
-     * the inset blind would push the sheet down twice on a device with a notch.
+     * Stops the fully expanded sheet at the status bar, by moving the whole holder down rather than
+     * by giving the sheet a margin inside it. The margin has to stay off the sheet: the behaviour
+     * places it by offsetting it from wherever it was laid out, so a margin is counted in a laid out
+     * position but not in a settled one, and the sheet comes to rest a margin's worth apart
+     * depending on which of the two put it there. Moving the holder instead is invisible to a
+     * resting sheet - the parent it is measured from loses exactly what its top gained.
+     *
+     * Part of the clearance may already have been paid for by an ancestor - the viewer pads its
+     * content holder by the display cutout - so it is worked out from where the holder sits on
+     * screen rather than from the inset alone. Adding the inset blind would push the sheet down
+     * twice on a device with a notch.
      */
     private fun updateTopMargin() {
         val holder = holder ?: return
+        val params = holder.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        // measured off the screen the holder is laid out in rather than off the holder itself, which
+        // spends the whole of a cold start gone and so has no position to read. The margin has to be
+        // settled before the sheet is ever brought up: the behaviour works its resting place out
+        // from the height of the holder, and one that changes under a sheet on its way up leaves it
+        // resting where the taller holder would have put it
+        val host = holder.parent as? ViewGroup ?: return
         val onScreen = IntArray(2)
-        holder.getLocationOnScreen(onScreen)
+        host.getLocationOnScreen(onScreen)
 
-        val wanted = (topInset - onScreen[1]).coerceAtLeast(0)
-        val params = layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        val wanted = (topInset - (onScreen[1] + host.paddingTop)).coerceAtLeast(0)
         if (params.topMargin != wanted) {
-            // never straight out of a layout pass. The resting height is worked out from the margin
-            // (see updatePeekHeight), so it is asked for again once the new one is actually on
-            post {
-                updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = wanted }
-                updatePeekHeight(animate = false)
-            }
+            // never straight out of a layout pass
+            post { holder.updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = wanted } }
         }
     }
 
@@ -266,6 +282,10 @@ class MetadataSheet @JvmOverloads constructor(
 
         callbackRegistered = true
         behavior.isHideable = true
+        // keeps the behaviour from putting a window insets listener of its own on the sheet, which
+        // would replace the one set up in init and clear the status bar a second time on top of the
+        // holder's margin. Nothing is lost by it: the peek carries the navigation bar inset already
+        behavior.isGestureInsetBottomIgnored = true
         behavior.state = BottomSheetBehavior.STATE_HIDDEN
         behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
@@ -273,15 +293,6 @@ class MetadataSheet @JvmOverloads constructor(
                     revealPending = false
                     holder?.beGone()
                     onHidden?.invoke()
-                }
-
-                // the settle that brings the sheet up puts it its peek height from the bottom of
-                // the screen, while a layout pass puts it there and then moves it down by the top
-                // margin as well. The peek is worked out for the second of those (see
-                // updatePeekHeight), so the sheet is laid out again once it has come to rest -
-                // otherwise a freshly opened one rests a status bar higher than one swiped through
-                if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
-                    requestLayout()
                 }
             }
 
@@ -359,9 +370,6 @@ class MetadataSheet @JvmOverloads constructor(
     private val holder: View?
         get() = parent as? View
 
-    private val topMargin: Int
-        get() = (layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin ?: 0
-
     /** Swaps in everything [path] says about itself at once - rows, hint and resting height. */
     private fun bind(metadata: FileMetadata, path: String) {
         binding.metadataSheetSummary.removeAllViews()
@@ -398,7 +406,8 @@ class MetadataSheet @JvmOverloads constructor(
      * sheet is revealed, which is a layout pass earlier than the rows it is worked out from.
      */
     private fun updatePeekHeight(animate: Boolean = isSheetVisible) {
-        if (width == 0 || height == 0 || binding.metadataSheetSummary.isEmpty()) return
+        if (!insetsApplied || binding.metadataSheetSummary.isEmpty()) return
+        if (width == 0 || height == 0) return
 
         val peekContent = binding.metadataSheetPeek.heightMeasuredAt(width)
         if (peekContent == 0) return
@@ -407,11 +416,7 @@ class MetadataSheet @JvmOverloads constructor(
         val wanted = resources.getDimensionPixelSize(R.dimen.metadata_sheet_handle_height) + peekContent
         val ceiling = (height * MAX_PEEK_RATIO).toInt()
         val floor = resources.getDimensionPixelSize(R.dimen.metadata_sheet_min_peek_height)
-        // the behaviour rests the sheet peekHeight pixels from the bottom of its parent and then
-        // shifts it down again by the top margin updateTopMargin() gave it, so the margin has to be
-        // asked for on top of the height actually wanted. Without it the last thing in the peek -
-        // which is the one row of the sheet that does something - sits behind the navigation bar
-        val peek = wanted.coerceIn(minOf(floor, ceiling), ceiling) + topMargin
+        val peek = wanted.coerceIn(minOf(floor, ceiling), ceiling)
         if (peek != behavior.peekHeight) {
             behavior.setPeekHeight(peek, animate)
         }
