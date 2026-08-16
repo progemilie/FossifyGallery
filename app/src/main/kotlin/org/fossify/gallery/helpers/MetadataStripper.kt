@@ -11,10 +11,15 @@ import java.io.File
  * out a copy of it without the ones that are not wanted.
  *
  * Most of a group is a whole block of the container, so [ContainerMetadata] does the work by copying
- * the file out without it. [MetadataGroup.LOCATION] is the exception - it is a handful of fields
- * inside the Exif block, so it is cleared afterwards with ExifInterface, which rewrites the Exif in
- * place rather than dropping it. The copy in the XMP packet goes with it, or a file would still say
- * where it was taken after being told not to.
+ * the file out without it. [MetadataGroup.LOCATION] and [MetadataGroup.ORIENTATION] are the
+ * exceptions - they are fields inside the Exif block, so they are settled afterwards with
+ * ExifInterface, which rewrites the Exif rather than dropping it. Each has a copy in the XMP packet
+ * that goes the same way, or a file would still say what it was told not to.
+ *
+ * The two differ in what dropping the whole Exif means for them. The location goes with it and could
+ * not be put back if anyone wanted it. The orientation is put back: a photo whose metadata was
+ * stripped should not come out sideways, so unless it was asked for by name it is read off the
+ * source and written into the result.
  *
  * Nothing here touches the file it is given: everything is written to a destination the caller
  * names, and it is the caller that decides whether that is a new file or the original one - see
@@ -23,7 +28,7 @@ import java.io.File
  * Every entry point blocks on file IO. Call it off the main thread.
  */
 object MetadataStripper {
-    /** Which container block each group is. The one that is left out lives inside another's. */
+    /** Which container block each group is. The ones left out live inside another's. */
     private val GROUP_BLOCKS = mapOf(
         MetadataGroup.EXIF to MetadataBlock.EXIF,
         MetadataGroup.XMP to MetadataBlock.XMP,
@@ -41,12 +46,10 @@ object MetadataStripper {
         if (!path.canBeStripped()) return emptyList()
 
         val blocks = ContainerMetadata.blocksIn(File(path))
-        val groups = MetadataGroup.entries.filter { group ->
-            val block = GROUP_BLOCKS[group]
-            block != null && block in blocks
+        val fields = exifFields(path)
+        return MetadataGroup.entries.filter { group ->
+            GROUP_BLOCKS[group]?.let { it in blocks } ?: (group in fields)
         }
-
-        return if (hasLocation(path)) listOf(MetadataGroup.LOCATION) + groups else groups
     }
 
     /**
@@ -54,52 +57,79 @@ object MetadataStripper {
      * must not be [source]: the file is read while it is written.
      */
     fun strip(source: File, destination: File, groups: Set<MetadataGroup>): Boolean {
+        // read before the rewrite, since the block it lives in may be one of the ones going
+        val orientation = source.orientation().takeIf { MetadataGroup.ORIENTATION !in groups }
+
         val drop = groups.mapNotNull { GROUP_BLOCKS[it] }.toSet()
         if (!ContainerMetadata.rewrite(source, destination, drop)) {
             return false
         }
 
-        // pointless when the whole Exif block has just been dropped, and the packet holding the
-        // other copy may have gone with the XMP block
-        if (MetadataGroup.LOCATION in groups && MetadataGroup.EXIF !in groups) {
-            removeLocation(destination)
-        }
-
+        settleExifFields(destination, groups, orientation)
         return true
     }
 
-    @Suppress("TooGenericExceptionCaught") // an unparseable file is one with no location to find
-    private fun hasLocation(path: String): Boolean = try {
+    /** The groups that are fields inside the Exif rather than blocks of their own, as [path] holds them. */
+    @Suppress("TooGenericExceptionCaught") // a file that cannot be parsed is one with no fields to find
+    private fun exifFields(path: String): Set<MetadataGroup> = try {
         val exif = ExifInterface(path)
-        GPS_TAGS.any { exif.hasAttribute(it) } || XmpLocation.isPresent(exif.getXmpPacket())
+        val xmp = exif.getXmpPacket()
+        buildSet {
+            if (GPS_TAGS.any { exif.hasAttribute(it) } || XmpLocation.isPresent(xmp)) {
+                add(MetadataGroup.LOCATION)
+            }
+
+            if (exif.hasAttribute(ExifInterface.TAG_ORIENTATION) || XmpOrientation.isPresent(xmp)) {
+                add(MetadataGroup.ORIENTATION)
+            }
+        }
     } catch (ignored: Exception) {
-        false
+        emptySet()
     } catch (ignored: OutOfMemoryError) {
-        false
+        emptySet()
+    }
+
+    @Suppress("TooGenericExceptionCaught")
+    private fun File.orientation(): String? = try {
+        ExifInterface(absolutePath).getAttribute(ExifInterface.TAG_ORIENTATION)
+    } catch (ignored: Exception) {
+        null
+    } catch (ignored: OutOfMemoryError) {
+        null
     }
 
     /**
-     * Clears the location out of a file that keeps the rest of its Exif. ExifInterface rewrites the
-     * whole block from what it parsed, so anything in there it does not understand - a maker note,
-     * above all - does not survive this either. That is a fair trade for a file someone has asked to
-     * have the location taken out of, and the alternative is leaving the coordinates in.
+     * Puts the two Exif fields right in the file just written: clears whichever of them was asked
+     * for and the whole Exif did not already take, and writes [orientation] back if the block it was
+     * in has gone.
+     *
+     * ExifInterface rewrites the whole block from what it parsed, so anything in there it does not
+     * understand - a maker note, above all - does not survive this either. That is a fair trade for
+     * a file someone has asked to have fields taken out of, and the alternative is leaving them in.
      */
-    private fun removeLocation(file: File) {
+    private fun settleExifFields(file: File, groups: Set<MetadataGroup>, orientation: String?) {
+        val exifDropped = MetadataGroup.EXIF in groups
+        val clearLocation = MetadataGroup.LOCATION in groups && !exifDropped
+        val clearOrientation = MetadataGroup.ORIENTATION in groups && !exifDropped
+        val restoreOrientation = exifDropped && orientation != null
+        if (!clearLocation && !clearOrientation && !restoreOrientation) {
+            return
+        }
+
         val exif = ExifInterface(file.absolutePath)
-        var touched = GPS_TAGS.any { exif.hasAttribute(it) }
-        GPS_TAGS.forEach { exif.setAttribute(it, null) }
+        if (clearLocation) GPS_TAGS.forEach { exif.setAttribute(it, null) }
+        if (clearOrientation) exif.setAttribute(ExifInterface.TAG_ORIENTATION, null)
+        if (restoreOrientation) exif.setAttribute(ExifInterface.TAG_ORIENTATION, orientation)
 
         val xmp = exif.getXmpPacket()
-        val cleared = XmpLocation.remove(xmp)
+        var cleared = if (clearLocation) XmpLocation.remove(xmp) else xmp
+        if (clearOrientation) cleared = XmpOrientation.remove(cleared)
         if (cleared != xmp) {
             // null removes the packet outright, which is what a packet holding nothing else leaves
             exif.setAttribute(ExifInterface.TAG_XMP, cleared)
-            touched = true
         }
 
-        if (touched) {
-            exif.saveAttributes()
-        }
+        exif.saveAttributes()
     }
 }
 

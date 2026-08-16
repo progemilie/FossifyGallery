@@ -190,17 +190,22 @@ A swipe up over the media raises `views/MetadataSheet.kt`, listing every group t
   - The **description** row: `dc:description` in the file's XMP, the way a rating is `xmp:Rating`
     (`helpers/XmpPacket.kt` is the plumbing both sit on). A file that can carry one always gets the
     row — an empty row is the only way in to writing the first description.
-  - **Remove metadata** at the bottom of the sheet, offering the `MetadataGroup`s the file actually
-    carries (`MetadataStripper.removableGroups()`, which is also what hides the row when there are
-    none), in place or into a copy beside it.
+  - **Remove metadata**, offering the `MetadataGroup`s the file actually carries
+    (`MetadataStripper.removableGroups()`, which is also what hides the row when there are none), in
+    place or into a copy beside it. The row lives *inside* the peek, so the resting sheet already
+    shows it.
 
 `helpers/ContainerMetadata.kt` and the per-format walkers beside it (`JpegSegments`, `PngChunks`,
 `WebpChunks`, over the byte plumbing in `ContainerBytes`) do the removal by **copying the file out
 block by block and leaving the unwanted ones behind — never by re-encoding**, so a stripped file is
 pixel for pixel the file it came from. Only the three formats those walkers understand are offered;
-anything else is refused rather than copied. Location is the one group that is not a whole block:
-`MetadataStripper` clears it with `ExifInterface` plus `helpers/XmpLocation.kt` afterwards, so the
-rest of the Exif survives — which is why removing Exif ticks and locks Location in the dialog.
+anything else is refused rather than copied.
+
+Location and orientation are the two groups that are *not* whole blocks but fields inside the Exif,
+so `MetadataStripper` settles them afterwards with `ExifInterface` plus `helpers/XmpFields.kt`. They
+part company when the whole Exif goes: the location cannot survive it (hence Exif ticking and
+locking Location in the dialog), while the orientation is read off the source and **written back**
+unless it was asked for by name — a stripped photo should not come out sideways.
 
 ### Chrome that floats over the content
 

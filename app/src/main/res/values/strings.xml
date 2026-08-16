@@ -155,13 +155,13 @@
 
     <!-- Removing metadata -->
     <string name="metadata_remove">Remove metadata</string>
-    <string name="metadata_remove_summary">Pick what to take off the file. The picture itself is left untouched.</string>
     <string name="metadata_remove_save_copy">Save as a new file</string>
     <string name="metadata_remove_nothing_picked">Pick something to remove first</string>
     <string name="metadata_remove_unsupported_format">Metadata can only be removed from JPG, PNG and WebP files</string>
     <string name="metadata_remove_failed">Could not rewrite this file</string>
     <string name="metadata_removed">Metadata removed</string>
     <string name="metadata_group_location">Location</string>
+    <string name="metadata_group_orientation">Orientation</string>
     <string name="metadata_group_exif">Camera and capture details (Exif)</string>
     <string name="metadata_group_xmp">Descriptions, ratings and keywords (XMP)</string>
     <string name="metadata_group_iptc">Captions and credits (IPTC)</string>

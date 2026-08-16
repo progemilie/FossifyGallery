@@ -204,7 +204,10 @@ class MetadataSheet @JvmOverloads constructor(
         binding.metadataSheetMoreHintIcon.setColorFilter(labelColor)
         binding.metadataSheetStripLabel.setTextColor(primaryColor)
         binding.metadataSheetStripIcon.setColorFilter(primaryColor)
-        binding.metadataSheetStrip.setOnClickListener { writes?.removeMetadata(currentPath, removable) }
+        binding.metadataSheetStripDivider.setBackgroundColor(textColor.adjustAlpha(DIVIDER_ALPHA))
+        binding.metadataSheetStripButton.setOnClickListener {
+            writes?.removeMetadata(currentPath, removable)
+        }
 
         // read ignoring visibility because the viewer hides the system bars in fullscreen, and the
         // sheet should not shuffle about by a status bar's worth when it does
@@ -248,8 +251,12 @@ class MetadataSheet @JvmOverloads constructor(
         val wanted = (topInset - onScreen[1]).coerceAtLeast(0)
         val params = layoutParams as? ViewGroup.MarginLayoutParams ?: return
         if (params.topMargin != wanted) {
-            // never straight out of a layout pass
-            post { updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = wanted } }
+            // never straight out of a layout pass. The resting height is worked out from the margin
+            // (see updatePeekHeight), so it is asked for again once the new one is actually on
+            post {
+                updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = wanted }
+                updatePeekHeight(animate = false)
+            }
         }
     }
 
@@ -266,6 +273,15 @@ class MetadataSheet @JvmOverloads constructor(
                     revealPending = false
                     holder?.beGone()
                     onHidden?.invoke()
+                }
+
+                // the settle that brings the sheet up puts it its peek height from the bottom of
+                // the screen, while a layout pass puts it there and then moves it down by the top
+                // margin as well. The peek is worked out for the second of those (see
+                // updatePeekHeight), so the sheet is laid out again once it has come to rest -
+                // otherwise a freshly opened one rests a status bar higher than one swiped through
+                if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
+                    requestLayout()
                 }
             }
 
@@ -343,6 +359,9 @@ class MetadataSheet @JvmOverloads constructor(
     private val holder: View?
         get() = parent as? View
 
+    private val topMargin: Int
+        get() = (layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin ?: 0
+
     /** Swaps in everything [path] says about itself at once - rows, hint and resting height. */
     private fun bind(metadata: FileMetadata, path: String) {
         binding.metadataSheetSummary.removeAllViews()
@@ -388,7 +407,11 @@ class MetadataSheet @JvmOverloads constructor(
         val wanted = resources.getDimensionPixelSize(R.dimen.metadata_sheet_handle_height) + peekContent
         val ceiling = (height * MAX_PEEK_RATIO).toInt()
         val floor = resources.getDimensionPixelSize(R.dimen.metadata_sheet_min_peek_height)
-        val peek = wanted.coerceIn(minOf(floor, ceiling), ceiling)
+        // the behaviour rests the sheet peekHeight pixels from the bottom of its parent and then
+        // shifts it down again by the top margin updateTopMargin() gave it, so the margin has to be
+        // asked for on top of the height actually wanted. Without it the last thing in the peek -
+        // which is the one row of the sheet that does something - sits behind the navigation bar
+        val peek = wanted.coerceIn(minOf(floor, ceiling), ceiling) + topMargin
         if (peek != behavior.peekHeight) {
             behavior.setPeekHeight(peek, animate)
         }

@@ -10,12 +10,14 @@ import org.fossify.gallery.R
  * between the two is [org.fossify.gallery.helpers.MetadataStripper]'s business. Declaration order is
  * the order they are listed in, with the one most people are actually after first.
  *
- * [LOCATION] is the odd one out: it is a handful of fields inside the Exif block rather than a block
- * of its own, so it can be removed while everything else the camera wrote stays. Removing [EXIF]
- * takes the location with it.
+ * [LOCATION] and [ORIENTATION] are the odd ones out: they are fields inside the Exif block rather
+ * than blocks of their own, so either can be removed while everything else the camera wrote stays.
+ * They part company when [EXIF] goes: the location cannot survive it, but the orientation is written
+ * back afterwards, since most people stripping a photo do not mean to have it come out sideways.
  */
 enum class MetadataGroup(@param:StringRes val labelRes: Int) {
     LOCATION(R.string.metadata_group_location),
+    ORIENTATION(R.string.metadata_group_orientation),
     EXIF(R.string.metadata_group_exif),
     XMP(R.string.metadata_group_xmp),
     IPTC(R.string.metadata_group_iptc),
