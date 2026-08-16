@@ -19,6 +19,7 @@ import org.fossify.commons.extensions.getResolution
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.EXT_CAMERA_MODEL
 import org.fossify.gallery.helpers.EXT_DATE_TAKEN
+import org.fossify.gallery.helpers.EXT_DESCRIPTION
 import org.fossify.gallery.helpers.EXT_EXIF_PROPERTIES
 import org.fossify.gallery.helpers.EXT_GPS
 import org.fossify.gallery.helpers.EXT_LAST_MODIFIED
@@ -83,6 +84,9 @@ private fun Context.extendedDetailFields(
     exif: ExifInterface,
 ): List<Pair<Int, () -> String>> = listOf(
     EXT_NAME to { medium.name },
+    // right under the name, where a caption reads as one. an empty one is dropped below with the
+    // rest of the fields the file has nothing to say about
+    EXT_DESCRIPTION to { getFileDescription(medium.path) },
     EXT_PATH to { "${file.parent.trimEnd('/')}/" },
     EXT_SIZE to { file.length().formatSize() },
     EXT_RESOLUTION to { getMediumResolution(medium, file).orEmpty() },

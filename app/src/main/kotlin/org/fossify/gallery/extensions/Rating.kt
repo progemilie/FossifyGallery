@@ -112,7 +112,7 @@ private fun writeRating(exif: ExifInterface, rating: Int): Boolean {
 
 // the packet is UTF-8 by definition, while getAttribute() decodes bytes as ASCII - going through
 // the raw bytes is what keeps an accented title in someone else's XMP intact
-private fun ExifInterface.getXmpPacket() = getAttributeBytes(ExifInterface.TAG_XMP)?.toString(Charsets.UTF_8)
+internal fun ExifInterface.getXmpPacket() = getAttributeBytes(ExifInterface.TAG_XMP)?.toString(Charsets.UTF_8)
 
 /**
  * Sets the rating of [path] to [rating] (0 clears it), off the main thread, and calls [callback] on

@@ -355,6 +355,11 @@
     <string name="faq_18_text">Our apps have no ads whatsoever. If you see them during video playback, you must be using some other apps video player. Try finding your default video player in the device settings, then do a \"Clear defaults\" on it. The next time you invoke some video intent you will see an app picker prompt, where you can select what app you want to use.</string>
     <!-- Fork -->
     <string name="fork_version_placeholder">%1$s (fork %2$s)</string>
+    <!-- Description -->
+    <string name="description">Description</string>
+    <string name="add_description">Add a description</string>
+    <string name="edit_description">Edit description</string>
+    <string name="description_unsupported_format">A description can only be saved into JPG, PNG and WebP files</string>
     <!-- Startup screen -->
     <string name="open_on_startup">Open on startup</string>
     <string name="startup_folder_grid">Folder grid</string>

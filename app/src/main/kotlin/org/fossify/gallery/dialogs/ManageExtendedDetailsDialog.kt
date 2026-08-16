@@ -14,6 +14,7 @@ class ManageExtendedDetailsDialog(val activity: BaseSimpleActivity, val callback
         val details = activity.config.extendedDetails
         binding.apply {
             manageExtendedDetailsName.isChecked = details and EXT_NAME != 0
+            manageExtendedDetailsDescription.isChecked = details and EXT_DESCRIPTION != 0
             manageExtendedDetailsPath.isChecked = details and EXT_PATH != 0
             manageExtendedDetailsSize.isChecked = details and EXT_SIZE != 0
             manageExtendedDetailsResolution.isChecked = details and EXT_RESOLUTION != 0
@@ -39,6 +40,8 @@ class ManageExtendedDetailsDialog(val activity: BaseSimpleActivity, val callback
         binding.apply {
             if (manageExtendedDetailsName.isChecked)
                 result += EXT_NAME
+            if (manageExtendedDetailsDescription.isChecked)
+                result += EXT_DESCRIPTION
             if (manageExtendedDetailsPath.isChecked)
                 result += EXT_PATH
             if (manageExtendedDetailsSize.isChecked)

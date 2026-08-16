@@ -33,4 +33,15 @@
         tools:ignore="TextContrastCheck"
         tools:text="12 Jan 2024, 14:05" />
 
+    <!-- only the description row wears this; it is what says the row can be written as well as read -->
+    <ImageView
+        android:id="@+id/metadata_row_edit"
+        android:layout_width="@dimen/metadata_row_edit_size"
+        android:layout_height="@dimen/metadata_row_edit_size"
+        android:layout_gravity="center_vertical"
+        android:contentDescription="@string/edit_description"
+        android:src="@drawable/ic_edit_vector"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
 </LinearLayout>

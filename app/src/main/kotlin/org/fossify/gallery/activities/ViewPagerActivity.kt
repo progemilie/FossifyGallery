@@ -1824,6 +1824,9 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
     }
 
+    /** The metadata sheet has written the file's description; the heading quotes it too. */
+    override fun onCurrentFileChanged() = updateHeader()
+
     private fun updateHeader() {
         runOnUiThread {
             val medium = getCurrentMedium()

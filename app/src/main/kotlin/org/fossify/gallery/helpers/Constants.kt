@@ -226,6 +226,7 @@ const val EXT_ALBUM = 1024
 const val EXT_GPS = 2048
 const val EXT_ORIENTATION = 4096
 const val EXT_RATING = 8192
+const val EXT_DESCRIPTION = 16384
 
 // default extended details, per build type
 const val DEFAULT_EXTENDED_DETAILS = EXT_RESOLUTION or EXT_LAST_MODIFIED or EXT_EXIF_PROPERTIES
