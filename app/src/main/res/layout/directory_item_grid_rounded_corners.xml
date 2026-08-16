@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    No padding above the thumbnail: the tile's own margin already spaces it from the row above, and
+    padding on top of that left a tile's worth of blank line under every name and count.
+-->
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/dir_holder"
@@ -6,8 +10,7 @@
     android:layout_height="wrap_content"
     android:layout_margin="@dimen/medium_margin"
     android:clickable="true"
-    android:focusable="true"
-    android:paddingTop="@dimen/medium_margin">
+    android:focusable="true">
 
     <org.fossify.commons.views.MySquareImageView
         android:id="@+id/dir_thumbnail"
