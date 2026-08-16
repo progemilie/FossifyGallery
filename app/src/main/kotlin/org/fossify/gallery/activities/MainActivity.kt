@@ -107,7 +107,6 @@ import org.fossify.gallery.extensions.handleExcludedFolderPasswordProtection
 import org.fossify.gallery.extensions.handleMediaManagementPrompt
 import org.fossify.gallery.extensions.isDownloadsFolder
 import org.fossify.gallery.extensions.isStartupTargetGone
-import org.fossify.gallery.extensions.startupGroupId
 import org.fossify.gallery.extensions.launchAbout
 import org.fossify.gallery.extensions.launchCamera
 import org.fossify.gallery.extensions.launchSettings
@@ -117,6 +116,7 @@ import org.fossify.gallery.extensions.movePinnedDirectoriesToFront
 import org.fossify.gallery.extensions.openRecycleBin
 import org.fossify.gallery.extensions.pruneFolderGroups
 import org.fossify.gallery.extensions.removeInvalidDBDirectories
+import org.fossify.gallery.extensions.startupGroupId
 import org.fossify.gallery.extensions.storeDirectoryItems
 import org.fossify.gallery.extensions.tryDeleteFileDirItem
 import org.fossify.gallery.extensions.updateDBDirectory
