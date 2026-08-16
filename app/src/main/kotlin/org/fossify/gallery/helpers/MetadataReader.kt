@@ -57,6 +57,7 @@ object MetadataReader {
         return FileMetadata(
             summary = MetadataSummary.build(context, file, extracted, mediaTags, trackTags),
             sections = buildSections(context, file, extracted, mediaTags, trackTags),
+            removable = MetadataStripper.removableGroups(path),
         )
     }
 

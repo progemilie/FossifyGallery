@@ -26,12 +26,10 @@ import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.gallery.R
 import org.fossify.gallery.activities.BaseViewerActivity
 import org.fossify.gallery.databinding.MetadataSheetBinding
-import org.fossify.gallery.dialogs.EditDescriptionDialog
-import org.fossify.gallery.extensions.getFileDescription
 import org.fossify.gallery.extensions.showFileOnMap
-import org.fossify.gallery.extensions.updateFileDescription
 import org.fossify.gallery.helpers.MetadataReader
 import org.fossify.gallery.models.FileMetadata
+import org.fossify.gallery.models.MetadataGroup
 
 /**
  * The panel the viewer pulls up from the bottom, listing everything the file on screen says about
@@ -90,11 +88,14 @@ class MetadataSheet @JvmOverloads constructor(
         labelColor = labelColor,
         primaryColor = primaryColor,
         onLocationClicked = { path -> viewer?.showFileOnMap(path) },
-        onDescriptionClicked = { path -> editDescription(path) },
+        onDescriptionClicked = { path -> writes?.editDescription(path) },
     )
 
     /** The file currently described, so a load that lands after a swipe can be recognised as stale. */
     private var currentPath = ""
+
+    /** What of the current file's metadata this app can take off it, as the last read found it. */
+    private var removable = emptyList<MetadataGroup>()
 
     private var topInset = 0
     private var callbackRegistered = false
@@ -130,6 +131,8 @@ class MetadataSheet @JvmOverloads constructor(
     private val showReading = Runnable {
         binding.metadataSheetSummary.removeAllViews()
         binding.metadataSheetSections.removeAllViews()
+        // what it offers to remove describes the file that is on its way out, so it goes with it
+        binding.metadataSheetStrip.beGone()
         binding.metadataSheetPlaceholder.apply {
             setText(R.string.metadata_reading)
             beVisible()
@@ -152,6 +155,9 @@ class MetadataSheet @JvmOverloads constructor(
     /** The viewer the sheet is opening over, once [attachTo] has said which. */
     private var viewer: BaseViewerActivity? = null
 
+    /** The two rows of the sheet that write to the file, wired up along with the viewer. */
+    private var writes: MetadataWrites? = null
+
     /** What the viewer wants to know when the sheet has finished sliding out of view. */
     private var onHidden: (() -> Unit)? = null
 
@@ -166,6 +172,11 @@ class MetadataSheet @JvmOverloads constructor(
      */
     fun attachTo(viewer: BaseViewerActivity, onHidden: () -> Unit = {}) {
         this.viewer = viewer
+        this.writes = MetadataWrites(viewer) {
+            load(currentPath, keepCurrentUntilRead = true)
+            viewer.onCurrentFileChanged()
+        }
+
         this.onHidden = {
             viewer.updateNavigationBarIconsForPanel(false)
             onHidden()
@@ -191,6 +202,9 @@ class MetadataSheet @JvmOverloads constructor(
         binding.metadataSheetDivider.setBackgroundColor(textColor.adjustAlpha(DIVIDER_ALPHA))
         binding.metadataSheetMoreHintText.setTextColor(labelColor)
         binding.metadataSheetMoreHintIcon.setColorFilter(labelColor)
+        binding.metadataSheetStripLabel.setTextColor(primaryColor)
+        binding.metadataSheetStripIcon.setColorFilter(primaryColor)
+        binding.metadataSheetStrip.setOnClickListener { writes?.removeMetadata(currentPath, removable) }
 
         // read ignoring visibility because the viewer hides the system bars in fullscreen, and the
         // sheet should not shuffle about by a status bar's worth when it does
@@ -329,28 +343,6 @@ class MetadataSheet @JvmOverloads constructor(
     private val holder: View?
         get() = parent as? View
 
-    /**
-     * Writes the file's own caption, straight from the row showing it. The sheet is read again
-     * afterwards rather than patched: the write may have been refused, and what the file says now
-     * is the only thing worth showing.
-     */
-    private fun editDescription(path: String) {
-        val viewer = viewer ?: return
-        ensureBackgroundThread {
-            val current = getFileDescription(path)
-            post {
-                EditDescriptionDialog(viewer, current) { description ->
-                    viewer.updateFileDescription(path, description) { success ->
-                        if (success) {
-                            load(path, keepCurrentUntilRead = true)
-                            viewer.onCurrentFileChanged()
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     /** Swaps in everything [path] says about itself at once - rows, hint and resting height. */
     private fun bind(metadata: FileMetadata, path: String) {
         binding.metadataSheetSummary.removeAllViews()
@@ -369,6 +361,9 @@ class MetadataSheet @JvmOverloads constructor(
         metadata.sections.forEach { section ->
             binding.metadataSheetSections.addView(rows.buildSection(binding.metadataSheetSections, section, path))
         }
+
+        removable = metadata.removable
+        binding.metadataSheetStrip.beVisibleIf(removable.isNotEmpty())
 
         // nothing to promise below the fold if there are no sections to open
         binding.metadataSheetMoreHint.beVisibleIf(metadata.sections.isNotEmpty())

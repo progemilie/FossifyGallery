@@ -29,8 +29,12 @@ data class MetadataSection(
  * every group the file actually carries, each one collapsed until asked for. Nothing here comes
  * from the media database or any cache - it is all read back off the file at the moment it is
  * asked for.
+ *
+ * [removable] is what of it this app is able to take back off the file, which is a shorter list:
+ * empty for a format that cannot be rewritten at all.
  */
 data class FileMetadata(
     val summary: List<MetadataTag>,
     val sections: List<MetadataSection>,
+    val removable: List<MetadataGroup> = emptyList(),
 )

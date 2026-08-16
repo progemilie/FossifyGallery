@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    One removable group. A layout of its own rather than a checkbox built in code, so the row picks
+    up the app's own checkbox style along with everything else in the dialog.
+-->
+<org.fossify.commons.views.MyAppCompatCheckbox xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingVertical="@dimen/activity_margin"
+    tools:text="Location" />

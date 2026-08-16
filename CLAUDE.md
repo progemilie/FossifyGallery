@@ -186,9 +186,21 @@ A swipe up over the media raises `views/MetadataSheet.kt`, listing every group t
 - `MetadataSheet.attachTo()` is the whole of a viewer's wiring, including
   `BaseViewerActivity.updateNavigationBarIconsForPanel()` — the viewer forces light system-bar
   icons, which vanish against a light-theme sheet.
-- The **description** row is the one thing the sheet writes: `dc:description` in the file's XMP, the
-  way a rating is `xmp:Rating` (`helpers/XmpPacket.kt` is the plumbing both sit on). A file that can
-  carry one always gets the row — an empty row is the only way in to writing the first description.
+- The two things the sheet *writes* live in `views/MetadataWrites.kt`, not in the sheet itself.
+  - The **description** row: `dc:description` in the file's XMP, the way a rating is `xmp:Rating`
+    (`helpers/XmpPacket.kt` is the plumbing both sit on). A file that can carry one always gets the
+    row — an empty row is the only way in to writing the first description.
+  - **Remove metadata** at the bottom of the sheet, offering the `MetadataGroup`s the file actually
+    carries (`MetadataStripper.removableGroups()`, which is also what hides the row when there are
+    none), in place or into a copy beside it.
+
+`helpers/ContainerMetadata.kt` and the per-format walkers beside it (`JpegSegments`, `PngChunks`,
+`WebpChunks`, over the byte plumbing in `ContainerBytes`) do the removal by **copying the file out
+block by block and leaving the unwanted ones behind — never by re-encoding**, so a stripped file is
+pixel for pixel the file it came from. Only the three formats those walkers understand are offered;
+anything else is refused rather than copied. Location is the one group that is not a whole block:
+`MetadataStripper` clears it with `ExifInterface` plus `helpers/XmpLocation.kt` afterwards, so the
+rest of the Exif survives — which is why removing Exif ticks and locks Location in the dialog.
 
 ### Chrome that floats over the content
 
