@@ -26,12 +26,10 @@ import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.gallery.R
 import org.fossify.gallery.activities.BaseViewerActivity
 import org.fossify.gallery.databinding.MetadataSheetBinding
-import org.fossify.gallery.dialogs.EditDescriptionDialog
-import org.fossify.gallery.extensions.getFileDescription
 import org.fossify.gallery.extensions.showFileOnMap
-import org.fossify.gallery.extensions.updateFileDescription
 import org.fossify.gallery.helpers.MetadataReader
 import org.fossify.gallery.models.FileMetadata
+import org.fossify.gallery.models.MetadataGroup
 
 /**
  * The panel the viewer pulls up from the bottom, listing everything the file on screen says about
@@ -90,14 +88,23 @@ class MetadataSheet @JvmOverloads constructor(
         labelColor = labelColor,
         primaryColor = primaryColor,
         onLocationClicked = { path -> viewer?.showFileOnMap(path) },
-        onDescriptionClicked = { path -> editDescription(path) },
+        onDescriptionClicked = { path -> writes?.editDescription(path) },
     )
 
     /** The file currently described, so a load that lands after a swipe can be recognised as stale. */
     private var currentPath = ""
 
+    /** What of the current file's metadata this app can take off it, as the last read found it. */
+    private var removable = emptyList<MetadataGroup>()
+
     private var topInset = 0
     private var callbackRegistered = false
+
+    /**
+     * Whether the system bar insets have landed yet. On a cold start they can come after the sheet
+     * is filled, and a resting height worked out before them is a navigation bar short.
+     */
+    private var insetsApplied = false
 
     /** Set between being asked for and coming up, so a layout pass in between can bring it up early. */
     private var revealPending = false
@@ -130,6 +137,8 @@ class MetadataSheet @JvmOverloads constructor(
     private val showReading = Runnable {
         binding.metadataSheetSummary.removeAllViews()
         binding.metadataSheetSections.removeAllViews()
+        // what it offers to remove describes the file that is on its way out, so it goes with it
+        binding.metadataSheetStrip.beGone()
         binding.metadataSheetPlaceholder.apply {
             setText(R.string.metadata_reading)
             beVisible()
@@ -152,6 +161,9 @@ class MetadataSheet @JvmOverloads constructor(
     /** The viewer the sheet is opening over, once [attachTo] has said which. */
     private var viewer: BaseViewerActivity? = null
 
+    /** The two rows of the sheet that write to the file, wired up along with the viewer. */
+    private var writes: MetadataWrites? = null
+
     /** What the viewer wants to know when the sheet has finished sliding out of view. */
     private var onHidden: (() -> Unit)? = null
 
@@ -166,6 +178,11 @@ class MetadataSheet @JvmOverloads constructor(
      */
     fun attachTo(viewer: BaseViewerActivity, onHidden: () -> Unit = {}) {
         this.viewer = viewer
+        this.writes = MetadataWrites(viewer) {
+            load(currentPath, keepCurrentUntilRead = true)
+            viewer.onCurrentFileChanged()
+        }
+
         this.onHidden = {
             viewer.updateNavigationBarIconsForPanel(false)
             onHidden()
@@ -191,6 +208,12 @@ class MetadataSheet @JvmOverloads constructor(
         binding.metadataSheetDivider.setBackgroundColor(textColor.adjustAlpha(DIVIDER_ALPHA))
         binding.metadataSheetMoreHintText.setTextColor(labelColor)
         binding.metadataSheetMoreHintIcon.setColorFilter(labelColor)
+        binding.metadataSheetStripLabel.setTextColor(primaryColor)
+        binding.metadataSheetStripIcon.setColorFilter(primaryColor)
+        binding.metadataSheetStripDivider.setBackgroundColor(textColor.adjustAlpha(DIVIDER_ALPHA))
+        binding.metadataSheetStripButton.setOnClickListener {
+            writes?.removeMetadata(currentPath, removable)
+        }
 
         // read ignoring visibility because the viewer hides the system bars in fullscreen, and the
         // sheet should not shuffle about by a status bar's worth when it does
@@ -205,6 +228,7 @@ class MetadataSheet @JvmOverloads constructor(
             // behind the buttons
             binding.metadataSheetPeek.updatePadding(bottom = system.bottom)
 
+            insetsApplied = true
             updateTopMargin()
             updatePeekHeight()
             insets
@@ -220,22 +244,30 @@ class MetadataSheet @JvmOverloads constructor(
     }
 
     /**
-     * Stops the fully expanded sheet at the status bar. The behaviour takes the child's top margin
-     * as its expanded offset, but part of that clearance may already have been paid for by an
-     * ancestor - the viewer pads its content holder by the display cutout - so the margin is worked
-     * out from where the holder actually sits on screen rather than from the inset alone. Adding
-     * the inset blind would push the sheet down twice on a device with a notch.
+     * Stops the fully expanded sheet at the status bar, by moving the whole holder down rather than
+     * by giving the sheet a margin inside it. The behaviour places the sheet by offsetting it from
+     * wherever it was laid out, so a margin is counted in a laid out position but not in a settled
+     * one, and the sheet comes to rest a margin's worth apart depending on which of the two put it
+     * there. Moving the holder is invisible to it - the parent it is measured from loses exactly
+     * what its top gained.
+     *
+     * The clearance is read off where the holder's parent sits on screen rather than off the inset
+     * alone, since an ancestor may have paid part of it already - the viewer pads its content holder
+     * by the display cutout - and adding the inset blind would push the sheet down twice on a device
+     * with a notch. Off the parent rather than the holder itself because the holder spends the whole
+     * of a cold start gone, and so has no position to read.
      */
     private fun updateTopMargin() {
         val holder = holder ?: return
+        val params = holder.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        val host = holder.parent as? ViewGroup ?: return
         val onScreen = IntArray(2)
-        holder.getLocationOnScreen(onScreen)
+        host.getLocationOnScreen(onScreen)
 
-        val wanted = (topInset - onScreen[1]).coerceAtLeast(0)
-        val params = layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        val wanted = (topInset - (onScreen[1] + host.paddingTop)).coerceAtLeast(0)
         if (params.topMargin != wanted) {
             // never straight out of a layout pass
-            post { updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = wanted } }
+            post { holder.updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = wanted } }
         }
     }
 
@@ -245,6 +277,10 @@ class MetadataSheet @JvmOverloads constructor(
 
         callbackRegistered = true
         behavior.isHideable = true
+        // stops the behaviour replacing the insets listener set up in init with one of its own,
+        // which would clear the status bar a second time on top of the holder's margin. Nothing is
+        // lost by it: the peek carries the navigation bar inset already
+        behavior.isGestureInsetBottomIgnored = true
         behavior.state = BottomSheetBehavior.STATE_HIDDEN
         behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
@@ -329,28 +365,6 @@ class MetadataSheet @JvmOverloads constructor(
     private val holder: View?
         get() = parent as? View
 
-    /**
-     * Writes the file's own caption, straight from the row showing it. The sheet is read again
-     * afterwards rather than patched: the write may have been refused, and what the file says now
-     * is the only thing worth showing.
-     */
-    private fun editDescription(path: String) {
-        val viewer = viewer ?: return
-        ensureBackgroundThread {
-            val current = getFileDescription(path)
-            post {
-                EditDescriptionDialog(viewer, current) { description ->
-                    viewer.updateFileDescription(path, description) { success ->
-                        if (success) {
-                            load(path, keepCurrentUntilRead = true)
-                            viewer.onCurrentFileChanged()
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     /** Swaps in everything [path] says about itself at once - rows, hint and resting height. */
     private fun bind(metadata: FileMetadata, path: String) {
         binding.metadataSheetSummary.removeAllViews()
@@ -370,6 +384,9 @@ class MetadataSheet @JvmOverloads constructor(
             binding.metadataSheetSections.addView(rows.buildSection(binding.metadataSheetSections, section, path))
         }
 
+        removable = metadata.removable
+        binding.metadataSheetStrip.beVisibleIf(removable.isNotEmpty())
+
         // nothing to promise below the fold if there are no sections to open
         binding.metadataSheetMoreHint.beVisibleIf(metadata.sections.isNotEmpty())
         // not animated: the rows it is the height of are going up in this same frame, so a resting
@@ -384,7 +401,8 @@ class MetadataSheet @JvmOverloads constructor(
      * sheet is revealed, which is a layout pass earlier than the rows it is worked out from.
      */
     private fun updatePeekHeight(animate: Boolean = isSheetVisible) {
-        if (width == 0 || height == 0 || binding.metadataSheetSummary.isEmpty()) return
+        if (!insetsApplied || width == 0 || height == 0) return
+        if (binding.metadataSheetSummary.isEmpty()) return
 
         val peekContent = binding.metadataSheetPeek.heightMeasuredAt(width)
         if (peekContent == 0) return

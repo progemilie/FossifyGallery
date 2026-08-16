@@ -2,6 +2,13 @@
 
 Fork-only changes, newest first. Small fixes are left out.
 
+## [v1.11.0] - 2026.08.16 — removing metadata
+
+- **Remove metadata** from the metadata sheet: location, camera details, captions, colour profile and
+  the rest — pick what comes off the file, or take everything in one tap. Only what the file actually
+  carries is offered.
+- **Save as a new file** puts the stripped copy beside the original instead of writing over it.
+
 ## [v1.10.2] - 2026.08.16 — metadata, settings
 
 - **File descriptions** — read and edit a file's description in the metadata sheet. Stored in the
@@ -77,6 +84,7 @@ Initial fork work, landed over 2026.08.06–08.09 before fork versions were trac
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
 
+[v1.11.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.11.0
 [v1.10.2]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.10.2
 [v1.9.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.9.0
 [v1.8.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.8.0
