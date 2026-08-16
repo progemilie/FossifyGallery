@@ -1,6 +1,7 @@
 package org.fossify.gallery.helpers
 
 import androidx.exifinterface.media.ExifInterface
+import org.fossify.gallery.extensions.AllNonDimensionExifAttributes
 import org.fossify.gallery.extensions.canBeStripped
 import org.fossify.gallery.extensions.getXmpPacket
 import org.fossify.gallery.models.MetadataGroup
@@ -14,16 +15,10 @@ import java.io.File
  * the file out without it. [MetadataGroup.LOCATION] and [MetadataGroup.ORIENTATION] are the
  * exceptions - they are fields inside the Exif block, so they are settled afterwards with
  * ExifInterface, which rewrites the Exif rather than dropping it. Each has a copy in the XMP packet
- * that goes the same way, or a file would still say what it was told not to.
- *
- * The two differ in what dropping the whole Exif means for them. The location goes with it and could
- * not be put back if anyone wanted it. The orientation is put back: a photo whose metadata was
- * stripped should not come out sideways, so unless it was asked for by name it is read off the
- * source and written into the result.
+ * that goes the same way.
  *
  * Nothing here touches the file it is given: everything is written to a destination the caller
- * names, and it is the caller that decides whether that is a new file or the original one - see
- * [org.fossify.gallery.extensions.removeFileMetadata].
+ * names - see [org.fossify.gallery.extensions.removeFileMetadata].
  *
  * Every entry point blocks on file IO. Call it off the main thread.
  */
@@ -70,11 +65,10 @@ object MetadataStripper {
     }
 
     /** The groups that are fields inside the Exif rather than blocks of their own, as [path] holds them. */
-    @Suppress("TooGenericExceptionCaught") // a file that cannot be parsed is one with no fields to find
-    private fun exifFields(path: String): Set<MetadataGroup> = try {
-        val exif = ExifInterface(path)
+    private fun exifFields(path: String): Set<MetadataGroup> {
+        val exif = exifOf(path) ?: return emptySet()
         val xmp = exif.getXmpPacket()
-        buildSet {
+        return buildSet {
             if (GPS_TAGS.any { exif.hasAttribute(it) } || XmpLocation.isPresent(xmp)) {
                 add(MetadataGroup.LOCATION)
             }
@@ -83,15 +77,15 @@ object MetadataStripper {
                 add(MetadataGroup.ORIENTATION)
             }
         }
-    } catch (ignored: Exception) {
-        emptySet()
-    } catch (ignored: OutOfMemoryError) {
-        emptySet()
     }
 
+    private fun File.orientation(): String? =
+        exifOf(absolutePath)?.getAttribute(ExifInterface.TAG_ORIENTATION)
+
+    /** Null for a file that cannot be parsed, which is one with no fields to find in it either. */
     @Suppress("TooGenericExceptionCaught")
-    private fun File.orientation(): String? = try {
-        ExifInterface(absolutePath).getAttribute(ExifInterface.TAG_ORIENTATION)
+    private fun exifOf(path: String): ExifInterface? = try {
+        ExifInterface(path)
     } catch (ignored: Exception) {
         null
     } catch (ignored: OutOfMemoryError) {
@@ -133,38 +127,8 @@ object MetadataStripper {
     }
 }
 
-/** Every Exif tag that says something about where, when or how fast the file was made. */
-private val GPS_TAGS = listOf(
-    ExifInterface.TAG_GPS_VERSION_ID,
-    ExifInterface.TAG_GPS_LATITUDE,
-    ExifInterface.TAG_GPS_LATITUDE_REF,
-    ExifInterface.TAG_GPS_LONGITUDE,
-    ExifInterface.TAG_GPS_LONGITUDE_REF,
-    ExifInterface.TAG_GPS_ALTITUDE,
-    ExifInterface.TAG_GPS_ALTITUDE_REF,
-    ExifInterface.TAG_GPS_TIMESTAMP,
-    ExifInterface.TAG_GPS_DATESTAMP,
-    ExifInterface.TAG_GPS_SATELLITES,
-    ExifInterface.TAG_GPS_STATUS,
-    ExifInterface.TAG_GPS_MEASURE_MODE,
-    ExifInterface.TAG_GPS_DOP,
-    ExifInterface.TAG_GPS_SPEED,
-    ExifInterface.TAG_GPS_SPEED_REF,
-    ExifInterface.TAG_GPS_TRACK,
-    ExifInterface.TAG_GPS_TRACK_REF,
-    ExifInterface.TAG_GPS_IMG_DIRECTION,
-    ExifInterface.TAG_GPS_IMG_DIRECTION_REF,
-    ExifInterface.TAG_GPS_MAP_DATUM,
-    ExifInterface.TAG_GPS_DEST_LATITUDE,
-    ExifInterface.TAG_GPS_DEST_LATITUDE_REF,
-    ExifInterface.TAG_GPS_DEST_LONGITUDE,
-    ExifInterface.TAG_GPS_DEST_LONGITUDE_REF,
-    ExifInterface.TAG_GPS_DEST_BEARING,
-    ExifInterface.TAG_GPS_DEST_BEARING_REF,
-    ExifInterface.TAG_GPS_DEST_DISTANCE,
-    ExifInterface.TAG_GPS_DEST_DISTANCE_REF,
-    ExifInterface.TAG_GPS_PROCESSING_METHOD,
-    ExifInterface.TAG_GPS_AREA_INFORMATION,
-    ExifInterface.TAG_GPS_DIFFERENTIAL,
-    ExifInterface.TAG_GPS_H_POSITIONING_ERROR,
-)
+/**
+ * Every GPS tag ExifInterface names, picked out of the list the app already keeps of them rather
+ * than written out a second time. Their constants are the tag names, which all begin "GPS".
+ */
+private val GPS_TAGS = AllNonDimensionExifAttributes.filter { it.startsWith("GPS") }

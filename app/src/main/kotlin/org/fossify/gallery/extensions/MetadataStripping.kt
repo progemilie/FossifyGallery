@@ -32,7 +32,7 @@ import java.util.Locale
 /**
  * The formats whose metadata can be rewritten: the containers
  * [org.fossify.gallery.helpers.ContainerMetadata] walks, which are also the only ones ExifInterface
- * can save into. Everything else can be read and shown, it just cannot be edited.
+ * can save into.
  */
 private val STRIPPABLE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp")
 
@@ -45,13 +45,13 @@ fun String.canBeStripped() =
  */
 fun BaseSimpleActivity.strippedCopyPath(path: String): String {
     val parent = path.getParentPath()
-    val name = path.getFilenameFromPath().substringBeforeLast('.', "")
-    val extension = path.getFilenameExtension()
-    val base = name.ifEmpty { path.getFilenameFromPath() }
+    val filename = path.getFilenameFromPath()
+    val base = filename.substringBeforeLast('.', "").ifEmpty { filename }
+    val suffix = path.getFilenameExtension().let { if (it.isEmpty()) "" else ".$it" }
 
     var index = 1
     while (true) {
-        val candidate = "$parent/${base}_$index" + if (extension.isEmpty()) "" else ".$extension"
+        val candidate = "$parent/${base}_$index$suffix"
         if (!getDoesFilePathExist(candidate)) return candidate
         index++
     }

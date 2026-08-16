@@ -36,5 +36,5 @@ data class MetadataSection(
 data class FileMetadata(
     val summary: List<MetadataTag>,
     val sections: List<MetadataSection>,
-    val removable: List<MetadataGroup> = emptyList(),
+    val removable: List<MetadataGroup>,
 )

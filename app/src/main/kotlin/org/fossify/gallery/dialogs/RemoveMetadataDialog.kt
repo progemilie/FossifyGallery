@@ -34,9 +34,6 @@ class RemoveMetadataDialog(
     private val binding = DialogRemoveMetadataBinding.inflate(activity.layoutInflater)
     private val boxes = LinkedHashMap<MetadataGroup, MyAppCompatCheckbox>()
 
-    /** Set while one tick is driving another, so the listeners do not answer each other. */
-    private var syncing = false
-
     init {
         val copyPath = activity.strippedCopyPath(path)
         groups.forEach { group -> boxes[group] = addGroup(group) }
@@ -45,7 +42,9 @@ class RemoveMetadataDialog(
         binding.removeMetadataGroupsDivider.setBackgroundColor(dividerColor)
         binding.removeMetadataCopyDivider.setBackgroundColor(dividerColor)
 
-        binding.removeMetadataAll.setOnCheckedChangeListener { _, checked -> setAll(checked) }
+        // the ticks answer clicks rather than changes, so a box driven from another one below never
+        // sets a listener off in turn
+        binding.removeMetadataAll.setOnClickListener { setAll(binding.removeMetadataAll.isChecked) }
         binding.removeMetadataCopy.setOnCheckedChangeListener { _, checked ->
             binding.removeMetadataCopyName.beVisibleIf(checked)
         }
@@ -70,16 +69,12 @@ class RemoveMetadataDialog(
         ).root
 
         box.setText(group.labelRes)
-        box.setOnCheckedChangeListener { _, _ -> sync() }
+        box.setOnClickListener { sync() }
         return box
     }
 
     private fun setAll(checked: Boolean) {
-        if (syncing) return
-
-        syncing = true
         boxes.values.forEach { it.isChecked = checked }
-        syncing = false
         sync()
     }
 
@@ -89,9 +84,6 @@ class RemoveMetadataDialog(
      * the Exif, so a location tick that could be cleared while Exif stayed ticked would be a lie.
      */
     private fun sync() {
-        if (syncing) return
-
-        syncing = true
         val exifPicked = boxes[MetadataGroup.EXIF]?.isChecked == true
         boxes[MetadataGroup.LOCATION]?.apply {
             if (exifPicked) isChecked = true
@@ -99,7 +91,6 @@ class RemoveMetadataDialog(
         }
 
         binding.removeMetadataAll.isChecked = boxes.values.all { it.isChecked }
-        syncing = false
     }
 
     private fun confirm(dialog: AlertDialog, copyPath: String) {

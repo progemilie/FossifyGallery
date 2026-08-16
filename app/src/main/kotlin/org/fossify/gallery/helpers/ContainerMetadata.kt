@@ -4,6 +4,7 @@ import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.OutputStream
 
 /**
  * The blocks of metadata an image container stores alongside the picture itself, named the way the
@@ -20,13 +21,10 @@ internal enum class MetadataBlock { EXIF, XMP, IPTC, ICC, OTHER }
  * Reads and rewrites the metadata blocks of an image container - JPEG, PNG and WebP - by copying the
  * file out block by block and leaving the unwanted ones behind.
  *
- * This is deliberately surgery on the container rather than a re-encode: not one byte of the
- * compressed picture is touched, so a stripped file is pixel for pixel the file it came from. Going
- * through a decoder instead would re-compress the image and lose quality for nothing.
- *
- * The three formats are the ones the app can write metadata into at all (see [MetadataStripper]),
- * and each is walked in its own terms in a file of its own - [walkJpeg], [walkPng], [walkWebp].
- * Anything else is refused outright: a container this does not understand is one it could corrupt.
+ * Deliberately surgery on the container rather than a re-encode: not one byte of the compressed
+ * picture is touched, so a stripped file is pixel for pixel the file it came from. Each format is
+ * walked in its own terms in a file of its own; anything else is refused outright, since a container
+ * this does not understand is one it could corrupt.
  *
  * Every entry point blocks on file IO. Call it off the main thread.
  */
@@ -34,13 +32,11 @@ internal object ContainerMetadata {
     /** Every metadata block [file] carries, empty when the format is not one that can be rewritten. */
     @Suppress("TooGenericExceptionCaught") // a truncated or lying file throws from anywhere in the walk
     fun blocksIn(file: File): Set<MetadataBlock> = try {
-        when (formatOf(file)) {
-            Format.JPEG -> walkJpeg(file, out = null, drop = emptySet())
-            Format.PNG -> walkPng(file, out = null, drop = emptySet())
-            Format.WEBP -> walkWebp(file, out = null, drop = emptySet())
-            null -> emptySet()
-        }
+        formatOf(file)?.let { it.walk(file, null, emptySet()) }.orEmpty()
     } catch (ignored: Exception) {
+        emptySet()
+    } catch (ignored: OutOfMemoryError) {
+        // a chunk claiming a length no file could hold asks for an array to match it
         emptySet()
     }
 
@@ -51,18 +47,15 @@ internal object ContainerMetadata {
      */
     fun rewrite(source: File, destination: File, drop: Set<MetadataBlock>): Boolean {
         val format = formatOf(source) ?: return false
-        BufferedOutputStream(FileOutputStream(destination)).use { out ->
-            when (format) {
-                Format.JPEG -> walkJpeg(source, out, drop)
-                Format.PNG -> walkPng(source, out, drop)
-                Format.WEBP -> walkWebp(source, out, drop)
-            }
-        }
-
+        BufferedOutputStream(FileOutputStream(destination)).use { format.walk(source, it, drop) }
         return destination.length() > 0
     }
 
-    private enum class Format { JPEG, PNG, WEBP }
+    private enum class Format(val walk: (File, OutputStream?, Set<MetadataBlock>) -> Set<MetadataBlock>) {
+        JPEG(::walkJpeg),
+        PNG(::walkPng),
+        WEBP(::walkWebp),
+    }
 
     /** What the file actually is, read off its first bytes rather than trusted from its name. */
     private fun formatOf(file: File): Format? {

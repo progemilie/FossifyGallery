@@ -7,10 +7,8 @@ import java.io.RandomAccessFile
 
 /**
  * The plain integers and byte runs an image container is built out of, in the widths and byte orders
- * the formats write them in.
- *
- * Shared by the JPEG, PNG and WebP walkers behind [ContainerMetadata] and of no interest to anything
- * else - there is nothing here about metadata, only about bytes.
+ * the formats write them in. Shared by the JPEG, PNG and WebP walkers behind [ContainerMetadata];
+ * there is nothing here about metadata, only about bytes.
  */
 
 internal const val BYTE_MASK = 0xFF
@@ -50,24 +48,19 @@ internal fun RandomAccessFile.readIntLittleEndian(): Int {
 }
 
 /** Passes [length] bytes straight through, or steps over them when there is nowhere to write. */
-internal fun InputStream.passThrough(out: OutputStream?, length: Int) {
-    val buffer = ByteArray(BUFFER_SIZE)
-    var left = length
-    while (left > 0) {
-        val read = read(buffer, 0, minOf(buffer.size, left))
-        if (read <= 0) break
-        out?.write(buffer, 0, read)
-        left -= read
-    }
-}
+internal fun InputStream.passThrough(out: OutputStream?, length: Int) =
+    copyBytes(length, out) { buffer, count -> read(buffer, 0, count) }
 
-internal fun OutputStream.writeFrom(handle: RandomAccessFile, length: Int) {
+internal fun OutputStream.writeFrom(handle: RandomAccessFile, length: Int) =
+    copyBytes(length, this) { buffer, count -> handle.read(buffer, 0, count) }
+
+private inline fun copyBytes(length: Int, out: OutputStream?, read: (ByteArray, Int) -> Int) {
     val buffer = ByteArray(BUFFER_SIZE)
     var left = length
     while (left > 0) {
-        val read = handle.read(buffer, 0, minOf(buffer.size, left))
-        if (read <= 0) break
-        write(buffer, 0, read)
-        left -= read
+        val count = read(buffer, minOf(buffer.size, left))
+        if (count <= 0) break
+        out?.write(buffer, 0, count)
+        left -= count
     }
 }

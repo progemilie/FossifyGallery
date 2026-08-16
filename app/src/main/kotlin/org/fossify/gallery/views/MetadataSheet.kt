@@ -101,9 +101,8 @@ class MetadataSheet @JvmOverloads constructor(
     private var callbackRegistered = false
 
     /**
-     * Whether the sheet has been told what the system bars take. The first insets of a process can
-     * land after the sheet has been filled - it spends the whole of a cold start inside a holder
-     * that is gone - and a resting height worked out before them is a navigation bar short.
+     * Whether the system bar insets have landed yet. On a cold start they can come after the sheet
+     * is filled, and a resting height worked out before them is a navigation bar short.
      */
     private var insetsApplied = false
 
@@ -246,25 +245,21 @@ class MetadataSheet @JvmOverloads constructor(
 
     /**
      * Stops the fully expanded sheet at the status bar, by moving the whole holder down rather than
-     * by giving the sheet a margin inside it. The margin has to stay off the sheet: the behaviour
-     * places it by offsetting it from wherever it was laid out, so a margin is counted in a laid out
-     * position but not in a settled one, and the sheet comes to rest a margin's worth apart
-     * depending on which of the two put it there. Moving the holder instead is invisible to a
-     * resting sheet - the parent it is measured from loses exactly what its top gained.
+     * by giving the sheet a margin inside it. The behaviour places the sheet by offsetting it from
+     * wherever it was laid out, so a margin is counted in a laid out position but not in a settled
+     * one, and the sheet comes to rest a margin's worth apart depending on which of the two put it
+     * there. Moving the holder is invisible to it - the parent it is measured from loses exactly
+     * what its top gained.
      *
-     * Part of the clearance may already have been paid for by an ancestor - the viewer pads its
-     * content holder by the display cutout - so it is worked out from where the holder sits on
-     * screen rather than from the inset alone. Adding the inset blind would push the sheet down
-     * twice on a device with a notch.
+     * The clearance is read off where the holder's parent sits on screen rather than off the inset
+     * alone, since an ancestor may have paid part of it already - the viewer pads its content holder
+     * by the display cutout - and adding the inset blind would push the sheet down twice on a device
+     * with a notch. Off the parent rather than the holder itself because the holder spends the whole
+     * of a cold start gone, and so has no position to read.
      */
     private fun updateTopMargin() {
         val holder = holder ?: return
         val params = holder.layoutParams as? ViewGroup.MarginLayoutParams ?: return
-        // measured off the screen the holder is laid out in rather than off the holder itself, which
-        // spends the whole of a cold start gone and so has no position to read. The margin has to be
-        // settled before the sheet is ever brought up: the behaviour works its resting place out
-        // from the height of the holder, and one that changes under a sheet on its way up leaves it
-        // resting where the taller holder would have put it
         val host = holder.parent as? ViewGroup ?: return
         val onScreen = IntArray(2)
         host.getLocationOnScreen(onScreen)
@@ -282,9 +277,9 @@ class MetadataSheet @JvmOverloads constructor(
 
         callbackRegistered = true
         behavior.isHideable = true
-        // keeps the behaviour from putting a window insets listener of its own on the sheet, which
-        // would replace the one set up in init and clear the status bar a second time on top of the
-        // holder's margin. Nothing is lost by it: the peek carries the navigation bar inset already
+        // stops the behaviour replacing the insets listener set up in init with one of its own,
+        // which would clear the status bar a second time on top of the holder's margin. Nothing is
+        // lost by it: the peek carries the navigation bar inset already
         behavior.isGestureInsetBottomIgnored = true
         behavior.state = BottomSheetBehavior.STATE_HIDDEN
         behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
@@ -406,8 +401,8 @@ class MetadataSheet @JvmOverloads constructor(
      * sheet is revealed, which is a layout pass earlier than the rows it is worked out from.
      */
     private fun updatePeekHeight(animate: Boolean = isSheetVisible) {
-        if (!insetsApplied || binding.metadataSheetSummary.isEmpty()) return
-        if (width == 0 || height == 0) return
+        if (!insetsApplied || width == 0 || height == 0) return
+        if (binding.metadataSheetSummary.isEmpty()) return
 
         val peekContent = binding.metadataSheetPeek.heightMeasuredAt(width)
         if (peekContent == 0) return

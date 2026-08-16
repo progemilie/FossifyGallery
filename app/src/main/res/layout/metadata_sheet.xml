@@ -109,9 +109,8 @@
                 tools:ignore="TextContrastCheck" />
 
             <!-- the one thing on the sheet that writes rather than reads, so it sits past everything
-                 the file has to say rather than among it. Laid out like a section heading - label at
-                 the same margin, icon where their chevrons are - so the column of text down the
-                 sheet is unbroken. Gone unless the file has something removable in it -->
+                 the file has to say. Laid out like a section heading so the column of text down the
+                 sheet is unbroken; gone unless the file has something removable in it -->
             <LinearLayout
                 android:id="@+id/metadata_sheet_strip"
                 android:layout_width="match_parent"

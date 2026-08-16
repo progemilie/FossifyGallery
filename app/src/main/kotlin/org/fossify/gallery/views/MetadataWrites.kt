@@ -11,12 +11,11 @@ import org.fossify.gallery.models.MetadataGroup
 
 /**
  * The two things the metadata sheet writes rather than reads: the caption a file carries about
- * itself, and taking metadata back off it.
+ * itself, and taking metadata back off it. Kept out of [MetadataSheet], which is about how the panel
+ * behaves rather than about editing the file behind it.
  *
- * Kept out of [MetadataSheet], which is about how the panel behaves rather than about editing the
- * file behind it. Neither of these patches what is on screen - both call [onFileChanged], which
- * reads the file again: a write may have been refused, or have shifted more than it was asked to,
- * and what the file says now is the only thing worth showing.
+ * Neither patches what is on screen - both call [onFileChanged], which reads the file again: a write
+ * may have been refused, or have shifted more than it was asked to.
  */
 internal class MetadataWrites(
     private val viewer: BaseViewerActivity,
