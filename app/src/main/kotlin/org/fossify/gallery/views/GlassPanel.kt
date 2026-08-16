@@ -44,6 +44,13 @@ open class GlassPanel @JvmOverloads constructor(
             backdrop?.setBlurRadius(value)
         }
 
+    /** How thick the wash over the blur is. See [Glass.overlay]. */
+    var overlayAlpha = Glass.TINT_ALPHA
+        set(value) {
+            field = value
+            updateColors()
+        }
+
     /** Rounds the panel, the blur inside it and the shadow it casts alike. */
     var cornerRadius = 0f
         set(value) {
@@ -126,7 +133,7 @@ open class GlassPanel @JvmOverloads constructor(
             // the frame clear above stands in for that background and stays the real colour, so the
             // lift rides on the tint instead - the panel parts company with the app behind it without
             // the frost parting company with the content it is a copy of
-            .setOverlayColor(Glass.overlay(context))
+            .setOverlayColor(Glass.overlay(context, overlayAlpha))
     }
 
     /**

@@ -71,16 +71,19 @@
     <item
         android:id="@+id/settings"
         android:icon="@drawable/ic_settings_cog_vector"
+        android:showAsAction="never"
         android:title="@string/settings"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/about"
         android:icon="@drawable/ic_info_vector"
+        android:showAsAction="never"
         android:title="@string/about"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/more_apps_from_us"
         android:icon="@drawable/ic_google_play_vector"
+        android:showAsAction="never"
         android:title="@string/more_fossify_apps"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
 </menu>

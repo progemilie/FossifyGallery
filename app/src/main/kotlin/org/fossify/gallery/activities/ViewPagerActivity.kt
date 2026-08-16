@@ -191,10 +191,12 @@ import org.fossify.gallery.helpers.TYPE_PORTRAITS
 import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.TYPE_VIDEOS
+import org.fossify.gallery.helpers.VIEWER_MENU
 import org.fossify.gallery.helpers.ViewerHeader
 import org.fossify.gallery.helpers.getPermissionToRequest
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
+import org.fossify.gallery.views.GlassMenu
 import org.fossify.gallery.views.MetadataSheet
 import org.fossify.gallery.views.QuickFolder
 import org.fossify.gallery.views.holdToChoose
@@ -410,6 +412,9 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         }
 
         updateMenuItemColors(binding.mediumViewerToolbar.menu, forceWhiteIcons = true)
+        GlassMenu.replaceOverflow(
+            binding.mediumViewerToolbar, VIEWER_MENU, binding.fragmentHolder
+        )
         binding.mediumViewerToolbar.setOnMenuItemClickListener { menuItem ->
             if (getCurrentMedium() == null) {
                 return@setOnMenuItemClickListener true

@@ -120,6 +120,7 @@ import org.fossify.gallery.extensions.tryDeleteFileDirItem
 import org.fossify.gallery.extensions.updateDBDirectory
 import org.fossify.gallery.extensions.updateWidgets
 import org.fossify.gallery.helpers.DIRECTORY
+import org.fossify.gallery.helpers.FOLDER_GRID_MENU
 import org.fossify.gallery.helpers.FloatingTopBar
 import org.fossify.gallery.helpers.GET_ANY_INTENT
 import org.fossify.gallery.helpers.GET_IMAGE_INTENT
@@ -151,6 +152,7 @@ import org.fossify.gallery.interfaces.DirectoryOperationsListener
 import org.fossify.gallery.jobs.NewPhotoFetcher
 import org.fossify.gallery.models.Directory
 import org.fossify.gallery.models.Medium
+import org.fossify.gallery.views.GlassMenu
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -526,6 +528,9 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         binding.mainMenu.requireToolbar().inflateMenu(menuId)
         binding.mainMenu.setupMenu()
         updateTopBarPanning()
+        GlassMenu.replaceOverflow(
+            binding.mainMenu.requireToolbar(), FOLDER_GRID_MENU, binding.directoriesHolder
+        )
 
         binding.mainMenu.onSearchOpenListener = {
             if (config.searchAllFilesByDefault) {

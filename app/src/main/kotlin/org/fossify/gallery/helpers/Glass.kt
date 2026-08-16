@@ -24,7 +24,10 @@ object Glass {
     const val CHOOSER_RADIUS = DEFAULT_RADIUS
 
     /** How much of the blur is left showing through the panel's own colour. */
-    private const val TINT_ALPHA = 0.5f
+    const val TINT_ALPHA = 0.5f
+
+    /** What a panel covered in text is thickened to, so its labels read over a dark photo. */
+    const val TEXT_TINT_ALPHA = 0.6f
 
     /** What a panel falls back to where there is no cheap blur to be had. */
     private const val FLAT_ALPHA = 0.97f
@@ -79,7 +82,7 @@ object Glass {
     }
 
     /** The wash laid over the blurred copy. */
-    fun overlay(context: Context) = tint(context).adjustAlpha(TINT_ALPHA)
+    fun overlay(context: Context, alpha: Float = TINT_ALPHA) = tint(context).adjustAlpha(alpha)
 
     /** The fill a panel wears instead of a blur. */
     fun flatFill(context: Context) = tint(context).adjustAlpha(FLAT_ALPHA)

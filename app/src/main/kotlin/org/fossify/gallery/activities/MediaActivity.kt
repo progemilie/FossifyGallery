@@ -101,6 +101,7 @@ import org.fossify.gallery.helpers.GET_VIDEO_INTENT
 import org.fossify.gallery.helpers.GridSpacingItemDecoration
 import org.fossify.gallery.helpers.IS_IN_RECYCLE_BIN
 import org.fossify.gallery.helpers.MAX_COLUMN_COUNT
+import org.fossify.gallery.helpers.MEDIA_GRID_MENU
 import org.fossify.gallery.helpers.MediaFetcher
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.PICKED_PATHS
@@ -120,6 +121,7 @@ import org.fossify.gallery.interfaces.MediaOperationsListener
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
 import org.fossify.gallery.models.ThumbnailSection
+import org.fossify.gallery.views.GlassMenu
 import java.io.File
 import java.io.IOException
 
@@ -414,6 +416,9 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         binding.mediaMenu.requireToolbar().inflateMenu(R.menu.menu_media)
         binding.mediaMenu.setupMenu()
         updateTopBarPanning()
+        GlassMenu.replaceOverflow(
+            binding.mediaMenu.requireToolbar(), MEDIA_GRID_MENU, binding.mediaHolder
+        )
 
         binding.mediaMenu.onSearchTextChangedListener = { text ->
             mLastSearchedText = text
