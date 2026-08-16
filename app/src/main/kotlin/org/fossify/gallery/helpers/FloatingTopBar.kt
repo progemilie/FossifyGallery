@@ -99,7 +99,7 @@ class FloatingTopBar(
      */
     private fun castPillShadow(pill: ViewGroup) {
         pill.outlineProvider = pillOutline
-        pill.elevation = resources.getDimension(R.dimen.search_pill_elevation)
+        pill.elevation = resources.getDimension(R.dimen.floating_chrome_elevation)
 
         var parent = pill.parent
         while (parent is ViewGroup) {

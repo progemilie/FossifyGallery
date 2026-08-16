@@ -2,13 +2,21 @@
 <!--
     The frosted drop-down the browsing screens open from their three dots.
 
-    The outer frame is padding and nothing else: a shadow is drawn outside the view casting it, and
-    this is the room the panel's shadow needs inside the popup window that holds it.
+    The outer frame is room and nothing else. A shadow is drawn outside the view casting it, and the
+    panel has no app-owned parent to spill into - the popup window it lives in ends at its own edge -
+    so the room is made here instead, the way FloatingTopBar makes it for the search pill by
+    unclipping every parent between that pill and the CoordinatorLayout.
+
+    The padding alone is not enough: a group clips its drawing to its padding box unless told not to,
+    which is exactly the panel's own bounds and would leave nothing of the shadow but the little that
+    falls inside the rounded corners.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/glass_menu_frame"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:padding="@dimen/glass_menu_shadow_room">
 
     <org.fossify.gallery.views.GlassPanel

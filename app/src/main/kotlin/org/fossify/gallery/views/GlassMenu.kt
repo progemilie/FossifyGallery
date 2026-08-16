@@ -68,7 +68,7 @@ class GlassMenu private constructor(
             cornerRadius = resources.getDimension(R.dimen.glass_menu_corner_radius)
             blurRadius = Glass.DEFAULT_RADIUS
             overlayAlpha = Glass.TEXT_TINT_ALPHA
-            elevation = resources.getDimension(R.dimen.glass_menu_elevation)
+            elevation = resources.getDimension(R.dimen.floating_chrome_elevation)
             // so a tap that lands between rows stops at the panel rather than counting as a miss
             isClickable = true
         }

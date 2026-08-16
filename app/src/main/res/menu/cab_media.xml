@@ -99,12 +99,12 @@
         app:showAsAction="ifRoom" />
     <item
         android:id="@+id/cab_add_to_favorites"
-        android:icon="@drawable/ic_star_outline_vector"
+        android:icon="@drawable/ic_heart_outline_vector"
         android:title="@string/add_to_favorites"
         app:showAsAction="ifRoom" />
     <item
         android:id="@+id/cab_remove_from_favorites"
-        android:icon="@drawable/ic_star_vector"
+        android:icon="@drawable/ic_heart_vector"
         android:title="@string/remove_from_favorites"
         app:showAsAction="ifRoom" />
     <item

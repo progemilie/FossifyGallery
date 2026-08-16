@@ -26,11 +26,8 @@ object Glass {
     /** How much of the blur is left showing through the panel's own colour. */
     const val TINT_ALPHA = 0.5f
 
-    /**
-     * What a panel covered in text is thickened to. Half a wash is plenty behind a row of icons,
-     * but a list of labels over a dark photo has to be read rather than merely seen.
-     */
-    const val TEXT_TINT_ALPHA = 0.87f
+    /** What a panel covered in text is thickened to, so its labels read over a dark photo. */
+    const val TEXT_TINT_ALPHA = 0.6f
 
     /** What a panel falls back to where there is no cheap blur to be had. */
     private const val FLAT_ALPHA = 0.97f

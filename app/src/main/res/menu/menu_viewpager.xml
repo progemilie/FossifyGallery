@@ -12,13 +12,15 @@
     <item
         android:id="@+id/menu_delete"
         android:icon="@drawable/ic_delete_vector"
+        android:showAsAction="never"
         android:title="@string/delete"
-        app:showAsAction="always" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/menu_share"
         android:icon="@drawable/ic_share_vector"
+        android:showAsAction="never"
         android:title="@string/share"
-        app:showAsAction="always" />
+        app:showAsAction="never" />
     <!-- overflow only: the top bar is the file's heading now, not a row of tools -->
     <item
         android:id="@+id/menu_rotate"
@@ -37,8 +39,9 @@
                 android:title="@string/rotate_one_eighty" />
         </menu>
     </item>
-    <!-- overflow only: mirror earns a spot on the toolbar no more than any other action does, and
-         has its own bottom-bar button when it is switched on there -->
+    <!-- the one editing action kept a tap away on the toolbar. Being the first item asking for room
+         it takes a slot whenever it is visible, which it is not once it has a bottom-bar button or
+         once the photo has a rotation waiting to be saved -->
     <item
         android:id="@+id/menu_mirror"
         android:icon="@drawable/ic_flip_horizontally_vector"
@@ -47,8 +50,9 @@
     <item
         android:id="@+id/menu_properties"
         android:icon="@drawable/ic_info_vector"
+        android:showAsAction="never"
         android:title="@string/properties"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/menu_rename"
         android:title="@string/rename"
@@ -56,13 +60,15 @@
     <item
         android:id="@+id/menu_hide"
         android:icon="@drawable/ic_hide_vector"
+        android:showAsAction="never"
         android:title="@string/hide"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/menu_unhide"
         android:icon="@drawable/ic_unhide_vector"
+        android:showAsAction="never"
         android:title="@string/unhide"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/menu_copy_to_clipboard"
         android:showAsAction="never"
@@ -96,16 +102,17 @@
     <item
         android:id="@+id/menu_edit"
         android:icon="@drawable/ic_edit_vector"
+        android:showAsAction="never"
         android:title="@string/edit"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/menu_add_to_favorites"
-        android:icon="@drawable/ic_star_outline_vector"
+        android:icon="@drawable/ic_heart_outline_vector"
         android:title="@string/add_to_favorites"
         app:showAsAction="ifRoom" />
     <item
         android:id="@+id/menu_remove_from_favorites"
-        android:icon="@drawable/ic_star_vector"
+        android:icon="@drawable/ic_heart_vector"
         android:title="@string/remove_from_favorites"
         app:showAsAction="ifRoom" />
     <item
@@ -150,11 +157,13 @@
     <item
         android:id="@+id/menu_slideshow"
         android:icon="@drawable/ic_slideshow_vector"
+        android:showAsAction="never"
         android:title="@string/slideshow"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/menu_settings"
         android:icon="@drawable/ic_settings_cog_vector"
+        android:showAsAction="never"
         android:title="@string/settings"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
 </menu>

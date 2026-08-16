@@ -100,11 +100,15 @@ val MEDIA_GRID_MENU = MenuSpec(
 val VIEWER_MENU = MenuSpec(
     listOf(
         listOf(
+            icons(
+                MenuIcon(R.id.menu_mirror, R.drawable.ic_flip_horizontally_vector),
+                MenuIcon(R.id.menu_edit, commonsR.drawable.ic_edit_vector),
+                MenuIcon(R.id.menu_resize, R.drawable.ic_minimize_vector),
+            ),
             row(R.id.menu_rotate),
-            row(R.id.menu_mirror),
-            row(R.id.menu_edit),
-            row(R.id.menu_resize),
+            // kept beside the rotation it exists to commit
             row(R.id.menu_save_as),
+            row(R.id.menu_rename),
         ),
         listOf(
             icons(
@@ -114,14 +118,13 @@ val VIEWER_MENU = MenuSpec(
                 MenuIcon(R.id.menu_unhide, commonsR.drawable.ic_unhide_vector),
                 MenuIcon(R.id.menu_copy_to, commonsR.drawable.ic_copy_vector),
                 MenuIcon(R.id.menu_move_to, commonsR.drawable.ic_move_vector),
+                MenuIcon(R.id.menu_share, commonsR.drawable.ic_share_vector),
+                MenuIcon(R.id.menu_delete, commonsR.drawable.ic_delete_vector),
             ),
-            row(R.id.menu_rename),
             row(R.id.menu_copy_to_clipboard),
             row(R.id.menu_open_with),
             row(R.id.menu_set_as),
             row(R.id.menu_create_shortcut),
-            row(R.id.menu_share),
-            row(R.id.menu_delete),
             row(R.id.menu_restore_file),
         ),
         listOf(

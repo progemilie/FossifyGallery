@@ -94,19 +94,20 @@
 
     <!-- the frosted drop-down the three browsing screens open from their three dots -->
     <dimen name="glass_menu_corner_radius">20dp</dimen>
-    <dimen name="glass_menu_elevation">8dp</dimen>
     <!-- padding kept around the panel inside its popup, for the shadow to be drawn into -->
     <dimen name="glass_menu_shadow_room">12dp</dimen>
-    <dimen name="glass_menu_padding_vertical">8dp</dimen>
-    <dimen name="glass_menu_row_height">48dp</dimen>
+    <dimen name="glass_menu_padding_vertical">6dp</dimen>
+    <dimen name="glass_menu_row_height">44dp</dimen>
     <dimen name="glass_menu_row_padding">20dp</dimen>
     <dimen name="glass_menu_min_width">200dp</dimen>
     <dimen name="glass_menu_max_width">300dp</dimen>
     <dimen name="glass_menu_chevron_size">20dp</dimen>
-    <dimen name="glass_menu_icon_row_height">52dp</dimen>
+    <dimen name="glass_menu_icon_row_height">48dp</dimen>
     <dimen name="glass_menu_icon_row_padding">12dp</dimen>
-    <dimen name="glass_menu_icon_padding">14dp</dimen>
-    <dimen name="glass_menu_divider_height">13dp</dimen>
+    <!-- an icon row can run to six, which at any more padding than this would either widen the
+         panel past glass_menu_max_width or squeeze the icons down inside their own cells -->
+    <dimen name="glass_menu_icon_padding">10dp</dimen>
+    <dimen name="glass_menu_divider_height">11dp</dimen>
     <dimen name="glass_menu_divider_dot">2dp</dimen>
     <dimen name="glass_menu_divider_thickness">2dp</dimen>
     <!-- how far the drop-down hangs below the three dots, and how clear of the screen edge it stays -->
@@ -115,7 +116,8 @@
 
     <dimen name="bottom_fade_height">60dp</dimen>
     <dimen name="top_fade_height">70dp</dimen>
-    <dimen name="search_pill_elevation">3dp</dimen>
+    <!-- the search pill and the drop-down that hangs off it cast the one same shadow -->
+    <dimen name="floating_chrome_elevation">3dp</dimen>
     <dimen name="top_bar_hide_threshold">200dp</dimen>
     <dimen name="top_bar_show_threshold">8dp</dimen>
     <!-- how far below the floating bar a pull to refresh spinner comes to rest -->
