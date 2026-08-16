@@ -4,16 +4,10 @@ Fork-only changes, newest first. Small fixes are left out.
 
 ## [v1.11.0] - 2026.08.16 — removing metadata
 
-- **Remove metadata** from the metadata sheet: pick what comes off the file — location, orientation,
-  camera and capture details, descriptions and ratings, captions, colour profile, comments — or
-  select everything in one tap. Only what the file actually carries is offered.
-- Location and orientation can each go on their own, out of both the Exif and the XMP, with the rest
-  of the camera details left in place. Removing everything else keeps the orientation, so a stripped
-  photo does not come out sideways.
-- **Save as a new file** writes the stripped copy next to the original instead of over it.
-- The picture is never re-encoded, so a stripped file is pixel for pixel the file it came from.
-  JPG, PNG and WebP.
-- Fixed the metadata sheet resting a status bar's height too high when first opened.
+- **Remove metadata** from the metadata sheet: location, camera details, captions, colour profile and
+  the rest — pick what comes off the file, or take everything in one tap. Only what the file actually
+  carries is offered.
+- **Save as a new file** puts the stripped copy beside the original instead of writing over it.
 
 ## [v1.10.2] - 2026.08.16 — metadata, settings
 
