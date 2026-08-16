@@ -94,8 +94,12 @@ object MetadataStripper {
 
     /**
      * Puts the two Exif fields right in the file just written: clears whichever of them was asked
-     * for and the whole Exif did not already take, and writes [orientation] back if the block it was
-     * in has gone.
+     * for, in the Exif and in the XMP alike, and writes [orientation] back if the block it was in
+     * has gone.
+     *
+     * The two copies are settled separately because the blocks they live in go separately. Dropping
+     * the whole Exif takes its copy along with it, but says nothing about the XMP's - a location
+     * left in the packet is still a location, and the dialog has just promised it would go.
      *
      * ExifInterface rewrites the whole block from what it parsed, so anything in there it does not
      * understand - a maker note, above all - does not survive this either. That is a fair trade for
@@ -103,29 +107,43 @@ object MetadataStripper {
      */
     private fun settleExifFields(file: File, groups: Set<MetadataGroup>, orientation: String?) {
         val exifDropped = MetadataGroup.EXIF in groups
-        val clearLocation = MetadataGroup.LOCATION in groups && !exifDropped
-        val clearOrientation = MetadataGroup.ORIENTATION in groups && !exifDropped
-        val restoreOrientation = exifDropped && orientation != null
-        if (!clearLocation && !clearOrientation && !restoreOrientation) {
+        val inExif = if (exifDropped) emptySet() else groups intersect FIELD_GROUPS
+        val inXmp = if (MetadataGroup.XMP in groups) emptySet() else groups intersect FIELD_GROUPS
+        val restored = orientation.takeIf { exifDropped }
+        if (inExif.isEmpty() && inXmp.isEmpty() && restored == null) {
             return
         }
 
         val exif = ExifInterface(file.absolutePath)
-        if (clearLocation) GPS_TAGS.forEach { exif.setAttribute(it, null) }
-        if (clearOrientation) exif.setAttribute(ExifInterface.TAG_ORIENTATION, null)
-        if (restoreOrientation) exif.setAttribute(ExifInterface.TAG_ORIENTATION, orientation)
+        if (MetadataGroup.LOCATION in inExif) GPS_TAGS.forEach { exif.setAttribute(it, null) }
+        if (MetadataGroup.ORIENTATION in inExif) exif.setAttribute(ExifInterface.TAG_ORIENTATION, null)
+        if (restored != null) exif.setAttribute(ExifInterface.TAG_ORIENTATION, restored)
 
-        val xmp = exif.getXmpPacket()
-        var cleared = if (clearLocation) XmpLocation.remove(xmp) else xmp
-        if (clearOrientation) cleared = XmpOrientation.remove(cleared)
-        if (cleared != xmp) {
-            // null removes the packet outright, which is what a packet holding nothing else leaves
-            exif.setAttribute(ExifInterface.TAG_XMP, cleared)
+        val xmpCleared = exif.clearXmpFields(inXmp)
+        // nothing written means nothing to save: saveAttributes would put an Exif block back into a
+        // file that has just had every one of them taken out
+        if (inExif.isNotEmpty() || restored != null || xmpCleared) {
+            exif.saveAttributes()
         }
+    }
 
-        exif.saveAttributes()
+    /** Takes [fields] out of the file's XMP packet, returning whether the packet changed at all. */
+    private fun ExifInterface.clearXmpFields(fields: Set<MetadataGroup>): Boolean {
+        if (fields.isEmpty()) return false
+
+        val xmp = getXmpPacket()
+        var cleared = if (MetadataGroup.LOCATION in fields) XmpLocation.remove(xmp) else xmp
+        if (MetadataGroup.ORIENTATION in fields) cleared = XmpOrientation.remove(cleared)
+        if (cleared == xmp) return false
+
+        // null removes the packet outright, which is what a packet holding nothing else leaves
+        setAttribute(ExifInterface.TAG_XMP, cleared)
+        return true
     }
 }
+
+/** The groups that are fields inside another block rather than a block of their own. */
+private val FIELD_GROUPS = setOf(MetadataGroup.LOCATION, MetadataGroup.ORIENTATION)
 
 /**
  * Every GPS tag ExifInterface names, picked out of the list the app already keeps of them rather
