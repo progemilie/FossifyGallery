@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+    A media item in a grid zoomed out past the point of reading one: the picture and nothing else,
+    no holder around it and no badges over it. See GridZoom.
+-->
+<org.fossify.commons.views.MySquareImageView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/medium_thumbnail"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:contentDescription="@null"
+    tools:src="@mipmap/ic_launcher" />

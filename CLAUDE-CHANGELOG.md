@@ -2,6 +2,15 @@
 
 Fork-only changes, newest first. Small fixes are left out.
 
+## [v1.12.0] - 2026.08.17 — zooming the media grid out
+
+- **Zoomed-out media grid** — pinching past seven columns now steps 10, 14, 20 rather than one
+  column at a time, and those counts draw stripped tiles: the picture alone, no badges, no name, no
+  selection. A screenful of several hundred stays smooth where it used to stall.
+- **Tap to zoom back in** — a tap in the zoomed-out grid steps one count back down and keeps
+  whatever was under your finger under it.
+- Grouping headers are left out while zoomed out, so the tiles make one unbroken grid.
+
 ## [v1.11.0] - 2026.08.16 — removing metadata
 
 - **Remove metadata** from the metadata sheet: location, camera details, captions, colour profile and
@@ -84,6 +93,7 @@ Initial fork work, landed over 2026.08.06–08.09 before fork versions were trac
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
 
+[v1.12.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.12.0
 [v1.11.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.11.0
 [v1.10.2]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.10.2
 [v1.9.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.9.0

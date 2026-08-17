@@ -81,6 +81,7 @@ import org.fossify.gallery.R
 import org.fossify.gallery.asynctasks.GetMediaAsynctask
 import org.fossify.gallery.databases.GalleryDatabase
 import org.fossify.gallery.helpers.Config
+import org.fossify.gallery.helpers.GridZoom
 import org.fossify.gallery.helpers.GROUP_BY_DATE_TAKEN_DAILY
 import org.fossify.gallery.helpers.GROUP_BY_DATE_TAKEN_MONTHLY
 import org.fossify.gallery.helpers.GROUP_BY_LAST_MODIFIED_DAILY
@@ -655,6 +656,17 @@ fun Context.loadImage(
         )
     }
 }
+
+/** The ladder of column counts the media grid can be pinched through on this screen. */
+fun Context.mediaGridZoom() = GridZoom.forMediaGrid(this, config.scrollHorizontally)
+
+/**
+ * The stored media column count, held to what a grid whose items can still be tapped shows. Screens
+ * with no pinch of their own read this rather than the count itself, which the media grid may have
+ * left far past the point where an item is drawn in full.
+ */
+fun Context.interactiveMediaColumnCnt() =
+    config.mediaColumnCnt.coerceAtMost(mediaGridZoom().interactiveMax)
 
 fun Context.addTempFolderIfNeeded(dirs: ArrayList<Directory>): ArrayList<Directory> {
     val tempFolderPath = config.tempFolderPath

@@ -80,13 +80,39 @@ not the pass over the entropy-coded data — a 12MP JPEG costs the same ~37ms at
 own orientation, or a rotated photo faces different ways in the grid and the viewer.
 
 Every Glide thumbnail goes through `loadImageBase()`, which is also where the WebP decoder is held
-to the safe path (CVE-2023-4863).
+to the safe path (CVE-2023-4863) — except the zoomed-out media grid, which has its own loader below.
 
 Cache keys everywhere are derived from path + last-modified + size (`Medium.getSignature()`,
 `Directory.getKey()`). **Anything that edits a file in place must call
 `TransformedMedia.onTransformed(path)`** before touching caches — it bumps a per-path version folded
 into both keys, plus a global generation counter screens use to decide whether to rebind stale
 bitmaps. An edit leaving size and timestamp unchanged is otherwise invisible to every cache.
+
+### The zoomed-out media grid
+
+Past a certain tile size a thumbnail is only its picture, and a screenful is several hundred of them.
+`helpers/GridZoom.kt` is the ladder of column counts the media grid can be pinched through: every
+count up to `interactiveMax` unchanged, then a few **simplified** rungs spaced ~1.4x apart. It is
+derived from the tile size in dp, not written down, so landscape, tablets and the sideways grid
+(whose span count is rows) all reach the same tiles. On a normal phone that comes out as 1-7, then
+10, 14, 20.
+
+On a simplified rung `MediaAdapter` binds `photo_item_grid_simple.xml` — a bare `MySquareImageView`,
+no listeners, no badges, no selection — and `MediaActivity.mediaForGrid()` drops the grouping
+headers, which would otherwise leave ragged gaps. Nothing there is tappable, so a tap zooms in one
+rung and scrolls the item that was under the finger back under it.
+
+`helpers/SimpleThumbnailLoader.kt` exists because a fling across twenty columns binds ~100 items in
+one frame: it prepares the Glide request **once** and reuses it, where `loadImageBase()` rebuilds
+options, transformations, transition and listener every call. One `override()` size for all rungs
+puts them on a single cache entry, so pinching between rungs decodes nothing. The placeholder is
+Glide's, not a view background — a background stays under the loaded picture forever, which at these
+counts is a second screenful of drawing. Its `DiskCacheStrategy.RESOURCE` is measured, not assumed:
+turning it off was clearly worse even though the source is an embedded thumbnail.
+
+Screens with no pinch of their own (search, the picker dialog) must read
+`interactiveMediaColumnCnt()` rather than `Config.mediaColumnCnt`, or they inherit a count whose
+items cannot be tapped.
 
 ### Per-folder custom media order
 
