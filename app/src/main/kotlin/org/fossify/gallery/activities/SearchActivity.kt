@@ -157,7 +157,7 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
                 binding.searchGrid.removeItemDecorationAt(0)
             }
 
-            val spanCount = config.mediaColumnCnt
+            val spanCount = interactiveMediaColumnCnt()
             val spacing = config.thumbnailSpacing
             val decoration = GridSpacingItemDecoration(spanCount, spacing, config.scrollHorizontally, config.fileRoundedCorners, media, true)
             binding.searchGrid.addItemDecoration(decoration)
@@ -213,7 +213,7 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
             binding.searchGrid.layoutParams = RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
 
-        layoutManager.spanCount = config.mediaColumnCnt
+        layoutManager.spanCount = interactiveMediaColumnCnt()
         val adapter = getMediaAdapter()
         layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
             override fun getSpanSize(position: Int): Int {

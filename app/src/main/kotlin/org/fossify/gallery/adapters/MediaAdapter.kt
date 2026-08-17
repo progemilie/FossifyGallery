@@ -1,5 +1,6 @@
 package org.fossify.gallery.adapters
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
@@ -51,9 +52,11 @@ import org.fossify.commons.helpers.isRPlus
 import org.fossify.commons.helpers.sumByLong
 import org.fossify.commons.models.FileDirItem
 import org.fossify.commons.views.MyRecyclerView
+import org.fossify.commons.views.MySquareImageView
 import org.fossify.gallery.R
 import org.fossify.gallery.activities.ViewPagerActivity
 import org.fossify.gallery.databinding.PhotoItemGridBinding
+import org.fossify.gallery.databinding.PhotoItemGridSimpleBinding
 import org.fossify.gallery.databinding.PhotoItemListBinding
 import org.fossify.gallery.databinding.ThumbnailSectionBinding
 import org.fossify.gallery.databinding.VideoItemGridBinding
@@ -68,6 +71,8 @@ import org.fossify.gallery.extensions.handleMediaManagementPrompt
 import org.fossify.gallery.extensions.launchResizeImageDialog
 import org.fossify.gallery.extensions.launchResizeMultipleImagesDialog
 import org.fossify.gallery.extensions.loadImage
+import org.fossify.gallery.extensions.loadSVG
+import org.fossify.gallery.extensions.mediaGridZoom
 import org.fossify.gallery.extensions.openEditor
 import org.fossify.gallery.extensions.openPath
 import org.fossify.gallery.extensions.rescanFolderMedia
@@ -84,6 +89,7 @@ import org.fossify.gallery.extensions.updateDBMediaPath
 import org.fossify.gallery.extensions.updateFavorite
 import org.fossify.gallery.extensions.updateFavoritePaths
 import org.fossify.gallery.extensions.updateFilesRating
+import org.fossify.gallery.helpers.GridZoom
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
@@ -92,9 +98,11 @@ import org.fossify.gallery.helpers.ROUNDED_CORNERS_SMALL
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_FAVORITES
 import org.fossify.gallery.helpers.SHOW_RECYCLE_BIN
+import org.fossify.gallery.helpers.SimpleThumbnailLoader
 import org.fossify.gallery.helpers.TransformedMedia
 import org.fossify.gallery.helpers.TYPE_GIFS
 import org.fossify.gallery.helpers.TYPE_RAWS
+import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.interfaces.MediaOperationsListener
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
@@ -113,9 +121,18 @@ class MediaAdapter(
 ) : MyRecyclerViewAdapter(activity, recyclerView, itemClick),
     RecyclerViewFastScroller.OnPopupTextUpdate {
 
-    private val ITEM_SECTION = 0
-    private val ITEM_MEDIUM_VIDEO_PORTRAIT = 1
-    private val ITEM_MEDIUM_PHOTO = 2
+    private companion object {
+        const val ITEM_SECTION = 0
+        const val ITEM_MEDIUM_VIDEO_PORTRAIT = 1
+        const val ITEM_MEDIUM_PHOTO = 2
+        const val ITEM_MEDIUM_SIMPLE = 3
+
+        /** Rows' worth of items the recycler keeps bound off screen. */
+        const val CACHED_ROWS = 2
+
+        /** Rows' worth of each item type the recycler keeps to recycle. */
+        const val POOLED_ROWS = 3
+    }
 
     private val config = activity.config
     private val viewType = config.getFolderViewType(if (config.showAll) SHOW_ALL else path)
@@ -130,6 +147,23 @@ class MediaAdapter(
 
     /** Drag-to-arrange, which takes over the grid's gestures while it is on. */
     val reorderMode = MediaReorderMode(this)
+
+    /**
+     * Whether every item is drawn as its picture and nothing else - see [GridZoom]. Only the media
+     * grid turns this on; screens with no pinch of their own stay at interactive counts.
+     */
+    var isSimplified = false
+        private set
+
+    // built on first use, since most grids never zoom out far enough to want one, and dropped
+    // whenever something it was prepared with changes
+    private var preparedSimpleThumbnails: SimpleThumbnailLoader? = null
+    private val simpleThumbnails: SimpleThumbnailLoader
+        get() = preparedSimpleThumbnails ?: SimpleThumbnailLoader(
+            context = activity,
+            cropThumbnails = cropThumbnails,
+            size = activity.mediaGridZoom().simpleThumbnailSize
+        ).also { preparedSimpleThumbnails = it }
 
     private var scrollHorizontally = config.scrollHorizontally
     private var animateGifs = config.animateGifs
@@ -149,16 +183,18 @@ class MediaAdapter(
     override fun getActionMenuId() = R.menu.cab_media
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val binding = if (viewType == ITEM_SECTION) {
-            ThumbnailSectionBinding.inflate(layoutInflater, parent, false)
-        } else {
-            if (isListViewType) {
+        val binding = when {
+            viewType == ITEM_SECTION -> ThumbnailSectionBinding.inflate(layoutInflater, parent, false)
+            viewType == ITEM_MEDIUM_SIMPLE -> PhotoItemGridSimpleBinding.inflate(layoutInflater, parent, false)
+            isListViewType -> {
                 if (viewType == ITEM_MEDIUM_PHOTO) {
                     PhotoItemListBinding.inflate(layoutInflater, parent, false)
                 } else {
                     VideoItemListBinding.inflate(layoutInflater, parent, false)
                 }
-            } else {
+            }
+
+            else -> {
                 if (viewType == ITEM_MEDIUM_PHOTO) {
                     PhotoItemGridBinding.inflate(layoutInflater, parent, false)
                 } else {
@@ -171,6 +207,13 @@ class MediaAdapter(
 
     override fun onBindViewHolder(holder: MyRecyclerViewAdapter.ViewHolder, position: Int) {
         val tmbItem = media.getOrNull(position) ?: return
+        // nothing an item normally carries: no click, no long press, no selection, no badges
+        if (isSimplified && tmbItem is Medium) {
+            setupSimpleThumbnail(holder.itemView, tmbItem)
+            bindViewHolder(holder)
+            return
+        }
+
         val isReordering = reorderMode.isActive
         val allowLongPress = !isReordering && (!isAGetIntent || allowMultiplePicks) && tmbItem is Medium
         holder.bindView(tmbItem, !isReordering && tmbItem is Medium, allowLongPress) { itemView, adapterPosition ->
@@ -196,6 +239,7 @@ class MediaAdapter(
         val tmbItem = media[position]
         return when {
             tmbItem is ThumbnailSection -> ITEM_SECTION
+            isSimplified -> ITEM_MEDIUM_SIMPLE
             (tmbItem as Medium).isVideo() || tmbItem.isPortrait() -> ITEM_MEDIUM_VIDEO_PORTRAIT
             else -> ITEM_MEDIUM_PHOTO
         }
@@ -277,14 +321,21 @@ class MediaAdapter(
 
     override fun onViewRecycled(holder: ViewHolder) {
         super.onViewRecycled(holder)
-        if (!activity.isDestroyed) {
-            val itemView = holder.itemView
-            resetTransientItemState(itemView)
+        if (activity.isDestroyed) {
+            return
+        }
 
-            val tmb = itemView.allViews.firstOrNull { it.id == R.id.medium_thumbnail }
-            if (tmb != null) {
-                Glide.with(activity).clear(tmb)
-            }
+        val itemView = holder.itemView
+        // a simplified item is its own thumbnail and carries none of the state below
+        if (itemView.id == R.id.medium_thumbnail) {
+            simpleThumbnails.clear(itemView)
+            return
+        }
+
+        resetTransientItemState(itemView)
+        val tmb = itemView.allViews.firstOrNull { it.id == R.id.medium_thumbnail }
+        if (tmb != null) {
+            Glide.with(activity).clear(tmb)
         }
     }
 
@@ -761,6 +812,40 @@ class MediaAdapter(
         }
     }
 
+    /** Sets the initial state, before the adapter has ever been laid out. See [setSimplified]. */
+    fun setSimplifiedInitially(simplified: Boolean) {
+        isSimplified = simplified
+    }
+
+    /**
+     * Crosses between full thumbnails and the stripped ones, taking the list with it - grouping
+     * headers are dropped from a simplified grid. See [GridZoom].
+     */
+    @SuppressLint("NotifyDataSetChanged") // every position changes its view type, and its item
+    fun setSimplified(simplified: Boolean, newMedia: ArrayList<ThumbnailItem>) {
+        if (isSimplified == simplified) {
+            return
+        }
+
+        isSimplified = simplified
+        finishActMode()
+        replaceMedia(newMedia)
+        notifyDataSetChanged()
+    }
+
+    /**
+     * Sizes the recycler's caches to the count being drawn. The defaults - two views off screen,
+     * five per type pooled - are a fraction of a row at twenty columns, where a fling would
+     * otherwise inflate items the whole way down.
+     */
+    fun tuneCachesForColumnCount(columnCount: Int) {
+        recyclerView.setItemViewCacheSize(columnCount * CACHED_ROWS)
+        val poolSize = columnCount * POOLED_ROWS
+        listOf(ITEM_MEDIUM_SIMPLE, ITEM_MEDIUM_PHOTO, ITEM_MEDIUM_VIDEO_PORTRAIT).forEach {
+            recyclerView.recycledViewPool.setMaxRecycledViews(it, poolSize)
+        }
+    }
+
     fun updateDisplayFilenames(displayFilenames: Boolean) {
         this.displayFilenames = displayFilenames
         notifyDataSetChanged()
@@ -773,6 +858,7 @@ class MediaAdapter(
 
     fun updateCropThumbnails(cropThumbnails: Boolean) {
         this.cropThumbnails = cropThumbnails
+        preparedSimpleThumbnails = null
         notifyDataSetChanged()
     }
 
@@ -922,6 +1008,29 @@ class MediaAdapter(
                 mediumName.setTextColor(textColor)
                 playPortraitOutline?.applyColorFilter(textColor)
             }
+        }
+    }
+
+    /** The whole of a simplified item: its picture, and nothing else at all. See [GridZoom]. */
+    private fun setupSimpleThumbnail(view: View, medium: Medium) {
+        val thumbnail = view as MySquareImageView
+        thumbnail.isHorizontalScrolling = scrollHorizontally
+
+        var path = medium.path
+        if (hasOTGConnected && thumbnail.context.isPathOnOTG(path)) {
+            path = path.getOTGPublicPath(thumbnail.context)
+        }
+
+        if (medium.type == TYPE_SVGS) {
+            activity.loadSVG(
+                path = path,
+                target = thumbnail,
+                cropThumbnails = cropThumbnails,
+                roundCorners = ROUNDED_CORNERS_NONE,
+                signature = medium.getKey()
+            )
+        } else {
+            simpleThumbnails.load(path, thumbnail, medium.getKey())
         }
     }
 

@@ -5,6 +5,8 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Handler
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.core.net.toUri
@@ -56,7 +58,6 @@ import org.fossify.commons.helpers.isRPlus
 import org.fossify.commons.models.FileDirItem
 import org.fossify.commons.models.RadioItem
 import org.fossify.commons.views.MyGridLayoutManager
-import org.fossify.commons.views.MyRecyclerView
 import org.fossify.gallery.R
 import org.fossify.gallery.adapters.MediaAdapter
 import org.fossify.gallery.adapters.MediaGridNavigator
@@ -83,6 +84,7 @@ import org.fossify.gallery.extensions.launchCamera
 import org.fossify.gallery.extensions.launchSettings
 import org.fossify.gallery.extensions.launchGesturePlayer
 import org.fossify.gallery.extensions.mediaDB
+import org.fossify.gallery.extensions.mediaGridZoom
 import org.fossify.gallery.extensions.movePathsInRecycleBin
 import org.fossify.gallery.extensions.openPath
 import org.fossify.gallery.extensions.openRecycleBin
@@ -98,9 +100,10 @@ import org.fossify.gallery.helpers.FloatingTopBar
 import org.fossify.gallery.helpers.GET_ANY_INTENT
 import org.fossify.gallery.helpers.GET_IMAGE_INTENT
 import org.fossify.gallery.helpers.GET_VIDEO_INTENT
+import org.fossify.gallery.helpers.GridPinchZoom
 import org.fossify.gallery.helpers.GridSpacingItemDecoration
+import org.fossify.gallery.helpers.GridZoom
 import org.fossify.gallery.helpers.IS_IN_RECYCLE_BIN
-import org.fossify.gallery.helpers.MAX_COLUMN_COUNT
 import org.fossify.gallery.helpers.MEDIA_GRID_MENU
 import org.fossify.gallery.helpers.MediaFetcher
 import org.fossify.gallery.helpers.PATH
@@ -149,7 +152,32 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private var mLastMediaHandler = Handler()
     private var mTempShowHiddenHandler = Handler()
     private var mCurrAsyncTask: GetMediaAsynctask? = null
-    private var mZoomListener: MyRecyclerView.MyZoomListener? = null
+    private var mDefaultItemAnimator: RecyclerView.ItemAnimator? = null
+
+    // what a search narrowed the grid down to, null when no search is open. Anything rebuilding the
+    // grid has to work from this rather than mMedia, or it puts the whole library back on screen
+    private var mSearchResults: ArrayList<ThumbnailItem>? = null
+
+    /**
+     * The item a zoom is keeping in place and how far down the grid to keep it. Held as a path
+     * rather than a position, which the dropped grouping headers shift.
+     */
+    private var mZoomAnchor: Pair<String, Float>? = null
+
+    // built on first use rather than here, where there is no context to read yet, and dropped when
+    // the scroll direction changes which axis it divides
+    private var mCachedGridZoom: GridZoom? = null
+    private val mGridZoom: GridZoom
+        get() = mCachedGridZoom ?: mediaGridZoom().also { mCachedGridZoom = it }
+
+    private val mPinchZoom by lazy {
+        GridPinchZoom(
+            recyclerView = binding.mediaGrid,
+            onZoomIn = { stepColumnCount(mGridZoom.zoomIn(config.mediaColumnCnt)) },
+            onZoomOut = { stepColumnCount(mGridZoom.zoomOut(config.mediaColumnCnt)) },
+            onPinchStart = ::captureZoomAnchor
+        )
+    }
 
     private var mStoredAnimateGifs = true
     private var mStoredCropThumbnails = true
@@ -197,6 +225,11 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         storeStateVariables()
         setupInsetPadding()
         setupFloatingTopBar()
+        // registering the pinch (which the lazy does) before the tap gives it first refusal on the
+        // grid's touches - item touch listeners are asked in the order they were added
+        mPinchZoom.isEnabled = isGridViewType()
+        setupZoomInOnTap()
+        mDefaultItemAnimator = binding.mediaGrid.itemAnimator
 
         if (mShowAll) {
             registerFileUpdateListener()
@@ -229,6 +262,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
         if (mStoredScrollHorizontally != config.scrollHorizontally) {
             mLoadedInitialPhotos = false
+            mCachedGridZoom = null
             binding.mediaGrid.adapter = null
             getMedia()
         }
@@ -530,6 +564,11 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             binding.mediaMenu.closeSearch()
         }
 
+        // arranging at a count where no single item can be picked out is not arranging anything
+        if (mGridZoom.isSimplified(config.mediaColumnCnt)) {
+            setColumnCount(mGridZoom.interactiveMax)
+        }
+
         val flatMedia = mMedia.filterIsInstance<Medium>().toMutableList() as ArrayList<ThumbnailItem>
         if (flatMedia.size < 2) {
             toast(R.string.reorder_needs_more_items)
@@ -676,8 +715,10 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                         binding.mediaFastscroller.beVisible()
                     }
 
-                    handleGridSpacing(grouped)
-                    getMediaAdapter()?.updateMedia(grouped)
+                    mSearchResults = if (text.isEmpty()) null else grouped
+                    val shown = mediaForGrid(grouped)
+                    handleGridSpacing(shown)
+                    getMediaAdapter()?.updateMedia(shown)
                 }
             } catch (ignored: Exception) {
             }
@@ -732,10 +773,9 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
         val currAdapter = binding.mediaGrid.adapter
         if (currAdapter == null) {
-            initZoomListener()
             MediaAdapter(
                 activity = this,
-                media = mMedia.clone() as ArrayList<ThumbnailItem>,
+                media = mediaForGrid().clone() as ArrayList<ThumbnailItem>,
                 listener = this,
                 isAGetIntent = mIsGetImageIntent || mIsGetVideoIntent || mIsGetAnyIntent,
                 allowMultiplePicks = mAllowPickingMultiple,
@@ -747,9 +787,12 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                     itemClicked(it.path)
                 }
             }.apply {
-                setupZoomListener(mZoomListener)
+                // the media handed in above is already simplified, so only the flag is left to set
+                setSimplifiedInitially(isGridSimplified())
                 binding.mediaGrid.adapter = this
             }
+
+            applyGridPerformanceTuning()
 
             val viewType = config.getFolderViewType(if (mShowAll) SHOW_ALL else mPath)
             if (viewType == VIEW_TYPE_LIST && areSystemAnimationsEnabled) {
@@ -759,7 +802,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             setupLayoutManager()
             handleGridSpacing()
         } else if (mLastSearchedText.isEmpty()) {
-            (currAdapter as MediaAdapter).updateMedia(mMedia)
+            (currAdapter as MediaAdapter).updateMedia(mediaForGrid())
             handleGridSpacing()
         } else {
             searchQueryChanged(mLastSearchedText)
@@ -1025,8 +1068,11 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     }
 
     private fun setupLayoutManager() {
-        val viewType = config.getFolderViewType(if (mShowAll) SHOW_ALL else mPath)
-        if (viewType == VIEW_TYPE_GRID) {
+        val isGrid = isGridViewType()
+        // arranging by hand is a one-finger business, and reordering forces a count that can be
+        // dragged at anyway
+        mPinchZoom.isEnabled = isGrid && !mIsReordering
+        if (isGrid) {
             setupGridLayoutManager()
         } else {
             setupListLayoutManager()
@@ -1047,6 +1093,9 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             )
         }
 
+        // a count stored before this ladder existed, or taken from the other orientation, is not
+        // necessarily one of its rungs
+        config.mediaColumnCnt = mGridZoom.snap(config.mediaColumnCnt)
         layoutManager.spanCount = config.mediaColumnCnt
         val adapter = getMediaAdapter()
         layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
@@ -1067,13 +1116,12 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         binding.mediaRefreshLayout.layoutParams = fillRemainingHeightParams(
             width = ViewGroup.LayoutParams.MATCH_PARENT
         )
-        mZoomListener = null
     }
 
     // the grid shares a column with the reorder bar, so it takes the height that bar leaves over
     private fun fillRemainingHeightParams(width: Int) = LinearLayout.LayoutParams(width, 0, 1f)
 
-    private fun handleGridSpacing(media: ArrayList<ThumbnailItem> = mMedia) {
+    private fun handleGridSpacing(media: ArrayList<ThumbnailItem> = mediaForGrid()) {
         val viewType = config.getFolderViewType(if (mShowAll) SHOW_ALL else mPath)
         if (viewType == VIEW_TYPE_GRID) {
             val spanCount = config.mediaColumnCnt
@@ -1104,69 +1152,174 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         }
     }
 
-    private fun initZoomListener() {
-        val viewType = config.getFolderViewType(if (mShowAll) SHOW_ALL else mPath)
-        if (viewType == VIEW_TYPE_GRID) {
-            val layoutManager = binding.mediaGrid.layoutManager as MyGridLayoutManager
-            mZoomListener = object : MyRecyclerView.MyZoomListener {
-                override fun zoomIn() {
-                    if (layoutManager.spanCount > 1) {
-                        reduceColumnCount()
-                        getMediaAdapter()?.finishActMode()
-                    }
-                }
-
-                override fun zoomOut() {
-                    if (layoutManager.spanCount < MAX_COLUMN_COUNT) {
-                        increaseColumnCount()
-                        getMediaAdapter()?.finishActMode()
-                    }
-                }
-            }
-        } else {
-            mZoomListener = null
-        }
-    }
-
     private fun changeColumnCount() {
-        val items = ArrayList<RadioItem>()
-        for (i in 1..MAX_COLUMN_COUNT) {
-            items.add(
-                RadioItem(
-                    id = i,
-                    title = resources.getQuantityString(
-                        org.fossify.commons.R.plurals.column_counts, i, i
-                    )
+        val items = mGridZoom.rungs.mapTo(ArrayList()) {
+            RadioItem(
+                id = it,
+                title = resources.getQuantityString(
+                    org.fossify.commons.R.plurals.column_counts, it, it
                 )
             )
         }
 
         val currentColumnCount = (binding.mediaGrid.layoutManager as MyGridLayoutManager).spanCount
         RadioGroupDialog(this, items, currentColumnCount) {
-            val newColumnCount = it as Int
-            if (currentColumnCount != newColumnCount) {
-                config.mediaColumnCnt = newColumnCount
-                columnCountChanged()
-            }
+            setColumnCount(it as Int)
         }
     }
 
-    private fun increaseColumnCount() {
-        config.mediaColumnCnt += 1
-        columnCountChanged()
+    /** One count along in a pinch, keeping whatever the fingers came down on where it was. */
+    private fun stepColumnCount(columnCount: Int) {
+        if (columnCount == config.mediaColumnCnt) {
+            return
+        }
+
+        setColumnCount(columnCount)
+        restoreZoomAnchor()
     }
 
-    private fun reduceColumnCount() {
-        config.mediaColumnCnt -= 1
+    private fun setColumnCount(columnCount: Int) {
+        if (columnCount == config.mediaColumnCnt) {
+            return
+        }
+
+        config.mediaColumnCnt = columnCount
+        getMediaAdapter()?.finishActMode()
         columnCountChanged()
     }
 
     private fun columnCountChanged() {
         (binding.mediaGrid.layoutManager as MyGridLayoutManager).spanCount = config.mediaColumnCnt
+        applyGridPerformanceTuning()
+
+        // crossing into or out of the simplified counts swaps every item's view type and drops the
+        // grouping headers, so the grid is handed a different list
+        val adapter = getMediaAdapter()
+        val simplified = isGridSimplified()
+        if (adapter != null && adapter.isSimplified != simplified) {
+            adapter.setSimplified(simplified, mediaForGrid())
+        } else {
+            adapter?.apply { notifyItemRangeChanged(0, media.size) }
+        }
+
         handleGridSpacing()
         refreshMenuItems()
-        getMediaAdapter()?.apply {
-            notifyItemRangeChanged(0, media.size)
+    }
+
+    private fun applyGridPerformanceTuning() {
+        if (!isGridViewType()) {
+            return
+        }
+
+        // the change animation must stay on for full thumbnails: it is what binds the new count onto
+        // a fresh view, and Glide sizes the picture from the view it is handed - rebinding the old
+        // one in place asks for the size the tile used to be
+        binding.mediaGrid.itemAnimator = if (isGridSimplified()) null else mDefaultItemAnimator
+        getMediaAdapter()?.tuneCachesForColumnCount(config.mediaColumnCnt)
+    }
+
+    private fun isGridViewType() =
+        config.getFolderViewType(if (mShowAll) SHOW_ALL else mPath) == VIEW_TYPE_GRID
+
+    /** Whether the grid is zoomed out past what a thumbnail can be read or tapped at. */
+    private fun isGridSimplified() = isGridViewType()
+        && !mIsReordering
+        && mGridZoom.isSimplified(config.mediaColumnCnt)
+
+    /** Whatever the grid is currently built from - a search narrows it, everything else is [mMedia]. */
+    private fun gridSource() = mSearchResults ?: mMedia
+
+    /**
+     * The list the grid draws: its source minus the grouping headers once simplified, where they
+     * would only leave ragged gaps between the tiles.
+     */
+    private fun mediaForGrid(source: ArrayList<ThumbnailItem> = gridSource()): ArrayList<ThumbnailItem> {
+        return if (isGridSimplified()) {
+            source.filterTo(ArrayList()) { it is Medium }
+        } else {
+            source
+        }
+    }
+
+    /**
+     * A tap in the simplified grid steps one rung back down the ladder, keeping whatever was under
+     * the finger under it - the only way back in, since nothing there is tappable in its own right.
+     */
+    private fun setupZoomInOnTap() {
+        var wasIdleOnTouch = false
+        val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: MotionEvent): Boolean {
+                // a tap that only stops a fling is not one asking to zoom in
+                wasIdleOnTouch = binding.mediaGrid.scrollState == RecyclerView.SCROLL_STATE_IDLE
+                return false
+            }
+
+            override fun onSingleTapUp(e: MotionEvent): Boolean {
+                if (wasIdleOnTouch) {
+                    zoomInAt(e.x, e.y)
+                }
+
+                return false
+            }
+        })
+
+        binding.mediaGrid.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
+            override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
+                if (getMediaAdapter()?.isSimplified == true) {
+                    detector.onTouchEvent(e)
+                }
+
+                // never steals the event: the grid still scrolls, and a simplified item has no
+                // listener of its own for this to compete with
+                return false
+            }
+        })
+    }
+
+    private fun zoomInAt(x: Float, y: Float) {
+        val columnCount = mGridZoom.zoomIn(config.mediaColumnCnt)
+        if (columnCount == config.mediaColumnCnt) {
+            return
+        }
+
+        captureZoomAnchor(x, y)
+        setColumnCount(columnCount)
+        restoreZoomAnchor()
+    }
+
+    /**
+     * Marks whatever is under ([x], [y]) as the item to rebuild the grid around. A pinch takes this
+     * once, at the start - retaken each step it would follow the item's own drift.
+     */
+    private fun captureZoomAnchor(x: Float, y: Float) {
+        val path = binding.mediaGrid.findChildViewUnder(x, y)
+            ?.let { binding.mediaGrid.getChildAdapterPosition(it) }
+            ?.let { getMediaAdapter()?.media?.getOrNull(it) as? Medium }
+            ?.path
+
+        val layoutManager = binding.mediaGrid.layoutManager as MyGridLayoutManager
+        val offset = if (layoutManager.orientation == RecyclerView.HORIZONTAL) {
+            x - binding.mediaGrid.paddingLeft
+        } else {
+            y - binding.mediaGrid.paddingTop
+        }
+
+        mZoomAnchor = path?.to(offset.coerceAtLeast(0f))
+    }
+
+    /** Puts the anchored item back where it was found. */
+    private fun restoreZoomAnchor() {
+        val (path, offset) = mZoomAnchor ?: return
+        // posted: the new count has only just reached the layout manager, and the list may have just
+        // lost or gained its grouping headers
+        binding.mediaGrid.post {
+            val position = getMediaAdapter()?.getItemKeyPosition(path.hashCode()) ?: return@post
+            if (position == -1) {
+                return@post
+            }
+
+            (binding.mediaGrid.layoutManager as MyGridLayoutManager)
+                .scrollToPositionWithOffset(position, offset.toInt())
         }
     }
 

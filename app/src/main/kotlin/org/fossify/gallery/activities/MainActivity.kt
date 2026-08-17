@@ -76,7 +76,6 @@ import org.fossify.commons.models.FileDirItem
 import org.fossify.commons.models.RadioItem
 import org.fossify.commons.models.Release
 import org.fossify.commons.views.MyGridLayoutManager
-import org.fossify.commons.views.MyRecyclerView
 import org.fossify.gallery.BuildConfig
 import org.fossify.gallery.R
 import org.fossify.gallery.adapters.DirectoryAdapter
@@ -132,6 +131,7 @@ import org.fossify.gallery.helpers.GROUP_BY_DATE_TAKEN_MONTHLY
 import org.fossify.gallery.helpers.GROUP_BY_LAST_MODIFIED_DAILY
 import org.fossify.gallery.helpers.GROUP_BY_LAST_MODIFIED_MONTHLY
 import org.fossify.gallery.helpers.GROUP_DESCENDING
+import org.fossify.gallery.helpers.GridPinchZoom
 import org.fossify.gallery.helpers.LOCATION_INTERNAL
 import org.fossify.gallery.helpers.MAX_COLUMN_COUNT
 import org.fossify.gallery.helpers.MONTH_MILLISECONDS
@@ -198,8 +198,26 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     private var mTimeFormat = ""
     private var mLastMediaHandler = Handler()
     private var mTempShowHiddenHandler = Handler()
-    private var mZoomListener: MyRecyclerView.MyZoomListener? = null
     private var mLastMediaFetcher: MediaFetcher? = null
+
+    // no ladder here, the folder grid draws every count the same way
+    private val mPinchZoom by lazy {
+        GridPinchZoom(
+            recyclerView = binding.directoriesGrid,
+            onZoomIn = {
+                if (config.dirColumnCnt > 1) {
+                    reduceColumnCount()
+                    getRecyclerAdapter()?.finishActMode()
+                }
+            },
+            onZoomOut = {
+                if (config.dirColumnCnt < MAX_COLUMN_COUNT) {
+                    increaseColumnCount()
+                    getRecyclerAdapter()?.finishActMode()
+                }
+            }
+        )
+    }
     private var mDirs = ArrayList<Directory>()
 
     // the whole folder list the grid was last built from, before a search or an open folder group
@@ -916,6 +934,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     }
 
     private fun setupLayoutManager() {
+        mPinchZoom.isEnabled = config.viewTypeFolders == VIEW_TYPE_GRID
         if (config.viewTypeFolders == VIEW_TYPE_GRID) {
             setupGridLayoutManager()
         } else {
@@ -955,30 +974,6 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
-        mZoomListener = null
-    }
-
-    private fun initZoomListener() {
-        if (config.viewTypeFolders == VIEW_TYPE_GRID) {
-            val layoutManager = binding.directoriesGrid.layoutManager as MyGridLayoutManager
-            mZoomListener = object : MyRecyclerView.MyZoomListener {
-                override fun zoomIn() {
-                    if (layoutManager.spanCount > 1) {
-                        reduceColumnCount()
-                        getRecyclerAdapter()?.finishActMode()
-                    }
-                }
-
-                override fun zoomOut() {
-                    if (layoutManager.spanCount < MAX_COLUMN_COUNT) {
-                        increaseColumnCount()
-                        getRecyclerAdapter()?.finishActMode()
-                    }
-                }
-            }
-        } else {
-            mZoomListener = null
-        }
     }
 
     private fun createNewFolder() {
@@ -1651,7 +1646,6 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     }
 
     private fun createDirectoryAdapter(dirsToShow: ArrayList<Directory>, textToSearch: String) {
-        initZoomListener()
         val adapter = DirectoryAdapter(
             activity = this,
             dirs = dirsToShow,
@@ -1677,7 +1671,6 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         }
 
         adapter.isSearchActive = textToSearch.isNotEmpty()
-        adapter.setupZoomListener(mZoomListener)
         // no entrance animation here: a layout animation on a RecyclerView binds every child at
         // alpha 0 and walks them in, and the view is recycled often enough that children kept
         // being left at that alpha - blank rows until something scrolled them off and back. See

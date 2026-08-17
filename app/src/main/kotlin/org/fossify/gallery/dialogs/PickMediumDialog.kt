@@ -14,6 +14,7 @@ import org.fossify.gallery.asynctasks.GetMediaAsynctask
 import org.fossify.gallery.databinding.DialogMediumPickerBinding
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.getCachedMedia
+import org.fossify.gallery.extensions.interactiveMediaColumnCnt
 import org.fossify.gallery.helpers.GridSpacingItemDecoration
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.models.Medium
@@ -31,7 +32,7 @@ class PickMediumDialog(val activity: BaseSimpleActivity, val path: String, val c
     init {
         (binding.mediaGrid.layoutManager as MyGridLayoutManager).apply {
             orientation = if (config.scrollHorizontally && isGridViewType) RecyclerView.HORIZONTAL else RecyclerView.VERTICAL
-            spanCount = if (isGridViewType) config.mediaColumnCnt else 1
+            spanCount = if (isGridViewType) activity.interactiveMediaColumnCnt() else 1
         }
 
         binding.mediaFastscroller.updateColors(activity.getProperPrimaryColor())
@@ -89,7 +90,7 @@ class PickMediumDialog(val activity: BaseSimpleActivity, val path: String, val c
 
     private fun handleGridSpacing(media: ArrayList<ThumbnailItem>) {
         if (isGridViewType) {
-            val spanCount = config.mediaColumnCnt
+            val spanCount = activity.interactiveMediaColumnCnt()
             val spacing = config.thumbnailSpacing
             val useGridPosition = media.firstOrNull() is ThumbnailSection
 
