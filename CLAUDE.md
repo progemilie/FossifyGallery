@@ -90,30 +90,24 @@ bitmaps. An edit leaving size and timestamp unchanged is otherwise invisible to 
 
 ### The zoomed-out media grid
 
-Past a certain tile size a thumbnail is only its picture, and a screenful is several hundred of them.
-`helpers/GridZoom.kt` is the ladder of column counts the media grid can be pinched through: every
-count up to `interactiveMax` unchanged, then three **simplified** rungs spaced 1.4x apart.
-`interactiveMax` is the count whose tile is nearest 55dp — rounded, since flooring drops a whole
-column for a screen a fraction of a dp short, and a 384dp phone and a 411dp one should agree. A
-fixed number of rungs rather than a smallest-tile rule, for the same reason. Every phone comes out
-as 1-7, then 10, 14, 20; the sideways grid divides the height instead, and tablets scale up.
+`helpers/GridZoom.kt` is the ladder of column counts the media grid is pinched through
+(`helpers/GridPinchZoom.kt`, which replaces commons' unusable zoom listener): every count up to
+`interactiveMax` — the one whose tile is nearest 55dp — then three **simplified** rungs 1.4x apart.
+Every phone comes out as 1-7, then 10, 14, 20; the sideways grid divides the height, tablets scale up.
 
-On a simplified rung `MediaAdapter` binds `photo_item_grid_simple.xml` — a bare `MySquareImageView`,
-no listeners, no badges, no selection — and `MediaActivity.mediaForGrid()` drops the grouping
-headers, which would otherwise leave ragged gaps. Nothing there is tappable, so a tap zooms in one
-rung and scrolls the item that was under the finger back under it.
+Past `interactiveMax` a tile is only its picture, and a screenful is several hundred of them.
+`MediaAdapter` binds `photo_item_grid_simple.xml` — a bare `MySquareImageView`, no listeners, no
+badges, no selection — and `MediaActivity.mediaForGrid()` drops the grouping headers, which would
+leave ragged gaps. Nothing there is tappable, so a tap zooms in one rung and scrolls the item that
+was under the finger back under it. `helpers/SimpleThumbnailLoader.kt` prepares its Glide request
+**once** and reuses it, at one `override()` size for every rung, because a fling across twenty
+columns binds ~100 items in a frame.
 
-`helpers/SimpleThumbnailLoader.kt` exists because a fling across twenty columns binds ~100 items in
-one frame: it prepares the Glide request **once** and reuses it, where `loadImageBase()` rebuilds
-options, transformations, transition and listener every call. One `override()` size for all rungs
-puts them on a single cache entry, so pinching between rungs decodes nothing. The placeholder is
-Glide's, not a view background — a background stays under the loaded picture forever, which at these
-counts is a second screenful of drawing. Its `DiskCacheStrategy.RESOURCE` is measured, not assumed:
-turning it off was clearly worse even though the source is an embedded thumbnail.
-
-Screens with no pinch of their own (search, the picker dialog) must read
-`interactiveMediaColumnCnt()` rather than `Config.mediaColumnCnt`, or they inherit a count whose
-items cannot be tapped.
+Two rules for anything touching this:
+- **The grid's source is `gridSource()`, never `mMedia`** — a search narrows it, and rebuilding from
+  `mMedia` puts the whole library back on screen.
+- Screens with no pinch of their own (search, the picker dialog) read `interactiveMediaColumnCnt()`
+  rather than `Config.mediaColumnCnt`, or they inherit a count whose items cannot be tapped.
 
 ### Per-folder custom media order
 

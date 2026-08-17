@@ -7,23 +7,12 @@ import kotlin.math.abs
 import kotlin.math.sqrt
 
 /**
- * Pinching a grid to change how many columns it draws.
+ * Pinching a grid to change how many columns it draws. Replaces commons' `MyZoomListener`, which
+ * lets the grid scroll on the same events, ignores pinches for a second after any finger lifts, and
+ * steps only once per gesture - none of it configurable from here.
  *
- * Commons' `MyRecyclerView` answers a pinch of its own, but not usefully: it hands the gesture to a
- * `ScaleGestureDetector` while letting the grid scroll on the same events, ignores every pinch for a
- * whole second after any finger leaves the grid, and then steps once per gesture behind a 40%
- * spread. Between the three a pinch mostly scrolls the grid instead of zooming it, and none of it is
- * reachable from here - so the grids leave that listener unset and use this instead.
- *
- * The two fingers' separation is followed directly rather than through `ScaleGestureDetector`, which
- * will not begin a gesture until they are further apart than `config_minScalingSpan` - 27mm by
- * default, better than a third of the width of a phone.
- *
- * Steps one count at a time, from a baseline reset at each step: a gesture can walk as far up or
- * down the counts as it likes without lifting, and can turn around and come back, but nothing short
- * of a whole [STEP_RATIO] of finger movement will carry it past a count. Once a pinch is recognised
- * the grid holds still under it, which is the whole point of claiming the touch stream -
- * [RecyclerView] cancels its own scroll as soon as an item touch listener does.
+ * The fingers' separation is followed directly rather than through `ScaleGestureDetector`, which
+ * will not start below `config_minScalingSpan` - 27mm by default, a third of a phone's width.
  */
 class GridPinchZoom(
     private val recyclerView: RecyclerView,
@@ -54,9 +43,8 @@ class GridPinchZoom(
 
     private companion object {
         /**
-         * How much the fingers' separation has to change to be asking for the next count. Also
-         * `GridZoom`'s spacing between the zoomed-out counts, so up there a tile grows at very
-         * nearly the rate the fingers do.
+         * How much the fingers' separation has to change to ask for the next count. Matches
+         * `GridZoom`'s spacing between the zoomed-out counts, so a tile grows at the fingers' rate.
          */
         const val STEP_RATIO = 1.4f
     }
@@ -65,9 +53,8 @@ class GridPinchZoom(
         recyclerView.addOnItemTouchListener(this)
     }
 
-    // both of these: RecyclerView asks its item touch listeners from onInterceptTouchEvent until one
-    // claims the stream and from onTouchEvent afterwards, and which of the two an event arrives
-    // through also depends on whether a child took the press that started it
+    // events arrive through onInterceptTouchEvent until a listener claims the stream and through
+    // onTouchEvent afterwards, so both have to feed the tracker
     override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
         track(e)
         return isPinching
@@ -122,8 +109,8 @@ class GridPinchZoom(
             beginPinch()
         }
 
-        // the baseline moves with each step, so a gesture can keep going - or turn around - but
-        // never crosses two counts on one small movement
+        // re-baselining at each step lets one gesture walk any distance up or down the counts, and
+        // turn around, without ever crossing two on one small movement
         when {
             span / baselineSpan >= STEP_RATIO -> {
                 baselineSpan = span
@@ -138,12 +125,10 @@ class GridPinchZoom(
     }
 
     private fun beginPinch() {
-        // measured from here rather than from where the fingers landed, so the first step does not
-        // come early by whatever the gesture spent getting past the slop
+        // re-baselined here, or the first step comes early by whatever the slop cost
         baselineSpan = span
         isPinching = true
-        // the grid sits inside a SwipeRefreshLayout, which would otherwise take a pinch downwards at
-        // the top of the list as a pull to refresh
+        // else the SwipeRefreshLayout around the grid takes a downwards pinch as a pull to refresh
         recyclerView.parent?.requestDisallowInterceptTouchEvent(true)
         onPinchStart(focusX, focusY)
     }

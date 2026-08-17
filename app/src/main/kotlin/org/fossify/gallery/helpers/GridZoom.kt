@@ -5,17 +5,12 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * The column counts a media grid can be pinched through, and which of them stop being drawn in
- * full.
+ * The column counts a media grid can be pinched through. Past `interactiveMax` a tile is too small
+ * to carry a badge or be picked out by a finger, so those rungs are drawn simplified and spaced
+ * well apart - stepping one column at a time from fourteen to twenty is neither useful nor cheap.
  *
- * Past a certain tile size a thumbnail is nothing but its picture: no badge fits on one, no finger
- * can pick one out of its neighbours, and a screenful is several hundred of them. Those counts get
- * the stripped item `MediaAdapter` draws for them, and they are spaced well apart - stepping one
- * column at a time from fourteen to twenty is neither useful nor cheap.
- *
- * Rungs are worked out from the tile size rather than written down, so landscape, tablets and the
- * sideways-scrolling grid - whose span count is rows, dividing the height instead of the width -
- * all reach the same tiles, just more of them per screen.
+ * Rungs are derived from the tile size rather than written down, so landscape, tablets and the
+ * sideways-scrolling grid all reach the same tiles.
  */
 class GridZoom private constructor(
     /** The largest count still drawn with everything a thumbnail carries and can be tapped for. */
@@ -23,17 +18,14 @@ class GridZoom private constructor(
     /** Every count the grid can come to rest at, in order. */
     val rungs: List<Int>,
     /**
-     * The size a simplified thumbnail is decoded to, asked for instead of the view's own so that
-     * every tile lands on one cache entry however big it happens to be drawn. Taken from the
-     * largest tile any simplified rung draws, so none of them is ever scaled up, and shared by all
-     * of them, so pinching between rungs is answered from memory rather than by decoding a
-     * screenful over again at a slightly different size.
+     * The size every simplified tile is decoded to, taken from the largest of them. One size for
+     * all the rungs puts them on a single cache entry, so pinching between them decodes nothing.
      */
     val simpleThumbnailSize: Int
 ) {
     fun isSimplified(columnCount: Int) = columnCount > interactiveMax
 
-    /** The rung [columnCount] belongs to - a stored count predates this ladder, or another screen size. */
+    /** The rung [columnCount] belongs to - a stored count may predate this ladder, or another screen. */
     fun snap(columnCount: Int) = rungs.minByOrNull { abs(it - columnCount) } ?: columnCount
 
     /** One rung fewer columns, or the bottom of the ladder. */
@@ -50,10 +42,9 @@ class GridZoom private constructor(
         private const val RUNG_GROWTH = 1.4f
 
         /**
-         * How many simplified rungs there are. A count rather than a smallest-tile rule, so the
-         * ladder is the same shape on every screen instead of gaining or losing its top rung to a
-         * few dp either way. Three of them lands the last tile at about a fifth of an interactive
-         * one - past which a photo is no longer recognisable, and there is nothing worth reaching.
+         * A fixed count rather than a smallest-tile rule, so the ladder is the same shape on every
+         * screen. Three lands the last tile at about a fifth of an interactive one, past which a
+         * photo is no longer recognisable.
          */
         private const val SIMPLIFIED_RUNGS = 3
 
@@ -69,9 +60,8 @@ class GridZoom private constructor(
             val acrossPx = if (scrollHorizontally) metrics.heightPixels else metrics.widthPixels
             val acrossDp = (acrossPx / metrics.density).roundToInt()
 
-            // rounded, not floored: the tile size is a judgement rather than a limit, and flooring
-            // turns a screen a fraction of a dp short of a count into one whole column fewer - a
-            // 384dp phone and a 411dp one both want seven, and would otherwise disagree
+            // rounded, not floored: flooring costs a screen a fraction of a dp short a whole column,
+            // so a 384dp phone and a 411dp one would disagree over seven
             val interactiveMax = (acrossDp / INTERACTIVE_MIN_TILE_DP.toFloat())
                 .roundToInt()
                 .coerceAtLeast(MIN_INTERACTIVE_MAX)

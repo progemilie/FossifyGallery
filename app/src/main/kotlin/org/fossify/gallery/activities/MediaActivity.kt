@@ -152,18 +152,20 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private var mLastMediaHandler = Handler()
     private var mTempShowHiddenHandler = Handler()
     private var mCurrAsyncTask: GetMediaAsynctask? = null
-    private var mWasGridIdleOnTouch = false
     private var mDefaultItemAnimator: RecyclerView.ItemAnimator? = null
 
+    // what a search narrowed the grid down to, null when no search is open. Anything rebuilding the
+    // grid has to work from this rather than mMedia, or it puts the whole library back on screen
+    private var mSearchResults: ArrayList<ThumbnailItem>? = null
+
     /**
-     * The item a zoom is keeping in place and how far down the grid to keep it, held as a path
-     * rather than a position - the grouping headers dropped on the way into the simplified counts
-     * shift every position after them.
+     * The item a zoom is keeping in place and how far down the grid to keep it. Held as a path
+     * rather than a position, which the dropped grouping headers shift.
      */
     private var mZoomAnchor: Pair<String, Float>? = null
 
-    // the ladder of counts the grid can be pinched through. Built on first use rather than here,
-    // where there is no context to read yet, and dropped when the scroll direction changes it
+    // built on first use rather than here, where there is no context to read yet, and dropped when
+    // the scroll direction changes which axis it divides
     private var mCachedGridZoom: GridZoom? = null
     private val mGridZoom: GridZoom
         get() = mCachedGridZoom ?: mediaGridZoom().also { mCachedGridZoom = it }
@@ -223,7 +225,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         storeStateVariables()
         setupInsetPadding()
         setupFloatingTopBar()
-        // before the tap below, so a pinch is the first thing asked about the grid's touches
+        // registering the pinch (which the lazy does) before the tap gives it first refusal on the
+        // grid's touches - item touch listeners are asked in the order they were added
         mPinchZoom.isEnabled = isGridViewType()
         setupZoomInOnTap()
         mDefaultItemAnimator = binding.mediaGrid.itemAnimator
@@ -712,6 +715,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                         binding.mediaFastscroller.beVisible()
                     }
 
+                    mSearchResults = if (text.isEmpty()) null else grouped
                     val shown = mediaForGrid(grouped)
                     handleGridSpacing(shown)
                     getMediaAdapter()?.updateMedia(shown)
@@ -783,7 +787,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                     itemClicked(it.path)
                 }
             }.apply {
-                setSimplified(isGridSimplified(), media)
+                // the media handed in above is already simplified, so only the flag is left to set
+                setSimplifiedInitially(isGridSimplified())
                 binding.mediaGrid.adapter = this
             }
 
@@ -1148,14 +1153,14 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     }
 
     private fun changeColumnCount() {
-        val items = mGridZoom.rungs.map {
+        val items = mGridZoom.rungs.mapTo(ArrayList()) {
             RadioItem(
                 id = it,
                 title = resources.getQuantityString(
                     org.fossify.commons.R.plurals.column_counts, it, it
                 )
             )
-        } as ArrayList<RadioItem>
+        }
 
         val currentColumnCount = (binding.mediaGrid.layoutManager as MyGridLayoutManager).spanCount
         RadioGroupDialog(this, items, currentColumnCount) {
@@ -1187,8 +1192,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         (binding.mediaGrid.layoutManager as MyGridLayoutManager).spanCount = config.mediaColumnCnt
         applyGridPerformanceTuning()
 
-        // crossing into or out of the simplified counts swaps the item every position is drawn with
-        // and drops the grouping headers with them, so the grid is handed a different list
+        // crossing into or out of the simplified counts swaps every item's view type and drops the
+        // grouping headers, so the grid is handed a different list
         val adapter = getMediaAdapter()
         val simplified = isGridSimplified()
         if (adapter != null && adapter.isSimplified != simplified) {
@@ -1201,16 +1206,14 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         refreshMenuItems()
     }
 
-    /**
-     * Sizes the grid's caches to the count it is drawing, and takes the change animation away once
-     * simplified - at these counts it is hundreds of overlapping fades over a rebind that redraws
-     * everything anyway.
-     */
     private fun applyGridPerformanceTuning() {
-        // the change animation has to stay on wherever a thumbnail is sized from its tile: it is
-        // what binds the new count onto a fresh view, and Glide takes its size from the view it is
-        // handed. Rebinding the old view in place hands it the size the tile used to be, and the
-        // picture comes back too small for the tile now drawing it
+        if (!isGridViewType()) {
+            return
+        }
+
+        // the change animation must stay on for full thumbnails: it is what binds the new count onto
+        // a fresh view, and Glide sizes the picture from the view it is handed - rebinding the old
+        // one in place asks for the size the tile used to be
         binding.mediaGrid.itemAnimator = if (isGridSimplified()) null else mDefaultItemAnimator
         getMediaAdapter()?.tuneCachesForColumnCount(config.mediaColumnCnt)
     }
@@ -1223,11 +1226,14 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         && !mIsReordering
         && mGridZoom.isSimplified(config.mediaColumnCnt)
 
+    /** Whatever the grid is currently built from - a search narrows it, everything else is [mMedia]. */
+    private fun gridSource() = mSearchResults ?: mMedia
+
     /**
-     * The list the grid draws: the media as fetched, minus the grouping headers once the grid is
-     * zoomed out far enough that they would only leave ragged gaps between the tiles.
+     * The list the grid draws: its source minus the grouping headers once simplified, where they
+     * would only leave ragged gaps between the tiles.
      */
-    private fun mediaForGrid(source: ArrayList<ThumbnailItem> = mMedia): ArrayList<ThumbnailItem> {
+    private fun mediaForGrid(source: ArrayList<ThumbnailItem> = gridSource()): ArrayList<ThumbnailItem> {
         return if (isGridSimplified()) {
             source.filterTo(ArrayList()) { it is Medium }
         } else {
@@ -1240,15 +1246,16 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
      * the finger under it - the only way back in, since nothing there is tappable in its own right.
      */
     private fun setupZoomInOnTap() {
+        var wasIdleOnTouch = false
         val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDown(e: MotionEvent): Boolean {
                 // a tap that only stops a fling is not one asking to zoom in
-                mWasGridIdleOnTouch = binding.mediaGrid.scrollState == RecyclerView.SCROLL_STATE_IDLE
+                wasIdleOnTouch = binding.mediaGrid.scrollState == RecyclerView.SCROLL_STATE_IDLE
                 return false
             }
 
             override fun onSingleTapUp(e: MotionEvent): Boolean {
-                if (mWasGridIdleOnTouch) {
+                if (wasIdleOnTouch) {
                     zoomInAt(e.x, e.y)
                 }
 
@@ -1281,9 +1288,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     }
 
     /**
-     * Marks whatever is under ([x], [y]) as the item the grid is to be rebuilt around. A pinch takes
-     * this once, at the start: retaken each step, it would follow the item's own drift as the tiles
-     * resize rather than hold it still.
+     * Marks whatever is under ([x], [y]) as the item to rebuild the grid around. A pinch takes this
+     * once, at the start - retaken each step it would follow the item's own drift.
      */
     private fun captureZoomAnchor(x: Float, y: Float) {
         val path = binding.mediaGrid.findChildViewUnder(x, y)
@@ -1304,8 +1310,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     /** Puts the anchored item back where it was found. */
     private fun restoreZoomAnchor() {
         val (path, offset) = mZoomAnchor ?: return
-        // posted: the count it is being put back at has only just reached the layout manager, and
-        // the list it is being looked up in may have just lost or gained its grouping headers
+        // posted: the new count has only just reached the layout manager, and the list may have just
+        // lost or gained its grouping headers
         binding.mediaGrid.post {
             val position = getMediaAdapter()?.getItemKeyPosition(path.hashCode()) ?: return@post
             if (position == -1) {

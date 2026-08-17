@@ -72,6 +72,7 @@ import org.fossify.gallery.extensions.launchResizeImageDialog
 import org.fossify.gallery.extensions.launchResizeMultipleImagesDialog
 import org.fossify.gallery.extensions.loadImage
 import org.fossify.gallery.extensions.loadSVG
+import org.fossify.gallery.extensions.mediaGridZoom
 import org.fossify.gallery.extensions.openEditor
 import org.fossify.gallery.extensions.openPath
 import org.fossify.gallery.extensions.rescanFolderMedia
@@ -126,8 +127,10 @@ class MediaAdapter(
         const val ITEM_MEDIUM_PHOTO = 2
         const val ITEM_MEDIUM_SIMPLE = 3
 
-        /** How many rows' worth of items the recycler keeps ready, and keeps to recycle. */
+        /** Rows' worth of items the recycler keeps bound off screen. */
         const val CACHED_ROWS = 2
+
+        /** Rows' worth of each item type the recycler keeps to recycle. */
         const val POOLED_ROWS = 3
     }
 
@@ -146,10 +149,8 @@ class MediaAdapter(
     val reorderMode = MediaReorderMode(this)
 
     /**
-     * Whether the grid is zoomed out past the point where an item can be read or picked out, at
-     * which every one of them becomes its picture and nothing else - see [GridZoom]. Only the
-     * media grid ever turns this on; the screens with no pinch of their own stay inside the counts
-     * that keep an item whole.
+     * Whether every item is drawn as its picture and nothing else - see [GridZoom]. Only the media
+     * grid turns this on; screens with no pinch of their own stay at interactive counts.
      */
     var isSimplified = false
         private set
@@ -161,7 +162,7 @@ class MediaAdapter(
         get() = preparedSimpleThumbnails ?: SimpleThumbnailLoader(
             context = activity,
             cropThumbnails = cropThumbnails,
-            size = GridZoom.forMediaGrid(activity, config.scrollHorizontally).simpleThumbnailSize
+            size = activity.mediaGridZoom().simpleThumbnailSize
         ).also { preparedSimpleThumbnails = it }
 
     private var scrollHorizontally = config.scrollHorizontally
@@ -811,10 +812,14 @@ class MediaAdapter(
         }
     }
 
+    /** Sets the initial state, before the adapter has ever been laid out. See [setSimplified]. */
+    fun setSimplifiedInitially(simplified: Boolean) {
+        isSimplified = simplified
+    }
+
     /**
-     * Crosses between full thumbnails and the stripped ones, taking the list to draw with it -
-     * grouping headers are dropped from a grid zoomed out this far, so the list is a different one
-     * either way. See [GridZoom].
+     * Crosses between full thumbnails and the stripped ones, taking the list with it - grouping
+     * headers are dropped from a simplified grid. See [GridZoom].
      */
     @SuppressLint("NotifyDataSetChanged") // every position changes its view type, and its item
     fun setSimplified(simplified: Boolean, newMedia: ArrayList<ThumbnailItem>) {
@@ -829,9 +834,9 @@ class MediaAdapter(
     }
 
     /**
-     * Sizes the recycler's caches to the grid about to be drawn. Its defaults - two views held off
-     * screen and five per type in the pool - are most of a row at three columns and a fraction of
-     * one at twenty, where a fling would otherwise be inflating items the whole way down.
+     * Sizes the recycler's caches to the count being drawn. The defaults - two views off screen,
+     * five per type pooled - are a fraction of a row at twenty columns, where a fling would
+     * otherwise inflate items the whole way down.
      */
     fun tuneCachesForColumnCount(columnCount: Int) {
         recyclerView.setItemViewCacheSize(columnCount * CACHED_ROWS)
@@ -1006,10 +1011,7 @@ class MediaAdapter(
         }
     }
 
-    /**
-     * The whole of an item once the grid is zoomed out past reading one: its picture, at a size
-     * every simplified rung shares, and nothing else at all. See [GridZoom].
-     */
+    /** The whole of a simplified item: its picture, and nothing else at all. See [GridZoom]. */
     private fun setupSimpleThumbnail(view: View, medium: Medium) {
         val thumbnail = view as MySquareImageView
         thumbnail.isHorizontalScrolling = scrollHorizontally

@@ -20,15 +20,9 @@ import com.bumptech.glide.signature.ObjectKey
 /**
  * Loads the thumbnails of a grid zoomed out past the point of reading one - see [GridZoom].
  *
- * Prepared once and reused, which is the whole reason it exists rather than another
- * `loadImage` overload: a fling across twenty columns binds a hundred items in a single frame, and
- * a request assembled from scratch each time - options, transformations, transition, listener - is
- * a bigger cost than the picture it goes on to fetch. What is left per item is the model, the
- * signature and the target.
- *
- * Everything the full loader spends on looks is gone with it. No rounded corners, so the cheaper
- * 565 bitmaps survive; no cross fade, which at this size only makes a screenful flicker; no error
- * icon, since there is no room to show one.
+ * Exists rather than another `loadImage` overload because the request is prepared once and reused:
+ * a fling across twenty columns binds ~100 items in one frame, where rebuilding options,
+ * transformations and listeners each time costs more than the fetch itself.
  */
 class SimpleThumbnailLoader(
     context: Context,
@@ -38,16 +32,14 @@ class SimpleThumbnailLoader(
 ) {
     private val requests = Glide.with(context.applicationContext)
 
-    // Glide's placeholder rather than a background on the item: a background stays underneath the
-    // loaded picture for as long as the item lives, and at these counts that is a second full
-    // screen of drawing behind the one being looked at. One shared drawable, which a flat colour
-    // can be - it holds no per-target state
+    // a placeholder rather than an item background, which would stay under the loaded picture for
+    // the item's life - a second screenful of drawing at these counts
     private val placeholder = context.getColor(org.fossify.commons.R.color.md_grey_black).toDrawable()
 
     private val options = RequestOptions()
         .priority(Priority.LOW)
-        // measurably worth the writes: re-decoding a screenful costs more than caching it does,
-        // even from a copy stored inside the file
+        // measured: re-decoding a screenful costs more than the cache writes, even from an
+        // embedded thumbnail
         .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
         .format(DecodeFormat.PREFER_RGB_565)
         .override(size)
@@ -66,8 +58,7 @@ class SimpleThumbnailLoader(
 
     fun load(path: String, target: ImageView, signature: ObjectKey) {
         requests
-            // not the path itself: a tile this small always comes out of the copy stored inside the
-            // photo, where there is one. See ThumbnailSource
+            // a tile this small comes out of the photo's embedded copy where there is one
             .load(ThumbnailSource(path))
             .apply(options)
             .signature(signature)
