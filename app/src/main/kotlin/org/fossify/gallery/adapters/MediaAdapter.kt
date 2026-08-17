@@ -165,6 +165,7 @@ class MediaAdapter(
             size = activity.mediaGridZoom().simpleThumbnailSize
         ).also { preparedSimpleThumbnails = it }
 
+    private var columnCount = config.mediaColumnCnt
     private var scrollHorizontally = config.scrollHorizontally
     private var animateGifs = config.animateGifs
     private var cropThumbnails = config.cropThumbnails
@@ -834,11 +835,13 @@ class MediaAdapter(
     }
 
     /**
-     * Sizes the recycler's caches to the count being drawn. The defaults - two views off screen,
-     * five per type pooled - are a fraction of a row at twenty columns, where a fling would
-     * otherwise inflate items the whole way down.
+     * Takes the count the grid is about to draw: what a thumbnail is decoded to, and the size of
+     * the recycler's caches. The cache defaults - two views off screen, five per type pooled - are a
+     * fraction of a row at twenty columns, where a fling would otherwise inflate items the whole
+     * way down.
      */
-    fun tuneCachesForColumnCount(columnCount: Int) {
+    fun applyColumnCount(columnCount: Int) {
+        this.columnCount = columnCount
         recyclerView.setItemViewCacheSize(columnCount * CACHED_ROWS)
         val poolSize = columnCount * POOLED_ROWS
         listOf(ITEM_MEDIUM_SIMPLE, ITEM_MEDIUM_PHOTO, ITEM_MEDIUM_VIDEO_PORTRAIT).forEach {
@@ -910,6 +913,41 @@ class MediaAdapter(
         reorderMode.isMarked(medium)
     } else {
         selectedKeys.contains(medium.path.hashCode())
+    }
+
+    /**
+     * The size a full thumbnail is decoded to: the column count's nominal share of the grid, rather
+     * than the width the tile it goes in is actually given. Null in the list view, whose thumbnail
+     * is a fixed size of its own with no column to be divided out of.
+     *
+     * An uneven division leaves the layout manager a few pixels to spread across the row, so tiles a
+     * column apart differ by one - and the size asked for is part of Glide's cache key, so a tile
+     * sized by its own view stores the same picture twice for a single column count, once for each
+     * of the two widths a row holds. The odd tile is a pixel wider than its bitmap, which the
+     * ImageView takes up. The simplified rungs do the same with `GridZoom.simpleThumbnailSize`.
+     */
+    private fun thumbnailSize(): Int? {
+        if (isListViewType) {
+            return null
+        }
+
+        // the span count divides the axis the grid does *not* scroll along
+        val across = if (scrollHorizontally) {
+            recyclerView.height - recyclerView.paddingTop - recyclerView.paddingBottom
+        } else {
+            recyclerView.width - recyclerView.paddingLeft - recyclerView.paddingRight
+        }
+
+        // nothing to divide before the grid has been measured; the view's own size will do
+        if (across <= 0) {
+            return null
+        }
+
+        // a tile does not fill its span: a thin spacing is padding on the item (below), anything
+        // wider is the item decoration's insets, which come to about one spacing per item
+        val spacing = config.thumbnailSpacing
+        val inset = if (spacing <= 1) spacing * 2 else spacing
+        return (across / columnCount - inset).coerceAtLeast(1)
     }
 
     private fun setupThumbnail(view: View, medium: Medium) {
@@ -997,6 +1035,7 @@ class MediaAdapter(
                 cropThumbnails = cropThumbnails,
                 roundCorners = roundedCorners,
                 signature = medium.getKey(),
+                overrideSize = thumbnailSize(),
                 skipMemoryCacheAtPaths = transformedImagePaths,
                 onError = {
                     mediumThumbnail.scaleType = ImageView.ScaleType.CENTER
