@@ -92,10 +92,11 @@ bitmaps. An edit leaving size and timestamp unchanged is otherwise invisible to 
 
 Past a certain tile size a thumbnail is only its picture, and a screenful is several hundred of them.
 `helpers/GridZoom.kt` is the ladder of column counts the media grid can be pinched through: every
-count up to `interactiveMax` unchanged, then a few **simplified** rungs spaced ~1.4x apart. It is
-derived from the tile size in dp, not written down, so landscape, tablets and the sideways grid
-(whose span count is rows) all reach the same tiles. On a normal phone that comes out as 1-7, then
-10, 14, 20.
+count up to `interactiveMax` unchanged, then three **simplified** rungs spaced 1.4x apart.
+`interactiveMax` is the count whose tile is nearest 55dp — rounded, since flooring drops a whole
+column for a screen a fraction of a dp short, and a 384dp phone and a 411dp one should agree. A
+fixed number of rungs rather than a smallest-tile rule, for the same reason. Every phone comes out
+as 1-7, then 10, 14, 20; the sideways grid divides the height instead, and tablets scale up.
 
 On a simplified rung `MediaAdapter` binds `photo_item_grid_simple.xml` — a bare `MySquareImageView`,
 no listeners, no badges, no selection — and `MediaActivity.mediaForGrid()` drops the grouping

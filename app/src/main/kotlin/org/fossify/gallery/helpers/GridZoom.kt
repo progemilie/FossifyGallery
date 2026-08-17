@@ -46,11 +46,16 @@ class GridZoom private constructor(
         /** Under this a tile has no room left for anything drawn over the picture. */
         private const val INTERACTIVE_MIN_TILE_DP = 55
 
-        /** Under this a photo is no longer recognisable, so there is nothing past it worth reaching. */
-        private const val SIMPLE_MIN_TILE_DP = 20
-
         /** How much wider each simplified rung is than the one below it. */
         private const val RUNG_GROWTH = 1.4f
+
+        /**
+         * How many simplified rungs there are. A count rather than a smallest-tile rule, so the
+         * ladder is the same shape on every screen instead of gaining or losing its top rung to a
+         * few dp either way. Three of them lands the last tile at about a fifth of an interactive
+         * one - past which a photo is no longer recognisable, and there is nothing worth reaching.
+         */
+        private const val SIMPLIFIED_RUNGS = 3
 
         /** Even a narrow screen keeps a few tappable counts to choose between. */
         private const val MIN_INTERACTIVE_MAX = 3
@@ -64,12 +69,18 @@ class GridZoom private constructor(
             val acrossPx = if (scrollHorizontally) metrics.heightPixels else metrics.widthPixels
             val acrossDp = (acrossPx / metrics.density).roundToInt()
 
-            val interactiveMax = (acrossDp / INTERACTIVE_MIN_TILE_DP).coerceAtLeast(MIN_INTERACTIVE_MAX)
+            // rounded, not floored: the tile size is a judgement rather than a limit, and flooring
+            // turns a screen a fraction of a dp short of a count into one whole column fewer - a
+            // 384dp phone and a 411dp one both want seven, and would otherwise disagree
+            val interactiveMax = (acrossDp / INTERACTIVE_MIN_TILE_DP.toFloat())
+                .roundToInt()
+                .coerceAtLeast(MIN_INTERACTIVE_MAX)
+
             val rungs = (1..interactiveMax).toMutableList()
-            var next = (interactiveMax * RUNG_GROWTH).roundToInt()
-            while (acrossDp / next >= SIMPLE_MIN_TILE_DP) {
-                rungs.add(next)
+            var next = interactiveMax
+            repeat(SIMPLIFIED_RUNGS) {
                 next = (next * RUNG_GROWTH).roundToInt()
+                rungs.add(next)
             }
 
             val firstSimplified = rungs.getOrNull(interactiveMax) ?: interactiveMax
