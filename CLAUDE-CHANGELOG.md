@@ -4,6 +4,10 @@ Fork-only changes, newest first. Small fixes are left out.
 
 ## [v1.12.0] - 2026.08.17 — zooming the media grid out
 
+- **Pinch to zoom, rebuilt** — on both the folder grid and the media grid. It answers the first try
+  instead of scrolling the grid, and there is no longer a second's wait after every touch before it
+  will respond. One gesture can walk as far through the counts as you keep moving, and turn around
+  and come back, without lifting your fingers.
 - **Zoomed-out media grid** — pinching past seven columns now steps 10, 14, 20 rather than one
   column at a time, and those counts draw stripped tiles: the picture alone, no badges, no name, no
   selection. A screenful of several hundred stays smooth where it used to stall.
