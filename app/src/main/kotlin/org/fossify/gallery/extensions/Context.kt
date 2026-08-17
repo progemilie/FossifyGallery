@@ -620,6 +620,7 @@ fun Context.loadImage(
     cropThumbnails: Boolean,
     roundCorners: Int,
     signature: ObjectKey,
+    overrideSize: Int? = null,
     skipMemoryCacheAtPaths: ArrayList<String>? = null,
     onError: (() -> Unit)? = null
 ) {
@@ -639,6 +640,7 @@ fun Context.loadImage(
             cropThumbnails = cropThumbnails,
             roundCorners = roundCorners,
             signature = signature,
+            overrideSize = overrideSize,
             skipMemoryCacheAtPaths = skipMemoryCacheAtPaths,
             animate = animateGifs,
             tryLoadingWithPicasso = type == TYPE_IMAGES && path.isPng(),
@@ -708,6 +710,13 @@ fun Context.loadImageBase(
     cropThumbnails: Boolean,
     roundCorners: Int,
     signature: ObjectKey,
+    /**
+     * What the thumbnail is decoded to, in place of the size of the view it goes in. The size is
+     * part of Glide's cache key, so anything whose views vary by a pixel - a grid row, whose spare
+     * pixels the layout manager spreads across its columns - has to name one, or it stores the same
+     * picture once per width.
+     */
+    overrideSize: Int? = null,
     skipMemoryCacheAtPaths: ArrayList<String>? = null,
     animate: Boolean = false,
     tryLoadingWithPicasso: Boolean = false,
@@ -721,6 +730,10 @@ fun Context.loadImageBase(
         .priority(Priority.LOW)
         .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
         .format(decodeFormat)
+
+    if (overrideSize != null) {
+        options.override(overrideSize)
+    }
 
     if (cropThumbnails) {
         options.optionalTransform(CenterCrop())

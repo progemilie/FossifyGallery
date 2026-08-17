@@ -2,6 +2,11 @@
 
 Fork-only changes, newest first. Small fixes are left out.
 
+## [v1.12.1] - 2026.08.17 — thumbnail cache
+
+- The media grid no longer stores a second copy of a thumbnail that is a pixel off the first, so the
+  cache holds one picture per column count instead of up to three.
+
 ## [v1.12.0] - 2026.08.17 — zooming
 
 - **Pinch to zoom, rebuilt**
@@ -89,6 +94,7 @@ Initial fork work, landed over 2026.08.06–08.09 before fork versions were trac
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
 
+[v1.12.1]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.12.1
 [v1.12.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.12.0
 [v1.11.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.11.0
 [v1.10.2]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.10.2

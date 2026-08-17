@@ -1215,7 +1215,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         // a fresh view, and Glide sizes the picture from the view it is handed - rebinding the old
         // one in place asks for the size the tile used to be
         binding.mediaGrid.itemAnimator = if (isGridSimplified()) null else mDefaultItemAnimator
-        getMediaAdapter()?.tuneCachesForColumnCount(config.mediaColumnCnt)
+        getMediaAdapter()?.applyColumnCount(config.mediaColumnCnt)
     }
 
     private fun isGridViewType() =
