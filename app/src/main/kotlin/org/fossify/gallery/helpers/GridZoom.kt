@@ -26,8 +26,11 @@ class GridZoom private constructor(
     /** Every count the grid can come to rest at, in order. */
     val rungs: List<Int>,
     /**
-     * The size every simplified tile is decoded to, taken from the largest of them. One size for
-     * all the rungs puts them on a single cache entry, so pinching between them decodes nothing.
+     * The size every simplified tile is decoded to. One size for all the rungs puts them on a
+     * single cache entry, so pinching between them decodes nothing; it is taken from the second of
+     * them rather than the first, whose tiles are the largest. Sizing for those stores twice the
+     * pixels for the sake of one rung, and leaves it stretched by a rung's worth - 1.4x - which a
+     * tile this small has nothing to show for.
      */
     val simpleThumbnailSize: Int
 ) {
@@ -92,8 +95,9 @@ class GridZoom private constructor(
 
             val rungs = ladder(interactiveMax)
             // by value, not by index - the rungs below the boundary are no longer 1..interactiveMax
-            val firstSimplified = rungs.firstOrNull { it > interactiveMax } ?: rungs.last()
-            return GridZoom(interactiveMax, rungs, atLeastPowerOfTwo(acrossPx / firstSimplified))
+            val simplified = rungs.filter { it > interactiveMax }
+            val sizedFor = simplified.getOrNull(1) ?: simplified.lastOrNull() ?: rungs.last()
+            return GridZoom(interactiveMax, rungs, atLeastPowerOfTwo(acrossPx / sizedFor))
         }
 
         /** The shared sequence, cut [SIMPLIFIED_RUNGS] past [interactiveMax]. */
