@@ -213,8 +213,12 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
             binding.searchGrid.layoutParams = RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
 
-        layoutManager.spanCount = interactiveMediaColumnCnt()
+        val spanCount = interactiveMediaColumnCnt()
+        layoutManager.spanCount = spanCount
         val adapter = getMediaAdapter()
+        // this grid draws a count of its own, so the adapter is told what to decode for rather than
+        // left on the media grid's stored one, which may be zoomed far past anything readable
+        adapter?.applyColumnCount(spanCount)
         layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
             override fun getSpanSize(position: Int): Int {
                 return if (adapter?.isASectionTitle(position) == true) {

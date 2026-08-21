@@ -566,7 +566,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
         // arranging at a count where no single item can be picked out is not arranging anything
         if (mGridZoom.isSimplified(config.mediaColumnCnt)) {
-            setColumnCount(mGridZoom.interactiveMax)
+            setColumnCount(mGridZoom.largestInteractive)
         }
 
         val flatMedia = mMedia.filterIsInstance<Medium>().toMutableList() as ArrayList<ThumbnailItem>

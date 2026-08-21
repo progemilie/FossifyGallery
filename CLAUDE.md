@@ -91,9 +91,12 @@ bitmaps. An edit leaving size and timestamp unchanged is otherwise invisible to 
 ### The zoomed-out media grid
 
 `helpers/GridZoom.kt` is the ladder of column counts the media grid is pinched through
-(`helpers/GridPinchZoom.kt`, which replaces commons' unusable zoom listener): every count up to
-`interactiveMax` — the one whose tile is nearest 55dp — then three **simplified** rungs 1.4x apart.
-Every phone comes out as 1-7, then 10, 14, 20; the sideways grid divides the height, tablets scale up.
+(`helpers/GridPinchZoom.kt`, which replaces commons' unusable zoom listener): every screen takes a
+prefix of one sequence — single steps to 7, then 1.4x apart — cut three **simplified** rungs past
+`interactiveMax`, the count whose tile is nearest 55dp. A phone gets 1-7, 10, 14, 20 and no screen
+more than fourteen rungs; the sideways grid divides the height. **`interactiveMax` is a boundary,
+not a rung** — a wide screen steps 14 to 20 — so anything naming a tappable count wants
+`largestInteractive`.
 
 Past `interactiveMax` a tile is only its picture, and a screenful is several hundred of them.
 `MediaAdapter` binds `photo_item_grid_simple.xml` — a bare `MySquareImageView`, no listeners, no
