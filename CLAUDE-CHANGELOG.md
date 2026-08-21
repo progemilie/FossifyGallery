@@ -4,13 +4,7 @@ Fork-only changes, newest first. Small fixes are left out.
 
 ## [v1.13.0] - 2026.08.21 — zoom levels
 
-- **Every pinch step is a visible change.** The media grid's column counts now follow one ladder —
-  single steps up to 7, then 10, 14, 20, 28 and on — rather than counting up a column at a time
-  however wide the screen is. A phone held upright keeps exactly the counts it had; landscape and
-  tablets, where a pinch used to crawl through a dozen near-identical steps, are now a dozen steps
-  shorter.
-- Search and the copy/move picker draw thumbnails at the size they show them, so they no longer
-  come out soft once the grid has been zoomed out.
+- **Every pinch step is a visible change.** The media grid's column counts now follow one ladder — single steps up to 7, then 10, 14, 20, 28 and on.
 
 ## [v1.12.1] - 2026.08.17 — thumbnail cache
 
