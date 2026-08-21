@@ -668,7 +668,7 @@ fun Context.mediaGridZoom() = GridZoom.forMediaGrid(this, config.scrollHorizonta
  * left far past the point where an item is drawn in full.
  */
 fun Context.interactiveMediaColumnCnt() =
-    config.mediaColumnCnt.coerceAtMost(mediaGridZoom().interactiveMax)
+    config.mediaColumnCnt.coerceAtMost(mediaGridZoom().largestInteractive)
 
 fun Context.addTempFolderIfNeeded(dirs: ArrayList<Directory>): ArrayList<Directory> {
     val tempFolderPath = config.tempFolderPath

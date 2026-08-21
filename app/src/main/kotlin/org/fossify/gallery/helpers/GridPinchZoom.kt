@@ -43,10 +43,11 @@ class GridPinchZoom(
 
     private companion object {
         /**
-         * How much the fingers' separation has to change to ask for the next count. Matches
-         * `GridZoom`'s spacing between the zoomed-out counts, so a tile grows at the fingers' rate.
+         * How much the fingers' separation has to change to ask for the next count. Taken from the
+         * ladder's own spacing rather than repeated, so a tile grows at the fingers' rate wherever
+         * the two are apart - which is every rung but the first few.
          */
-        const val STEP_RATIO = 1.4f
+        const val STEP_RATIO = GridZoom.RUNG_GROWTH
     }
 
     init {

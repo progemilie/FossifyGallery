@@ -5,12 +5,20 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * The column counts a media grid can be pinched through. Past `interactiveMax` a tile is too small
- * to carry a badge or be picked out by a finger, so those rungs are drawn simplified and spaced
- * well apart - stepping one column at a time from fourteen to twenty is neither useful nor cheap.
+ * The column counts a media grid can be pinched through. Every screen takes a prefix of one shared
+ * sequence - single steps while one more column is still a visible change, then [RUNG_GROWTH] apart:
  *
- * Rungs are derived from the tile size rather than written down, so landscape, tablets and the
- * sideways-scrolling grid all reach the same tiles.
+ *     1, 2, 3, 4, 5, 6, 7, 10, 14, 20, 28, 39, 55, 77 ...
+ *
+ * Past `interactiveMax` a tile is too small to carry a badge or be picked out by a finger, so those
+ * rungs are drawn simplified. A screen decides only where the sequence is cut - at [interactiveMax],
+ * plus [SIMPLIFIED_RUNGS] beyond it - which is what keeps every ladder short: stepping one column at
+ * a time from fourteen to twenty is neither useful nor cheap, and on a wide screen there were a
+ * dozen such steps.
+ *
+ * One sequence rather than one per screen also keeps [snap] exact. `Config` stores four counts
+ * (orientation x scroll direction) and each is a rung of every other ladder, so rotating or turning
+ * the grid sideways never drifts a count onto a neighbouring rung.
  */
 class GridZoom private constructor(
     /** The largest count still drawn with everything a thumbnail carries and can be tapped for. */
@@ -23,9 +31,19 @@ class GridZoom private constructor(
      */
     val simpleThumbnailSize: Int
 ) {
+    /**
+     * The largest rung whose items can still be tapped, for screens that have to name a count
+     * rather than test one. Not [interactiveMax], which is a boundary and need not be a rung at all
+     * - a screen fitting seventeen readable columns still steps 14 to 20.
+     */
+    val largestInteractive = rungs.last { it <= interactiveMax }
+
     fun isSimplified(columnCount: Int) = columnCount > interactiveMax
 
-    /** The rung [columnCount] belongs to - a stored count may predate this ladder, or another screen. */
+    /**
+     * The rung [columnCount] belongs to - a stored count may predate this ladder, or another screen.
+     * A count square between two rungs takes the lower one, leaving the larger tiles.
+     */
     fun snap(columnCount: Int) = rungs.minByOrNull { abs(it - columnCount) } ?: columnCount
 
     /** One rung fewer columns, or the bottom of the ladder. */
@@ -38,8 +56,11 @@ class GridZoom private constructor(
         /** Under this a tile has no room left for anything drawn over the picture. */
         private const val INTERACTIVE_MIN_TILE_DP = 55
 
-        /** How much wider each simplified rung is than the one below it. */
-        private const val RUNG_GROWTH = 1.4f
+        /** Up to this many columns, one column either way is still worth a rung of its own. */
+        private const val LINEAR_MAX = 7
+
+        /** How much wider each rung past [LINEAR_MAX] is than the one below it. */
+        const val RUNG_GROWTH = 1.4f
 
         /**
          * A fixed count rather than a smallest-tile rule, so the ladder is the same shape on every
@@ -50,6 +71,9 @@ class GridZoom private constructor(
 
         /** Even a narrow screen keeps a few tappable counts to choose between. */
         private const val MIN_INTERACTIVE_MAX = 3
+
+        /** However wide the screen, no more rungs than a finger will walk through. */
+        private const val MAX_RUNGS = 14
 
         /** No tile is ever small enough to be worth decoding below this. */
         private const val MIN_THUMBNAIL_SIZE_PX = 32
@@ -66,15 +90,27 @@ class GridZoom private constructor(
                 .roundToInt()
                 .coerceAtLeast(MIN_INTERACTIVE_MAX)
 
-            val rungs = (1..interactiveMax).toMutableList()
-            var next = interactiveMax
-            repeat(SIMPLIFIED_RUNGS) {
-                next = (next * RUNG_GROWTH).roundToInt()
+            val rungs = ladder(interactiveMax)
+            // by value, not by index - the rungs below the boundary are no longer 1..interactiveMax
+            val firstSimplified = rungs.firstOrNull { it > interactiveMax } ?: rungs.last()
+            return GridZoom(interactiveMax, rungs, atLeastPowerOfTwo(acrossPx / firstSimplified))
+        }
+
+        /** The shared sequence, cut [SIMPLIFIED_RUNGS] past [interactiveMax]. */
+        private fun ladder(interactiveMax: Int): List<Int> {
+            val rungs = mutableListOf<Int>()
+            var next = 1
+            var simplified = 0
+            while (simplified < SIMPLIFIED_RUNGS && rungs.size < MAX_RUNGS) {
                 rungs.add(next)
+                if (next > interactiveMax) {
+                    simplified++
+                }
+
+                next = if (next < LINEAR_MAX) next + 1 else (next * RUNG_GROWTH).roundToInt()
             }
 
-            val firstSimplified = rungs.getOrNull(interactiveMax) ?: interactiveMax
-            return GridZoom(interactiveMax, rungs, atLeastPowerOfTwo(acrossPx / firstSimplified))
+            return rungs
         }
 
         // a power of two is also what the decoder samples down to most cheaply

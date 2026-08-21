@@ -80,6 +80,12 @@ class PickMediumDialog(val activity: BaseSimpleActivity, val path: String, val c
             }
         }
 
+        // the dialog draws a count of its own, so the adapter is told what to decode for rather than
+        // left on the media grid's stored one, which may be zoomed far past anything readable
+        if (isGridViewType) {
+            adapter.applyColumnCount(activity.interactiveMediaColumnCnt())
+        }
+
         val scrollHorizontally = config.scrollHorizontally && isGridViewType
         binding.apply {
             mediaGrid.adapter = adapter
