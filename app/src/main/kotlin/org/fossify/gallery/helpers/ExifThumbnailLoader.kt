@@ -160,8 +160,9 @@ private class ExifThumbnailFetcher(
     }
 
     /**
-     * Whether the embedded copy has at least as many pixels each way as the thumbnail being drawn -
-     * below that it would be an upscale, which is the "not good enough" this falls back from.
+     * Whether the embedded copy has enough pixels each way for the thumbnail being drawn, give or
+     * take [COVERAGE_TOLERANCE] - below that it would be an upscale, which is the "not good enough"
+     * this falls back from.
      */
     private fun coversTarget(thumbnail: ByteArray, orientation: Int): Boolean {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -174,7 +175,7 @@ private class ExifThumbnailFetcher(
         val turned = orientation in TURNED_ORIENTATIONS
         val shownWidth = if (turned) bounds.outHeight else bounds.outWidth
         val shownHeight = if (turned) bounds.outWidth else bounds.outHeight
-        return shownWidth >= width && shownHeight >= height
+        return shownWidth * COVERAGE_TOLERANCE >= width && shownHeight * COVERAGE_TOLERANCE >= height
     }
 
     /**
@@ -230,5 +231,15 @@ private class ExifThumbnailFetcher(
         )
 
         const val SMALLEST_FILE_WORTH_LOOKING_INSIDE = 128 * 1024L
+
+        /**
+         * How far past its own size the embedded copy is still drawn from. Sizes are rounded to a
+         * rung of [ThumbnailSizes] before they reach here, and a rung can land a little above the
+         * tile that asked for it. Held to the letter, a file whose copy is 240px would fall off this
+         * path the moment a 232px tile rounded up to 274 - giving up thirty-five milliseconds a
+         * thumbnail to avoid enlarging one by a sixth. This is what the ladder can round up by: the
+         * square root of [ThumbnailSizes.STEP], plus the rounding of the smallest rungs to whole pixels.
+         */
+        const val COVERAGE_TOLERANCE = 1.2f
     }
 }

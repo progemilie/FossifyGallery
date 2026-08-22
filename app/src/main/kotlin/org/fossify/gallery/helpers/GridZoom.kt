@@ -31,6 +31,12 @@ class GridZoom private constructor(
      * them rather than the first, whose tiles are the largest. Sizing for those stores twice the
      * pixels for the sake of one rung, and leaves it stretched by a rung's worth - 1.4x - which a
      * tile this small has nothing to show for.
+     *
+     * Rounded up to a power of two rather than to a rung of [ThumbnailSizes], which every other
+     * thumbnail in the app takes. There is nothing left here for that ladder to collect - this is
+     * already one entry standing in for three rungs - and rounding to the nearest rung would put the
+     * size *under* the largest of their tiles instead of over it, which is the one place in the app
+     * a thumbnail would be drawn half again its own size.
      */
     val simpleThumbnailSize: Int
 ) {

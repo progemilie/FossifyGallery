@@ -13,6 +13,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -103,6 +104,7 @@ import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_NONE
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_SMALL
+import org.fossify.gallery.helpers.ThumbnailSizes
 import org.fossify.gallery.helpers.TransformedMedia
 import org.fossify.gallery.helpers.TYPE_GIFS
 import org.fossify.gallery.helpers.TYPE_IMAGES
@@ -130,6 +132,11 @@ class DirectoryAdapter(
 ) :
     MyRecyclerViewAdapter(activity, recyclerView, itemClick), ItemTouchHelperContract,
     RecyclerViewFastScroller.OnPopupTextUpdate {
+
+    private companion object {
+        /** The hairline of padding directory_item_grid_square.xml keeps around its cover. */
+        const val SQUARE_COVER_INSET_PX = 2
+    }
 
     private val config = activity.config
     private val isListViewType = config.viewTypeFolders == VIEW_TYPE_LIST
@@ -1111,6 +1118,10 @@ class DirectoryAdapter(
         }
 
         dirThumbnail.setBackgroundResource(placeholder)
+        // a folder whose cover failed to load left its warning icon centred here, and the view
+        // outlives the folder it failed for - without this every later cover bound to it is drawn at
+        // its own size in the middle of the tile instead of filling it
+        dirThumbnail.scaleType = ImageView.ScaleType.FIT_CENTER
         activity.loadImage(
             type = thumbnailType,
             path = directory.tmb,
@@ -1120,6 +1131,7 @@ class DirectoryAdapter(
             cropThumbnails = cropThumbnails,
             roundCorners = roundedCorners,
             signature = directory.getKey(),
+            overrideSize = thumbnailSize(),
             onError = {
                 dirThumbnail.scaleType = ImageView.ScaleType.CENTER
                 dirThumbnail.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_vector_warning_colored))
@@ -1178,6 +1190,56 @@ class DirectoryAdapter(
         isListViewType -> ROUNDED_CORNERS_SMALL
         folderStyle == FOLDER_STYLE_SQUARE -> ROUNDED_CORNERS_NONE
         else -> ROUNDED_CORNERS_BIG
+    }
+
+    /**
+     * The size a cover is decoded to: the column count's nominal share of the grid, rounded to a
+     * rung of [ThumbnailSizes]. Null in the list view, whose thumbnail is a fixed size of its own.
+     *
+     * Without a size of its own a cover is decoded to whatever width its tile was given, and an
+     * uneven division leaves the layout manager a pixel to spread across the row - so a single
+     * column count stored every folder twice, at two widths a pixel apart. Covers are the dearest
+     * entries in the cache: the rounded style cuts its corners out of the bitmap, which needs an
+     * alpha channel, so they are written as PNG at several times the bytes a tile costs.
+     *
+     * The layout manager is asked rather than the config, because the folder picker puts this adapter
+     * in a dialog with a span count and a width of its own.
+     */
+    private fun thumbnailSize(): Int? {
+        if (isListViewType) {
+            return null
+        }
+
+        // scrolled sideways, the rounded style hangs the cover above the folder's name rather than
+        // filling the tile, so it is left with whatever height the name does not want - a shape, not
+        // a square, and one that changes with the count. There is no single number to ask for, and
+        // the view's own size is still the right answer. See the tile layout in bindItem.
+        if (scrollHorizontally && folderStyle == FOLDER_STYLE_ROUNDED_CORNERS) {
+            return null
+        }
+
+        val layoutManager = recyclerView.layoutManager as? GridLayoutManager ?: return null
+        // the span count divides the axis the grid does *not* scroll along
+        val across = if (layoutManager.orientation == RecyclerView.HORIZONTAL) {
+            recyclerView.height - recyclerView.paddingTop - recyclerView.paddingBottom
+        } else {
+            recyclerView.width - recyclerView.paddingLeft - recyclerView.paddingRight
+        }
+
+        // nothing to divide before the grid has been measured; the view's own size will do
+        if (across <= 0) {
+            return null
+        }
+
+        // a cover does not fill its span: the square style insets it by a hairline either side, the
+        // rounded one by the margin its tile is laid out with
+        val inset = if (folderStyle == FOLDER_STYLE_SQUARE) {
+            SQUARE_COVER_INSET_PX
+        } else {
+            2 * resources.getDimensionPixelSize(org.fossify.commons.R.dimen.medium_margin)
+        }
+
+        return ThumbnailSizes.snap((across / layoutManager.spanCount - inset).coerceAtLeast(1))
     }
 
     /** How round a tile's cover is drawn, for anything that has to trace one - see [FolderDragMode]. */
