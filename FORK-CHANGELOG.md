@@ -4,11 +4,7 @@ Fork-only changes, newest first. Small fixes are left out.
 
 ## [v1.15.0] - 2026.08.22 — selecting
 
-- **Look at a photo properly without leaving the selection.** While multi-select is on, every tile
-  carries an expand button. It opens a stripped-down fullscreen view — the picture, whether it is
-  selected and how many are, and the thumbnail strip — with nothing else in the way. Swipe through
-  the folder, tap the pill to pick a picture out or drop it, and the grid has your selection when
-  you come back.
+- Peek at full screen media when selecting multiple items.
 
 ## [v1.14.0] - 2026.08.22 — sorting
 
