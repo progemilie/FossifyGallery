@@ -64,11 +64,6 @@
         android:title="@string/open_camera"
         app:showAsAction="ifRoom" />
     <item
-        android:id="@+id/group"
-        android:showAsAction="never"
-        android:title="@string/group_by"
-        app:showAsAction="never" />
-    <item
         android:id="@+id/custom_order"
         android:showAsAction="never"
         android:title="@string/custom_order"

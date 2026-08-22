@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    One option of an open dropdown. Colours are put on at runtime by views/Dropdown.kt - a popup
+    lives in a window of its own, outside the hierarchy setupDialogStuff recolours, so nothing here
+    can be themed in XML.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="@dimen/dropdown_row_height"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/dropdown_row_padding"
+    android:paddingEnd="@dimen/dropdown_row_padding"
+    tools:ignore="Overdraw">
+
+    <TextView
+        android:id="@+id/dropdown_row_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/bigger_text_size"
+        tools:text="@string/by_date_taken" />
+
+    <!-- the slack, rather than the label, is what a wider list is made of: a weighted label would
+         measure at whatever it was given rather than at what its text needs -->
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <ImageView
+        android:id="@+id/dropdown_row_check"
+        android:layout_width="@dimen/dropdown_icon_size"
+        android:layout_height="@dimen/dropdown_icon_size"
+        android:layout_marginStart="@dimen/medium_margin"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_check_vector"
+        android:visibility="invisible" />
+</LinearLayout>

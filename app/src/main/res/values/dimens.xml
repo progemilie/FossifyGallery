@@ -127,4 +127,21 @@
     <dimen name="folder_group_cell_gap">2dp</dimen>
     <dimen name="folder_group_border_width">1dp</dimen>
     <dimen name="folder_group_badge_size">22dp</dimen>
+
+    <!-- the list a dropdown field in a dialog opens under itself -->
+    <dimen name="dropdown_field_height">48dp</dimen>
+    <dimen name="dropdown_corner_radius">12dp</dimen>
+    <dimen name="dropdown_stroke">1dp</dimen>
+    <dimen name="dropdown_elevation">8dp</dimen>
+    <!-- padding kept around the list inside its popup, for the shadow to be drawn into -->
+    <dimen name="dropdown_shadow_room">10dp</dimen>
+    <dimen name="dropdown_list_padding">6dp</dimen>
+    <dimen name="dropdown_row_height">44dp</dimen>
+    <dimen name="dropdown_row_padding">16dp</dimen>
+    <dimen name="dropdown_max_width">320dp</dimen>
+    <dimen name="dropdown_icon_size">20dp</dimen>
+    <!-- how far the list hangs below its field, and how clear of the screen edge it stays -->
+    <dimen name="dropdown_drop_gap">4dp</dimen>
+    <dimen name="dropdown_screen_margin">8dp</dimen>
+    <dimen name="dropdown_order_button">44dp</dimen>
 </resources>

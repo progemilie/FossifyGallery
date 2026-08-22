@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The closed state of a dropdown: what is picked, and the chevron saying there is more. The
+    background and the chevron's colour are put on at runtime by views/Dropdown.kt.
+
+    No id on the root - the <include> tags in a dialog supply their own.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="@dimen/dropdown_field_height"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/dropdown_row_padding"
+    android:paddingEnd="@dimen/medium_margin"
+    tools:ignore="Overdraw">
+
+    <org.fossify.commons.views.MyTextView
+        android:id="@+id/dropdown_field_label"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textSize="@dimen/bigger_text_size"
+        tools:text="@string/by_date_taken" />
+
+    <ImageView
+        android:id="@+id/dropdown_field_chevron"
+        android:layout_width="@dimen/dropdown_icon_size"
+        android:layout_height="@dimen/dropdown_icon_size"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_chevron_down_vector" />
+</LinearLayout>

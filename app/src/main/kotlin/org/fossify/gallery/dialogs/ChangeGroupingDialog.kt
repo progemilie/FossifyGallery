@@ -10,6 +10,15 @@ import org.fossify.gallery.databinding.DialogChangeGroupingBinding
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.helpers.*
 
+/**
+ * Superseded by [ChangeSortingDialog], which carries grouping alongside sorting in one dialog now,
+ * on dropdowns rather than on two columns of radio buttons. Nothing references this any more; it is
+ * kept as the record of the arrangement they replaced.
+ *
+ * It is still compiled into the app: proguard-rules.pro opens with `-keep class org.fossify.** { *; }`,
+ * which covers this class and the binding generated for its layout, so R8 will not drop either of
+ * them however unreachable they are. Anyone who needs them gone has to delete the two files.
+ */
 class ChangeGroupingDialog(val activity: BaseSimpleActivity, val path: String = "", val callback: () -> Unit) :
     DialogInterface.OnClickListener {
     private var currGrouping = 0
