@@ -1,5 +1,6 @@
 package org.fossify.gallery.adapters
 
+import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
@@ -20,6 +21,10 @@ interface MediaItemBinding {
     val mediumCheck: ImageView
     val mediumThumbnail: MySquareImageView
 
+    // the box that opens the peek viewer, bigger than the button drawn inside it. Only the grid
+    // layouts carry one - see MediaAdapter.setupThumbnail
+    val mediumPeek: View?
+
     // only the photo layouts carry it - a video cannot hold a rating, so there is never one to show
     val ratingBadge: TextView?
 }
@@ -35,6 +40,7 @@ class PhotoListMediaItemBinding(val binding: PhotoItemListBinding) : MediaItemBi
     override val mediumCheck: ImageView = binding.mediumCheck
     override val mediumThumbnail: MySquareImageView = binding.mediumThumbnail
     override val ratingBadge: TextView = binding.ratingBadge
+    override val mediumPeek: View? = null
 }
 
 fun PhotoItemListBinding.toMediaItemBinding() = PhotoListMediaItemBinding(this)
@@ -50,6 +56,7 @@ class PhotoGridMediaItemBinding(val binding: PhotoItemGridBinding) : MediaItemBi
     override val mediumCheck: ImageView = binding.mediumCheck
     override val mediumThumbnail: MySquareImageView = binding.mediumThumbnail
     override val ratingBadge: TextView = binding.ratingBadge
+    override val mediumPeek: View = binding.mediumPeek
 }
 
 fun PhotoItemGridBinding.toMediaItemBinding() = PhotoGridMediaItemBinding(this)
@@ -65,6 +72,7 @@ class VideoListMediaItemBinding(val binding: VideoItemListBinding) : MediaItemBi
     override val mediumCheck: ImageView = binding.mediumCheck
     override val mediumThumbnail: MySquareImageView = binding.mediumThumbnail
     override val ratingBadge: TextView? = null
+    override val mediumPeek: View? = null
 }
 
 fun VideoItemListBinding.toMediaItemBinding() = VideoListMediaItemBinding(this)
@@ -80,6 +88,7 @@ class VideoGridMediaItemBinding(val binding: VideoItemGridBinding) : MediaItemBi
     override val mediumCheck: ImageView = binding.mediumCheck
     override val mediumThumbnail: MySquareImageView = binding.mediumThumbnail
     override val ratingBadge: TextView? = null
+    override val mediumPeek: View = binding.mediumPeek
 }
 
 fun VideoItemGridBinding.toMediaItemBinding() = VideoGridMediaItemBinding(this)

@@ -396,6 +396,8 @@
         <item quantity="one">%d folder</item>
         <item quantity="other">%d folders</item>
     </plurals>
+    <!-- Peek viewer -->
+    <string name="peek_fullscreen">View fullscreen</string>
     <!--
         Haven't found some strings? There's more at
         https://github.com/FossifyOrg/Commons/tree/master/commons/src/main/res

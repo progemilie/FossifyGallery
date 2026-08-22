@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The empty half of the peek viewer's tick: what a selected item's filled circle is not. The
+    transparent solid is not redundant - without one GradientDrawable paints its own default fill,
+    and the ring comes out a disc.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="@android:color/transparent" />
+    <stroke
+        android:width="2dp"
+        android:color="@color/color_primary" />
+</shape>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- lighter than the badges around it: the button sits over the picture being judged -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/peek_button_background" />
+    <corners android:radius="@dimen/peek_button_corner_radius" />
+</shape>

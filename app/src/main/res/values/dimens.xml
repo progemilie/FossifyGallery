@@ -79,6 +79,30 @@
     <dimen name="viewer_strip_padding_top">10dp</dimen>
     <dimen name="viewer_strip_padding_bottom">2dp</dimen>
     <dimen name="viewer_strip_height">50dp</dimen>
+    <!-- the tick a peeked-at thumbnail wears while its item is selected -->
+    <dimen name="viewer_strip_check_size">14dp</dimen>
+
+    <!-- smaller than the tick opposite it: the button is a way in, not a piece of state -->
+    <dimen name="peek_button_size">18dp</dimen>
+    <!--
+        The box that takes the tap, and the margin that keeps the button it holds where a plain
+        medium_margin would have drawn it: 2 + (30 - 18) / 2 = 8dp to the button's own edge.
+    -->
+    <dimen name="peek_button_touch_size">30dp</dimen>
+    <dimen name="peek_button_touch_margin">2dp</dimen>
+    <dimen name="peek_button_corner_radius">5dp</dimen>
+
+    <!--
+        How wide a tile has to be to wear the button at all. Below this the badges have taken it
+        over and the button is covering the picture it is offering to show: the tap box (2 + 30),
+        the play badge a video tile puts after it (4 + 26) and the tick at the far end (26 + 8)
+        come to 96dp between them. Four columns across a phone held upright, more on a tablet.
+    -->
+    <dimen name="peek_button_min_tile">96dp</dimen>
+
+    <!-- the peek viewer's tick-and-count pill -->
+    <dimen name="peek_pill_height">40dp</dimen>
+    <dimen name="peek_pill_radius">20dp</dimen>
     <!-- how far the strip sits into the empty top of the bottom action bar, which is all that
          separates the thumbnails from the buttons. See ViewPagerActivity.setupThumbnailStrip -->
     <dimen name="viewer_strip_drop_into_actions">10dp</dimen>

@@ -106,6 +106,7 @@ import org.fossify.gallery.helpers.IS_IN_RECYCLE_BIN
 import org.fossify.gallery.helpers.MEDIA_GRID_MENU
 import org.fossify.gallery.helpers.MediaFetcher
 import org.fossify.gallery.helpers.PATH
+import org.fossify.gallery.helpers.PeekSession
 import org.fossify.gallery.helpers.PICKED_PATHS
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ReorderBar
@@ -196,6 +197,9 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
     companion object {
         var mMedia = ArrayList<ThumbnailItem>()
+
+        /** Kept apart from [ViewerReturn.REQUEST_CODE]: a peek is not a trip to the full viewer. */
+        private const val REQUEST_PEEK = 2
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -394,6 +398,11 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             }
         } else if (requestCode == ViewerReturn.REQUEST_CODE) {
             viewerReturn.onViewerResult(resultData)
+        } else if (requestCode == REQUEST_PEEK) {
+            viewerReturn.onViewerResult(resultData)
+            // the peek is a selection tool, so what it picked out is what the action mode now holds
+            getMediaAdapter()?.applySelection(PeekSession.selectedPaths)
+            PeekSession.clear()
         }
         super.onActivityResult(requestCode, resultCode, resultData)
     }
@@ -786,6 +795,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             }.apply {
                 // the media handed in above is already simplified, so only the flag is left to set
                 setSimplifiedInitially(isGridSimplified())
+                onPeekRequested = ::openPeekViewer
                 binding.mediaGrid.adapter = this
             }
 
@@ -1367,6 +1377,16 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 else -> openInViewPager(path) // unreachable by design
             }
         }
+    }
+
+    /**
+     * Opens the peek viewer on [path]: a look at a picture too small to judge in the grid, without
+     * having to leave the selection to take it. What it hands back is read in [onActivityResult].
+     */
+    private fun openPeekViewer(media: List<Medium>, selectedPaths: Set<String>, path: String) {
+        PeekSession.open(media, selectedPaths, path)
+        viewerReturn.opening(path)
+        startActivityForResult(Intent(this, PeekViewerActivity::class.java), REQUEST_PEEK)
     }
 
     private fun openInViewPager(path: String) {

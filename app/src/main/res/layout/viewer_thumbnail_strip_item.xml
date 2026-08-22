@@ -34,6 +34,20 @@
             android:layout_height="match_parent"
             android:background="@android:color/black" />
 
+        <!-- only the peek viewer fills a selection in, so this stays away in the ordinary one -->
+        <ImageView
+            android:id="@+id/viewer_thumbnail_check"
+            android:layout_width="@dimen/viewer_strip_check_size"
+            android:layout_height="@dimen/viewer_strip_check_size"
+            android:layout_gravity="top|end"
+            android:layout_margin="@dimen/tiny_margin"
+            android:background="@drawable/circle_background"
+            android:contentDescription="@null"
+            android:padding="1dp"
+            android:src="@drawable/ic_check_vector"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
     </FrameLayout>
 
 </FrameLayout>

@@ -101,6 +101,14 @@
             android:parentActivityName=".activities.MainActivity"
             android:resizeableActivity="true" />
 
+        <!-- the stripped-down viewer a selection is peeked through, see PeekViewerActivity -->
+        <activity
+            android:name=".activities.PeekViewerActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="false"
+            android:parentActivityName=".activities.MediaActivity"
+            android:theme="@style/TranslucentTheme" />
+
         <activity
             android:name=".activities.ViewPagerActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
