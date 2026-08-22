@@ -5,7 +5,7 @@
 > **This is a fork** of [Fossify Gallery](https://github.com/FossifyOrg/Gallery). It reworks the
 > visual design and adds features built around personal needs, keeping everything below intact.
 >
-> **[CLAUDE-CHANGELOG](CLAUDE-CHANGELOG.md)** lists what each fork version changed. The store
+> **[FORK-CHANGELOG](FORK-CHANGELOG.md)** lists what each fork version changed. The store
 > links and description below are upstream's – this fork is not published to them.
 
 <a href='https://play.google.com/store/apps/details?id=org.fossify.gallery'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png' height=80/></a> <a href="https://f-droid.org/en/packages/org.fossify.gallery/"><img src="https://fdroid.gitlab.io/artwork/badge/get-it-on-en.svg" alt="Get it on F-Droid" height=80/></a> <a href="https://apt.izzysoft.de/fdroid/index/apk/org.fossify.gallery"><img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" alt="Get it on IzzyOnDroid" height=80/></a>
