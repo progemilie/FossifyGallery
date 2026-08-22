@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Superseded by dialog_change_sorting.xml, which carries grouping alongside sorting in one dialog
+    now. Nothing inflates this any more; it is kept as the record of what it replaced, and it is
+    still built into the app - see the note on dialogs/ChangeGroupingDialog.kt.
+-->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/grouping_dialog_scrollview"
     android:layout_width="match_parent"

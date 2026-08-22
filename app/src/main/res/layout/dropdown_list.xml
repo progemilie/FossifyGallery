@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The list a dropdown field opens under itself. The scroller is the panel that is seen; its
+    background, elevation and corner clipping are put on at runtime by views/Dropdown.kt.
+
+    The outer frame is room and nothing else. A shadow is drawn outside the view casting it, and the
+    panel has no app-owned parent to spill into - the popup window it lives in ends at its own edge -
+    so the room is made here instead.
+
+    The padding alone is not enough: a group clips its drawing to its padding box unless told not to,
+    which is exactly the panel's own bounds and would leave nothing of the shadow but the little that
+    falls inside the rounded corners - which is why the frame is not the useless parent lint
+    takes it for.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/dropdown_list_frame"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:padding="@dimen/dropdown_shadow_room">
+
+    <ScrollView
+        android:id="@+id/dropdown_list_panel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="none"
+        tools:ignore="UselessParent">
+
+        <LinearLayout
+            android:id="@+id/dropdown_list_column"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="@dimen/dropdown_list_padding"
+            android:paddingBottom="@dimen/dropdown_list_padding" />
+    </ScrollView>
+</FrameLayout>

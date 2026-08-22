@@ -64,7 +64,6 @@ val MEDIA_GRID_MENU = MenuSpec(
         listOf(
             row(R.id.sort),
             row(R.id.filter),
-            row(R.id.group),
             row(R.id.custom_order),
             row(R.id.reset_custom_order),
             row(R.id.change_view_type),

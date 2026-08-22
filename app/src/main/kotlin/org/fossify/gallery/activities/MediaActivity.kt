@@ -64,7 +64,6 @@ import org.fossify.gallery.adapters.MediaGridNavigator
 import org.fossify.gallery.asynctasks.GetMediaAsynctask
 import org.fossify.gallery.databases.GalleryDatabase
 import org.fossify.gallery.databinding.ActivityMediaBinding
-import org.fossify.gallery.dialogs.ChangeGroupingDialog
 import org.fossify.gallery.dialogs.ChangeSortingDialog
 import org.fossify.gallery.dialogs.ChangeViewTypeDialog
 import org.fossify.gallery.dialogs.FilterMediaDialog
@@ -414,7 +413,6 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         }
 
         menu.apply {
-            findItem(R.id.group).isVisible = !config.scrollHorizontally
             findItem(R.id.custom_order).isVisible = mPath != RECYCLE_BIN
             findItem(R.id.reset_custom_order).isVisible =
                 mPath != RECYCLE_BIN && config.hasCustomMediaOrder(getPathToUse())
@@ -465,7 +463,6 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 R.id.open_camera -> launchCamera()
                 R.id.folder_view -> switchToFolderView()
                 R.id.change_view_type -> changeViewType()
-                R.id.group -> showGroupByDialog()
                 R.id.custom_order -> startReordering()
                 R.id.reset_custom_order -> resetCustomOrder()
                 R.id.create_new_folder -> createNewFolder()
@@ -852,7 +849,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     }
 
     private fun showSortingDialog() {
-        ChangeSortingDialog(this, false, true, mPath) {
+        ChangeSortingDialog(this, isDirectorySorting = false, path = mPath) {
             reloadMedia()
         }
     }
@@ -918,12 +915,6 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             setupLayoutManager()
             binding.mediaGrid.adapter = null
             setupAdapter()
-        }
-    }
-
-    private fun showGroupByDialog() {
-        ChangeGroupingDialog(this, mPath) {
-            reloadMedia()
         }
     }
 
