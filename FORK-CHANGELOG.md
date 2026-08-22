@@ -2,6 +2,10 @@
 
 Fork-only changes, newest first. Small fixes are left out.
 
+## [v1.13.4] - 2026.08.22 — grouping
+
+- Grouping by date can be set to ascending again, whatever the sorting is.
+
 ## [v1.13.3] - 2026.08.22 — scrolling
 
 - The media grid decodes thumbnails ahead of the way it is being scrolled, so fewer tiles come up
@@ -113,6 +117,7 @@ Initial fork work, landed over 2026.08.06–08.09 before fork versions were trac
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
 
+[v1.13.4]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.13.4
 [v1.13.3]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.13.3
 [v1.13.2]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.13.2
 [v1.13.1]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.13.1
