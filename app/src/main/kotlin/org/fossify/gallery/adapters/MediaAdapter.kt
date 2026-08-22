@@ -13,8 +13,10 @@ import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.allViews
 import androidx.core.view.isVisible
+import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.Target
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.adapters.MyRecyclerViewAdapter
@@ -75,6 +77,7 @@ import org.fossify.gallery.extensions.loadSVG
 import org.fossify.gallery.extensions.mediaGridZoom
 import org.fossify.gallery.extensions.openEditor
 import org.fossify.gallery.extensions.openPath
+import org.fossify.gallery.extensions.preloadImage
 import org.fossify.gallery.extensions.rescanFolderMedia
 import org.fossify.gallery.extensions.restoreRecycleBinPaths
 import org.fossify.gallery.extensions.saveMirroredImageToFile
@@ -99,6 +102,7 @@ import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_FAVORITES
 import org.fossify.gallery.helpers.SHOW_RECYCLE_BIN
 import org.fossify.gallery.helpers.SimpleThumbnailLoader
+import org.fossify.gallery.helpers.ThumbnailPrefetcher
 import org.fossify.gallery.helpers.ThumbnailSizes
 import org.fossify.gallery.helpers.TransformedMedia
 import org.fossify.gallery.helpers.TYPE_GIFS
@@ -148,6 +152,21 @@ class MediaAdapter(
 
     /** Drag-to-arrange, which takes over the grid's gestures while it is on. */
     val reorderMode = MediaReorderMode(this)
+
+    /**
+     * Decodes what the grid is scrolling towards before it gets there. Null in the list view, whose
+     * thumbnail is sized by the view it goes in ([thumbnailSize] returns null for it) - there is no
+     * size to warm a cache entry at without inventing one the bind will not ask for.
+     */
+    private val prefetcher = if (isListViewType) {
+        null
+    } else {
+        ThumbnailPrefetcher(
+            recyclerView = recyclerView,
+            preloadAt = ::prefetchThumbnail,
+            cancel = { Glide.with(activity.applicationContext).clear(it) }
+        )
+    }
 
     /**
      * Whether every item is drawn as its picture and nothing else - see [GridZoom]. Only the media
@@ -320,6 +339,11 @@ class MediaAdapter(
     override fun onActionModeCreated() {}
 
     override fun onActionModeDestroyed() {}
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
+        prefetcher?.detach()
+    }
 
     override fun onViewRecycled(holder: ViewHolder) {
         super.onViewRecycled(holder)
@@ -781,6 +805,7 @@ class MediaAdapter(
         }
 
         currentMediaHash = media.hashCode()
+        prefetcher?.reset()
     }
 
     /** Repaints an item's check without rebinding it, which would restart its image request. */
@@ -811,6 +836,7 @@ class MediaAdapter(
             media = thumbnailItems
             notifyDataSetChanged()
             finishActMode()
+            prefetcher?.reset()
         }
     }
 
@@ -843,6 +869,8 @@ class MediaAdapter(
      */
     fun applyColumnCount(columnCount: Int) {
         this.columnCount = columnCount
+        // the count is what a thumbnail is decoded to, so everything in flight is now the wrong size
+        prefetcher?.reset()
         recyclerView.setItemViewCacheSize(columnCount * CACHED_ROWS)
         val poolSize = columnCount * POOLED_ROWS
         listOf(ITEM_MEDIUM_SIMPLE, ITEM_MEDIUM_PHOTO, ITEM_MEDIUM_VIDEO_PORTRAIT).forEach {
@@ -863,6 +891,8 @@ class MediaAdapter(
     fun updateCropThumbnails(cropThumbnails: Boolean) {
         this.cropThumbnails = cropThumbnails
         preparedSimpleThumbnails = null
+        // the crop is a transformation, and a transformation is part of what was asked for
+        prefetcher?.reset()
         notifyDataSetChanged()
     }
 
@@ -1081,6 +1111,40 @@ class MediaAdapter(
         } else {
             simpleThumbnails.load(path, thumbnail, medium.getKey())
         }
+    }
+
+    /**
+     * Starts the same request [setupThumbnail] or [setupSimpleThumbnail] would, for an item the grid
+     * has not reached yet - see [ThumbnailPrefetcher]. Null for anything there is nothing to warm:
+     * a grouping header, an SVG (rendered by a pipeline of its own), and a file whose thumbnail is
+     * deliberately kept out of the memory cache because it was just edited in place (see
+     * `TransformedMedia`).
+     */
+    private fun prefetchThumbnail(position: Int): Target<*>? {
+        val medium = media.getOrNull(position) as? Medium ?: return null
+        if (medium.type == TYPE_SVGS || transformedImagePaths.contains(medium.path)) {
+            return null
+        }
+
+        var path = medium.path
+        if (hasOTGConnected && activity.isPathOnOTG(path)) {
+            path = path.getOTGPublicPath(activity)
+        }
+
+        if (isSimplified) {
+            return simpleThumbnails.preload(path, medium.getKey())
+        }
+
+        val size = thumbnailSize() ?: return null
+        return activity.preloadImage(
+            type = medium.type,
+            path = path,
+            cropThumbnails = cropThumbnails,
+            roundCorners = getRoundedCorners(),
+            signature = medium.getKey(),
+            overrideSize = size,
+            animateGifs = animateGifs
+        )
     }
 
     private fun setupSection(view: View, section: ThumbnailSection) {

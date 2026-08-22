@@ -18,6 +18,7 @@ import android.provider.MediaStore.Images
 import android.widget.ImageView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.Priority
+import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.integration.webp.WebpBitmapFactory
 import com.bumptech.glide.integration.webp.decoder.WebpDownsampler
 import com.bumptech.glide.integration.webp.decoder.WebpDrawable
@@ -98,6 +99,7 @@ import org.fossify.gallery.helpers.ROUNDED_CORNERS_NONE
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_SMALL
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.THUMBNAIL_FADE_DURATION_MS
+import org.fossify.gallery.helpers.ThumbnailPrefetcher
 import org.fossify.gallery.helpers.ThumbnailSource
 import org.fossify.gallery.helpers.TYPE_GIFS
 import org.fossify.gallery.helpers.TYPE_IMAGES
@@ -644,19 +646,56 @@ fun Context.loadImage(
             skipMemoryCacheAtPaths = skipMemoryCacheAtPaths,
             animate = animateGifs,
             tryLoadingWithPicasso = type == TYPE_IMAGES && path.isPng(),
-            // half the bytes per thumbnail: half as much to write while decoding, and twice as many
-            // of them held in the memory cache before one has to be decoded over again. Glide keeps
-            // the deeper format by itself for anything carrying transparency, so this only ever
-            // applies where it costs nothing to see. Rounded corners are cut with an alpha mask,
-            // which would convert the bitmap straight back, so those are left alone
-            decodeFormat = if (roundCorners == ROUNDED_CORNERS_NONE) {
-                DecodeFormat.PREFER_RGB_565
-            } else {
-                DecodeFormat.PREFER_ARGB_8888
-            },
+            decodeFormat = thumbnailDecodeFormat(roundCorners),
             onError = onError
         )
     }
+}
+
+/**
+ * Warms the caches for a thumbnail with no view to put it in - see [ThumbnailPrefetcher]. The mirror
+ * of [loadImage], and has to stay one: every argument below is part of Glide's cache key, so a
+ * preload differing from the load that follows it decodes the picture a second time rather than
+ * saving the first. Null for an SVG, which is rendered by a pipeline of its own.
+ */
+fun Context.preloadImage(
+    type: Int,
+    path: String,
+    cropThumbnails: Boolean,
+    roundCorners: Int,
+    signature: ObjectKey,
+    overrideSize: Int,
+    animateGifs: Boolean,
+): Target<Drawable>? {
+    if (type == TYPE_SVGS) {
+        return null
+    }
+
+    return thumbnailRequest(
+        path = path,
+        cropThumbnails = cropThumbnails,
+        roundCorners = roundCorners,
+        signature = signature,
+        overrideSize = overrideSize,
+        skipMemoryCacheAtPaths = null,
+        animate = animateGifs,
+        // no view for it to fade into, and a transition is no part of the cache key either way
+        crossFadeDuration = 0,
+        decodeFormat = thumbnailDecodeFormat(roundCorners)
+    ).preload(overrideSize, overrideSize)
+}
+
+/**
+ * Half the bytes per thumbnail: half as much to write while decoding, and twice as many of them held
+ * in the memory cache before one has to be decoded over again. Glide keeps the deeper format by
+ * itself for anything carrying transparency, so this only ever applies where it costs nothing to
+ * see. Rounded corners are cut with an alpha mask, which would convert the bitmap straight back, so
+ * those are left alone.
+ */
+private fun thumbnailDecodeFormat(roundCorners: Int) = if (roundCorners == ROUNDED_CORNERS_NONE) {
+    DecodeFormat.PREFER_RGB_565
+} else {
+    DecodeFormat.PREFER_ARGB_8888
 }
 
 /** The ladder of column counts the media grid can be pinched through on this screen. */
@@ -703,7 +742,6 @@ fun Context.getPathLocation(path: String): Int {
     }
 }
 
-@SuppressLint("CheckResult")
 fun Context.loadImageBase(
     path: String,
     target: ImageView,
@@ -724,6 +762,61 @@ fun Context.loadImageBase(
     decodeFormat: DecodeFormat = DecodeFormat.PREFER_ARGB_8888,
     onError: (() -> Unit)? = null
 ) {
+    thumbnailRequest(
+        path = path,
+        cropThumbnails = cropThumbnails,
+        roundCorners = roundCorners,
+        signature = signature,
+        overrideSize = overrideSize,
+        skipMemoryCacheAtPaths = skipMemoryCacheAtPaths,
+        animate = animate,
+        crossFadeDuration = crossFadeDuration,
+        decodeFormat = decodeFormat
+        // the listener is no part of the shared request: it has a view to put a warning icon in,
+        // which a preload has not
+    ).listener(object : RequestListener<Drawable> {
+        override fun onLoadFailed(
+            e: GlideException?,
+            model: Any?,
+            targetBitmap: Target<Drawable>,
+            isFirstResource: Boolean
+        ): Boolean {
+            if (tryLoadingWithPicasso) {
+                tryLoadingWithPicasso(path, target, cropThumbnails, roundCorners, signature)
+            } else {
+                onError?.invoke()
+            }
+
+            return true
+        }
+
+        override fun onResourceReady(
+            resource: Drawable,
+            model: Any,
+            targetBitmap: Target<Drawable>,
+            dataSource: DataSource,
+            isFirstResource: Boolean,
+        ) = false
+    }).into(target)
+}
+
+/**
+ * The thumbnail request everything drawing one is built from, short of what it is drawn into. Shared
+ * so that a preload and the bind that follows it cannot come to describe the same picture
+ * differently - see [preloadImage].
+ */
+@SuppressLint("CheckResult")
+private fun Context.thumbnailRequest(
+    path: String,
+    cropThumbnails: Boolean,
+    roundCorners: Int,
+    signature: ObjectKey,
+    overrideSize: Int?,
+    skipMemoryCacheAtPaths: ArrayList<String>?,
+    animate: Boolean,
+    crossFadeDuration: Int,
+    decodeFormat: DecodeFormat,
+): RequestBuilder<Drawable> {
     val options = RequestOptions()
         .signature(signature)
         .skipMemoryCache(skipMemoryCacheAtPaths?.contains(path) == true)
@@ -772,40 +865,13 @@ fun Context.loadImageBase(
     }
 
     WebpBitmapFactory.sUseSystemDecoder = false // CVE-2023-4863
-    var builder = Glide.with(applicationContext)
+    return Glide.with(applicationContext)
         // not the path itself: a thumbnail is small enough to come out of the copy stored inside
         // the photo, where there is one big enough. See ThumbnailSource
         .load(ThumbnailSource(path))
         .apply(options)
         .set(WebpDownsampler.USE_SYSTEM_DECODER, false) // CVE-2023-4863
         .transition(getOptionalCrossFadeTransition(crossFadeDuration))
-
-    builder = builder.listener(object : RequestListener<Drawable> {
-        override fun onLoadFailed(
-            e: GlideException?,
-            model: Any?,
-            targetBitmap: Target<Drawable>,
-            isFirstResource: Boolean
-        ): Boolean {
-            if (tryLoadingWithPicasso) {
-                tryLoadingWithPicasso(path, target, cropThumbnails, roundCorners, signature)
-            } else {
-                onError?.invoke()
-            }
-
-            return true
-        }
-
-        override fun onResourceReady(
-            resource: Drawable,
-            model: Any,
-            targetBitmap: Target<Drawable>,
-            dataSource: DataSource,
-            isFirstResource: Boolean,
-        ) = false
-    })
-
-    builder.into(target)
 }
 
 fun Context.loadSVG(
