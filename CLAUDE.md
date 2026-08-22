@@ -264,3 +264,4 @@ A UI feature does not need a large block of text in the CLAUDE.md file. Try to k
 Update `@FORK-CHANGELOG.md` file after a new version bump and include new user facing changes. Fixes do
 not need to be included, unless they are major. The file should be updated as the last commit before making
 a PR. So if a PR is ordered to be made, first make a commit to change the changelog file.
+PR should follow same naming convention as commits do.
