@@ -2,6 +2,11 @@
 
 Fork-only changes, newest first. Small fixes are left out.
 
+## [v1.13.3] - 2026.08.22 — scrolling
+
+- The media grid decodes thumbnails ahead of the way it is being scrolled, so fewer tiles come up
+  blank on a fling.
+
 ## [v1.13.2] - 2026.08.22 — thumbnail cache
 
 - Thumbnails are decoded at a set of standard sizes rather than one per column count, so column

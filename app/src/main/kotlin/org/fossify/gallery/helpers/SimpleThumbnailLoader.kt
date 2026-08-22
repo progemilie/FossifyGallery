@@ -2,6 +2,7 @@ package org.fossify.gallery.helpers
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
 import android.view.View
 import android.widget.ImageView
 import androidx.core.graphics.drawable.toDrawable
@@ -15,6 +16,7 @@ import com.bumptech.glide.load.resource.bitmap.CenterCrop
 import com.bumptech.glide.load.resource.bitmap.FitCenter
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions
+import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.signature.ObjectKey
 
 /**
@@ -28,7 +30,7 @@ class SimpleThumbnailLoader(
     context: Context,
     cropThumbnails: Boolean,
     /** What the tile is decoded to - see `GridZoom.simpleThumbnailSize`. */
-    size: Int
+    private val size: Int
 ) {
     private val requests = Glide.with(context.applicationContext)
 
@@ -65,6 +67,18 @@ class SimpleThumbnailLoader(
             .transition(noTransition)
             .into(target)
     }
+
+    /**
+     * The same request with nothing to draw it into, for an item the grid has not reached yet - see
+     * [ThumbnailPrefetcher]. Shares [options] with [load] rather than restating it, so the two
+     * cannot come to ask for different pictures.
+     */
+    fun preload(path: String, signature: ObjectKey): Target<Drawable> =
+        requests
+            .load(ThumbnailSource(path))
+            .apply(options)
+            .signature(signature)
+            .preload(size, size)
 
     fun clear(target: View) = requests.clear(target)
 }

@@ -81,6 +81,11 @@ own orientation, or a rotated photo faces different ways in the grid and the vie
 
 Every Glide thumbnail goes through `loadImageBase()`, which is also where the WebP decoder is held
 to the safe path (CVE-2023-4863) — except the zoomed-out media grid, which has its own loader below.
+Both hand their prepared request to `helpers/ThumbnailPrefetcher.kt`, which decodes what the media
+grid is scrolling towards — about a screenful ahead of the finger against a quarter of one behind.
+**A preload must describe the picture exactly as the bind that follows it does** — model, signature,
+`override()` size, transform and format are all cache key — or the grid decodes everything twice, so
+the request is shared rather than restated.
 
 Cache keys everywhere are derived from path + last-modified + size (`Medium.getSignature()`,
 `Directory.getKey()`). **Anything that edits a file in place must call
