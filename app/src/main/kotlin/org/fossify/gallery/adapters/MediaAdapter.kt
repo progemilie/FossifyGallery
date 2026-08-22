@@ -99,6 +99,7 @@ import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_FAVORITES
 import org.fossify.gallery.helpers.SHOW_RECYCLE_BIN
 import org.fossify.gallery.helpers.SimpleThumbnailLoader
+import org.fossify.gallery.helpers.ThumbnailSizes
 import org.fossify.gallery.helpers.TransformedMedia
 import org.fossify.gallery.helpers.TYPE_GIFS
 import org.fossify.gallery.helpers.TYPE_RAWS
@@ -925,6 +926,10 @@ class MediaAdapter(
      * sized by its own view stores the same picture twice for a single column count, once for each
      * of the two widths a row holds. The odd tile is a pixel wider than its bitmap, which the
      * ImageView takes up. The simplified rungs do the same with `GridZoom.simpleThumbnailSize`.
+     *
+     * That share is then rounded to a rung of [ThumbnailSizes], which does the same thing one step
+     * further out: column counts whose tiles come within a step of each other - five and six, or a
+     * count read down the screen and one read across it - stop keeping a copy of the picture each.
      */
     private fun thumbnailSize(): Int? {
         if (isListViewType) {
@@ -947,7 +952,7 @@ class MediaAdapter(
         // wider is the item decoration's insets, which come to about one spacing per item
         val spacing = config.thumbnailSpacing
         val inset = if (spacing <= 1) spacing * 2 else spacing
-        return (across / columnCount - inset).coerceAtLeast(1)
+        return ThumbnailSizes.snap((across / columnCount - inset).coerceAtLeast(1))
     }
 
     private fun setupThumbnail(view: View, medium: Medium) {
@@ -1025,6 +1030,11 @@ class MediaAdapter(
                     else -> R.drawable.placeholder_square
                 }
             )
+
+            // a file that failed to load left its warning icon centred here, and the view outlives
+            // the item it failed for - without this every later picture bound to it is drawn at its
+            // own size in the middle of the tile instead of filling it
+            mediumThumbnail.scaleType = ImageView.ScaleType.FIT_CENTER
 
             activity.loadImage(
                 type = medium.type,
