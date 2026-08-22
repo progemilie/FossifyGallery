@@ -113,6 +113,7 @@ Initial fork work, landed over 2026.08.06–08.09 before fork versions were trac
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
 
+[v1.13.3]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.13.3
 [v1.13.2]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.13.2
 [v1.13.1]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.13.1
 [v1.13.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.13.0
