@@ -5,8 +5,7 @@ Fork-only changes, newest first. Small fixes are left out.
 ## [v1.13.2] - 2026.08.22 — thumbnail cache
 
 - Thumbnails are decoded at a set of standard sizes rather than one per column count, so column
-  counts that differ by a little share a cached thumbnail instead of keeping one each. Roughly half
-  as many thumbnails on disk, and pinching between two nearby counts no longer redraws anything.
+  counts that differ by a little share a cached thumbnail. Roughly half as many thumbnails on disk.
 
 ## [v1.13.1] - 2026.08.22 — thumbnail cache
 
