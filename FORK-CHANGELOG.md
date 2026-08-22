@@ -2,6 +2,10 @@
 
 Fork-only changes, newest first. Small fixes are left out.
 
+## [v1.15.0] - 2026.08.22 — selecting
+
+- Peek at full screen media when selecting multiple items.
+
 ## [v1.14.0] - 2026.08.22 — sorting
 
 - **Sorting and grouping are one dialog.** Two dropdowns, each with its own ascending/descending arrow. The separate "Group by" menu entry is gone.
@@ -121,6 +125,7 @@ Initial fork work, landed over 2026.08.06–08.09 before fork versions were trac
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
 
+[v1.15.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.15.0
 [v1.14.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.14.0
 [v1.13.4]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.13.4
 [v1.13.3]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.13.3

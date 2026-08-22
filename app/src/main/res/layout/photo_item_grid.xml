@@ -13,12 +13,41 @@
         android:layout_height="match_parent"
         tools:src="@mipmap/ic_launcher" />
 
+    <!--
+        Opens the peek viewer; only up while the action mode is, see MediaAdapter. The box that
+        takes the tap is wider than the button drawn in the middle of it - 18dp is a small thing to
+        hit on a grid being scrolled through - and its margin makes up the difference, so the button
+        is drawn exactly where a plain @dimen/medium_margin would have put it.
+    -->
+    <FrameLayout
+        android:id="@+id/medium_peek"
+        android:layout_width="@dimen/peek_button_touch_size"
+        android:layout_height="@dimen/peek_button_touch_size"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_margin="@dimen/peek_button_touch_margin"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <ImageView
+            android:layout_width="@dimen/peek_button_size"
+            android:layout_height="@dimen/peek_button_size"
+            android:layout_gravity="center"
+            android:background="@drawable/peek_button_background"
+            android:contentDescription="@string/peek_fullscreen"
+            android:padding="@dimen/tiny_margin"
+            android:src="@drawable/ic_expand_diagonal_vector" />
+
+    </FrameLayout>
+
     <TextView
         android:id="@+id/file_type"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
+        android:layout_toEndOf="@id/medium_peek"
         android:layout_margin="@dimen/small_margin"
         android:fontFamily="sans-serif-medium"
         android:shadowColor="@color/default_background_color"

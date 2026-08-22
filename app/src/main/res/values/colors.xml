@@ -2,6 +2,7 @@
 <resources>
     <color name="crop_image_view_background">#BB000000</color>
     <color name="circle_black_background">#66000000</color>
+    <color name="peek_button_background">#1A000000</color>
 
     <color name="star_enabled">#FFC107</color>
     <color name="star_disabled">#9E9E9E</color>

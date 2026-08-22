@@ -9,6 +9,7 @@ import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.allViews
@@ -152,6 +153,13 @@ class MediaAdapter(
 
     /** Drag-to-arrange, which takes over the grid's gestures while it is on. */
     val reorderMode = MediaReorderMode(this)
+
+    /**
+     * Opens the peek viewer on one item, hooked up by the screen that owns the grid. The list and
+     * the selection are the adapter's; where they get shown is not.
+     */
+    var onPeekRequested: ((media: List<Medium>, selectedPaths: Set<String>, path: String) -> Unit)? =
+        null
 
     /**
      * Decodes what the grid is scrolling towards before it gets there. Null in the list view, whose
@@ -336,9 +344,31 @@ class MediaAdapter(
 
     override fun getItemKeyPosition(key: Int) = media.indexOfFirst { (it as? Medium)?.path?.hashCode() == key }
 
-    override fun onActionModeCreated() {}
+    override fun onActionModeCreated() = updatePeekButtons(selecting = true)
 
-    override fun onActionModeDestroyed() {}
+    override fun onActionModeDestroyed() = updatePeekButtons(selecting = false)
+
+    /**
+     * Puts the peek buttons up or away on the items already on screen. Written straight onto the
+     * views rather than gone about through notifyDataSetChanged(), which would restart every
+     * thumbnail's decode for the sake of one icon appearing. Items bound after this get it from
+     * [bindPeekButton].
+     *
+     * Told whether a selection is on rather than asking [isSelecting], which upstream sets around
+     * these two calls without saying in which order.
+     */
+    private fun updatePeekButtons(selecting: Boolean) {
+        val visible = selecting && tileFitsPeekButton()
+        for (i in 0 until recyclerView.childCount) {
+            val child = recyclerView.getChildAt(i) ?: continue
+            val peek = child.findViewById<View>(R.id.medium_peek) ?: continue
+            peek.beVisibleIf(visible)
+            // the duration shares that corner and gives way to it; see setupThumbnail. Only the
+            // video layouts carry one, so a photo on screen finds nothing here to change
+            child.findViewById<TextView>(R.id.video_duration)
+                ?.beVisibleIf(!visible && config.showThumbnailVideoDuration)
+        }
+    }
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
         super.onDetachedFromRecyclerView(recyclerView)
@@ -947,6 +977,61 @@ class MediaAdapter(
     }
 
     /**
+     * The button that opens the peek viewer on this item. Up only while the action mode is: it is a
+     * tool for choosing between pictures too small to judge, and a grid nobody is selecting in has
+     * the plain tap for opening one.
+     */
+    private fun MediaItemBinding.bindPeekButton(medium: Medium) {
+        val peek = mediumPeek ?: return
+        peek.beVisibleIf(isPeekButtonUp())
+        peek.setOnClickListener {
+            onPeekRequested?.invoke(media.filterIsInstance<Medium>(), getSelectedPaths().toSet(), medium.path)
+        }
+    }
+
+    /** Whether the action mode owns the grid; reordering borrows the same gestures for itself. */
+    private fun isSelecting() = !reorderMode.isActive && actModeCallback.isSelectable
+
+    /** Whether the peek button belongs on a tile at all: a selection is on, and there is room. */
+    private fun isPeekButtonUp() = isSelecting() && tileFitsPeekButton()
+
+    /**
+     * Whether a tile is wide enough for the button to be worth its place. Zoomed out far enough it
+     * and the tick between them take most of the tile, and the button ends up covering the picture
+     * it is offering to show - see [R.dimen.peek_button_min_tile]. The picture is still reachable
+     * from the tile's own tap once the selection is over.
+     */
+    private fun tileFitsPeekButton(): Boolean {
+        val tile = tileSize() ?: return false
+        return tile >= resources.getDimensionPixelSize(R.dimen.peek_button_min_tile)
+    }
+
+    /**
+     * Puts the selection where the peek viewer left it. Upstream's own toggle does the work - it is
+     * what keeps the action mode's title right, and what ends the mode once the last item goes - so
+     * all this does is work out the differences and feed them in.
+     *
+     * Additions go before removals, and only the last of them redraws the title: one item swapped
+     * for another would otherwise pass through an empty selection, and an empty selection is what
+     * ends the mode.
+     */
+    fun applySelection(paths: Set<String>) {
+        val changes = media.withIndex().mapNotNull { (position, item) ->
+            val medium = item as? Medium ?: return@mapNotNull null
+            val select = paths.contains(medium.path)
+            if (select == selectedKeys.contains(medium.path.hashCode())) {
+                null
+            } else {
+                position to select
+            }
+        }.sortedByDescending { (_, select) -> select }
+
+        changes.forEachIndexed { index, (position, select) ->
+            toggleItemSelection(select, position, index == changes.lastIndex)
+        }
+    }
+
+    /**
      * The size a full thumbnail is decoded to: the column count's nominal share of the grid, rather
      * than the width the tile it goes in is actually given. Null in the list view, whose thumbnail
      * is a fixed size of its own with no column to be divided out of.
@@ -961,7 +1046,13 @@ class MediaAdapter(
      * further out: column counts whose tiles come within a step of each other - five and six, or a
      * count read down the screen and one read across it - stop keeping a copy of the picture each.
      */
-    private fun thumbnailSize(): Int? {
+    private fun thumbnailSize() = tileSize()?.let { ThumbnailSizes.snap(it.coerceAtLeast(1)) }
+
+    /**
+     * The width a tile is actually given, before [thumbnailSize] rounds it to a rung. Null in the
+     * list view, which has no column to be divided out of, and before the grid has been measured.
+     */
+    private fun tileSize(): Int? {
         if (isListViewType) {
             return null
         }
@@ -982,7 +1073,7 @@ class MediaAdapter(
         // wider is the item decoration's insets, which come to about one spacing per item
         val spacing = config.thumbnailSpacing
         val inset = if (spacing <= 1) spacing * 2 else spacing
-        return ThumbnailSizes.snap((across / columnCount - inset).coerceAtLeast(1))
+        return across / columnCount - inset
     }
 
     private fun setupThumbnail(view: View, medium: Medium) {
@@ -1036,7 +1127,12 @@ class MediaAdapter(
             mediumName.text = medium.name
             mediumName.tag = medium.path
 
-            val showVideoDuration = medium.isVideo() && config.showThumbnailVideoDuration
+            // the peek button takes the corner the duration shares, and squeezed in beside it on a
+            // narrow tile the duration is cut to an ellipsis - better gone for the length of the
+            // selection than there and unreadable
+            val roomForDuration = mediumPeek == null || !isPeekButtonUp()
+            val showVideoDuration =
+                medium.isVideo() && config.showThumbnailVideoDuration && roomForDuration
             if (showVideoDuration) {
                 videoDuration?.text = medium.videoDuration.getFormattedDuration()
             }
@@ -1046,6 +1142,7 @@ class MediaAdapter(
             }
 
             markSelected(isSelected)
+            bindPeekButton(medium)
 
             var path = medium.path
             if (hasOTGConnected && root.context.isPathOnOTG(path)) {

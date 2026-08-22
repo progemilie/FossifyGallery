@@ -191,6 +191,22 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
         centerOn(position, smooth = false)
     }
 
+    /**
+     * Which items are selected, for the peek viewer that is choosing between them. Written onto the
+     * laid out thumbnails rather than handed over as an adapter change: a rebind would restart the
+     * Glide load behind each one, for a tick that is already sitting in the view.
+     */
+    fun setSelection(paths: Set<String>) {
+        stripAdapter.selectedPaths = paths
+        for (i in 0 until childCount) {
+            val child = getChildAt(i) ?: continue
+            val holder = getChildViewHolder(child) as? ViewerThumbnailAdapter.ThumbnailViewHolder
+            if (holder != null) {
+                stripAdapter.markSelected(holder)
+            }
+        }
+    }
+
     /** The file at [path] has been changed in place; draw its thumbnail again. */
     fun reload(path: String) = stripAdapter.reload(path)
 

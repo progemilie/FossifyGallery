@@ -7,7 +7,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.viewpager.widget.PagerAdapter
-import org.fossify.gallery.activities.ViewPagerActivity
 import org.fossify.gallery.fragments.PhotoFragment
 import org.fossify.gallery.fragments.VideoFragment
 import org.fossify.gallery.fragments.ViewPagerFragment
@@ -15,7 +14,15 @@ import org.fossify.gallery.helpers.MEDIUM
 import org.fossify.gallery.helpers.SHOULD_INIT_FRAGMENT
 import org.fossify.gallery.models.Medium
 
-class MyPagerAdapter(val activity: ViewPagerActivity, fm: FragmentManager, val media: MutableList<Medium>) : FragmentStatePagerAdapter(fm) {
+/**
+ * Takes the listener rather than the activity it usually is: the peek viewer hosts the same
+ * fragments with none of [org.fossify.gallery.activities.ViewPagerActivity] behind them.
+ */
+class MyPagerAdapter(
+    private val fragmentListener: ViewPagerFragment.FragmentListener,
+    fm: FragmentManager,
+    val media: MutableList<Medium>,
+) : FragmentStatePagerAdapter(fm) {
     private val fragments = HashMap<Int, ViewPagerFragment>()
     var shouldInitFragment = true
 
@@ -42,7 +49,7 @@ class MyPagerAdapter(val activity: ViewPagerActivity, fm: FragmentManager, val m
         val fragment = super.instantiateItem(container, position) as ViewPagerFragment
 
         // getItem() might not be called if the activity is recreated, so the listener must be set here
-        fragment.listener = activity
+        fragment.listener = fragmentListener
 
         fragments[position] = fragment
         return fragment

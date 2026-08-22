@@ -12,6 +12,10 @@ import com.bumptech.glide.integration.webp.decoder.WebpDownsampler
 import com.bumptech.glide.load.DecodeFormat
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
+import org.fossify.commons.extensions.applyColorFilter
+import org.fossify.commons.extensions.beVisibleIf
+import org.fossify.commons.extensions.getContrastColor
+import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.gallery.databinding.ViewerThumbnailStripItemBinding
 import org.fossify.gallery.helpers.ThumbnailSource
 import org.fossify.gallery.models.Medium
@@ -29,6 +33,12 @@ class ViewerThumbnailAdapter(
 ) : RecyclerView.Adapter<ViewerThumbnailAdapter.ThumbnailViewHolder>() {
 
     private var media = emptyList<Medium>()
+
+    /**
+     * Which of them wear a tick. Only the peek viewer fills this in - the ordinary viewer has no
+     * selection to report, and leaves every thumbnail plain.
+     */
+    var selectedPaths: Set<String> = emptySet()
 
     @Suppress("NotifyDataSetChanged")
     fun setItems(newMedia: List<Medium>) {
@@ -72,6 +82,26 @@ class ViewerThumbnailAdapter(
 
     override fun onBindViewHolder(holder: ThumbnailViewHolder, position: Int) {
         loadThumbnail(holder.binding.viewerThumbnailImage, media[position])
+        markSelected(holder.binding, media[position])
+    }
+
+    /**
+     * Paints the tick the same two colours the grid gives its own, so the two agree on screen.
+     * Public so the strip can redraw a laid out thumbnail without rebinding it, which would put its
+     * Glide load back to the start of the queue.
+     */
+    fun markSelected(holder: ThumbnailViewHolder) {
+        markSelected(holder.binding, media.getOrNull(holder.bindingAdapterPosition) ?: return)
+    }
+
+    private fun markSelected(binding: ViewerThumbnailStripItemBinding, medium: Medium) {
+        val isSelected = selectedPaths.contains(medium.path)
+        binding.viewerThumbnailCheck.beVisibleIf(isSelected)
+        if (isSelected) {
+            val context = binding.root.context
+            binding.viewerThumbnailCheck.background?.applyColorFilter(context.getProperPrimaryColor())
+            binding.viewerThumbnailCheck.applyColorFilter(context.getProperPrimaryColor().getContrastColor())
+        }
     }
 
     override fun onViewRecycled(holder: ThumbnailViewHolder) {
