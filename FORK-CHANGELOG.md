@@ -4,9 +4,7 @@ Fork-only changes, newest first. Small fixes are left out.
 
 ## [v1.14.0] - 2026.08.22 — sorting
 
-- **Sorting and grouping are one dialog.** Two dropdowns in place of two columns of radio buttons,
-  each with its own ascending/descending arrow, and one tick to keep both for the current folder
-  only. The separate "Group by" menu entry is gone.
+- **Sorting and grouping are one dialog.** Two dropdowns, each with its own ascending/descending arrow. The separate "Group by" menu entry is gone.
 
 ## [v1.13.4] - 2026.08.22 — grouping
 
