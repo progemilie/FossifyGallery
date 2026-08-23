@@ -289,7 +289,12 @@ class DirectoryAdapter(
 
     override fun getItemKeyPosition(key: Int) = dirs.indexOfFirst { it.path.hashCode() == key }
 
-    override fun onActionModeCreated() {}
+    /** Told when a selection starts or ends, for chrome that has to get out of its way. */
+    var onSelectionModeChanged: ((Boolean) -> Unit)? = null
+
+    override fun onActionModeCreated() {
+        onSelectionModeChanged?.invoke(true)
+    }
 
     override fun onActionModeDestroyed() {
         if (isDragAndDropping) {
@@ -300,6 +305,7 @@ class DirectoryAdapter(
         isDragAndDropping = false
         releaseReorderHandles()
         updateDragAvailability()
+        onSelectionModeChanged?.invoke(false)
     }
 
     /**

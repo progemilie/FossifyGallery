@@ -36,9 +36,17 @@ class GlassMenu private constructor(
     private val contentBehind: ViewGroup,
 ) {
     companion object {
-        /** Puts the drop-down on [toolbar]'s three dots. [contentBehind] is what it frosts. */
-        fun replaceOverflow(toolbar: Toolbar, spec: MenuSpec, contentBehind: ViewGroup) {
-            GlassMenu(toolbar, spec, contentBehind).attach()
+        /**
+         * Puts the drop-down on [toolbar]'s three dots. [contentBehind] is what it frosts.
+         * [alsoOpenedBy] is a second door onto the same menu, opening upward from wherever it sits.
+         */
+        fun replaceOverflow(
+            toolbar: Toolbar,
+            spec: MenuSpec,
+            contentBehind: ViewGroup,
+            alsoOpenedBy: View? = null,
+        ) {
+            GlassMenu(toolbar, spec, contentBehind).attach(alsoOpenedBy)
         }
     }
 
@@ -60,10 +68,18 @@ class GlassMenu private constructor(
     // view they are is worth looking at again rather than resolving once
     private var boundOverflow: View? = null
 
-    // how much of the screen was left under the three dots when the drop-down last opened
-    private var roomBelow = 0
+    private val gap = resources.getDimensionPixelSize(R.dimen.glass_menu_drop_gap)
+    private val room = resources.getDimensionPixelSize(R.dimen.glass_menu_shadow_room)
+    private val margin = resources.getDimensionPixelSize(R.dimen.glass_menu_screen_margin)
 
-    private fun attach() {
+    // what the drop-down last opened from, and whether it opened upward out of it
+    private var anchor: View? = null
+    private var dropUp = false
+
+    // how much of the screen was left the way it opens, when it last opened
+    private var roomForPanel = 0
+
+    private fun attach(alsoOpenedBy: View?) {
         binding.glassMenuPanel.apply {
             cornerRadius = resources.getDimension(R.dimen.glass_menu_corner_radius)
             blurRadius = Glass.DEFAULT_RADIUS
@@ -84,6 +100,9 @@ class GlassMenu private constructor(
             override fun onViewDetachedFromWindow(view: View) = popup.dismiss()
         })
 
+        // a pill at the foot of the screen has nothing but the screen above it to open into
+        alsoOpenedBy?.setOnClickListener { show(it, dropUp = true) }
+
         bindOverflow()
     }
 
@@ -100,35 +119,44 @@ class GlassMenu private constructor(
         boundOverflow = overflow
         // the platform puts its own popup up from both of these
         overflow.setOnTouchListener(null)
-        overflow.setOnClickListener { show(overflow) }
+        overflow.setOnClickListener { show(overflow, dropUp = false) }
     }
 
-    private fun show(anchor: View) {
+    private fun show(anchor: View, dropUp: Boolean) {
+        this.anchor = anchor
+        this.dropUp = dropUp
         fill()
         binding.glassMenuPanel.frost(contentBehind)
 
-        val gap = resources.getDimensionPixelSize(R.dimen.glass_menu_drop_gap)
-        val room = resources.getDimensionPixelSize(R.dimen.glass_menu_shadow_room)
-        val margin = resources.getDimensionPixelSize(R.dimen.glass_menu_screen_margin)
-
-        // what is left of the window under the three dots, which a popup left to size itself would
-        // simply hang off the end of rather than scroll inside. Measured within the window rather
-        // than on the screen, the height it is taken from being the window's: one the system has put
-        // anywhere but the top of the display - split screen, freeform - has the two disagreeing by
-        // however far down it starts, and the drop-down opening as an empty sliver
-        val anchorBottom = IntArray(2).also { anchor.getLocationInWindow(it) }[1] + anchor.height
+        // what is left of the window the way the drop-down opens, which a popup left to size itself
+        // would simply hang off the end of rather than scroll inside. Measured within the window
+        // rather than on the screen, the height it is taken from being the window's: one the system
+        // has put anywhere but the top of the display - split screen, freeform - has the two
+        // disagreeing by however far down it starts, and the drop-down opening as an empty sliver
+        val anchorTop = IntArray(2).also { anchor.getLocationInWindow(it) }[1]
         val systemBars = ViewCompat.getRootWindowInsets(anchor)
-            ?.getInsets(WindowInsetsCompat.Type.systemBars())?.bottom ?: 0
-        roomBelow = anchor.rootView.height - systemBars - anchorBottom - gap - margin
+            ?.getInsets(WindowInsetsCompat.Type.systemBars())
+        roomForPanel = if (dropUp) {
+            anchorTop - (systemBars?.top ?: 0) - gap - margin
+        } else {
+            anchor.rootView.height - (systemBars?.bottom ?: 0) - anchorTop - anchor.height - gap - margin
+        }
 
         // offsets and size are the popup's, and the panel sits [room] inside it on every side
         popup.width = column.widestMenuRow() + room * 2
         popup.height = fittedHeight()
-        popup.showAsDropDown(anchor, room - margin, gap - room, Gravity.END)
+        popup.showAsDropDown(anchor, room - margin, verticalOffset(anchor, popup.height), Gravity.END)
 
         // the frost is a copy taken while the content behind draws, and nothing back there has any
         // reason to draw again once a popup is up over it
         binding.glassMenuPanel.post { contentBehind.invalidate() }
+    }
+
+    /** How far below the anchor's own foot the panel is dropped, which for a drop-up is above it. */
+    private fun verticalOffset(anchor: View, height: Int) = if (dropUp) {
+        room - gap - anchor.height - height
+    } else {
+        gap - room
     }
 
     /** Fills the panel with the top level of the menu, in the sections the spec asks for. */
@@ -167,14 +195,20 @@ class GlassMenu private constructor(
 
         // the panel is already up when a submenu is opened, and its window has to follow it
         if (popup.isShowing) {
-            popup.update(popup.width, fittedHeight())
+            val height = fittedHeight()
+            val anchor = anchor
+            if (dropUp && anchor != null) {
+                // a popup keeps the corner it was placed by, so one growing upward has to be moved
+                // as well as resized, or it would reach back down over what it opened from
+                popup.update(anchor, room - margin, verticalOffset(anchor, height), popup.width, height)
+            } else {
+                popup.update(popup.width, height)
+            }
         }
     }
 
-    private fun fittedHeight(): Int {
-        val room = resources.getDimensionPixelSize(R.dimen.glass_menu_shadow_room)
-        return column.menuHeightAt(popup.width - room * 2, roomBelow - room * 2) + room * 2
-    }
+    private fun fittedHeight() =
+        column.menuHeightAt(popup.width - room * 2, roomForPanel - room * 2) + room * 2
 
     private fun buildEntry(entry: MenuEntry, available: MutableMap<Int, MenuItem>) = when (entry) {
         is MenuEntry.Row -> available.remove(entry.id)?.let { row(it) }

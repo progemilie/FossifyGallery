@@ -26,13 +26,10 @@ private const val ANIMATION_DURATION = 200L
 class FloatingTopBar(
     private val topBar: MySearchMenu,
     private val contentBehind: ViewGroup,
-) : RecyclerView.OnScrollListener() {
+) {
     private val resources = topBar.resources
-    private val hideThreshold = resources.getDimensionPixelSize(R.dimen.top_bar_hide_threshold)
-    private val showThreshold = resources.getDimensionPixelSize(R.dimen.top_bar_show_threshold)
+    private val panner = ScrollPanner(resources, ::hide, ::show)
 
-    // how far the grid has been dragged the same way in a row, reset whenever it turns around
-    private var travelledSinceTurn = 0
     private var isHidden = false
     private var glass: GlassPanel? = null
 
@@ -49,16 +46,11 @@ class FloatingTopBar(
         }
     }
 
-    /**
-     * Stops the bar from panning away and brings it back down if it had. The grid is not the only
-     * thing that can be going on - a search or a selection puts the bar to work
-     */
-    var isPanningEnabled = true
+    /** Stops the bar from panning away and brings it back down if it had. */
+    var isPanningEnabled: Boolean
+        get() = panner.isPanningEnabled
         set(value) {
-            field = value
-            if (!value) {
-                show()
-            }
+            panner.isPanningEnabled = value
         }
 
     /**
@@ -149,8 +141,7 @@ class FloatingTopBar(
         this.gridNeedsRoom = gridNeedsRoom
 
         makeFloating()
-        grid.removeOnScrollListener(this)
-        grid.addOnScrollListener(this)
+        panner.panWith(grid)
         onHeightChanged = ::keepGridClear
         topBar.onGlobalLayout { keepGridClear() }
     }
@@ -165,41 +156,6 @@ class FloatingTopBar(
 
         val travel = resources.getDimensionPixelSize(R.dimen.refresh_spinner_travel)
         refreshLayout?.setProgressViewOffset(false, barHeight, barHeight + travel)
-    }
-
-    override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-        if (!isPanningEnabled) {
-            return
-        }
-
-        // the top of the list is where the bar belongs, whatever the last gesture was
-        if (!recyclerView.canScrollVertically(-1)) {
-            travelledSinceTurn = 0
-            show()
-            return
-        }
-
-        if (dy == 0) {
-            return
-        }
-
-        if ((dy > 0) != (travelledSinceTurn > 0)) {
-            travelledSinceTurn = 0
-        }
-
-        travelledSinceTurn += dy
-        if (travelledSinceTurn > hideThreshold) {
-            hide()
-        } else if (travelledSinceTurn < -showThreshold) {
-            show()
-        }
-    }
-
-    override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-        if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-            travelledSinceTurn = 0
-            show()
-        }
     }
 
     fun show() {

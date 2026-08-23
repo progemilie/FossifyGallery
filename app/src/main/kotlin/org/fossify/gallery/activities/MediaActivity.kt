@@ -120,11 +120,15 @@ import org.fossify.gallery.helpers.SLIDESHOW_START_ON_ENTER
 import org.fossify.gallery.helpers.VIDEO_PLAYER_APP
 import org.fossify.gallery.helpers.VIDEO_PLAYER_SYSTEM
 import org.fossify.gallery.helpers.ViewerReturn
+import org.fossify.gallery.helpers.playNavSwapEntry
+import org.fossify.gallery.helpers.startNavSwap
 import org.fossify.gallery.interfaces.MediaOperationsListener
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
 import org.fossify.gallery.models.ThumbnailSection
 import org.fossify.gallery.views.GlassMenu
+import org.fossify.gallery.views.NavDestination
+import org.fossify.gallery.views.NavPill
 import java.io.File
 import java.io.IOException
 
@@ -192,6 +196,10 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
     private val binding by viewBinding(ActivityMediaBinding::inflate)
     private val floatingTopBar by lazy { FloatingTopBar(binding.mediaMenu, binding.mediaHolder) }
+    private val navPill by lazy { NavPill(binding.navPill) }
+
+    // the pill navigates away, so it has to go while a selection it would drop is on
+    private var mIsSelecting = false
     private val reorderBar by lazy { ReorderBar(binding.mediaReorderBar) }
     private val viewerReturn = ViewerReturn()
 
@@ -205,6 +213,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        playNavSwapEntry(binding.mediaRefreshLayout, binding.mediaGrid)
 
         intent.apply {
             mIsGetImageIntent = getBooleanExtra(GET_IMAGE_INTENT, false)
@@ -226,8 +235,15 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         setupReorderBar()
         refreshMenuItems()
         storeStateVariables()
+        // the grid reserves the pill's room in the layout, which the inset is then added to. Only
+        // the all media view puts the pill up, so anywhere else hands that room back first
+        if (!mShowAll) {
+            binding.mediaGrid.updatePadding(bottom = 0)
+        }
+
         setupInsetPadding()
         setupFloatingTopBar()
+        setupNavPill()
         // registering the pinch (which the lazy does) before the tap gives it first refusal on the
         // grid's touches - item touch listeners are asked in the order they were added
         mPinchZoom.isEnabled = isGridViewType()
@@ -310,6 +326,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
         binding.loadingIndicator.setIndicatorColor(getProperPrimaryColor())
         reorderBar.updateColors()
+        navPill.updateColors()
+        updateNavPillVisibility()
         binding.mediaEmptyTextPlaceholder.setTextColor(getProperTextColor())
         binding.mediaEmptyTextPlaceholder2.setTextColor(getProperPrimaryColor())
         binding.mediaEmptyTextPlaceholder2.bringToFront()
@@ -430,7 +448,6 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             findItem(R.id.empty_disable_recycle_bin).isVisible = mPath == RECYCLE_BIN
             findItem(R.id.restore_all_files).isVisible = mPath == RECYCLE_BIN
 
-            findItem(R.id.folder_view).isVisible = mShowAll
             findItem(R.id.open_camera).isVisible = mShowAll
             findItem(R.id.about).isVisible = mShowAll
             findItem(R.id.create_new_folder).isVisible =
@@ -452,8 +469,14 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         binding.mediaMenu.setupMenu()
         updateTopBarPanning()
         GlassMenu.replaceOverflow(
-            binding.mediaMenu.requireToolbar(), MEDIA_GRID_MENU, binding.mediaHolder
+            binding.mediaMenu.requireToolbar(),
+            MEDIA_GRID_MENU,
+            binding.mediaHolder,
+            alsoOpenedBy = navPill.menuButton
         )
+
+        binding.mediaMenu.onSearchOpenListener = { updateNavPillVisibility() }
+        binding.mediaMenu.onSearchClosedListener = { updateNavPillVisibility() }
 
         binding.mediaMenu.onSearchTextChangedListener = { text ->
             mLastSearchedText = text
@@ -470,7 +493,6 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 R.id.restore_all_files -> restoreAllFiles()
                 R.id.toggle_filename -> toggleFilenameVisibility()
                 R.id.open_camera -> launchCamera()
-                R.id.folder_view -> switchToFolderView()
                 R.id.change_view_type -> changeViewType()
                 R.id.custom_order -> startReordering()
                 R.id.reset_custom_order -> resetCustomOrder()
@@ -521,10 +543,29 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         binding.mediaBottomFade.applyEdgeFade(atTop = false)
     }
 
-    // sideways scrolling has no room to pan the bar out of, and while a group is being arranged
-    // the bar is the way out of that mode
+    // sideways scrolling has no room to pan the chrome out of, and while a group is being
+    // arranged the bar is the way out of that mode
     private fun updateTopBarPanning() {
         floatingTopBar.isPanningEnabled = !config.scrollHorizontally && !mIsReordering
+        navPill.isPanningEnabled = !config.scrollHorizontally
+    }
+
+    private fun setupNavPill() {
+        navPill.setup(binding.mediaHolder, binding.mediaGrid, NavDestination.PICTURES)
+        navPill.onDestination = { switchToFolderView(swapFromLeft = false) }
+    }
+
+    /**
+     * The pill only belongs on the two top level screens, and this is one of them only in the all
+     * media view: a folder reached by tapping into it is a level down, where the way back is the
+     * arrow the search pill wears. A search, a selection it would drop, or an arrangement in
+     * progress take it away as well.
+     */
+    private fun updateNavPillVisibility() {
+        navPill.isAvailable = mShowAll &&
+                !mIsReordering &&
+                !binding.mediaMenu.isSearchOpen &&
+                !mIsSelecting
     }
 
     /**
@@ -542,7 +583,8 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 listOf(reorderBar.root)
             } else {
                 listOf(binding.mediaGrid, reorderBar.root)
-            }
+            },
+            padBottomSystem = listOf(binding.navPill.root)
         )
     }
 
@@ -584,6 +626,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         mIsReordering = true
         binding.mediaRefreshLayout.isEnabled = false
         reorderBar.show()
+        updateNavPillVisibility()
         // the bar brings its own solid background, so the darkening behind it would only muddy it
         binding.mediaBottomFade.beGone()
         updateTopBarPanning()
@@ -642,6 +685,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     private fun stopReordering() {
         mIsReordering = false
         reorderBar.hide()
+        updateNavPillVisibility()
         binding.mediaBottomFade.beVisible()
         updateTopBarPanning()
         setupInsetPadding()
@@ -796,6 +840,10 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 // the media handed in above is already simplified, so only the flag is left to set
                 setSimplifiedInitially(isGridSimplified())
                 onPeekRequested = ::openPeekViewer
+                onSelectionModeChanged = { selecting ->
+                    mIsSelecting = selecting
+                    updateNavPillVisibility()
+                }
                 binding.mediaGrid.adapter = this
             }
 
@@ -906,7 +954,11 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         getMediaAdapter()?.updateDisplayFilenames(config.displayFileNames)
     }
 
-    private fun switchToFolderView() {
+    /**
+     * [swapFromLeft] slides the folder grid in from that side, for a swap the pill has to appear to
+     * have sat still through. Left alone where the switch is not one.
+     */
+    private fun switchToFolderView(swapFromLeft: Boolean? = null) {
         hideKeyboard()
         config.showAll = false
         // leaving the all-folders view for good, so a startup setting still pointing at it would
@@ -915,8 +967,13 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             config.defaultFolder = ""
         }
 
-        startActivity(Intent(this, MainActivity::class.java))
-        finish()
+        val intent = Intent(this, MainActivity::class.java)
+        if (swapFromLeft != null) {
+            startNavSwap(intent, fromLeft = swapFromLeft)
+        } else {
+            startActivity(intent)
+            finish()
+        }
     }
 
     private fun changeViewType() {

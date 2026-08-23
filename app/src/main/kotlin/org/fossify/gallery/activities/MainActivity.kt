@@ -11,6 +11,7 @@ import android.provider.MediaStore.Video
 import android.view.ViewGroup
 import android.widget.RelativeLayout
 import android.widget.Toast
+import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.RecyclerView
 import org.fossify.commons.dialogs.CreateNewFolderDialog
 import org.fossify.commons.dialogs.FilePickerDialog
@@ -150,11 +151,15 @@ import org.fossify.gallery.helpers.TYPE_VIDEOS
 import org.fossify.gallery.helpers.getDefaultFileFilter
 import org.fossify.gallery.helpers.getPermissionToRequest
 import org.fossify.gallery.helpers.getPermissionsToRequest
+import org.fossify.gallery.helpers.playNavSwapEntry
+import org.fossify.gallery.helpers.startNavSwap
 import org.fossify.gallery.interfaces.DirectoryOperationsListener
 import org.fossify.gallery.jobs.NewPhotoFetcher
 import org.fossify.gallery.models.Directory
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.views.GlassMenu
+import org.fossify.gallery.views.NavDestination
+import org.fossify.gallery.views.NavPill
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -238,10 +243,15 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     private var mStoredStyleString = ""
     private val binding by viewBinding(ActivityMainBinding::inflate)
     private val floatingTopBar by lazy { FloatingTopBar(binding.mainMenu, binding.directoriesHolder) }
+    private val navPill by lazy { NavPill(binding.navPill) }
+
+    // the pill navigates away, so it has to go while a selection it would drop is on
+    private var mIsSelecting = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        playNavSwapEntry(binding.directoriesRefreshLayout, binding.directoriesGrid)
         appLaunched(BuildConfig.APPLICATION_ID)
 
         if (savedInstanceState == null) {
@@ -271,6 +281,12 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         setupOptionsMenu()
         refreshMenuItems()
 
+        // the grid reserves the pill's room in the layout, which the inset is then added to. A
+        // picker never puts the pill up, so it hands that room back before the base is taken
+        if (mIsThirdPartyIntent) {
+            binding.directoriesGrid.updatePadding(bottom = 0)
+        }
+
         setupEdgeToEdge(
             // the list gets no top inset of its own - keepGridClearOfTopBar() pads it by the whole
             // height of the bar, which already carries this inset
@@ -279,9 +295,11 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
                 binding.directoriesSwitchSearching,
                 binding.directoriesEmptyPlaceholder
             ),
-            padBottomImeAndSystem = listOf(binding.directoriesGrid)
+            padBottomImeAndSystem = listOf(binding.directoriesGrid),
+            padBottomSystem = listOf(binding.navPill.root)
         )
         setupFloatingTopBar()
+        setupNavPill()
 
         binding.directoriesRefreshLayout.setOnRefreshListener { getDirectories() }
         storeStateVariables()
@@ -342,6 +360,8 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         updateMenuColors()
         updateTopBarPanning()
         updateEdgeFades()
+        navPill.updateColors()
+        updateNavPillVisibility()
         config.isThirdPartyIntent = false
         mDateFormat = config.dateFormat
         mTimeFormat = getTimeFormat()
@@ -415,6 +435,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         )
 
         binding.mainMenu.toggleForceArrowBackIcon(openGroup != null)
+        updateNavPillVisibility()
     }
 
     override fun onPause() {
@@ -548,14 +569,20 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         binding.mainMenu.setupMenu()
         updateTopBarPanning()
         GlassMenu.replaceOverflow(
-            binding.mainMenu.requireToolbar(), FOLDER_GRID_MENU, binding.directoriesHolder
+            binding.mainMenu.requireToolbar(),
+            FOLDER_GRID_MENU,
+            binding.directoriesHolder,
+            alsoOpenedBy = navPill.menuButton
         )
 
         binding.mainMenu.onSearchOpenListener = {
+            updateNavPillVisibility()
             if (config.searchAllFilesByDefault) {
                 launchSearchActivity()
             }
         }
+
+        binding.mainMenu.onSearchClosedListener = { updateNavPillVisibility() }
 
         // only ever reached while a folder group is open - that is when the pill wears the arrow
         binding.mainMenu.onNavigateBackClickListener = { closeFolderGroup() }
@@ -573,7 +600,6 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
                 R.id.sort -> showSortingDialog()
                 R.id.filter -> showFilterMediaDialog()
                 R.id.open_camera -> launchCamera()
-                R.id.show_all -> showAllMedia()
                 R.id.change_view_type -> changeViewType()
                 R.id.temporarily_show_hidden -> tryToggleTemporarilyShowHidden()
                 R.id.stop_showing_hidden -> tryToggleTemporarilyShowHidden()
@@ -612,9 +638,27 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         binding.directoriesBottomFade.applyEdgeFade(atTop = false)
     }
 
-    // sideways scrolling has no room to pan the bar out of
+    // sideways scrolling has no room to pan the chrome out of
     private fun updateTopBarPanning() {
         floatingTopBar.isPanningEnabled = !config.scrollHorizontally
+        navPill.isPanningEnabled = !config.scrollHorizontally
+    }
+
+    private fun setupNavPill() {
+        navPill.setup(binding.directoriesHolder, binding.directoriesGrid, NavDestination.ALBUMS)
+        navPill.onDestination = { showAllMedia(swapFromLeft = true) }
+    }
+
+    /**
+     * The pill is the way between the two top level screens, so it has nothing to offer anywhere
+     * that is not one of them: a folder group stepped into, a search narrowing the grid, a
+     * selection it would silently drop, or somebody else's app asking us to pick a picture.
+     */
+    private fun updateNavPillVisibility() {
+        navPill.isAvailable = !mIsThirdPartyIntent &&
+                mCurrentGroupId == 0L &&
+                !binding.mainMenu.isSearchOpen &&
+                !mIsSelecting
     }
 
     private fun getRecyclerAdapter() = binding.directoriesGrid.adapter as? DirectoryAdapter
@@ -771,13 +815,20 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         }
     }
 
-    private fun showAllMedia() {
+    /**
+     * [swapFromLeft] slides the media grid in from that side, for a swap the pill has to appear to
+     * have sat still through. Left alone at startup, where there is nothing on screen to swap from.
+     */
+    private fun showAllMedia(swapFromLeft: Boolean? = null) {
         config.showAll = true
         Intent(this, MediaActivity::class.java).apply {
             putExtra(DIRECTORY, "")
 
             if (mIsThirdPartyIntent) {
                 handleMediaIntent(this)
+            } else if (swapFromLeft != null) {
+                hideKeyboard()
+                startNavSwap(this, fromLeft = swapFromLeft)
             } else {
                 hideKeyboard()
                 startActivity(this)
@@ -1671,6 +1722,10 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         }
 
         adapter.isSearchActive = textToSearch.isNotEmpty()
+        adapter.onSelectionModeChanged = { selecting ->
+            mIsSelecting = selecting
+            updateNavPillVisibility()
+        }
         // no entrance animation here: a layout animation on a RecyclerView binds every child at
         // alpha 0 and walks them in, and the view is recycled often enough that children kept
         // being left at that alpha - blank rows until something scrolled them off and back. See

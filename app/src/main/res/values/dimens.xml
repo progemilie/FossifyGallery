@@ -143,8 +143,22 @@
     <dimen name="top_fade_height">70dp</dimen>
     <!-- the search pill and the drop-down that hangs off it cast the one same shadow -->
     <dimen name="floating_chrome_elevation">3dp</dimen>
-    <dimen name="top_bar_hide_threshold">200dp</dimen>
-    <dimen name="top_bar_show_threshold">8dp</dimen>
+    <!-- how far a grid has to be dragged one way before the chrome floating over it pans away,
+         and how little it takes the other way to bring it back -->
+    <dimen name="chrome_hide_threshold">200dp</dimen>
+    <dimen name="chrome_show_threshold">8dp</dimen>
+    <!-- the navigation pill floating over the foot of both browsing grids. The reserved height is
+         the whole of it, shadow room included, and is what the grid keeps its last row clear of -->
+    <dimen name="nav_pill_height">64dp</dimen>
+    <dimen name="nav_pill_radius">32dp</dimen>
+    <dimen name="nav_pill_reserved_height">88dp</dimen>
+    <dimen name="nav_pill_row_padding">4dp</dimen>
+    <dimen name="nav_pill_item_min_width">84dp</dimen>
+    <dimen name="nav_pill_icon_size">24dp</dimen>
+    <dimen name="nav_pill_icon_gap">2dp</dimen>
+    <dimen name="nav_pill_label_size">12sp</dimen>
+    <dimen name="nav_pill_highlight_radius">28dp</dimen>
+
     <!-- how far below the floating bar a pull to refresh spinner comes to rest -->
     <dimen name="refresh_spinner_travel">64dp</dimen>
     <!-- folder groups: the gap between a group tile's collage cells, and the frame around it -->
