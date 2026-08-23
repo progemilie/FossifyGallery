@@ -5,9 +5,12 @@ Fork-only changes, newest first. Small fixes are left out.
 ## [v1.16.0] - 2026.08.23 — navigation
 
 - **A bottom pill for moving between Pictures and Albums.** Both grids float one over their
-  content, with the view you are on highlighted, and the screens slide past each other in the
-  direction you tapped. Its Menu opens the same drop-down as the three dots. The old
-  switch-view buttons are gone from the top search pill.
+  content, with the view you are on highlighted. Its Menu opens the same drop-down as the three
+  dots, and the old switch-view buttons are gone from the top search pill.
+- **The two views are one screen now.** Tapping across slides the pictures past each other while
+  the pill and the search bar stay exactly where they are, with nothing to wait for in between -
+  only the bar's buttons change. Opening the app in Pictures no longer passes through Albums
+  on the way.
 
 ## [v1.15.0] - 2026.08.22 — selecting
 
