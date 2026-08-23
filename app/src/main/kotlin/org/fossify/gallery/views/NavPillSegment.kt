@@ -16,18 +16,18 @@ import org.fossify.gallery.R
 private const val PLATE_ALPHA = 0.15f
 
 /** How much more of the wash a tap lights up, over whatever the segment is already wearing. */
-private const val FLASH_ALPHA = 0.18f
+private const val FLASH_ALPHA = 0.14f
 
 /** The whole answer to a tap, and the share of it the box spends being pressed in. */
-private const val TAP_DURATION = 420L
+private const val TAP_DURATION = 380L
 private const val PRESS_SHARE = 0.22f
 
 /** The share of the tap the wash spends lighting up; the rest of it is the fade back to the plate. */
 private const val FLASH_RISE = 0.15f
 
 // how far the box is pressed in, and the spring that carries it back out past its own size
-private const val PRESSED_SCALE = 0.94f
-private const val RELEASE_TENSION = 4f
+private const val PRESSED_SCALE = 0.965f
+private const val RELEASE_TENSION = 1.8f
 
 /**
  * One of the pill's three boxes - an icon over a label - and how it answers being tapped: a flash of

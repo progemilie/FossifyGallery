@@ -127,6 +127,7 @@ import org.fossify.gallery.extensions.movePinnedDirectoriesToFront
 import org.fossify.gallery.extensions.openRecycleBin
 import org.fossify.gallery.extensions.pruneFolderGroups
 import org.fossify.gallery.extensions.removeInvalidDBDirectories
+import org.fossify.gallery.extensions.smoothScrollToTop
 import org.fossify.gallery.extensions.startupGroupId
 import org.fossify.gallery.extensions.storeDirectoryItems
 import org.fossify.gallery.extensions.tryDeleteFileDirItem
@@ -772,6 +773,9 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
     private fun setupNavPill() {
         navPill.setup(binding.contentHolder, NavDestination.ALBUMS)
         navPill.onDestination = ::swapTo
+        // asked of whichever pane is up rather than of the pill, which during a swap is following
+        // the grid that is on its way out
+        navPill.onReselected = { activePane.grid.smoothScrollToTop() }
     }
 
     /**

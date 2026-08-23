@@ -11,6 +11,8 @@ Fork-only changes, newest first. Small fixes are left out.
   the pill and the search bar stay exactly where they are, with nothing to wait for in between -
   only the bar's buttons change. Opening the app in Pictures no longer passes through Albums
   on the way.
+- **Tapping the view you are already on takes it back to the top.** Touching the grid partway
+  through stops it there, so it is never something to sit through.
 
 ## [v1.15.0] - 2026.08.22 — selecting
 

@@ -149,15 +149,15 @@
     <dimen name="chrome_show_threshold">8dp</dimen>
     <!-- the navigation pill floating over the foot of both browsing grids. The reserved height is
          the whole of it, shadow room included, and is what the grid keeps its last row clear of -->
-    <dimen name="nav_pill_height">64dp</dimen>
-    <dimen name="nav_pill_radius">32dp</dimen>
-    <dimen name="nav_pill_reserved_height">88dp</dimen>
+    <dimen name="nav_pill_height">56dp</dimen>
+    <dimen name="nav_pill_radius">28dp</dimen>
+    <dimen name="nav_pill_reserved_height">80dp</dimen>
     <dimen name="nav_pill_row_padding">4dp</dimen>
-    <dimen name="nav_pill_item_min_width">84dp</dimen>
-    <dimen name="nav_pill_icon_size">24dp</dimen>
+    <dimen name="nav_pill_item_min_width">80dp</dimen>
+    <dimen name="nav_pill_icon_size">22dp</dimen>
     <dimen name="nav_pill_icon_gap">2dp</dimen>
-    <dimen name="nav_pill_label_size">12sp</dimen>
-    <dimen name="nav_pill_plate_radius">28dp</dimen>
+    <dimen name="nav_pill_label_size">11sp</dimen>
+    <dimen name="nav_pill_plate_radius">24dp</dimen>
 
     <!-- how far below the floating bar a pull to refresh spinner comes to rest -->
     <dimen name="refresh_spinner_travel">64dp</dimen>

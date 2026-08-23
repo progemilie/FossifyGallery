@@ -42,6 +42,9 @@ class NavPill(private val binding: NavPillBinding) {
 
     var onDestination: ((NavDestination) -> Unit)? = null
 
+    /** A tap on the segment already wearing the plate, which is nowhere to go but the top. */
+    var onReselected: (() -> Unit)? = null
+
     /** Which screen is up, and so which segment wears the plate. */
     var selected = NavDestination.ALBUMS
         set(value) {
@@ -154,7 +157,9 @@ class NavPill(private val binding: NavPillBinding) {
     }
 
     private fun pick(destination: NavDestination) {
-        if (destination != selected) {
+        if (destination == selected) {
+            onReselected?.invoke()
+        } else {
             onDestination?.invoke(destination)
         }
     }
