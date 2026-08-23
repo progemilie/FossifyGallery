@@ -77,7 +77,9 @@ fun Context.exportOrderAndGroups(out: OutputStream): Int {
     // the table is the authority on which folders have a media order, the prefs set only mirrors
     // it. sorted so that exporting the same arrangement twice gives the same file
     mediaOrderDB.getOrderedFolders().sorted().forEach { folder ->
-        val paths = mediaOrderDB.getOrderedPaths(folder)
+        // the all media grid can no longer be arranged, so an order left over from when it could
+        // is not written out - import would only drop it again
+        val paths = if (folder == SHOW_ALL) emptyList() else mediaOrderDB.getOrderedPaths(folder)
         if (paths.isNotEmpty()) {
             sections[folder] = paths
         }
@@ -165,7 +167,8 @@ fun Context.importOrderAndGroups(input: InputStream): Int {
     }
 
     parsed.mediaOrders.forEach { (folder, paths) ->
-        if (!folderExists(folder)) {
+        // nothing can arrange the all media grid any more, so nothing may hand it an order either
+        if (folder == SHOW_ALL || !folderExists(folder)) {
             return@forEach
         }
 

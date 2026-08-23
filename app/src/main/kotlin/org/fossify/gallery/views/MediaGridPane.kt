@@ -418,7 +418,9 @@ class MediaGridPane(
         }
 
         menu.apply {
-            findItem(R.id.custom_order).isVisible = mPath != RECYCLE_BIN
+            findItem(R.id.custom_order).isVisible = mPath != RECYCLE_BIN && !isAllMediaGrid()
+            // Reset outlives Custom order here: a grid arranged before it went away is the one
+            // thing that still needs the way back out
             findItem(R.id.reset_custom_order).isVisible =
                 mPath != RECYCLE_BIN && config.hasCustomMediaOrder(getPathToUse())
 
@@ -530,6 +532,15 @@ class MediaGridPane(
     // the folder a custom order is keyed by, matching what the fetching and grouping code uses
     private fun getPathToUse() = (if (mShowAll) SHOW_ALL else mPath).ifEmpty { SHOW_ALL }
 
+    /**
+     * Whether the grid is every folder at once rather than one folder of its own - the Pictures
+     * pane, or any folder opened while "show all folders content" is on.
+     *
+     * Nothing here can be arranged by hand. An order is a folder's own and this grid belongs to no
+     * folder - it is the whole library, which grows and shrinks under any arrangement made of it.
+     */
+    private fun isAllMediaGrid() = getPathToUse() == SHOW_ALL
+
     private fun setupReorderBar() {
         reorderBar.onMoveToEdge = { toTop -> getMediaAdapter()?.reorderMode?.moveSelectionToEdge(toTop) }
         reorderBar.onCancel = ::cancelReordering
@@ -542,7 +553,7 @@ class MediaGridPane(
      * folder rather than whatever was filtered into view.
      */
     private fun startReordering() {
-        if (mIsReordering) {
+        if (mIsReordering || isAllMediaGrid()) {
             return
         }
 
