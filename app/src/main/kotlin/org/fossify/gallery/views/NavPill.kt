@@ -80,8 +80,8 @@ class NavPill(private val binding: NavPillBinding) {
         binding.navPillAlbums.setOnClickListener { pick(NavDestination.ALBUMS) }
     }
 
-    /** Frosts the pill over [contentBehind] and hangs it over [grid]. */
-    fun setup(contentBehind: ViewGroup, grid: RecyclerView, selected: NavDestination) {
+    /** Frosts the pill over [contentBehind]. [panWith] hangs it over a grid. */
+    fun setup(contentBehind: ViewGroup, selected: NavDestination) {
         binding.navPillPanel.apply {
             cornerRadius = resources.getDimension(R.dimen.nav_pill_radius)
             blurRadius = Glass.DEFAULT_RADIUS
@@ -93,6 +93,10 @@ class NavPill(private val binding: NavPillBinding) {
 
         // last, so the repaint it sets off finds the panel already dressed
         this.selected = selected
+    }
+
+    /** Pans away with [grid], letting go of whichever pane's grid it was following before. */
+    fun panWith(grid: RecyclerView) {
         panner.panWith(grid)
     }
 

@@ -570,7 +570,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         updateTopBarPanning()
         GlassMenu.replaceOverflow(
             binding.mainMenu.requireToolbar(),
-            FOLDER_GRID_MENU,
+            { FOLDER_GRID_MENU },
             binding.directoriesHolder,
             alsoOpenedBy = navPill.menuButton
         )
@@ -645,7 +645,8 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     }
 
     private fun setupNavPill() {
-        navPill.setup(binding.directoriesHolder, binding.directoriesGrid, NavDestination.ALBUMS)
+        navPill.setup(binding.directoriesHolder, NavDestination.ALBUMS)
+        navPill.panWith(binding.directoriesGrid)
         navPill.onDestination = { showAllMedia(swapFromLeft = true) }
     }
 

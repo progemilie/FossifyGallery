@@ -101,7 +101,7 @@ open class SimpleActivity : BaseSimpleActivity() {
         }
     }
 
-    protected fun requestMediaPermissions(enableRationale: Boolean = false, onGranted: () -> Unit) {
+    fun requestMediaPermissions(enableRationale: Boolean = false, onGranted: () -> Unit) {
         when {
             hasAllPermissions(getPermissionsToRequest()) -> onGranted()
             config.showPermissionRationale -> {

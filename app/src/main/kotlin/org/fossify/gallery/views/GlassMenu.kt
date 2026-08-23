@@ -32,17 +32,20 @@ import org.fossify.gallery.helpers.MenuSpec
  */
 class GlassMenu private constructor(
     private val toolbar: Toolbar,
-    private val spec: MenuSpec,
+    private val spec: () -> MenuSpec,
     private val contentBehind: ViewGroup,
 ) {
     companion object {
         /**
          * Puts the drop-down on [toolbar]'s three dots. [contentBehind] is what it frosts.
          * [alsoOpenedBy] is a second door onto the same menu, opening upward from wherever it sits.
+         *
+         * [spec] is asked again every time the menu opens rather than held: a screen that swaps one
+         * pane of content for another swaps the toolbar's menu with it, and the sections along with.
          */
         fun replaceOverflow(
             toolbar: Toolbar,
-            spec: MenuSpec,
+            spec: () -> MenuSpec,
             contentBehind: ViewGroup,
             alsoOpenedBy: View? = null,
         ) {
@@ -163,7 +166,7 @@ class GlassMenu private constructor(
     private fun fill() {
         // taken out of as they are placed, so what is left over is what the spec forgot
         val available = toolbar.overflowItems()
-        val sections = spec.sections.map { entries ->
+        val sections = spec().sections.map { entries ->
             entries.mapNotNull { buildEntry(it, available) }
         }.toMutableList()
 

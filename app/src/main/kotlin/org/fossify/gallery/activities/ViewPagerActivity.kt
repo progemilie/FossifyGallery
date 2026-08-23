@@ -415,7 +415,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
         updateMenuItemColors(binding.mediumViewerToolbar.menu, forceWhiteIcons = true)
         GlassMenu.replaceOverflow(
-            binding.mediumViewerToolbar, VIEWER_MENU, binding.fragmentHolder
+            binding.mediumViewerToolbar, { VIEWER_MENU }, binding.fragmentHolder
         )
         binding.mediumViewerToolbar.setOnMenuItemClickListener { menuItem ->
             if (getCurrentMedium() == null) {

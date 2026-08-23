@@ -23,6 +23,8 @@ class ScrollPanner(
     // how far the grid has been dragged the same way in a row, reset whenever it turns around
     private var travelledSinceTurn = 0
 
+    private var grid: RecyclerView? = null
+
     /**
      * Stops the chrome from panning away and brings it back if it had. The grid is not the only
      * thing that can be going on - a search or a selection puts the chrome to work.
@@ -35,8 +37,15 @@ class ScrollPanner(
             }
         }
 
-    /** Starts panning with [grid]. Safe to call again for the same grid. */
+    /**
+     * Starts panning with [grid], letting go of whichever one it was on before. A screen that swaps
+     * one pane of content for another leaves both grids on screen for the length of the swap, and
+     * chrome still listening to the one that left would pan away with it.
+     */
     fun panWith(grid: RecyclerView) {
+        this.grid?.removeOnScrollListener(this)
+        this.grid = grid
+        travelledSinceTurn = 0
         grid.removeOnScrollListener(this)
         grid.addOnScrollListener(this)
     }

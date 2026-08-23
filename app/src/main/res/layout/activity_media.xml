@@ -1,110 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The grid fills the whole window and scrolls under both ends of it: the search bar floats over
-    the top of it and the navigation pill over the foot. Draw order is what makes that work, so the
-    chrome comes after the holder rather than before it, the pill last of all.
+    The scaffold: a pane of content filling the window, with the search bar floating over the top of
+    it and the navigation pill over the foot. Draw order is what makes that work, so the chrome comes
+    after the content holder rather than before it, the pill last of all.
 -->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/media_coordinator"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <RelativeLayout
-        android:id="@+id/media_holder"
+    <!-- what the glass copies, and what a pane swap moves inside -->
+    <FrameLayout
+        android:id="@+id/content_holder"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <org.fossify.commons.views.MyTextView
-            android:id="@+id/media_empty_text_placeholder"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="?attr/actionBarSize"
-            android:alpha="0.8"
-            android:gravity="center_horizontal"
-            android:paddingStart="@dimen/activity_margin"
-            android:paddingTop="@dimen/activity_margin"
-            android:paddingEnd="@dimen/activity_margin"
-            android:text="@string/no_media_with_filters"
-            android:textSize="@dimen/bigger_text_size"
-            android:textStyle="italic"
-            android:visibility="gone" />
-
-        <org.fossify.commons.views.MyTextView
-            android:id="@+id/media_empty_text_placeholder_2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@+id/media_empty_text_placeholder"
-            android:layout_centerHorizontal="true"
-            android:background="@drawable/ripple_all_corners"
-            android:padding="@dimen/activity_margin"
-            android:text="@string/change_filters_underlined"
-            android:textSize="@dimen/bigger_text_size"
-            android:visibility="gone" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
-
-            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-                android:id="@+id/media_refresh_layout"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1">
-
-                <com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
-                    android:id="@+id/media_fastscroller"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:supportSwipeToRefresh="true">
-
-                    <org.fossify.commons.views.MyRecyclerView
-                        android:id="@+id/media_grid"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:clipToPadding="false"
-                        android:layoutAnimation="@anim/layout_animation"
-                        android:paddingBottom="@dimen/nav_pill_reserved_height"
-                        android:scrollbars="none"
-                        app:layoutManager="org.fossify.commons.views.MyGridLayoutManager"
-                        app:spanCount="@integer/media_columns_vertical_scroll" />
-
-                </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
-            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-
-            <include
-                android:id="@+id/media_reorder_bar"
-                layout="@layout/media_reorder_bar" />
-        </LinearLayout>
-
-        <!-- inside the holder rather than over it, so the blurred backdrops behind the search
-             pill and the navigation pill pick them up along with the grid -->
-        <View
-            android:id="@+id/media_top_fade"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/top_fade_height"
-            android:layout_alignParentTop="true" />
-
-        <View
-            android:id="@+id/media_bottom_fade"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/bottom_fade_height"
-            android:layout_alignParentBottom="true" />
-    </RelativeLayout>
-
-    <com.google.android.material.progressindicator.CircularProgressIndicator
-        android:id="@+id/loading_indicator"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:indeterminate="true"
-        android:visibility="gone"
-        app:hideAnimationBehavior="inward"
-        app:showAnimationBehavior="outward"
-        app:showDelay="500"
-        tools:visibility="visible" />
+        <include
+            android:id="@+id/media_pane"
+            layout="@layout/pane_media_grid" />
+    </FrameLayout>
 
     <org.fossify.commons.views.MySearchMenu
         android:id="@+id/media_menu"
