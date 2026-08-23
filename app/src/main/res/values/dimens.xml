@@ -94,11 +94,9 @@
 
     <!--
         How wide a tile has to be to wear the button at all. Below this the badges have taken it
-        over and the button is covering the picture it is offering to show: the tap box (2 + 30),
-        the play badge a video tile puts after it (4 + 26) and the tick at the far end (26 + 8)
-        come to 96dp between them. Four columns across a phone held upright, more on a tablet.
+        over and the button is covering the picture it is offering to show.
     -->
-    <dimen name="peek_button_min_tile">96dp</dimen>
+    <dimen name="peek_button_min_tile">88dp</dimen>
 
     <!-- the peek viewer's tick-and-count pill -->
     <dimen name="peek_pill_height">40dp</dimen>
