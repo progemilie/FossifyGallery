@@ -29,11 +29,12 @@
             android:orientation="horizontal"
             android:padding="@dimen/nav_pill_row_padding">
 
-            <LinearLayout
+            <org.fossify.gallery.views.NavPillSegment
                 android:id="@+id/nav_pill_pictures"
                 android:layout_width="@dimen/nav_pill_item_min_width"
                 android:layout_height="match_parent"
-                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
                 android:gravity="center"
                 android:orientation="vertical"
                 tools:ignore="UseCompoundDrawables">
@@ -53,13 +54,14 @@
                     android:singleLine="true"
                     android:text="@string/nav_pictures"
                     android:textSize="@dimen/nav_pill_label_size" />
-            </LinearLayout>
+            </org.fossify.gallery.views.NavPillSegment>
 
-            <LinearLayout
+            <org.fossify.gallery.views.NavPillSegment
                 android:id="@+id/nav_pill_albums"
                 android:layout_width="@dimen/nav_pill_item_min_width"
                 android:layout_height="match_parent"
-                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
                 android:gravity="center"
                 android:orientation="vertical"
                 tools:ignore="UseCompoundDrawables">
@@ -79,13 +81,14 @@
                     android:singleLine="true"
                     android:text="@string/nav_albums"
                     android:textSize="@dimen/nav_pill_label_size" />
-            </LinearLayout>
+            </org.fossify.gallery.views.NavPillSegment>
 
-            <LinearLayout
+            <org.fossify.gallery.views.NavPillSegment
                 android:id="@+id/nav_pill_menu"
                 android:layout_width="@dimen/nav_pill_item_min_width"
                 android:layout_height="match_parent"
-                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
                 android:gravity="center"
                 android:orientation="vertical"
                 tools:ignore="UseCompoundDrawables">
@@ -105,7 +108,7 @@
                     android:singleLine="true"
                     android:text="@string/nav_menu"
                     android:textSize="@dimen/nav_pill_label_size" />
-            </LinearLayout>
+            </org.fossify.gallery.views.NavPillSegment>
         </LinearLayout>
     </org.fossify.gallery.views.GlassPanel>
 </FrameLayout>

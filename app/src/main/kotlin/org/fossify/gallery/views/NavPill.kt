@@ -20,9 +20,6 @@ private const val ANIMATION_DURATION = 200L
 /** How much of the panel's own colour a segment that is not the screen you are on is painted in. */
 private const val IDLE_ALPHA = 0.65f
 
-/** The wash behind the segment whose screen is up. */
-private const val PLATE_ALPHA = 0.15f
-
 /** The two top level browsing screens, drawn as two tabs of the one library. */
 enum class NavDestination { PICTURES, ALBUMS }
 
@@ -129,11 +126,10 @@ class NavPill(private val binding: NavPillBinding) {
             .start()
     }
 
-    private fun paint(segment: View, icon: ImageView, label: TextView, isSelected: Boolean) {
+    private fun paint(segment: NavPillSegment, icon: ImageView, label: TextView, isSelected: Boolean) {
         val content = Glass.contentColor(segment.context)
         val color = if (isSelected) content else content.adjustAlpha(IDLE_ALPHA)
-        segment.setBackgroundResource(if (isSelected) R.drawable.nav_pill_selected else 0)
-        segment.background?.setTint(content.adjustAlpha(PLATE_ALPHA))
+        segment.paintWash(content, isSelected)
         icon.applyColorFilter(color)
         label.setTextColor(color)
         label.setTypeface(null, if (isSelected) Typeface.BOLD else Typeface.NORMAL)

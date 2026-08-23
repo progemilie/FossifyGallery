@@ -157,7 +157,7 @@
     <dimen name="nav_pill_icon_size">24dp</dimen>
     <dimen name="nav_pill_icon_gap">2dp</dimen>
     <dimen name="nav_pill_label_size">12sp</dimen>
-    <dimen name="nav_pill_highlight_radius">28dp</dimen>
+    <dimen name="nav_pill_plate_radius">28dp</dimen>
 
     <!-- how far below the floating bar a pull to refresh spinner comes to rest -->
     <dimen name="refresh_spinner_travel">64dp</dimen>
