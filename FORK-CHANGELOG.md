@@ -2,6 +2,13 @@
 
 Fork-only changes, newest first. Small fixes are left out.
 
+## [v1.16.0] - 2026.08.23 — navigation
+
+- **A bottom pill for moving between Pictures and Albums.** Both grids float one over their
+  content, with the view you are on highlighted, and the screens slide past each other in the
+  direction you tapped. Its Menu opens the same drop-down as the three dots. The old
+  switch-view buttons are gone from the top search pill.
+
 ## [v1.15.0] - 2026.08.22 — selecting
 
 - Peek at full screen media when selecting multiple items.
@@ -125,6 +132,7 @@ Initial fork work, landed over 2026.08.06–08.09 before fork versions were trac
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
 
+[v1.16.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.16.0
 [v1.15.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.15.0
 [v1.14.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.14.0
 [v1.13.4]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.13.4
