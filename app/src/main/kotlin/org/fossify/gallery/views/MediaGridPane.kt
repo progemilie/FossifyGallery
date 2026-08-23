@@ -136,7 +136,7 @@ data class PickRequest(
 private const val LAST_MEDIA_CHECK_PERIOD = 3000L
 
 /** Kept apart from [ViewerReturn.REQUEST_CODE]: a peek is not a trip to the full viewer. */
-private const val REQUEST_PEEK = 2
+private const val REQUEST_PEEK = 2002
 
 /**
  * A grid of media - one folder's, or the whole library's - as one pane of a browsing screen rather
