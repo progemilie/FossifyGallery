@@ -5,14 +5,23 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.provider.MediaStore.Images
 import android.provider.MediaStore.Video
+import android.view.Menu
+import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AnimationUtils
 import android.widget.RelativeLayout
 import android.widget.Toast
 import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.RecyclerView
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileNotFoundException
+import java.io.InputStream
+import java.io.OutputStream
 import org.fossify.commons.dialogs.CreateNewFolderDialog
 import org.fossify.commons.dialogs.FilePickerDialog
 import org.fossify.commons.dialogs.RadioGroupDialog
@@ -30,7 +39,6 @@ import org.fossify.commons.extensions.getFilenameFromPath
 import org.fossify.commons.extensions.getLatestMediaByDateId
 import org.fossify.commons.extensions.getLatestMediaId
 import org.fossify.commons.extensions.getMimeType
-import org.fossify.commons.extensions.getProperBackgroundColor
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.extensions.getProperSize
 import org.fossify.commons.extensions.getProperTextColor
@@ -49,10 +57,10 @@ import org.fossify.commons.extensions.isGone
 import org.fossify.commons.extensions.isImageFast
 import org.fossify.commons.extensions.isMediaFile
 import org.fossify.commons.extensions.isPathOnOTG
-import org.fossify.commons.extensions.isVisible
 import org.fossify.commons.extensions.isRawFast
 import org.fossify.commons.extensions.isSvg
 import org.fossify.commons.extensions.isVideoFast
+import org.fossify.commons.extensions.isVisible
 import org.fossify.commons.extensions.launchMoreAppsFromUsIntent
 import org.fossify.commons.extensions.recycleBinPath
 import org.fossify.commons.extensions.sdCardPath
@@ -70,13 +78,13 @@ import org.fossify.commons.helpers.SORT_BY_DATE_TAKEN
 import org.fossify.commons.helpers.SORT_BY_SIZE
 import org.fossify.commons.helpers.SORT_USE_NUMERIC_VALUE
 import org.fossify.commons.helpers.VIEW_TYPE_GRID
-import org.fossify.commons.helpers.VIEW_TYPE_LIST
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isRPlus
 import org.fossify.commons.models.FileDirItem
 import org.fossify.commons.models.RadioItem
 import org.fossify.commons.models.Release
 import org.fossify.commons.views.MyGridLayoutManager
+import org.fossify.commons.views.MySearchMenu
 import org.fossify.gallery.BuildConfig
 import org.fossify.gallery.R
 import org.fossify.gallery.adapters.DirectoryAdapter
@@ -86,8 +94,8 @@ import org.fossify.gallery.dialogs.ChangeSortingDialog
 import org.fossify.gallery.dialogs.ChangeViewTypeDialog
 import org.fossify.gallery.dialogs.FilterMediaDialog
 import org.fossify.gallery.dialogs.GrantAllFilesDialog
-import org.fossify.gallery.extensions.applyEdgeFade
 import org.fossify.gallery.extensions.addTempFolderIfNeeded
+import org.fossify.gallery.extensions.applyEdgeFade
 import org.fossify.gallery.extensions.applyFolderGroups
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.createDirectoryFromMedia
@@ -123,7 +131,6 @@ import org.fossify.gallery.extensions.updateDBDirectory
 import org.fossify.gallery.extensions.updateWidgets
 import org.fossify.gallery.helpers.DIRECTORY
 import org.fossify.gallery.helpers.FOLDER_GRID_MENU
-import org.fossify.gallery.helpers.FloatingTopBar
 import org.fossify.gallery.helpers.GET_ANY_INTENT
 import org.fossify.gallery.helpers.GET_IMAGE_INTENT
 import org.fossify.gallery.helpers.GET_VIDEO_INTENT
@@ -132,6 +139,7 @@ import org.fossify.gallery.helpers.GROUP_BY_DATE_TAKEN_MONTHLY
 import org.fossify.gallery.helpers.GROUP_BY_LAST_MODIFIED_DAILY
 import org.fossify.gallery.helpers.GROUP_BY_LAST_MODIFIED_MONTHLY
 import org.fossify.gallery.helpers.GROUP_DESCENDING
+import org.fossify.gallery.helpers.GridChrome
 import org.fossify.gallery.helpers.GridPinchZoom
 import org.fossify.gallery.helpers.LOCATION_INTERNAL
 import org.fossify.gallery.helpers.MAX_COLUMN_COUNT
@@ -151,21 +159,19 @@ import org.fossify.gallery.helpers.TYPE_VIDEOS
 import org.fossify.gallery.helpers.getDefaultFileFilter
 import org.fossify.gallery.helpers.getPermissionToRequest
 import org.fossify.gallery.helpers.getPermissionsToRequest
-import org.fossify.gallery.helpers.startNavSwap
 import org.fossify.gallery.interfaces.DirectoryOperationsListener
+import org.fossify.gallery.interfaces.GridPane
 import org.fossify.gallery.jobs.NewPhotoFetcher
 import org.fossify.gallery.models.Directory
 import org.fossify.gallery.models.Medium
-import org.fossify.gallery.views.GlassMenu
+import org.fossify.gallery.views.MediaGridPane
 import org.fossify.gallery.views.NavDestination
 import org.fossify.gallery.views.NavPill
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileNotFoundException
-import java.io.InputStream
-import java.io.OutputStream
 
-class MainActivity : SimpleActivity(), DirectoryOperationsListener {
+/** Where through a pane swap the search bar hands its buttons from one grid to the other. */
+private const val HALFWAY = 0.5f
+
+class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, MediaGridPane.Host {
     override var isSearchBarEnabled = true
     
     companion object {
@@ -207,7 +213,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     // no ladder here, the folder grid draws every count the same way
     private val mPinchZoom by lazy {
         GridPinchZoom(
-            recyclerView = binding.directoriesGrid,
+            recyclerView = binding.directoryPane.directoriesGrid,
             onZoomIn = {
                 if (config.dirColumnCnt > 1) {
                     reduceColumnCount()
@@ -241,8 +247,18 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     private var mStoredPrimaryColor = 0
     private var mStoredStyleString = ""
     private val binding by viewBinding(ActivityMainBinding::inflate)
-    private val floatingTopBar by lazy { FloatingTopBar(binding.mainMenu, binding.directoriesHolder) }
     private val navPill by lazy { NavPill(binding.navPill) }
+    private lateinit var chrome: GridChrome
+
+    /**
+     * The all media grid, built the first time it is wanted and kept from then on. The swap is only
+     * instant because nothing is being made while it runs.
+     */
+    private var mMediaPane: MediaGridPane? = null
+
+    /** Which of the two grids is up. The folder grid is this screen's own. */
+    private var activePane: GridPane = this
+    private var mIsSwapping = false
 
     // the pill navigates away, so it has to go while a selection it would drop is on
     private var mIsSelecting = false
@@ -276,32 +292,17 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
                 || mIsGetAnyContentIntent
                 || mIsSetWallpaperIntent
 
-        setupOptionsMenu()
-        refreshMenuItems()
-
-        // the grid reserves the pill's room in the layout, which the inset is then added to. A
+        // the grids reserve the pill's room in the layout, which the inset is then added to. A
         // picker never puts the pill up, so it hands that room back before the base is taken
         if (mIsThirdPartyIntent) {
-            binding.directoriesGrid.updatePadding(bottom = 0)
+            binding.directoryPane.directoriesGrid.updatePadding(bottom = 0)
+            binding.navPill.root.beGone()
         }
 
-        setupEdgeToEdge(
-            // the list gets no top inset of its own - keepGridClearOfTopBar() pads it by the whole
-            // height of the bar, which already carries this inset
-            padTopSystem = listOf(
-                binding.mainMenu,
-                binding.directoriesSwitchSearching,
-                binding.directoriesEmptyPlaceholder
-            ),
-            padBottomImeAndSystem = listOf(binding.directoriesGrid),
-            padBottomSystem = listOf(binding.navPill.root)
-        )
-        setupFloatingTopBar()
-        if (!mIsThirdPartyIntent) {
-            setupNavPill()
-        }
+        setupInsetPadding()
+        setupChrome()
 
-        binding.directoriesRefreshLayout.setOnRefreshListener { getDirectories() }
+        binding.directoryPane.directoriesRefreshLayout.setOnRefreshListener { getDirectories() }
         storeStateVariables()
         checkWhatsNewDialog()
         setupLatestMediaId()
@@ -332,7 +333,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         updateWidgets()
         registerFileUpdateListener()
 
-        binding.directoriesSwitchSearching.setOnClickListener {
+        binding.directoryPane.directoriesSwitchSearching.setOnClickListener {
             launchSearchActivity()
         }
 
@@ -357,15 +358,17 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
 
     override fun onResume() {
         super.onResume()
-        updateMenuColors()
-        updateTopBarPanning()
-        updateEdgeFades()
-        navPill.updateColors()
-        updateNavPillVisibility()
+        chrome.updateColors()
+        onPaneStateChanged()
         config.isThirdPartyIntent = false
         mDateFormat = config.dateFormat
         mTimeFormat = getTimeFormat()
+        activePane.onActivated()
+    }
 
+    /** The folder grid brought up: repaint it against the theme, and fetch what it shows. */
+    override fun onActivated() {
+        updateEdgeFades()
         refreshMenuItems()
 
         if (mStoredAnimateGifs != config.animateGifs) {
@@ -378,7 +381,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
 
         if (mStoredScrollHorizontally != config.scrollHorizontally) {
             mLoadedInitialPhotos = false
-            binding.directoriesGrid.adapter = null
+            binding.directoryPane.directoriesGrid.adapter = null
             getDirectories()
         }
 
@@ -397,18 +400,18 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             setupAdapter(mDirsIgnoringSearch, forceRecreate = true)
         }
 
-        binding.directoriesFastscroller.updateColors(primaryColor)
-        binding.directoriesRefreshLayout.isEnabled = config.enablePullToRefresh
+        binding.directoryPane.directoriesFastscroller.updateColors(primaryColor)
+        binding.directoryPane.directoriesRefreshLayout.isEnabled = config.enablePullToRefresh
         getRecyclerAdapter()?.apply {
             dateFormat = config.dateFormat
             timeFormat = getTimeFormat()
         }
 
-        binding.directoriesEmptyPlaceholder.setTextColor(getProperTextColor())
-        binding.directoriesEmptyPlaceholder2.setTextColor(primaryColor)
-        binding.directoriesSwitchSearching.setTextColor(primaryColor)
-        binding.directoriesSwitchSearching.underlineText()
-        binding.directoriesEmptyPlaceholder2.bringToFront()
+        binding.directoryPane.directoriesEmptyPlaceholder.setTextColor(getProperTextColor())
+        binding.directoryPane.directoriesEmptyPlaceholder2.setTextColor(primaryColor)
+        binding.directoryPane.directoriesSwitchSearching.setTextColor(primaryColor)
+        binding.directoryPane.directoriesSwitchSearching.underlineText()
+        binding.directoryPane.directoriesEmptyPlaceholder2.bringToFront()
 
         if (!binding.mainMenu.isSearchOpen) {
             refreshMenuItems()
@@ -425,22 +428,23 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
      * its icon, including through a search opening and closing over the top.
      */
     private fun updateTopBarForGroup() {
-        val openGroup = folderGroups().firstOrNull { it.id == mCurrentGroupId }
-        binding.mainMenu.updateHintText(
-            when {
-                openGroup != null -> openGroup.name
-                config.searchAllFilesByDefault -> getString(org.fossify.commons.R.string.search_files)
-                else -> getString(org.fossify.commons.R.string.search_folders)
-            }
-        )
+        // the bar is worn by whichever grid is up, and this one is not always it - opening the app
+        // straight into Pictures runs this screen's own startup with the other pane already showing,
+        // and a swap in flight has not reached the frame where the bar changes over
+        if (activePane === this && !mIsSwapping) {
+            dressTopBar(binding.mainMenu)
+        }
 
-        binding.mainMenu.toggleForceArrowBackIcon(openGroup != null)
-        updateNavPillVisibility()
+        onPaneStateChanged()
     }
 
     override fun onPause() {
         super.onPause()
-        binding.directoriesRefreshLayout.isRefreshing = false
+        activePane.onDeactivated()
+    }
+
+    override fun onDeactivated() {
+        binding.directoryPane.directoriesRefreshLayout.isRefreshing = false
         mIsGettingDirs = false
         storeStateVariables()
         mLastMediaHandler.removeCallbacksAndMessages(null)
@@ -479,25 +483,32 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         }
     }
 
+    /**
+     * Whichever grid is up gets first refusal, and what is left is leaving: the two are peers of one
+     * screen rather than one stacked on the other, so Back out of Pictures is Back out of the app.
+     */
     override fun onBackPressedCompat(): Boolean {
+        if (activePane.handleBack()) {
+            return true
+        }
+
+        appLockManager.lock()
+        return false
+    }
+
+    override fun handleBack(): Boolean {
         return if (binding.mainMenu.isSearchOpen) {
             binding.mainMenu.closeSearch()
             true
         } else if (mCurrentGroupId != 0L) {
             closeFolderGroup()
             true
-        } else if (config.groupDirectSubfolders) {
-            if (mCurrentPathPrefix.isEmpty()) {
-                appLockManager.lock()
-                false
-            } else {
-                mOpenedSubfolders.removeAt(mOpenedSubfolders.lastIndex)
-                mCurrentPathPrefix = mOpenedSubfolders.last()
-                setupAdapter(mDirs)
-                true
-            }
+        } else if (config.groupDirectSubfolders && mCurrentPathPrefix.isNotEmpty()) {
+            mOpenedSubfolders.removeAt(mOpenedSubfolders.lastIndex)
+            mCurrentPathPrefix = mOpenedSubfolders.last()
+            setupAdapter(mDirs)
+            true
         } else {
-            appLockManager.lock()
             false
         }
     }
@@ -534,12 +545,20 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
                 finish()
             }
         }
+
+        // its own codes, none of which this screen uses for anything of its own
+        mMediaPane?.onActivityResult(requestCode, resultCode, resultData)
         super.onActivityResult(requestCode, resultCode, resultData)
     }
 
+    /** Asks the screen for the toolbar's entries again, which comes straight back below. */
     private fun refreshMenuItems() {
+        chrome.refreshMenuItems()
+    }
+
+    override fun refreshMenuItems(menu: Menu) {
         if (!mIsThirdPartyIntent) {
-            binding.mainMenu.requireToolbar().menu.apply {
+            menu.apply {
                 findItem(R.id.column_count).isVisible = config.viewTypeFolders == VIEW_TYPE_GRID
                 findItem(R.id.open_recycle_bin).isVisible =
                     config.useRecycleBin && !config.showRecycleBinAtFolders
@@ -548,7 +567,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             }
         }
 
-        binding.mainMenu.requireToolbar().menu.apply {
+        menu.apply {
             findItem(R.id.temporarily_show_hidden).isVisible = !config.shouldShowHidden
             findItem(R.id.stop_showing_hidden).isVisible =
                 (!isRPlus() || isExternalStorageManager()) && config.temporarilyShowHidden
@@ -558,111 +577,251 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         }
     }
 
-    private fun setupOptionsMenu() {
-        val menuId = if (mIsThirdPartyIntent) {
-            R.menu.menu_main_intent
-        } else {
-            R.menu.menu_main
-        }
+    override val root: View get() = binding.directoryPane.root
+    override val grid get() = binding.directoryPane.directoriesGrid
+    override val refreshLayout get() = binding.directoryPane.directoriesRefreshLayout
+    override val menuSpec = FOLDER_GRID_MENU
+    override val menuRes
+        get() = if (mIsThirdPartyIntent) R.menu.menu_main_intent else R.menu.menu_main
 
-        binding.mainMenu.requireToolbar().inflateMenu(menuId)
-        binding.mainMenu.setupMenu()
-        updateTopBarPanning()
-        GlassMenu.replaceOverflow(
-            binding.mainMenu.requireToolbar(),
-            { FOLDER_GRID_MENU },
-            binding.directoriesHolder,
-            alsoOpenedBy = navPill.menuButton
+    override fun dressTopBar(topBar: MySearchMenu) {
+        // only ever reached while a folder group is open - that is when the pill wears the arrow
+        topBar.onNavigateBackClickListener = { closeFolderGroup() }
+        val openGroup = folderGroups().firstOrNull { it.id == mCurrentGroupId }
+        topBar.updateHintText(
+            when {
+                openGroup != null -> openGroup.name
+                config.searchAllFilesByDefault -> getString(org.fossify.commons.R.string.search_files)
+                else -> getString(org.fossify.commons.R.string.search_folders)
+            }
         )
 
-        binding.mainMenu.onSearchOpenListener = {
-            updateNavPillVisibility()
-            if (config.searchAllFilesByDefault) {
-                launchSearchActivity()
-            }
-        }
+        topBar.toggleForceArrowBackIcon(openGroup != null)
+    }
 
-        binding.mainMenu.onSearchClosedListener = { updateNavPillVisibility() }
-
-        // only ever reached while a folder group is open - that is when the pill wears the arrow
-        binding.mainMenu.onNavigateBackClickListener = { closeFolderGroup() }
-
-        binding.mainMenu.onSearchTextChangedListener = { text ->
-            setupAdapter(mDirsIgnoringSearch, text)
-            binding.directoriesRefreshLayout.isEnabled =
-                text.isEmpty() && config.enablePullToRefresh
-            binding.directoriesSwitchSearching.beVisibleIf(text.isNotEmpty())
-            floatingTopBar.keepGridClear()
-        }
-
-        binding.mainMenu.requireToolbar().setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.sort -> showSortingDialog()
-                R.id.filter -> showFilterMediaDialog()
-                R.id.open_camera -> launchCamera()
-                R.id.change_view_type -> changeViewType()
-                R.id.temporarily_show_hidden -> tryToggleTemporarilyShowHidden()
-                R.id.stop_showing_hidden -> tryToggleTemporarilyShowHidden()
-                R.id.temporarily_show_excluded -> tryToggleTemporarilyShowExcluded()
-                R.id.stop_showing_excluded -> tryToggleTemporarilyShowExcluded()
-                R.id.create_new_folder -> createNewFolder()
-                R.id.open_recycle_bin -> openRecycleBin()
-                R.id.column_count -> changeColumnCount()
-                R.id.more_apps_from_us -> launchMoreAppsFromUsIntent()
-                R.id.settings -> launchSettings()
-                R.id.about -> launchAbout()
-                else -> return@setOnMenuItemClickListener false
-            }
-            return@setOnMenuItemClickListener true
+    override fun onSearchToggled(isOpen: Boolean) {
+        onPaneStateChanged()
+        if (isOpen && config.searchAllFilesByDefault) {
+            launchSearchActivity()
         }
     }
 
-    private fun updateMenuColors() {
-        binding.mainMenu.updateColors()
-        // updateColors() paints the band back in every time, so undo it right behind it
-        floatingTopBar.makeFloating()
+    override fun onSearchTextChanged(text: String) {
+        setupAdapter(mDirsIgnoringSearch, text)
+        binding.directoryPane.directoriesRefreshLayout.isEnabled =
+            text.isEmpty() && config.enablePullToRefresh
+        binding.directoryPane.directoriesSwitchSearching.beVisibleIf(text.isNotEmpty())
+        chrome.floatingTopBar.keepGridClear()
     }
 
-    private fun setupFloatingTopBar() {
-        floatingTopBar.floatOver(binding.directoriesGrid, binding.directoriesRefreshLayout) {
-            // the switch-to-file-search link keeps clear of the bar itself and the list is laid out
-            // below the link, so while it is up the list has no room left to make for itself
-            !binding.directoriesSwitchSearching.isVisible()
+    // the switch-to-file-search link keeps clear of the bar itself and the list is laid out below
+    // the link, so while it is up the list has no room left to make for itself
+    override fun gridNeedsTopRoom() = !binding.directoryPane.directoriesSwitchSearching.isVisible()
+
+    override fun onMenuItemClick(itemId: Int): Boolean {
+        when (itemId) {
+            R.id.sort -> showSortingDialog()
+            R.id.filter -> showFilterMediaDialog()
+            R.id.open_camera -> launchCamera()
+            R.id.change_view_type -> changeViewType()
+            R.id.temporarily_show_hidden -> tryToggleTemporarilyShowHidden()
+            R.id.stop_showing_hidden -> tryToggleTemporarilyShowHidden()
+            R.id.temporarily_show_excluded -> tryToggleTemporarilyShowExcluded()
+            R.id.stop_showing_excluded -> tryToggleTemporarilyShowExcluded()
+            R.id.create_new_folder -> createNewFolder()
+            R.id.open_recycle_bin -> openRecycleBin()
+            R.id.column_count -> changeColumnCount()
+            R.id.more_apps_from_us -> launchMoreAppsFromUsIntent()
+            R.id.settings -> launchSettings()
+            R.id.about -> launchAbout()
+            else -> return false
         }
+
+        return true
     }
 
     // repainted on every resume rather than set once: the fades are drawn in the theme's own
     // background colour, and the theme can change while this screen is in the back stack
     private fun updateEdgeFades() {
-        binding.directoriesTopFade.applyEdgeFade(atTop = true)
-        binding.directoriesBottomFade.applyEdgeFade(atTop = false)
+        binding.directoryPane.directoriesTopFade.applyEdgeFade(atTop = true)
+        binding.directoryPane.directoriesBottomFade.applyEdgeFade(atTop = false)
     }
 
-    // sideways scrolling has no room to pan the chrome out of
-    private fun updateTopBarPanning() {
-        floatingTopBar.isPanningEnabled = !config.scrollHorizontally
+    // ---------------------------------------------------------- the media pane's host ----
+
+    override val topBar: MySearchMenu get() = binding.mainMenu
+
+    override fun refreshMenu() = chrome.refreshMenuItems()
+
+    override fun applyInsets() = setupInsetPadding()
+
+    // the all media grid is a top level screen: it never wears the arrow, so this is never asked for
+    override fun navigateUp() = Unit
+
+    /**
+     * Sideways scrolling has no room to pan the chrome out of, and while an arrangement is being
+     * made the bar is the way out of that mode. The pill is the way between the two grids, so it has
+     * nothing to offer anywhere that is not one of them: a folder group stepped into, a search
+     * narrowing a grid, an arrangement or a selection it would silently drop, or somebody else's app
+     * asking us to pick a picture.
+     */
+    override fun onPaneStateChanged() {
+        val media = mMediaPane
+        chrome.floatingTopBar.isPanningEnabled =
+            !config.scrollHorizontally && media?.isReordering != true
+        if (mIsThirdPartyIntent) {
+            return
+        }
+
         navPill.isPanningEnabled = !config.scrollHorizontally
+        navPill.isAvailable = mCurrentGroupId == 0L &&
+                !binding.mainMenu.isSearchOpen &&
+                !mIsSelecting &&
+                media?.isReordering != true &&
+                media?.isSelecting != true
+    }
+
+    // ----------------------------------------------------------------- the two panes ----
+
+    /** The bar, and the pill wherever there are two grids for it to move between. */
+    private fun setupChrome() {
+        chrome = GridChrome(
+            topBar = binding.mainMenu,
+            contentBehind = binding.contentHolder,
+            navPill = if (mIsThirdPartyIntent) null else navPill
+        )
+
+        chrome.attach(this)
+        if (!mIsThirdPartyIntent) {
+            setupNavPill()
+            prewarmMediaPane()
+        }
     }
 
     private fun setupNavPill() {
-        navPill.setup(binding.directoriesHolder, NavDestination.ALBUMS)
-        navPill.panWith(binding.directoriesGrid)
-        navPill.onDestination = { showAllMedia(swapFromLeft = true) }
+        navPill.setup(binding.contentHolder, NavDestination.ALBUMS)
+        navPill.onDestination = ::swapTo
     }
 
     /**
-     * The pill is the way between the two top level screens, so it has nothing to offer anywhere
-     * that is not one of them: a folder group stepped into, a search narrowing the grid, a
-     * selection it would silently drop, or somebody else's app asking us to pick a picture.
+     * Keeps the grids clear of the navigation bar - except while the reorder bar is up, where the
+     * bar sits between the two and does that job itself, and asking for the room twice would only
+     * open an empty band above it.
      */
-    private fun updateNavPillVisibility() {
-        navPill.isAvailable = !mIsThirdPartyIntent &&
-                mCurrentGroupId == 0L &&
-                !binding.mainMenu.isSearchOpen &&
-                !mIsSelecting
+    private fun setupInsetPadding() {
+        val reorderBar = binding.mediaPane.mediaReorderBar.root
+        val clearOfTheBottom = if (mMediaPane?.isReordering == true) {
+            listOf(binding.directoryPane.directoriesGrid, reorderBar)
+        } else {
+            listOf(binding.directoryPane.directoriesGrid, binding.mediaPane.mediaGrid, reorderBar)
+        }
+
+        setupEdgeToEdge(
+            // the grids get no top inset of their own - keepGridClear() pads whichever is up by the
+            // whole height of the bar, which already carries this inset
+            padTopSystem = listOf(
+                binding.mainMenu,
+                binding.directoryPane.directoriesSwitchSearching,
+                binding.directoryPane.directoriesEmptyPlaceholder,
+                binding.mediaPane.mediaEmptyTextPlaceholder
+            ),
+            padBottomImeAndSystem = clearOfTheBottom,
+            padBottomSystem = listOf(binding.navPill.root)
+        )
     }
 
-    private fun getRecyclerAdapter() = binding.directoriesGrid.adapter as? DirectoryAdapter
+    private fun mediaPane(): MediaGridPane {
+        mMediaPane?.let { return it }
+        return MediaGridPane(
+            activity = this,
+            binding = binding.mediaPane,
+            host = this,
+            mPath = "",
+            showAll = true
+        ).also { mMediaPane = it }
+    }
+
+    /**
+     * Builds the other grid while nothing is asking for it, so the first tap on the pill is not the
+     * one that pays for it. Its media waits until it is actually brought up.
+     */
+    private fun prewarmMediaPane() {
+        Looper.myQueue().addIdleHandler {
+            if (!isDestroyed && !isFinishing) {
+                mediaPane()
+            }
+
+            false
+        }
+    }
+
+    /**
+     * The swap the pill asks for. Both grids are children of the one holder, so neither the pill nor
+     * the search bar is part of what moves - the two panes are, one out and one in.
+     */
+    private fun swapTo(destination: NavDestination) {
+        val toPictures = destination == NavDestination.PICTURES
+        val incoming: GridPane = if (toPictures) mediaPane() else this
+        if (mIsSwapping || incoming === activePane) {
+            return
+        }
+
+        hideKeyboard()
+        // held from here rather than from the slide below, so the activation in between knows the
+        // bar is not this pane's to dress yet - the hand-over is halfway through the slide
+        mIsSwapping = true
+        config.showAll = toPictures
+        // leaving the all media view for good, so a startup setting still pointing at it would drop
+        // the user straight back in on the next launch with no way out of the loop
+        if (!toPictures && config.defaultFolder == SHOW_ALL) {
+            config.defaultFolder = ""
+        }
+
+        // the plate moves the moment it is tapped, whatever the grids are still doing about it
+        navPill.selected = destination
+        val outgoing = activePane
+        activePane = incoming
+        incoming.onActivated()
+        slidePanes(outgoing, incoming, fromLeft = toPictures)
+    }
+
+    private fun slidePanes(outgoing: GridPane, incoming: GridPane, fromLeft: Boolean) {
+        val travel = binding.contentHolder.width.toFloat()
+        val duration = resources.getInteger(R.integer.nav_swap_duration).toLong()
+        val curve = AnimationUtils.loadInterpolator(this, android.R.interpolator.fast_out_slow_in)
+
+        incoming.root.translationX = if (fromLeft) -travel else travel
+        incoming.root.beVisible()
+        var handedOver = false
+        incoming.root.animate()
+            .translationX(0f)
+            .setDuration(duration)
+            .setInterpolator(curve)
+            // the bar carries no part of the movement: its buttons change over in one frame, at the
+            // halfway mark. Taken from the animation rather than timed alongside it, so it stays the
+            // halfway mark under whatever animation scale the device is set to
+            .setUpdateListener {
+                if (!handedOver && it.animatedFraction >= HALFWAY) {
+                    handedOver = true
+                    chrome.bind(activePane)
+                }
+            }
+            .start()
+
+        outgoing.root.animate()
+            .translationX(if (fromLeft) travel else -travel)
+            .setDuration(duration)
+            .setInterpolator(curve)
+            .withEndAction {
+                outgoing.root.beGone()
+                outgoing.root.translationX = 0f
+                outgoing.onDeactivated()
+                mIsSwapping = false
+            }
+            .start()
+    }
+
+    private fun getRecyclerAdapter() = binding.directoryPane.directoriesGrid.adapter as? DirectoryAdapter
 
     private fun storeStateVariables() {
         mStoredTextColor = getProperTextColor()
@@ -794,7 +953,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
 
     private fun showSortingDialog() {
         ChangeSortingDialog(this, isDirectorySorting = true) {
-            binding.directoriesGrid.adapter = null
+            binding.directoryPane.directoriesGrid.adapter = null
             if (config.directorySorting and SORT_BY_DATE_MODIFIED != 0 || config.directorySorting and SORT_BY_DATE_TAKEN != 0) {
                 getDirectories()
             } else {
@@ -810,39 +969,46 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     private fun showFilterMediaDialog() {
         FilterMediaDialog(this) {
             mShouldStopFetching = true
-            binding.directoriesRefreshLayout.isRefreshing = true
-            binding.directoriesGrid.adapter = null
+            binding.directoryPane.directoriesRefreshLayout.isRefreshing = true
+            binding.directoryPane.directoriesGrid.adapter = null
             getDirectories()
         }
     }
 
     /**
-     * [swapFromLeft] slides the media grid in from that side, for a swap the pill has to appear to
-     * have sat still through. Left alone at startup, where there is nothing on screen to swap from.
+     * Opens straight into the all media grid, with no swap to play: this runs before there is
+     * anything on screen to swap away from. A picker is handed the grid as a screen of its own,
+     * having no pill to come back with.
      */
-    private fun showAllMedia(swapFromLeft: Boolean? = null) {
+    private fun showAllMedia() {
         config.showAll = true
-        Intent(this, MediaActivity::class.java).apply {
-            putExtra(DIRECTORY, "")
-
-            if (mIsThirdPartyIntent) {
+        if (mIsThirdPartyIntent) {
+            Intent(this, MediaActivity::class.java).apply {
+                putExtra(DIRECTORY, "")
                 handleMediaIntent(this)
-            } else if (swapFromLeft != null) {
-                hideKeyboard()
-                startNavSwap(this, fromLeft = swapFromLeft)
-            } else {
-                hideKeyboard()
-                startActivity(this)
-                finish()
             }
+
+            return
         }
+
+        val pane = mediaPane()
+        if (activePane === pane) {
+            return
+        }
+
+        navPill.selected = NavDestination.PICTURES
+        activePane = pane
+        binding.directoryPane.root.beGone()
+        pane.root.beVisible()
+        chrome.bind(pane)
+        pane.onActivated()
     }
 
     private fun changeViewType() {
         ChangeViewTypeDialog(this, true) {
             refreshMenuItems()
             setupLayoutManager()
-            binding.directoriesGrid.adapter = null
+            binding.directoryPane.directoriesGrid.adapter = null
             setupAdapter(mDirsIgnoringSearch)
         }
     }
@@ -864,7 +1030,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     private fun toggleTemporarilyShowHidden(show: Boolean) {
         mLoadedInitialPhotos = false
         config.temporarilyShowHidden = show
-        binding.directoriesGrid.adapter = null
+        binding.directoryPane.directoriesGrid.adapter = null
         getDirectories()
         refreshMenuItems()
     }
@@ -882,7 +1048,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     private fun toggleTemporarilyShowExcluded(show: Boolean) {
         mLoadedInitialPhotos = false
         config.temporarilyShowExcluded = show
-        binding.directoriesGrid.adapter = null
+        binding.directoryPane.directoriesGrid.adapter = null
         getDirectories()
         refreshMenuItems()
     }
@@ -993,22 +1159,22 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             setupListLayoutManager()
         }
 
-        (binding.directoriesRefreshLayout.layoutParams as RelativeLayout.LayoutParams)
+        (binding.directoryPane.directoriesRefreshLayout.layoutParams as RelativeLayout.LayoutParams)
             .addRule(RelativeLayout.BELOW, R.id.directories_switch_searching)
     }
 
     private fun setupGridLayoutManager() {
-        val layoutManager = binding.directoriesGrid.layoutManager as MyGridLayoutManager
+        val layoutManager = binding.directoryPane.directoriesGrid.layoutManager as MyGridLayoutManager
         if (config.scrollHorizontally) {
             layoutManager.orientation = RecyclerView.HORIZONTAL
-            binding.directoriesRefreshLayout.layoutParams =
+            binding.directoryPane.directoriesRefreshLayout.layoutParams =
                 RelativeLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
         } else {
             layoutManager.orientation = RecyclerView.VERTICAL
-            binding.directoriesRefreshLayout.layoutParams =
+            binding.directoryPane.directoriesRefreshLayout.layoutParams =
                 RelativeLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
@@ -1019,10 +1185,10 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     }
 
     private fun setupListLayoutManager() {
-        val layoutManager = binding.directoriesGrid.layoutManager as MyGridLayoutManager
+        val layoutManager = binding.directoryPane.directoriesGrid.layoutManager as MyGridLayoutManager
         layoutManager.spanCount = 1
         layoutManager.orientation = RecyclerView.VERTICAL
-        binding.directoriesRefreshLayout.layoutParams = RelativeLayout.LayoutParams(
+        binding.directoryPane.directoriesRefreshLayout.layoutParams = RelativeLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
@@ -1053,7 +1219,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         }
 
         val currentColumnCount =
-            (binding.directoriesGrid.layoutManager as MyGridLayoutManager).spanCount
+            (binding.directoryPane.directoriesGrid.layoutManager as MyGridLayoutManager).spanCount
         RadioGroupDialog(this, items, currentColumnCount) {
             val newColumnCount = it as Int
             if (currentColumnCount != newColumnCount) {
@@ -1074,7 +1240,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     }
 
     private fun columnCountChanged() {
-        (binding.directoriesGrid.layoutManager as MyGridLayoutManager).spanCount =
+        (binding.directoryPane.directoriesGrid.layoutManager as MyGridLayoutManager).spanCount =
             config.dirColumnCnt
         refreshMenuItems()
         getRecyclerAdapter()?.apply {
@@ -1471,9 +1637,9 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             if (isPlaceholderVisible) {
                 isPlaceholderVisible = false
                 runOnUiThread {
-                    binding.directoriesEmptyPlaceholder.beGone()
-                    binding.directoriesEmptyPlaceholder2.beGone()
-                    binding.directoriesFastscroller.beVisible()
+                    binding.directoryPane.directoriesEmptyPlaceholder.beGone()
+                    binding.directoryPane.directoriesEmptyPlaceholder2.beGone()
+                    binding.directoryPane.directoriesFastscroller.beVisible()
                 }
             }
 
@@ -1510,7 +1676,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         }
 
         runOnUiThread {
-            binding.directoriesRefreshLayout.isRefreshing = false
+            binding.directoryPane.directoriesRefreshLayout.isRefreshing = false
             checkPlaceholderVisibility(dirs)
         }
 
@@ -1590,40 +1756,41 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     }
 
     private fun checkPlaceholderVisibility(dirs: ArrayList<Directory>) {
-        binding.directoriesEmptyPlaceholder.beVisibleIf(dirs.isEmpty() && mLoadedInitialPhotos)
-        binding.directoriesEmptyPlaceholder2.beVisibleIf(dirs.isEmpty() && mLoadedInitialPhotos)
+        binding.directoryPane.directoriesEmptyPlaceholder.beVisibleIf(dirs.isEmpty() && mLoadedInitialPhotos)
+        binding.directoryPane.directoriesEmptyPlaceholder2.beVisibleIf(dirs.isEmpty() && mLoadedInitialPhotos)
 
         if (binding.mainMenu.isSearchOpen) {
-            binding.directoriesEmptyPlaceholder.text =
+            binding.directoryPane.directoriesEmptyPlaceholder.text =
                 getString(org.fossify.commons.R.string.no_items_found)
-            binding.directoriesEmptyPlaceholder2.beGone()
+            binding.directoryPane.directoriesEmptyPlaceholder2.beGone()
         } else if (dirs.isEmpty() && config.filterMedia == getDefaultFileFilter()) {
             if (isRPlus() && !isExternalStorageManager()) {
-                binding.directoriesEmptyPlaceholder.text =
+                binding.directoryPane.directoriesEmptyPlaceholder.text =
                     getString(org.fossify.commons.R.string.no_items_found)
-                binding.directoriesEmptyPlaceholder2.beGone()
+                binding.directoryPane.directoriesEmptyPlaceholder2.beGone()
             } else {
-                binding.directoriesEmptyPlaceholder.text = getString(R.string.no_media_add_included)
-                binding.directoriesEmptyPlaceholder2.text = getString(R.string.add_folder)
+                binding.directoryPane.directoriesEmptyPlaceholder.text = getString(R.string.no_media_add_included)
+                binding.directoryPane.directoriesEmptyPlaceholder2.text = getString(R.string.add_folder)
             }
 
-            binding.directoriesEmptyPlaceholder2.setOnClickListener {
+            binding.directoryPane.directoriesEmptyPlaceholder2.setOnClickListener {
                 showAddIncludedFolderDialog {
                     refreshItems()
                 }
             }
         } else {
-            binding.directoriesEmptyPlaceholder.text = getString(R.string.no_media_with_filters)
-            binding.directoriesEmptyPlaceholder2.text =
+            binding.directoryPane.directoriesEmptyPlaceholder.text = getString(R.string.no_media_with_filters)
+            binding.directoryPane.directoriesEmptyPlaceholder2.text =
                 getString(R.string.change_filters_underlined)
 
-            binding.directoriesEmptyPlaceholder2.setOnClickListener {
+            binding.directoryPane.directoriesEmptyPlaceholder2.setOnClickListener {
                 showFilterMediaDialog()
             }
         }
 
-        binding.directoriesEmptyPlaceholder2.underlineText()
-        binding.directoriesFastscroller.beVisibleIf(binding.directoriesEmptyPlaceholder.isGone())
+        binding.directoryPane.directoriesEmptyPlaceholder2.underlineText()
+        binding.directoryPane.directoriesFastscroller
+            .beVisibleIf(binding.directoryPane.directoriesEmptyPlaceholder.isGone())
     }
 
     /**
@@ -1680,7 +1847,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             // showing one state while the screen believes another
             val dirsToShow = searchDirs(narrowToOpenGroup(groupedDirs), textToSearch)
             checkPlaceholderVisibility(dirsToShow)
-            if (binding.directoriesGrid.adapter == null || forceRecreate) {
+            if (binding.directoryPane.directoriesGrid.adapter == null || forceRecreate) {
                 createDirectoryAdapter(dirsToShow, textToSearch)
             } else {
                 getRecyclerAdapter()?.apply {
@@ -1692,8 +1859,8 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         }
 
         // recyclerview sometimes becomes empty at init/update, triggering an invisible refresh like this seems to work fine
-        binding.directoriesGrid.postDelayed({
-            binding.directoriesGrid.scrollBy(0, 0)
+        binding.directoryPane.directoriesGrid.postDelayed({
+            binding.directoryPane.directoriesGrid.scrollBy(0, 0)
         }, 500)
     }
 
@@ -1702,9 +1869,9 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             activity = this,
             dirs = dirsToShow,
             listener = this,
-            recyclerView = binding.directoriesGrid,
+            recyclerView = binding.directoryPane.directoriesGrid,
             isPickIntent = isPickIntent(intent) || isGetAnyContentIntent(intent),
-            swipeRefreshLayout = binding.directoriesRefreshLayout,
+            swipeRefreshLayout = binding.directoryPane.directoriesRefreshLayout,
             openGroupId = mCurrentGroupId
         ) {
             val clickedDir = it as Directory
@@ -1725,13 +1892,13 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         adapter.isSearchActive = textToSearch.isNotEmpty()
         adapter.onSelectionModeChanged = { selecting ->
             mIsSelecting = selecting
-            updateNavPillVisibility()
+            onPaneStateChanged()
         }
         // no entrance animation here: a layout animation on a RecyclerView binds every child at
         // alpha 0 and walks them in, and the view is recycled often enough that children kept
         // being left at that alpha - blank rows until something scrolled them off and back. See
         // the removed layoutAnimation in the layout
-        binding.directoriesGrid.adapter = adapter
+        binding.directoryPane.directoriesGrid.adapter = adapter
         setupScrollDirection()
     }
 
@@ -1801,7 +1968,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         mCurrentGroupId = id
         updateTopBarForGroup()
         setupAdapter(mDirsIgnoringSearch, "")
-        binding.directoriesGrid.scrollToPosition(0)
+        binding.directoryPane.directoriesGrid.scrollToPosition(0)
     }
 
     private fun closeFolderGroup() {
@@ -1815,7 +1982,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             ?.dirs
             ?.indexOfFirst { it.folderGroupId() == leftGroupId } ?: -1
         if (position >= 0) {
-            binding.directoriesGrid.scrollToPosition(position)
+            binding.directoryPane.directoriesGrid.scrollToPosition(position)
         }
     }
 
@@ -1828,7 +1995,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     private fun setupScrollDirection() {
         val scrollHorizontally =
             config.scrollHorizontally && config.viewTypeFolders == VIEW_TYPE_GRID
-        binding.directoriesFastscroller.setScrollVertically(!scrollHorizontally)
+        binding.directoryPane.directoriesFastscroller.setScrollVertically(!scrollHorizontally)
     }
 
     private fun checkInvalidDirectories(dirs: ArrayList<Directory>) {

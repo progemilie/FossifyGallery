@@ -54,10 +54,10 @@ adapter rather than living inside it.
 
 ### Package layout (app/src/main/kotlin/org/fossify/gallery/)
 
-Conventional `activities/adapters/fragments/dialogs/helpers/models/views/`. The three browsing
-screens are `MainActivity` (folder grid), `MediaActivity` (media grid) and `ViewPagerActivity`
-(fullscreen viewer); `helpers/MediaFetcher.kt` is the MediaStore query engine and
-`databases/GalleryDatabase.kt` the single Room DB (manual migrations, currently v4→v12).
+Conventional `activities/adapters/fragments/dialogs/helpers/models/views/`. Browsing is
+`MainActivity` (both top level grids, see below), `MediaActivity` (a folder opened as a screen of
+its own) and `ViewPagerActivity` (fullscreen viewer); `helpers/MediaFetcher.kt` is the MediaStore
+query engine and `databases/GalleryDatabase.kt` the single Room DB (manual migrations, v4→v12).
 
 No formal MVVM/MVP — activity/fragment plus base-class inheritance, with view binding enabled and
 state held in activities/adapters/`Config` rather than ViewModels.
@@ -105,7 +105,7 @@ not a rung** — a wide screen steps 14 to 20 — so anything naming a tappable 
 
 Past `interactiveMax` a tile is only its picture, and a screenful is several hundred of them.
 `MediaAdapter` binds `photo_item_grid_simple.xml` — a bare `MySquareImageView`, no listeners, no
-badges, no selection — and `MediaActivity.mediaForGrid()` drops the grouping headers, which would
+badges, no selection — and `MediaGridPane.mediaForGrid()` drops the grouping headers, which would
 leave ragged gaps. Nothing there is tappable, so a tap zooms in one rung and scrolls the item that
 was under the finger back under it. `helpers/SimpleThumbnailLoader.kt` prepares its Glide request
 **once** and reuses it, at one `override()` size for every rung, because a fling across twenty
@@ -125,9 +125,29 @@ dropped and reinserted on every rescan. `Config.customMediaOrderFolders` is only
 folders have an order, so `hasCustomMediaOrder()` can be answered on the main thread where Room
 would throw; the table is the authority. Access via `extensions/CustomMediaOrder.kt`, all blocking.
 
-Reordering lives in `adapters/MediaReorderMode.kt` and is put up by `MediaActivity` through
+Reordering lives in `adapters/MediaReorderMode.kt` and is put up by `MediaGridPane` through
 `helpers/ReorderBar.kt`: multi-select marks a group, dragging any marked item carries the whole
 group. The lift, ring and shadow it shares with the folder grid are in `helpers/DragLift.kt`.
+
+### Two grids, one window
+
+Pictures and Albums are two panes of `MainActivity` rather than two screens, because that is the
+only way the pill and the search bar can hold still through a swap: an activity handover costs
+~400ms to its first frame, which either a window animation covers — carrying the chrome off with it
+— or a frozen screen does. A swap slides only `content_holder`'s two children.
+
+`interfaces/GridPane.kt` is what a screen asks of whichever grid is up; `helpers/GridChrome.kt` is
+the bar, the pill, and the `bind()` that points them at a pane. `views/MediaGridPane.kt` is the
+media grid itself, worn by `MainActivity` as Pictures and by `MediaActivity` for one folder;
+`MediaActivity.mMedia` stays where the viewer looks for it. Three traps:
+
+- **A re-inflated menu has to be recoloured** — commons tints the icons in `updateColors()`, and
+  untinted ones draw invisibly rather than not at all.
+- **The bar belongs to whichever pane is up**, which `updateTopBarForGroup()` checks before dressing
+  it: opening in Pictures runs the folder pane's startup behind it, and a swap in flight has not
+  reached the frame where the bar changes over.
+- A swap moves panes by `translationX`, a draw and not a layout, so anything that waits on a layout
+  pass (`FloatingTopBar.keepGridClear()`) has to be called outright instead.
 
 ### Folder groups
 

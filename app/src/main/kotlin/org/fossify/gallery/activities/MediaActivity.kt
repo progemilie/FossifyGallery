@@ -5,8 +5,6 @@ import android.os.Bundle
 import android.os.Handler
 import androidx.core.view.updatePadding
 import org.fossify.commons.extensions.appLockManager
-import org.fossify.commons.extensions.beGone
-import org.fossify.commons.extensions.hideKeyboard
 import org.fossify.commons.extensions.showErrorToast
 import org.fossify.commons.extensions.viewBinding
 import org.fossify.commons.views.MySearchMenu
@@ -21,19 +19,16 @@ import org.fossify.gallery.helpers.GET_VIDEO_INTENT
 import org.fossify.gallery.helpers.GridChrome
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.SET_WALLPAPER_INTENT
-import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_TEMP_HIDDEN_DURATION
 import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
-import org.fossify.gallery.helpers.startNavSwap
 import org.fossify.gallery.models.ThumbnailItem
 import org.fossify.gallery.views.MediaGridPane
-import org.fossify.gallery.views.NavDestination
-import org.fossify.gallery.views.NavPill
 import org.fossify.gallery.views.PickRequest
 
 /**
- * The window a [MediaGridPane] is shown in when it is a folder of its own - one tapped into, the
- * recycle bin, the favourites, or a grid another app is picking from.
+ * The window a [MediaGridPane] is shown in when it is a screen of its own - a folder tapped into,
+ * the recycle bin, the favourites, or a grid another app is picking from. The two top level grids
+ * are not among these: they are two panes of [MainActivity], with no window of their own.
  *
  * Everything that was ever done to the grid lives in the pane; what is left here is the window, the
  * chrome floating over it, and the handful of things only an activity can answer for.
@@ -42,7 +37,6 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host {
     override var isSearchBarEnabled = true
 
     private val binding by viewBinding(ActivityMediaBinding::inflate)
-    private val navPill by lazy { NavPill(binding.navPill) }
 
     private var mPath = ""
     private var mShowAll = false
@@ -80,23 +74,13 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host {
             skipAuthentication = intent.getBooleanExtra(SKIP_AUTHENTICATION, false)
         )
 
-        // the grid reserves the pill's room in the layout, which the inset is then added to. Only
-        // the all media view puts the pill up, so anywhere else hands that room back first
-        if (!mShowAll) {
-            binding.mediaPane.mediaGrid.updatePadding(bottom = 0)
-            binding.navPill.root.beGone()
-        }
-
+        // the pane's grid reserves the navigation pill's room, and there is no pill on this screen
+        binding.mediaPane.mediaGrid.updatePadding(bottom = 0)
         setupInsetPadding()
-        chrome = GridChrome(
-            topBar = binding.mediaMenu,
-            contentBehind = binding.contentHolder,
-            navPill = if (mShowAll) navPill else null
-        )
+        chrome = GridChrome(binding.mediaMenu, binding.contentHolder)
         chrome.attach(pane)
 
         if (mShowAll) {
-            setupNavPill()
             registerFileUpdateListener()
         }
 
@@ -149,7 +133,7 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host {
     }
 
     override fun onBackPressedCompat(): Boolean {
-        if (pane.onBackPressed()) {
+        if (pane.handleBack()) {
             return true
         }
 
@@ -173,31 +157,13 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host {
 
     override fun navigateUp() = performDefaultBack()
 
-    /**
-     * Sideways scrolling has no room to pan the chrome out of, and while an arrangement is being
-     * made the bar is the way out of that mode. The pill is a way off this screen entirely, so it
-     * goes for the length of a search, an arrangement, or a selection it would silently drop.
-     */
+    // sideways scrolling has no room to pan the bar out of, and while an arrangement is being made
+    // the bar is the way out of that mode
     override fun onPaneStateChanged() {
         chrome.floatingTopBar.isPanningEnabled = !config.scrollHorizontally && !pane.isReordering
-        // asked for by name rather than through the lazy: a folder never puts the pill up, and
-        // building one would frost a panel nobody sees
-        if (!mShowAll) {
-            return
-        }
-
-        navPill.isPanningEnabled = !config.scrollHorizontally
-        navPill.isAvailable = !pane.isReordering &&
-                !binding.mediaMenu.isSearchOpen &&
-                !pane.isSelecting
     }
 
     // --------------------------------------------------------------- the screen ----
-
-    private fun setupNavPill() {
-        navPill.setup(binding.contentHolder, NavDestination.PICTURES)
-        navPill.onDestination = { switchToFolderView(swapFromLeft = false) }
-    }
 
     /**
      * Keeps the grid clear of the navigation bar - except while the reorder bar is up, where the
@@ -215,32 +181,10 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host {
                 listOf(reorderBar)
             } else {
                 listOf(binding.mediaPane.mediaGrid, reorderBar)
-            },
-            padBottomSystem = listOf(binding.navPill.root)
+            }
         )
     }
 
-    /**
-     * [swapFromLeft] slides the folder grid in from that side, for a swap the pill has to appear to
-     * have sat still through. Left alone where the switch is not one.
-     */
-    private fun switchToFolderView(swapFromLeft: Boolean? = null) {
-        hideKeyboard()
-        config.showAll = false
-        // leaving the all-folders view for good, so a startup setting still pointing at it would
-        // drop the user straight back in on the next launch with no way out of the loop
-        if (config.defaultFolder == SHOW_ALL) {
-            config.defaultFolder = ""
-        }
-
-        val intent = Intent(this, MainActivity::class.java)
-        if (swapFromLeft != null) {
-            startNavSwap(intent, fromLeft = swapFromLeft)
-        } else {
-            startActivity(intent)
-            finish()
-        }
-    }
 }
 
 /** What another app asked this grid to pick for it, if anything. */

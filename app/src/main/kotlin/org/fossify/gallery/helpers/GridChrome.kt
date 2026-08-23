@@ -55,6 +55,9 @@ class GridChrome(
         toolbar.inflateMenu(pane.menuRes)
         pane.dressTopBar(topBar)
         pane.refreshMenuItems(toolbar.menu)
+        // a freshly inflated menu wears the icons' own colours, which are not the ones that read
+        // against the pill - the tinting is part of what commons repaints here
+        updateColors()
 
         floatingTopBar.floatOver(pane.grid, pane.refreshLayout, pane::gridNeedsTopRoom)
         navPill?.panWith(pane.grid)

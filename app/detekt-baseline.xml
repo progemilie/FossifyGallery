@@ -13,6 +13,7 @@
     <ID>ComplexCondition:MediaFetcher.kt$MediaFetcher$curPath != FAVORITES &amp;&amp; curPath != RECYCLE_BIN &amp;&amp; isRPlus() &amp;&amp; !isExternalStorageManager()</ID>
     <ID>ComplexCondition:MediaFetcher.kt$MediaFetcher$currentGrouping and GROUP_BY_LAST_MODIFIED_DAILY != 0 || currentGrouping and GROUP_BY_LAST_MODIFIED_MONTHLY != 0 || currentGrouping and GROUP_BY_DATE_TAKEN_DAILY != 0 || currentGrouping and GROUP_BY_DATE_TAKEN_MONTHLY != 0</ID>
     <ID>ComplexCondition:MediaFetcher.kt$MediaFetcher$isImage || isVideo || isGif || isRaw</ID>
+    <ID>ComplexCondition:MediaGridPane.kt$MediaGridPane$mMedia.isEmpty() || !isRandomSorting || (isRandomSorting &amp;&amp; !mWasFullscreenViewOpen)</ID>
     <ID>ComplexCondition:MediaSideScroll.kt$MediaSideScroll$(percent == 100 &amp;&amp; event.rawY &gt; mLastTouchY) || (percent == -100 &amp;&amp; event.rawY &lt; mLastTouchY)</ID>
     <ID>ComplexCondition:PhotoFragment.kt$PhotoFragment$isRPlus() &amp;&amp; !isExternalStorageManager() &amp;&amp; mMedium.path.startsWith("/storage/") &amp;&amp; mMedium.isHidden()</ID>
     <ID>ComplexCondition:PhotoFragment.kt$PhotoFragment$mIsFragmentVisible &amp;&amp; context?.config?.allowZoomingImages == true &amp;&amp; (mMedium.isImage() || mMedium.isPortrait()) &amp;&amp; !mIsSubsamplingVisible</ID>
@@ -37,6 +38,7 @@
     <ID>CyclomaticComplexMethod:EditActivity.kt$EditActivity$private fun initEditActivity()</ID>
     <ID>CyclomaticComplexMethod:EditActivity.kt$EditActivity$private fun updatePrimaryActionButtons()</ID>
     <ID>CyclomaticComplexMethod:MainActivity.kt$MainActivity$override fun deleteFolders(folders: ArrayList&lt;File&gt;)</ID>
+    <ID>CyclomaticComplexMethod:MainActivity.kt$MainActivity$override fun onMenuItemClick(itemId: Int): Boolean</ID>
     <ID>CyclomaticComplexMethod:MainActivity.kt$MainActivity$private fun checkInvalidDirectories(dirs: ArrayList&lt;Directory&gt;)</ID>
     <ID>CyclomaticComplexMethod:MainActivity.kt$MainActivity$private fun gotDirectories(newDirs: ArrayList&lt;Directory&gt;)</ID>
     <ID>CyclomaticComplexMethod:MainActivity.kt$MainActivity$private fun setupOptionsMenu()</ID>
@@ -50,6 +52,8 @@
     <ID>CyclomaticComplexMethod:MediaFetcher.kt$MediaFetcher$fun groupMedia(media: ArrayList&lt;Medium&gt;, path: String): ArrayList&lt;ThumbnailItem&gt;</ID>
     <ID>CyclomaticComplexMethod:MediaFetcher.kt$MediaFetcher$private fun getMediaInFolder( folder: String, isPickImage: Boolean, isPickVideo: Boolean, filterMedia: Int, getProperDateTaken: Boolean, getProperLastModified: Boolean, getProperFileSize: Boolean, favoritePaths: ArrayList&lt;String&gt;, getVideoDurations: Boolean, lastModifieds: HashMap&lt;String, Long&gt;, dateTakens: HashMap&lt;String, Long&gt; ): ArrayList&lt;Medium&gt;</ID>
     <ID>CyclomaticComplexMethod:MediaFetcher.kt$MediaFetcher$private fun getMediaOnOTG( folder: String, isPickImage: Boolean, isPickVideo: Boolean, filterMedia: Int, favoritePaths: ArrayList&lt;String&gt;, getVideoDurations: Boolean ): ArrayList&lt;Medium&gt;</ID>
+    <ID>CyclomaticComplexMethod:MediaGridPane.kt$MediaGridPane$override fun onActivated()</ID>
+    <ID>CyclomaticComplexMethod:MediaGridPane.kt$MediaGridPane$override fun onMenuItemClick(itemId: Int): Boolean</ID>
     <ID>CyclomaticComplexMethod:MediaSideScroll.kt$MediaSideScroll$override fun onTouchEvent(event: MotionEvent): Boolean</ID>
     <ID>CyclomaticComplexMethod:PhotoFragment.kt$PhotoFragment$@SuppressLint("ClickableViewAccessibility") override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View</ID>
     <ID>CyclomaticComplexMethod:PhotoFragment.kt$PhotoFragment$override fun fullscreenToggled(isFullscreen: Boolean)</ID>
@@ -68,6 +72,7 @@
     <ID>EmptyCatchBlock:MainActivity.kt$MainActivity${ }</ID>
     <ID>EmptyCatchBlock:MediaActivity.kt$MediaActivity${ }</ID>
     <ID>EmptyCatchBlock:MediaFetcher.kt$MediaFetcher${ }</ID>
+    <ID>EmptyCatchBlock:MediaGridPane.kt$MediaGridPane${ }</ID>
     <ID>EmptyCatchBlock:MyWidgetProvider.kt$MyWidgetProvider${ }</ID>
     <ID>EmptyCatchBlock:PhotoVideoActivity.kt$PhotoVideoActivity${ }</ID>
     <ID>EmptyCatchBlock:ViewPagerActivity.kt$ViewPagerActivity${ }</ID>
@@ -77,6 +82,7 @@
     <ID>EmptyFunctionBlock:ManageFoldersAdapter.kt$ManageFoldersAdapter${}</ID>
     <ID>EmptyFunctionBlock:ManageHiddenFoldersAdapter.kt$ManageHiddenFoldersAdapter${}</ID>
     <ID>EmptyFunctionBlock:MediaAdapter.kt$MediaAdapter${}</ID>
+    <ID>EmptyFunctionBlock:PeekViewerActivity.kt$PeekViewerActivity${}</ID>
     <ID>EmptyFunctionBlock:PhotoVideoActivity.kt$PhotoVideoActivity${}</ID>
     <ID>EmptyFunctionBlock:RotateTransformation.kt$RotateTransformation${}</ID>
     <ID>EmptyFunctionBlock:SearchActivity.kt$SearchActivity${}</ID>
@@ -92,9 +98,11 @@
     <ID>LargeClass:DirectoryAdapter.kt$DirectoryAdapter : MyRecyclerViewAdapterItemTouchHelperContractOnPopupTextUpdate</ID>
     <ID>LargeClass:EditActivity.kt$EditActivity : BaseCropActivity</ID>
     <ID>LargeClass:MainActivity.kt$MainActivity : SimpleActivityDirectoryOperationsListener</ID>
+    <ID>LargeClass:MainActivity.kt$MainActivity : SimpleActivityDirectoryOperationsListenerGridPaneHost</ID>
     <ID>LargeClass:MediaActivity.kt$MediaActivity : SimpleActivityMediaOperationsListener</ID>
     <ID>LargeClass:MediaAdapter.kt$MediaAdapter : MyRecyclerViewAdapterOnPopupTextUpdate</ID>
     <ID>LargeClass:MediaFetcher.kt$MediaFetcher</ID>
+    <ID>LargeClass:MediaGridPane.kt$MediaGridPane : GridPaneMediaOperationsListener</ID>
     <ID>LargeClass:PhotoFragment.kt$PhotoFragment : ViewPagerFragment</ID>
     <ID>LargeClass:SettingsActivity.kt$SettingsActivity : SimpleActivity</ID>
     <ID>LargeClass:VideoFragment.kt$VideoFragment : ViewPagerFragmentSurfaceTextureListenerOnSeekBarChangeListenerPlaybackSpeedListener</ID>
@@ -108,6 +116,7 @@
     <ID>LongParameterList:MediaFetcher.kt$MediaFetcher$( folder: String, isPickImage: Boolean, isPickVideo: Boolean, filterMedia: Int, getProperDateTaken: Boolean, getProperLastModified: Boolean, getProperFileSize: Boolean, favoritePaths: ArrayList&lt;String&gt;, getVideoDurations: Boolean, lastModifieds: HashMap&lt;String, Long&gt;, dateTakens: HashMap&lt;String, Long&gt; )</ID>
     <ID>LoopWithTooManyJumpStatements:Activity.kt$for</ID>
     <ID>LoopWithTooManyJumpStatements:Context.kt$for</ID>
+    <ID>LoopWithTooManyJumpStatements:MediaAdapter.kt$MediaAdapter$for</ID>
     <ID>LoopWithTooManyJumpStatements:MediaFetcher.kt$MediaFetcher$for</ID>
     <ID>LoopWithTooManyJumpStatements:String.kt$for</ID>
     <ID>LoopWithTooManyJumpStatements:String.kt$while</ID>
@@ -476,6 +485,7 @@
     <ID>SwallowedException:MainActivity.kt$MainActivity$e: Exception</ID>
     <ID>SwallowedException:MediaActivity.kt$MediaActivity$e: Exception</ID>
     <ID>SwallowedException:MediaFetcher.kt$MediaFetcher$e: Exception</ID>
+    <ID>SwallowedException:MediaGridPane.kt$MediaGridPane$e: Exception</ID>
     <ID>SwallowedException:MediaSideScroll.kt$MediaSideScroll$e: Settings.SettingNotFoundException</ID>
     <ID>SwallowedException:MyWidgetProvider.kt$MyWidgetProvider$e: Exception</ID>
     <ID>SwallowedException:PhotoFragment.kt$PhotoFragment$e: Exception</ID>
@@ -495,6 +505,7 @@
     <ID>TooGenericExceptionCaught:MainActivity.kt$MainActivity$e: Exception</ID>
     <ID>TooGenericExceptionCaught:MediaActivity.kt$MediaActivity$e: Exception</ID>
     <ID>TooGenericExceptionCaught:MediaFetcher.kt$MediaFetcher$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MediaGridPane.kt$MediaGridPane$e: Exception</ID>
     <ID>TooGenericExceptionCaught:MyWidgetProvider.kt$MyWidgetProvider$e: Exception</ID>
     <ID>TooGenericExceptionCaught:PhotoFragment.kt$PhotoFragment$e: Exception</ID>
     <ID>TooGenericExceptionCaught:PhotoVideoActivity.kt$PhotoVideoActivity$e: Exception</ID>
@@ -512,21 +523,27 @@
     <ID>TooManyFunctions:DirectoryAdapter.kt$DirectoryAdapter : MyRecyclerViewAdapterItemTouchHelperContractOnPopupTextUpdate</ID>
     <ID>TooManyFunctions:EditActivity.kt$EditActivity : BaseCropActivity</ID>
     <ID>TooManyFunctions:EditorDrawCanvas.kt$EditorDrawCanvas : View</ID>
+    <ID>TooManyFunctions:GlassMenu.kt$GlassMenu</ID>
     <ID>TooManyFunctions:MainActivity.kt$MainActivity : SimpleActivityDirectoryOperationsListener</ID>
+    <ID>TooManyFunctions:MainActivity.kt$MainActivity : SimpleActivityDirectoryOperationsListenerGridPaneHost</ID>
     <ID>TooManyFunctions:ManageFoldersAdapter.kt$ManageFoldersAdapter : MyRecyclerViewAdapter</ID>
     <ID>TooManyFunctions:ManageHiddenFoldersAdapter.kt$ManageHiddenFoldersAdapter : MyRecyclerViewAdapter</ID>
+    <ID>TooManyFunctions:MediaActivity.kt$MediaActivity : SimpleActivityHost</ID>
     <ID>TooManyFunctions:MediaActivity.kt$MediaActivity : SimpleActivityMediaOperationsListener</ID>
     <ID>TooManyFunctions:MediaAdapter.kt$MediaAdapter : MyRecyclerViewAdapterOnPopupTextUpdate</ID>
     <ID>TooManyFunctions:MediaFetcher.kt$MediaFetcher</ID>
+    <ID>TooManyFunctions:MediaGridPane.kt$MediaGridPane : GridPaneMediaOperationsListener</ID>
     <ID>TooManyFunctions:Medium.kt$Medium : SerializableThumbnailItem</ID>
     <ID>TooManyFunctions:MediumDao.kt$MediumDao</ID>
     <ID>TooManyFunctions:PhotoFragment.kt$PhotoFragment : ViewPagerFragment</ID>
     <ID>TooManyFunctions:PhotoVideoActivity.kt$PhotoVideoActivity : BaseViewerActivityFragmentListener</ID>
     <ID>TooManyFunctions:SearchActivity.kt$SearchActivity : SimpleActivityMediaOperationsListener</ID>
     <ID>TooManyFunctions:SettingsActivity.kt$SettingsActivity : SimpleActivity</ID>
+    <ID>TooManyFunctions:ThumbnailPrefetcher.kt$ThumbnailPrefetcher : OnScrollListener</ID>
     <ID>TooManyFunctions:VideoFragment.kt$VideoFragment : ViewPagerFragmentSurfaceTextureListenerOnSeekBarChangeListenerPlaybackSpeedListener</ID>
     <ID>TooManyFunctions:VideoPlayerActivity.kt$VideoPlayerActivity : BaseViewerActivityOnSeekBarChangeListenerSurfaceTextureListenerPlaybackSpeedListener</ID>
     <ID>TooManyFunctions:ViewPagerActivity.kt$ViewPagerActivity : BaseViewerActivityOnPageChangeListenerFragmentListener</ID>
+    <ID>TooManyFunctions:ViewerThumbnailStrip.kt$ViewerThumbnailStrip : RecyclerView</ID>
     <ID>TooManyFunctions:WidgetConfigureActivity.kt$WidgetConfigureActivity : SimpleActivity</ID>
     <ID>UnusedPrivateMember:PhotoFragment.kt$PhotoFragment$private fun checkIfPanorama()</ID>
     <ID>UnusedPrivateMember:VideoFragment.kt$VideoFragment$private fun checkIfPanorama()</ID>

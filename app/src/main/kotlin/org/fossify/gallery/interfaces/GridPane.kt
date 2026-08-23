@@ -44,7 +44,7 @@ interface GridPane {
     fun gridNeedsTopRoom(): Boolean = true
 
     /** Handled here first: an arrangement in progress, an open search, a group stepped into. */
-    fun onBackPressed(): Boolean = false
+    fun handleBack(): Boolean = false
 
     /** Brought up: repaint against the current theme, and load whatever it is showing. */
     fun onActivated()

@@ -106,10 +106,10 @@ class NavPill(private val binding: NavPillBinding) {
         // the one theme lookup the three segments are all painted from
         val content = Glass.contentColor(root.context)
         binding.apply {
-            paint(navPillPictures, navPillPicturesIcon, navPillPicturesLabel, content, selected == NavDestination.PICTURES)
-            paint(navPillAlbums, navPillAlbumsIcon, navPillAlbumsLabel, content, selected == NavDestination.ALBUMS)
+            paint(navPillPictures, navPillPicturesIcon, navPillPicturesLabel, content, NavDestination.PICTURES)
+            paint(navPillAlbums, navPillAlbumsIcon, navPillAlbumsLabel, content, NavDestination.ALBUMS)
             // the menu is an action rather than somewhere to be, so it never wears the plate
-            paint(navPillMenu, navPillMenuIcon, navPillMenuLabel, content, isSelected = false)
+            paint(navPillMenu, navPillMenuIcon, navPillMenuLabel, content, destination = null)
         }
     }
 
@@ -137,13 +137,15 @@ class NavPill(private val binding: NavPillBinding) {
             .start()
     }
 
+    /** [destination] is where the segment leads, or null for the one that is an action instead. */
     private fun paint(
         segment: NavPillSegment,
         icon: ImageView,
         label: TextView,
         content: Int,
-        isSelected: Boolean,
+        destination: NavDestination?,
     ) {
+        val isSelected = destination != null && destination == selected
         val color = if (isSelected) content else content.adjustAlpha(IDLE_ALPHA)
         segment.paintWash(content, isSelected)
         icon.applyColorFilter(color)

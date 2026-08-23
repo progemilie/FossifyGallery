@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.os.Handler
 import android.view.GestureDetector
 import android.view.Menu
+import androidx.core.view.children
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -363,7 +364,7 @@ class MediaGridPane(
         }
     }
 
-    override fun onBackPressed(): Boolean {
+    override fun handleBack(): Boolean {
         return if (mIsReordering) {
             cancelReordering()
             true
@@ -401,9 +402,7 @@ class MediaGridPane(
         // under the arrangement the user is in the middle of making. the entries the rules below
         // never touch are always meant to be there, so put everything back before applying them
         val isVisibleByDefault = !mIsReordering
-        for (index in 0 until menu.size()) {
-            menu.getItem(index).isVisible = isVisibleByDefault
-        }
+        menu.children.forEach { it.isVisible = isVisibleByDefault }
 
         if (mIsReordering) {
             return
@@ -1315,7 +1314,11 @@ class MediaGridPane(
 
             when (config.videoPlayerType) {
                 VIDEO_PLAYER_SYSTEM -> openSystemDefaultPlayer(path)
-                VIDEO_PLAYER_APP -> if (config.gestureVideoPlayer) activity.launchGesturePlayer(path) else openInViewPager(path)
+                VIDEO_PLAYER_APP -> if (config.gestureVideoPlayer) {
+                    activity.launchGesturePlayer(path)
+                } else {
+                    openInViewPager(path)
+                }
                 else -> openInViewPager(path) // unreachable by design
             }
         }

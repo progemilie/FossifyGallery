@@ -143,7 +143,14 @@ class FloatingTopBar(
         makeFloating()
         panner.panWith(grid)
         onHeightChanged = ::keepGridClear
-        topBar.onGlobalLayout { keepGridClear() }
+        // a screen swapping one pane of content for another calls this again with the bar already
+        // measured, and nothing is laid out for a one-shot listener to wait on: a swap only moves
+        // the panes by their translation, which is a draw and not a layout
+        if (topBar.height > 0) {
+            keepGridClear()
+        } else {
+            topBar.onGlobalLayout { keepGridClear() }
+        }
     }
 
     /**

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The scaffold: a pane of content filling the window, with the search bar floating over the top of
-    it and the navigation pill over the foot. Draw order is what makes that work, so the chrome comes
-    after the content holder rather than before it, the pill last of all.
+    The scaffold: a pane of content filling the window with the search bar floating over the top of
+    it. Draw order is what makes that work, so the bar comes after the content holder rather than
+    before it. There is no navigation pill here - this screen is never one of the two it moves
+    between.
 -->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/media_coordinator"
@@ -24,12 +25,5 @@
         android:id="@+id/media_menu"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
-
-    <include
-        android:id="@+id/nav_pill"
-        layout="@layout/nav_pill"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
