@@ -128,7 +128,6 @@ import org.fossify.gallery.extensions.openRecycleBin
 import org.fossify.gallery.extensions.pruneFolderGroups
 import org.fossify.gallery.extensions.removeInvalidDBDirectories
 import org.fossify.gallery.extensions.smoothScrollToTop
-import org.fossify.gallery.extensions.startupGroupId
 import org.fossify.gallery.extensions.storeDirectoryItems
 import org.fossify.gallery.extensions.tryDeleteFileDirItem
 import org.fossify.gallery.extensions.updateDBDirectory
@@ -283,6 +282,10 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         appLaunched(BuildConfig.APPLICATION_ID)
+
+        // a recreation is not a launch: the startup screen has already been opened over this one,
+        // or backed out of, and opening it again would undo that
+        mWasDefaultFolderChecked = savedInstanceState != null
 
         if (savedInstanceState == null) {
             config.temporarilyShowHidden = false
@@ -847,11 +850,6 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
         // bar is not this pane's to dress yet - the hand-over is halfway through the slide
         mIsSwapping = true
         config.showAll = toPictures
-        // leaving the all media view for good, so a startup setting still pointing at it would drop
-        // the user straight back in on the next launch with no way out of the loop
-        if (!toPictures && config.defaultFolder == SHOW_ALL) {
-            config.defaultFolder = ""
-        }
 
         // the plate moves the moment it is tapped, whatever the grids are still doing about it
         navPill.selected = destination
@@ -1795,44 +1793,37 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
     }
 
     /**
-     * Opens whatever screen the user set the app to start on. A folder group is one of this grid's
-     * own states, so it is stepped into rather than launched; everything else is a media screen.
+     * Opens whatever screen the user set the app to start on: either of the two panes, or a media
+     * screen over them. Run before the first scan, so nothing is fetched for a grid that is not the
+     * one being opened.
      *
-     * Run before the first scan, which is what lets a group be opened without the grid being drawn
-     * at the root first: the id is already set by the time the folders arrive.
+     * The setting has the last word on which pane comes up: `Config.showAll` is left pointing at
+     * whichever one the app was last closed on, and while that leftover decided it the setting held
+     * only until the user first swapped panes.
      *
      * Returns whether a media screen was launched, so the caller does not go on to open a second
      * one over it.
      */
     private fun openDefaultFolder(): Boolean {
-        val target = config.defaultFolder
-        val groupId = startupGroupId(target)
-        when {
-            target.isEmpty() -> Unit
-
-            // the folder was deleted or the group dissolved since it was picked
-            isStartupTargetGone(target) -> config.defaultFolder = ""
-
-            groupId != 0L -> {
-                mCurrentGroupId = groupId
-                updateTopBarForGroup()
-            }
-
-            // showing every folder's content is a mode the app is in rather than a folder it opens,
-            // so turning it on is all there is to do - the caller opens it from there
-            target == SHOW_ALL -> config.showAll = true
-
-            else -> {
-                Intent(this, MediaActivity::class.java).apply {
-                    putExtra(DIRECTORY, target)
-                    handleMediaIntent(this)
-                }
-
-                return true
-            }
+        // the folder was deleted, or the target is one the setting has stopped offering
+        if (isStartupTargetGone(config.defaultFolder)) {
+            config.defaultFolder = ""
         }
 
-        return false
+        val target = config.defaultFolder
+        // showing every folder's content is a mode the app is in rather than a folder it opens, so
+        // turning it on is all there is to do - the caller brings the pane up from there
+        config.showAll = target == SHOW_ALL
+        if (target.isEmpty() || target == SHOW_ALL) {
+            return false
+        }
+
+        Intent(this, MediaActivity::class.java).apply {
+            putExtra(DIRECTORY, target)
+            handleMediaIntent(this)
+        }
+
+        return true
     }
 
     private fun checkPlaceholderVisibility(dirs: ArrayList<Directory>) {

@@ -204,18 +204,19 @@ class SettingsActivity : SimpleActivity() {
     }
 
     /**
-     * Which screen the app opens on. The picker offers the folder grid, the sentinel folders and
-     * every folder group by name, plus a way through to any folder at all - the folder list is far
-     * too long to be a radio button apiece, and [PickDirectoryDialog] is the grid the user already
-     * knows from copying and moving.
+     * Which screen the app opens on: either of the two panes, favorites, or any folder at all - the
+     * folder list is far too long to be a radio button apiece, so a last item leads to
+     * [PickDirectoryDialog], the grid the user already knows from copying and moving. A folder that
+     * is already the target is listed above it, so it can be seen to be the one that is set.
      */
     private fun setupOpenOnStartup() {
         binding.settingsOpenOnStartup.text = startupTargetLabel(config.defaultFolder)
         binding.settingsOpenOnStartupHolder.setOnClickListener {
             val targets = startupTargets().toMutableList()
-            // whatever a folder was picked with the folder grid last time, so it can be seen to be
-            // the one that is set and picked again after straying off it
-            val current = config.defaultFolder
+            // a folder picked last time is listed as itself; one that has since been deleted, or a
+            // target left over from what this setting used to offer, reads as the grid it will fall
+            // back to on the next launch
+            val current = config.defaultFolder.takeUnless { isStartupTargetGone(it) } ?: ""
             if (targets.none { it.first == current }) {
                 targets.add(current to startupTargetLabel(current))
             }
@@ -243,7 +244,9 @@ class SettingsActivity : SimpleActivity() {
             activity = this,
             sourcePath = config.defaultFolder,
             showOtherFolderButton = true,
-            showFavoritesBin = true,
+            // favorites is a choice of its own above, and the recycle bin is not one this setting
+            // offers at all
+            showFavoritesBin = false,
             isPickingCopyMoveDestination = false,
             isPickingFolderForWidget = false,
             titleId = R.string.open_on_startup

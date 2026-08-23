@@ -156,9 +156,7 @@ Several folders drawn under one tile in the folder grid. Nothing moves on disk. 
 the main thread. A tile is a `Directory` under a synthetic `folder_group:<id>` path so selection,
 pinning and the custom folder order carry it with no case of their own, and it holds its members in
 `groupMembers`. **Ids are never reused** — a synthetic path outlives its group in those prefs, and
-would otherwise attach itself to the next group made. "Open on startup" (`extensions/StartupScreen.kt`)
-puts one of these paths in `Config.defaultFolder`; a group is stepped into before the first scan
-rather than launched as a screen of its own.
+would otherwise attach itself to the next group made.
 
 Two rules keep the grid honest, both in `extensions/FolderGroupTiles.kt`:
 - **A tile never reaches Room or the scan.** `expandFolderGroups()` puts one back into its folders;

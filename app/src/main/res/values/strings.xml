@@ -379,8 +379,7 @@
     <string name="description_unsupported_format">A description can only be saved into JPG, PNG and WebP files</string>
     <!-- Startup screen -->
     <string name="open_on_startup">Open on startup</string>
-    <string name="startup_folder_grid">Folder grid</string>
-    <string name="startup_pick_folder">Choose a folder…</string>
+    <string name="startup_pick_folder">Choose folder…</string>
     <!-- Folder groups -->
     <string name="folder_group">Folder group</string>
     <string name="group_folders">Group folders</string>

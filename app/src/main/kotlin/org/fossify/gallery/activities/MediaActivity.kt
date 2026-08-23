@@ -17,7 +17,6 @@ import org.fossify.gallery.helpers.GET_ANY_INTENT
 import org.fossify.gallery.helpers.GET_IMAGE_INTENT
 import org.fossify.gallery.helpers.GET_VIDEO_INTENT
 import org.fossify.gallery.helpers.GridChrome
-import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.SET_WALLPAPER_INTENT
 import org.fossify.gallery.helpers.SHOW_TEMP_HIDDEN_DURATION
 import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
@@ -63,13 +62,16 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host {
             return
         }
 
-        mShowAll = config.showAll && mPath != RECYCLE_BIN
+        // the all media grid is the one screen with no folder of its own, and `Config.showAll` says
+        // no more than which pane the app is on: a folder handed to this screen - by a widget, or by
+        // the startup setting - is the folder to show, whichever pane that was
+        mShowAll = config.showAll && mPath.isEmpty()
         pane = MediaGridPane(
             activity = this,
             binding = binding.mediaPane,
             host = this,
             mPath = mPath,
-            showAll = config.showAll,
+            showAll = mShowAll,
             pick = intent.pickRequest(),
             skipAuthentication = intent.getBooleanExtra(SKIP_AUTHENTICATION, false)
         )
@@ -121,7 +123,7 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (config.showAll && !isChangingConfigurations) {
+        if (mShowAll && !isChangingConfigurations) {
             config.temporarilyShowHidden = false
             config.tempSkipDeleteConfirmation = false
             config.tempSkipRecycleBin = false
@@ -137,7 +139,7 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host {
             return true
         }
 
-        if (config.showAll) {
+        if (mShowAll) {
             appLockManager.lock()
         }
 
