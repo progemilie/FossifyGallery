@@ -120,7 +120,6 @@ import org.fossify.gallery.helpers.SLIDESHOW_START_ON_ENTER
 import org.fossify.gallery.helpers.VIDEO_PLAYER_APP
 import org.fossify.gallery.helpers.VIDEO_PLAYER_SYSTEM
 import org.fossify.gallery.helpers.ViewerReturn
-import org.fossify.gallery.helpers.playNavSwapEntry
 import org.fossify.gallery.helpers.startNavSwap
 import org.fossify.gallery.interfaces.MediaOperationsListener
 import org.fossify.gallery.models.Medium
@@ -213,7 +212,6 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        playNavSwapEntry(binding.mediaRefreshLayout, binding.mediaGrid)
 
         intent.apply {
             mIsGetImageIntent = getBooleanExtra(GET_IMAGE_INTENT, false)
@@ -243,7 +241,9 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
         setupInsetPadding()
         setupFloatingTopBar()
-        setupNavPill()
+        if (mShowAll) {
+            setupNavPill()
+        }
         // registering the pinch (which the lazy does) before the tap gives it first refusal on the
         // grid's touches - item touch listeners are asked in the order they were added
         mPinchZoom.isEnabled = isGridViewType()

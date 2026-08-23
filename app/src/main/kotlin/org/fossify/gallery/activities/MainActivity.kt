@@ -151,7 +151,6 @@ import org.fossify.gallery.helpers.TYPE_VIDEOS
 import org.fossify.gallery.helpers.getDefaultFileFilter
 import org.fossify.gallery.helpers.getPermissionToRequest
 import org.fossify.gallery.helpers.getPermissionsToRequest
-import org.fossify.gallery.helpers.playNavSwapEntry
 import org.fossify.gallery.helpers.startNavSwap
 import org.fossify.gallery.interfaces.DirectoryOperationsListener
 import org.fossify.gallery.jobs.NewPhotoFetcher
@@ -251,7 +250,6 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        playNavSwapEntry(binding.directoriesRefreshLayout, binding.directoriesGrid)
         appLaunched(BuildConfig.APPLICATION_ID)
 
         if (savedInstanceState == null) {
@@ -299,7 +297,9 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             padBottomSystem = listOf(binding.navPill.root)
         )
         setupFloatingTopBar()
-        setupNavPill()
+        if (!mIsThirdPartyIntent) {
+            setupNavPill()
+        }
 
         binding.directoriesRefreshLayout.setOnRefreshListener { getDirectories() }
         storeStateVariables()

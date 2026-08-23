@@ -55,6 +55,10 @@ class NavPill(private val binding: NavPillBinding) {
      */
     var isAvailable = true
         set(value) {
+            if (field == value) {
+                return
+            }
+
             field = value
             if (value) {
                 root.beVisible()
@@ -78,7 +82,6 @@ class NavPill(private val binding: NavPillBinding) {
 
     /** Frosts the pill over [contentBehind] and hangs it over [grid]. */
     fun setup(contentBehind: ViewGroup, grid: RecyclerView, selected: NavDestination) {
-        this.selected = selected
         binding.navPillPanel.apply {
             cornerRadius = resources.getDimension(R.dimen.nav_pill_radius)
             blurRadius = Glass.DEFAULT_RADIUS
@@ -88,17 +91,21 @@ class NavPill(private val binding: NavPillBinding) {
             frost(contentBehind)
         }
 
+        // last, so the repaint it sets off finds the panel already dressed
+        this.selected = selected
         panner.panWith(grid)
     }
 
     /** Repainted on every resume rather than set once: the theme can change while it is away. */
     fun updateColors() {
         binding.navPillPanel.updateColors()
+        // the one theme lookup the three segments are all painted from
+        val content = Glass.contentColor(root.context)
         binding.apply {
-            paint(navPillPictures, navPillPicturesIcon, navPillPicturesLabel, selected == NavDestination.PICTURES)
-            paint(navPillAlbums, navPillAlbumsIcon, navPillAlbumsLabel, selected == NavDestination.ALBUMS)
+            paint(navPillPictures, navPillPicturesIcon, navPillPicturesLabel, content, selected == NavDestination.PICTURES)
+            paint(navPillAlbums, navPillAlbumsIcon, navPillAlbumsLabel, content, selected == NavDestination.ALBUMS)
             // the menu is an action rather than somewhere to be, so it never wears the plate
-            paint(navPillMenu, navPillMenuIcon, navPillMenuLabel, isSelected = false)
+            paint(navPillMenu, navPillMenuIcon, navPillMenuLabel, content, isSelected = false)
         }
     }
 
@@ -126,8 +133,13 @@ class NavPill(private val binding: NavPillBinding) {
             .start()
     }
 
-    private fun paint(segment: NavPillSegment, icon: ImageView, label: TextView, isSelected: Boolean) {
-        val content = Glass.contentColor(segment.context)
+    private fun paint(
+        segment: NavPillSegment,
+        icon: ImageView,
+        label: TextView,
+        content: Int,
+        isSelected: Boolean,
+    ) {
         val color = if (isSelected) content else content.adjustAlpha(IDLE_ALPHA)
         segment.paintWash(content, isSelected)
         icon.applyColorFilter(color)
