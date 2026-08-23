@@ -71,7 +71,6 @@ val MEDIA_GRID_MENU = MenuSpec(
             row(R.id.toggle_filename),
         ),
         listOf(
-            row(R.id.open_camera),
             row(R.id.temporarily_show_hidden),
             row(R.id.stop_showing_hidden),
             row(R.id.create_new_folder),
@@ -131,7 +130,6 @@ val VIEWER_MENU = MenuSpec(
             row(R.id.menu_show_on_map),
             row(R.id.menu_change_orientation),
             row(R.id.menu_slideshow),
-            row(R.id.menu_properties),
             row(R.id.menu_settings),
         ),
     )

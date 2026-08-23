@@ -426,7 +426,6 @@ class MediaGridPane(
             findItem(R.id.empty_disable_recycle_bin).isVisible = mPath == RECYCLE_BIN
             findItem(R.id.restore_all_files).isVisible = mPath == RECYCLE_BIN
 
-            findItem(R.id.open_camera).isVisible = mShowAll
             findItem(R.id.about).isVisible = mShowAll
             findItem(R.id.create_new_folder).isVisible =
                 !mShowAll && mPath != RECYCLE_BIN && mPath != FAVORITES
@@ -486,6 +485,7 @@ class MediaGridPane(
             R.id.empty_disable_recycle_bin -> emptyAndDisableRecycleBin()
             R.id.restore_all_files -> restoreAllFiles()
             R.id.toggle_filename -> toggleFilenameVisibility()
+            // no menu offers this any more, the id lives in ids.xml - kept so it can be put back
             R.id.open_camera -> activity.launchCamera()
             R.id.change_view_type -> changeViewType()
             R.id.custom_order -> startReordering()

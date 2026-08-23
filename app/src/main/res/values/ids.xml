@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Ids for actions kept in the code but no longer offered anywhere. Declared here because the
+        menu item that used to define each one is gone, and the click handler still names it.
+
+        open_camera - was a toolbar button on the folder grid and a drop-down row on the all files
+        grid; org.fossify.gallery.extensions.launchCamera still does the work.
+    -->
+    <item
+        name="open_camera"
+        type="id" />
+</resources>

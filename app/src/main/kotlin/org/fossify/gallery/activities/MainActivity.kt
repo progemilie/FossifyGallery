@@ -694,6 +694,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
         when (itemId) {
             R.id.sort -> showSortingDialog()
             R.id.filter -> showFilterMediaDialog()
+            // no menu offers this any more, the id lives in ids.xml - kept so it can be put back
             R.id.open_camera -> launchCamera()
             R.id.change_view_type -> changeViewType()
             R.id.temporarily_show_hidden -> tryToggleTemporarilyShowHidden()
