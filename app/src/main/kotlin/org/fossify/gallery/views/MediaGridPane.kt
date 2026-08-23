@@ -191,6 +191,13 @@ class MediaGridPane(
     private val mAllowPickingMultiple = pick.allowMultiple
 
     private var mIsGettingMedia = false
+
+    /**
+     * Whether this pane is the one on screen. Its own [activity] being alive used to answer that -
+     * the grid you left was an activity of its own and was destroyed - and since the two grids share
+     * a window it answers nothing, so the loop below would keep an invisible grid rescanning.
+     */
+    private var mIsActive = false
     private var mLoadedInitialPhotos = false
     private var mShowLoadingIndicator = true
     private var mWasFullscreenViewOpen = false
@@ -272,6 +279,7 @@ class MediaGridPane(
     }
 
     override fun onActivated() {
+        mIsActive = true
         updateEdgeFades()
         if (mStoredAnimateGifs != config.animateGifs) {
             getMediaAdapter()?.updateAnimateGifs(config.animateGifs)
@@ -354,6 +362,7 @@ class MediaGridPane(
     }
 
     override fun onDeactivated() {
+        mIsActive = false
         mIsGettingMedia = false
         binding.mediaRefreshLayout.isRefreshing = false
         storeStateVariables()
@@ -790,7 +799,11 @@ class MediaGridPane(
     }
 
     private fun checkLastMediaChanged() {
-        if (activity.isDestroyed || config.getFolderSorting(mPath) and SORT_BY_RANDOM != 0) {
+        if (!mIsActive || activity.isDestroyed) {
+            return
+        }
+
+        if (config.getFolderSorting(mPath) and SORT_BY_RANDOM != 0) {
             return
         }
 
@@ -802,8 +815,12 @@ class MediaGridPane(
                 if (mLatestMediaId != mediaId || mLatestMediaDateId != mediaDateId) {
                     mLatestMediaId = mediaId
                     mLatestMediaDateId = mediaDateId
+                    // asked again on the way back out: the check above was made before this
+                    // ran, and the pane can have been swapped away from in between
                     activity.runOnUiThread {
-                        getMedia()
+                        if (mIsActive) {
+                            getMedia()
+                        }
                     }
                 } else {
                     checkLastMediaChanged()

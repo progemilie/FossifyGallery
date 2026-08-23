@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Parcelable
 import android.provider.MediaStore
 import android.provider.MediaStore.Images
 import android.provider.MediaStore.Video
@@ -16,7 +17,9 @@ import android.view.animation.AnimationUtils
 import android.widget.RelativeLayout
 import android.widget.Toast
 import androidx.core.view.updatePadding
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -260,6 +263,18 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
     private var activePane: GridPane = this
     private var mIsSwapping = false
 
+    /**
+     * Whether the folder grid is the one on screen. [isDestroyed] used to answer that - this screen
+     * was finished on the way to the other grid - and since the two share a window it answers
+     * nothing, so the loop below would keep an invisible grid rescanning.
+     */
+    private var mIsPaneActive = false
+
+    // the pane taken out of the layout to give its thumbnails back, and where it was
+    private var mParkedPane: GridPane? = null
+    private var mParkedState: Parcelable? = null
+    private var mParkedIndex = 0
+
     // the pill navigates away, so it has to go while a selection it would drop is on
     private var mIsSelecting = false
 
@@ -368,6 +383,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
 
     /** The folder grid brought up: repaint it against the theme, and fetch what it shows. */
     override fun onActivated() {
+        mIsPaneActive = true
         updateEdgeFades()
         refreshMenuItems()
 
@@ -444,6 +460,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
     }
 
     override fun onDeactivated() {
+        mIsPaneActive = false
         binding.directoryPane.directoriesRefreshLayout.isRefreshing = false
         mIsGettingDirs = false
         storeStateVariables()
@@ -511,6 +528,60 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
         } else {
             false
         }
+    }
+
+    /**
+     * A pane that is merely GONE is still attached, so its grid holds a screenful of bound
+     * thumbnails that Glide counts as active and cannot reclaim. Under pressure the one off screen
+     * is taken out of the layout instead, which recycles those rows and hands the bitmaps back.
+     *
+     * The visible pane is never touched, so nothing a swap or a return to the app does has to wait
+     * for a rebind. The two scales of level meet at RUNNING_LOW: everything from there up is either
+     * the system running short or this app's UI being hidden, and both are worth answering.
+     */
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= TRIM_MEMORY_RUNNING_LOW) {
+            parkInactivePane()
+            // Glide trims on this callback too, and by the time this runs it already has - so what
+            // parking just handed back is sitting in a cache that has been swept. Ask it again, now
+            // that there is something there to let go of
+            Glide.get(applicationContext).trimMemory(level)
+        }
+    }
+
+    /** The grid that is not on screen, if there is one and nothing is mid swap. */
+    private fun inactivePane(): GridPane? = when {
+        mIsSwapping -> null
+        activePane === this -> mMediaPane
+        else -> this
+    }
+
+    private fun parkInactivePane() {
+        val pane = inactivePane() ?: return
+        val holder = pane.root.parent as? ViewGroup ?: return
+
+        // without this the rows come off the window still bound, and onViewRecycled - which is where
+        // both adapters let go of Glide - is never reached
+        (pane.grid.layoutManager as? LinearLayoutManager)?.recycleChildrenOnDetach = true
+        mParkedState = pane.grid.layoutManager?.onSaveInstanceState()
+        mParkedIndex = holder.indexOfChild(pane.root)
+        mParkedPane = pane
+        holder.removeView(pane.root)
+    }
+
+    /** Puts a parked pane back, at the index it was drawn at - a swap has both on screen at once. */
+    private fun unparkIfNeeded(pane: GridPane) {
+        if (pane !== mParkedPane) {
+            return
+        }
+
+        binding.contentHolder.addView(pane.root, mParkedIndex)
+        pane.grid.layoutManager?.onRestoreInstanceState(mParkedState)
+        mParkedPane = null
+        mParkedState = null
+        // the insets are dispatched to a list of views, and this one was not in the tree to take them
+        setupInsetPadding()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
@@ -781,6 +852,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
         navPill.selected = destination
         val outgoing = activePane
         activePane = incoming
+        unparkIfNeeded(incoming)
         incoming.onActivated()
         slidePanes(outgoing, incoming, fromLeft = toPictures)
     }
@@ -997,11 +1069,14 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
         }
 
         navPill.selected = NavDestination.PICTURES
+        val outgoing = activePane
         activePane = pane
+        unparkIfNeeded(pane)
         binding.directoryPane.root.beGone()
         pane.root.beVisible()
         chrome.bind(pane)
         pane.onActivated()
+        outgoing.onDeactivated()
     }
 
     private fun changeViewType() {
@@ -2080,7 +2155,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
     }
 
     private fun checkLastMediaChanged() {
-        if (isDestroyed) {
+        if (!mIsPaneActive || isDestroyed) {
             return
         }
 
@@ -2091,8 +2166,12 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
                 if (mLatestMediaId != mediaId || mLatestMediaDateId != mediaDateId) {
                     mLatestMediaId = mediaId
                     mLatestMediaDateId = mediaDateId
+                    // asked again on the way back out: the check above was made before this
+                    // ran, and the grid can have been swapped away from in between
                     runOnUiThread {
-                        getDirectories()
+                        if (mIsPaneActive) {
+                            getDirectories()
+                        }
                     }
                 } else {
                     mLastMediaHandler.removeCallbacksAndMessages(null)
