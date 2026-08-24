@@ -215,8 +215,9 @@ carry over untouched; whatever the toolbar is already showing as a button of its
 
 `helpers/MenuSections.kt` holds one `MenuSpec` per screen: the sections, drawn with a dotted rule
 between them, and which items are drawn as a row of icons rather than a row each. **A spec only
-arranges — anything it fails to name is appended to the last section** rather than dropped, so no
-action can go missing by being forgotten there.
+arranges — anything it fails to name is appended to the last shown section** rather than dropped, so
+no action can go missing by being forgotten there. A spec's `hidden` list is a section the menu opens
+without, revealed by an arrow the last shown row wears beside whatever that row already does.
 
 ### The viewer's file metadata sheet
 

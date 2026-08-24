@@ -2,6 +2,11 @@
 <!--
     One labelled item of the drop-down. The chevron at the end is only up on a row that leads into a
     submenu, and the one at the start only on the row that leads back out of one.
+
+    The expander is only up on the last row of a menu that keeps a section back, and is a second tap
+    target on the one row: a child with a listener of its own takes the touch before the row does, so
+    the two cannot be tapped for each other. The rule beside it is what says as much - without it the
+    line where Settings stops being Settings is only found by missing it.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -10,6 +15,7 @@
     android:layout_height="wrap_content"
     android:background="?attr/selectableItemBackground"
     tools:ignore="Overdraw"
+    android:clipToPadding="false"
     android:gravity="center_vertical"
     android:minHeight="@dimen/glass_menu_row_height"
     android:minWidth="@dimen/glass_menu_min_width"
@@ -47,4 +53,26 @@
         android:contentDescription="@null"
         android:src="@drawable/ic_chevron_right_vector"
         android:visibility="gone" />
+
+    <View
+        android:id="@+id/glass_menu_row_rule"
+        android:layout_width="@dimen/glass_menu_row_rule_thickness"
+        android:layout_height="@dimen/glass_menu_row_rule_height"
+        android:layout_marginStart="@dimen/normal_margin"
+        android:visibility="gone" />
+
+    <!-- the negative margin spends the row's own end padding on the tap target rather than on empty
+         glass, which leaves the arrow drawn where a submenu chevron would be and the finger a whole
+         row's height to hit it in -->
+    <ImageView
+        android:id="@+id/glass_menu_row_expand"
+        android:layout_width="@dimen/glass_menu_row_expand_width"
+        android:layout_height="match_parent"
+        android:layout_marginEnd="@dimen/glass_menu_row_expand_overhang"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="@dimen/glass_menu_row_expand_padding"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_chevron_down_vector"
+        android:visibility="gone"
+        tools:ignore="ContentDescription" />
 </LinearLayout>

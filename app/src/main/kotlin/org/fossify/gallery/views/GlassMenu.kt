@@ -79,6 +79,15 @@ class GlassMenu private constructor(
     private var anchor: View? = null
     private var dropUp = false
 
+    // whether the section the spec keeps back is up, and whether the arrow saying so has a turn to
+    // make - it has one only when a tap put it there, never when the menu is built for the first time
+    private var expanded = false
+    private var turningExpander = false
+
+    // the kept-back section's rows, built whether or not they are up: the panel is measured for them
+    // so that revealing them changes its height and nothing else
+    private var hiddenRows = emptyList<View>()
+
     // how much of the screen was left the way it opens, when it last opened
     private var roomForPanel = 0
 
@@ -128,6 +137,9 @@ class GlassMenu private constructor(
     private fun show(anchor: View, dropUp: Boolean) {
         this.anchor = anchor
         this.dropUp = dropUp
+        // however it was left last time, a drop-down opens compressed
+        expanded = false
+        turningExpander = false
         fill()
         binding.glassMenuPanel.frost(contentBehind)
 
@@ -146,7 +158,7 @@ class GlassMenu private constructor(
         }
 
         // offsets and size are the popup's, and the panel sits [room] inside it on every side
-        popup.width = column.widestMenuRow() + room * 2
+        popup.width = column.widestMenuRow(hiddenRows) + room * 2
         popup.height = fittedHeight()
         popup.showAsDropDown(anchor, room - margin, verticalOffset(anchor, popup.height), Gravity.END)
 
@@ -166,16 +178,42 @@ class GlassMenu private constructor(
     private fun fill() {
         // taken out of as they are placed, so what is left over is what the spec forgot
         val available = toolbar.overflowItems()
-        val sections = spec().sections.map { entries ->
+        val spec = spec()
+
+        // the kept-back section is built first, so that what is left for the shown sections is what
+        // the spec did not name at all rather than what it put behind the arrow
+        hiddenRows = spec.hidden.mapNotNull { buildEntry(it, available) }
+        val sections = spec.sections.map { entries ->
             entries.mapNotNull { buildEntry(it, available) }
         }.toMutableList()
 
-        // nothing the spec never named may go missing along the way
+        // nothing the spec never named may go missing along the way, so leftovers join the last shown
+        // section rather than the kept-back one - an item forgotten here is still one tap away
         if (available.isNotEmpty()) {
             sections[sections.lastIndex] = sections.last() + available.values.map { row(it) }
         }
 
-        draw(sections)
+        // an expander with nowhere to hang gives up and shows everything, rather than stranding a
+        // section behind an arrow that was never drawn
+        val shown = sections.flatten()
+        val expander = hiddenRows.isNotEmpty() &&
+            shown.lastOrNull()?.attachMenuExpander(expanded, turningExpander, ::toggleExpanded) == true
+
+        turningExpander = false
+        draw(if (expanded || !expander) sections + listOf(hiddenRows) else sections)
+    }
+
+    /** Reveals the kept-back section, or puts it away again. */
+    private fun toggleExpanded() {
+        expanded = !expanded
+        turningExpander = true
+        fill()
+
+        // a panel too tall for the room it has scrolls inside a fixed height, and would otherwise
+        // answer the tap by growing entirely below its own foot
+        if (expanded) {
+            binding.glassMenuScroller.post { binding.glassMenuScroller.fullScroll(View.FOCUS_DOWN) }
+        }
     }
 
     /** Fills the panel with one submenu, with the way back out of it above. */

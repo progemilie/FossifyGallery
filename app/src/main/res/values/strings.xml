@@ -397,6 +397,9 @@
     </plurals>
     <!-- Peek viewer -->
     <string name="peek_fullscreen">View fullscreen</string>
+    <!-- The arrow the last row of a drop-down wears when the menu keeps a section back -->
+    <string name="show_more_options">Show more options</string>
+    <string name="show_fewer_options">Show fewer options</string>
     <!-- Bottom navigation -->
     <string name="nav_pictures">Pictures</string>
     <string name="nav_albums">Albums</string>

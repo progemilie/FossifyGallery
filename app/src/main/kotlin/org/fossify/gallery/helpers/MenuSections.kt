@@ -12,9 +12,16 @@ import org.fossify.commons.R as commonsR
  * A spec only says how items are *arranged*. Whether an item is there at all is left to the screen's
  * own menu, so naming something the screen has hidden - because it lives on the toolbar, or on the
  * viewer's bottom bar - simply draws nothing. Anything a spec fails to name is appended to the last
- * section rather than dropped, so an action can never go missing by being forgotten here.
+ * shown section rather than dropped, so an action can never go missing by being forgotten here.
+ *
+ * [hidden] is a further section the drop-down opens without: it is revealed by an arrow the last row
+ * of the last shown section wears, along with a rule of its own. Naming the items a screen has least
+ * use for keeps the menu short without putting any of them behind a submenu.
  */
-class MenuSpec(val sections: List<List<MenuEntry>>)
+class MenuSpec(
+    val sections: List<List<MenuEntry>>,
+    val hidden: List<MenuEntry> = emptyList(),
+)
 
 /** One line of a section: a labelled row, or a row of icons standing in for several items. */
 sealed interface MenuEntry {
@@ -86,21 +93,23 @@ val MEDIA_GRID_MENU = MenuSpec(
 )
 
 /**
- * The viewer: what changes the image, what is done with the file, then everything else. Change
- * orientation belongs to the last of those - it locks the *screen* rather than turning the photo.
+ * The viewer: what changes the image, then what is done with the file - and behind the arrow on the
+ * last of those, the handful a photo is rarely opened to reach.
  *
- * Only ever one of each pair in an icon row is up at a time, so a row of pairs stays short.
+ * Only ever one of each pair in an icon row is up at a time, so a row of pairs stays short. The two
+ * rotations lead the first row because they are what a crooked photo is opened for; save-as, which
+ * exists to commit one, is the first row under them. A half turn is either of them tapped twice.
  */
 val VIEWER_MENU = MenuSpec(
     listOf(
         listOf(
             icons(
+                MenuIcon(R.id.menu_rotate_left, R.drawable.ic_rotate_left_vector),
+                MenuIcon(R.id.menu_rotate_right, R.drawable.ic_rotate_right_vector),
                 MenuIcon(R.id.menu_mirror, R.drawable.ic_flip_horizontally_vector),
                 MenuIcon(R.id.menu_edit, commonsR.drawable.ic_edit_vector),
                 MenuIcon(R.id.menu_resize, R.drawable.ic_minimize_vector),
             ),
-            row(R.id.menu_rotate),
-            // kept beside the rotation it exists to commit
             row(R.id.menu_save_as),
             row(R.id.menu_rename),
         ),
@@ -122,15 +131,18 @@ val VIEWER_MENU = MenuSpec(
             row(R.id.menu_copy_to_clipboard),
             row(R.id.menu_open_with),
             row(R.id.menu_set_as),
-            row(R.id.menu_create_shortcut),
             row(R.id.menu_restore_file),
-        ),
-        listOf(
-            row(R.id.menu_print),
-            row(R.id.menu_show_on_map),
-            row(R.id.menu_change_orientation),
-            row(R.id.menu_slideshow),
+            // last, so the arrow it wears sits at the foot of the menu
             row(R.id.menu_settings),
         ),
+    ),
+    // change orientation belongs here rather than above: it locks the *screen* rather than turning
+    // the photo, and is set once and left alone
+    hidden = listOf(
+        row(R.id.menu_print),
+        row(R.id.menu_show_on_map),
+        row(R.id.menu_slideshow),
+        row(R.id.menu_create_shortcut),
+        row(R.id.menu_change_orientation),
     )
 )

@@ -125,6 +125,14 @@
     <dimen name="glass_menu_min_width">200dp</dimen>
     <dimen name="glass_menu_max_width">300dp</dimen>
     <dimen name="glass_menu_chevron_size">20dp</dimen>
+    <!-- the arrow the last row wears when a menu keeps a section back, and the rule marking where its
+         half of the row starts. The overhang is negative so the arrow reaches into the row's own end
+         padding: the glyph then lands where a submenu chevron does, over a tap target twice its size -->
+    <dimen name="glass_menu_row_expand_width">44dp</dimen>
+    <dimen name="glass_menu_row_expand_padding">12dp</dimen>
+    <dimen name="glass_menu_row_expand_overhang">-12dp</dimen>
+    <dimen name="glass_menu_row_rule_thickness">1dp</dimen>
+    <dimen name="glass_menu_row_rule_height">22dp</dimen>
     <dimen name="glass_menu_icon_row_height">48dp</dimen>
     <dimen name="glass_menu_icon_row_padding">12dp</dimen>
     <!-- an icon row can run to six, which at any more padding than this would either widen the
