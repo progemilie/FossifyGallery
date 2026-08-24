@@ -96,9 +96,9 @@ val MEDIA_GRID_MENU = MenuSpec(
  * The viewer: what changes the image, then what is done with the file - and behind the arrow on the
  * last of those, the handful a photo is rarely opened to reach.
  *
- * Only ever one of each pair in an icon row is up at a time, so a row of pairs stays short. The three
+ * Only ever one of each pair in an icon row is up at a time, so a row of pairs stays short. The two
  * rotations lead the first row because they are what a crooked photo is opened for; save-as, which
- * exists to commit one, is the first row under them.
+ * exists to commit one, is the first row under them. A half turn is either of them tapped twice.
  */
 val VIEWER_MENU = MenuSpec(
     listOf(
@@ -106,7 +106,6 @@ val VIEWER_MENU = MenuSpec(
             icons(
                 MenuIcon(R.id.menu_rotate_left, R.drawable.ic_rotate_left_vector),
                 MenuIcon(R.id.menu_rotate_right, R.drawable.ic_rotate_right_vector),
-                MenuIcon(R.id.menu_rotate_one_eighty, R.drawable.ic_rotate_one_eighty_vector),
                 MenuIcon(R.id.menu_mirror, R.drawable.ic_flip_horizontally_vector),
                 MenuIcon(R.id.menu_edit, commonsR.drawable.ic_edit_vector),
                 MenuIcon(R.id.menu_resize, R.drawable.ic_minimize_vector),

@@ -21,9 +21,9 @@
         android:showAsAction="never"
         android:title="@string/share"
         app:showAsAction="never" />
-    <!-- overflow only: the top bar is the file's heading now, not a row of tools. The three of them
-         are drawn as an icon row in the drop-down, so they stand on their own rather than under a
-         "Rotate" submenu of their own -->
+    <!-- overflow only: the top bar is the file's heading now, not a row of tools. The pair are drawn
+         as an icon row in the drop-down, so they stand on their own rather than under a "Rotate"
+         submenu of their own. There is no half turn: it is either of these tapped twice -->
     <item
         android:id="@+id/menu_rotate_left"
         android:icon="@drawable/ic_rotate_left_vector"
@@ -35,12 +35,6 @@
         android:icon="@drawable/ic_rotate_right_vector"
         android:showAsAction="never"
         android:title="@string/rotate_right"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/menu_rotate_one_eighty"
-        android:icon="@drawable/ic_rotate_one_eighty_vector"
-        android:showAsAction="never"
-        android:title="@string/rotate_one_eighty"
         app:showAsAction="never" />
     <!-- the one editing action kept a tap away on the toolbar. Being the first item asking for room
          it takes a slot whenever it is visible, which it is not once it has a bottom-bar button or
