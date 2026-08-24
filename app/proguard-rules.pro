@@ -21,3 +21,12 @@ native <methods>;
 
 # Reprint
 -keep class com.github.ajalt.reprint.module.** { *; }
+
+# metadata-extractor builds every Exif/TIFF directory reflectively
+# (DirectoryTiffHandler.pushDirectory -> Class.newInstance), so R8 sees no caller for their
+# no-arg constructors and drops them. Reading any Exif then throws InstantiationException out
+# of ImageMetadataReader, losing the whole file's metadata rather than just that directory.
+# Keeping the constructor also keeps the TagDescriptor it builds, which names the tags.
+-keep class * extends com.drew.metadata.Directory {
+    <init>();
+}
