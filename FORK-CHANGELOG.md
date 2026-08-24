@@ -2,6 +2,12 @@
 
 Fork-only changes, newest first. Internal fixes are left out.
 
+## [v1.17.0] - 2026.08.24 — the viewer's menu
+
+- **The viewer's drop-down opens short.** An arrow beside Settings unfolds the rest of it — Print, Show on map, Slideshow, Create shortcut and Change orientation — under a rule of its own.
+- Rotating left, right and by 180 are three icons at the top of the menu rather than a "Rotate" submenu to open first.
+- Settings moves up beside Open with and Set as, and the menu's third section is gone.
+
 ## [v1.16.0] - 2026.08.24 — navigation
 
 - A bottom pill for moving between Pictures and Albums.

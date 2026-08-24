@@ -371,7 +371,11 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 findItem(R.id.menu_share).isVisible = visibleBottomActions and BOTTOM_ACTION_SHARE == 0
                 findItem(R.id.menu_edit).isVisible = visibleBottomActions and BOTTOM_ACTION_EDIT == 0 && !currentMedium.isSVG()
                 findItem(R.id.menu_rename).isVisible = visibleBottomActions and BOTTOM_ACTION_RENAME == 0 && !currentMedium.getIsInRecycleBin()
-                findItem(R.id.menu_rotate).isVisible = currentMedium.isImage() && visibleBottomActions and BOTTOM_ACTION_ROTATE == 0
+                // the three of them stand on their own now, so each carries what their submenu parent used to
+                val canRotate = currentMedium.isImage() && visibleBottomActions and BOTTOM_ACTION_ROTATE == 0
+                findItem(R.id.menu_rotate_left).isVisible = canRotate
+                findItem(R.id.menu_rotate_right).isVisible = canRotate
+                findItem(R.id.menu_rotate_one_eighty).isVisible = canRotate
                 findItem(R.id.menu_mirror).isVisible = currentMedium.isImage() && rotationDegrees == 0 &&
                     visibleBottomActions and BOTTOM_ACTION_MIRROR == 0
                 findItem(R.id.menu_set_as).isVisible = visibleBottomActions and BOTTOM_ACTION_SET_AS == 0
