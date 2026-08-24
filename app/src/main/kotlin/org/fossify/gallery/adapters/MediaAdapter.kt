@@ -344,9 +344,18 @@ class MediaAdapter(
 
     override fun getItemKeyPosition(key: Int) = media.indexOfFirst { (it as? Medium)?.path?.hashCode() == key }
 
-    override fun onActionModeCreated() = updatePeekButtons(selecting = true)
+    /** Told when a selection starts or ends, for chrome that has to get out of its way. */
+    var onSelectionModeChanged: ((Boolean) -> Unit)? = null
 
-    override fun onActionModeDestroyed() = updatePeekButtons(selecting = false)
+    override fun onActionModeCreated() {
+        updatePeekButtons(selecting = true)
+        onSelectionModeChanged?.invoke(true)
+    }
+
+    override fun onActionModeDestroyed() {
+        updatePeekButtons(selecting = false)
+        onSelectionModeChanged?.invoke(false)
+    }
 
     /**
      * Puts the peek buttons up or away on the items already on screen. Written straight onto the

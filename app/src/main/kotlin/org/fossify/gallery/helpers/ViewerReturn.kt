@@ -13,8 +13,14 @@ import org.fossify.gallery.adapters.MediaGridNavigator
  */
 class ViewerReturn {
     companion object {
-        /** What the grid screens start the viewer with, so its result is recognised on the way back. */
-        const val REQUEST_CODE = 1
+        /**
+         * What the grid screens start the viewer with, so its result is recognised on the way back.
+         *
+         * A result comes back to the *host activity*, which numbers requests of its own - and a
+         * grid is worn by more than one host. Hence a block of its own, clear of MainActivity's
+         * picker codes below it and commons' 1000s above.
+         */
+        const val REQUEST_CODE = 2001
     }
 
     private var path = ""

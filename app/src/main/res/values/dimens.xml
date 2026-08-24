@@ -94,11 +94,9 @@
 
     <!--
         How wide a tile has to be to wear the button at all. Below this the badges have taken it
-        over and the button is covering the picture it is offering to show: the tap box (2 + 30),
-        the play badge a video tile puts after it (4 + 26) and the tick at the far end (26 + 8)
-        come to 96dp between them. Four columns across a phone held upright, more on a tablet.
+        over and the button is covering the picture it is offering to show.
     -->
-    <dimen name="peek_button_min_tile">96dp</dimen>
+    <dimen name="peek_button_min_tile">88dp</dimen>
 
     <!-- the peek viewer's tick-and-count pill -->
     <dimen name="peek_pill_height">40dp</dimen>
@@ -143,8 +141,22 @@
     <dimen name="top_fade_height">70dp</dimen>
     <!-- the search pill and the drop-down that hangs off it cast the one same shadow -->
     <dimen name="floating_chrome_elevation">3dp</dimen>
-    <dimen name="top_bar_hide_threshold">200dp</dimen>
-    <dimen name="top_bar_show_threshold">8dp</dimen>
+    <!-- how far a grid has to be dragged one way before the chrome floating over it pans away,
+         and how little it takes the other way to bring it back -->
+    <dimen name="chrome_hide_threshold">200dp</dimen>
+    <dimen name="chrome_show_threshold">8dp</dimen>
+    <!-- the navigation pill floating over the foot of both browsing grids. The reserved height is
+         the whole of it, shadow room included, and is what the grid keeps its last row clear of -->
+    <dimen name="nav_pill_height">56dp</dimen>
+    <dimen name="nav_pill_radius">28dp</dimen>
+    <dimen name="nav_pill_reserved_height">80dp</dimen>
+    <dimen name="nav_pill_row_padding">4dp</dimen>
+    <dimen name="nav_pill_item_min_width">80dp</dimen>
+    <dimen name="nav_pill_icon_size">22dp</dimen>
+    <dimen name="nav_pill_icon_gap">2dp</dimen>
+    <dimen name="nav_pill_label_size">11sp</dimen>
+    <dimen name="nav_pill_plate_radius">24dp</dimen>
+
     <!-- how far below the floating bar a pull to refresh spinner comes to rest -->
     <dimen name="refresh_spinner_travel">64dp</dimen>
     <!-- folder groups: the gap between a group tile's collage cells, and the frame around it -->

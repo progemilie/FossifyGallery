@@ -21,3 +21,8 @@ native <methods>;
 
 # Reprint
 -keep class com.github.ajalt.reprint.module.** { *; }
+
+# Metadata-extractor
+-keep class * extends com.drew.metadata.Directory {
+    <init>();
+}

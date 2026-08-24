@@ -1,6 +1,15 @@
 # Changelog
 
-Fork-only changes, newest first. Small fixes are left out.
+Fork-only changes, newest first. Internal fixes are left out.
+
+## [v1.16.0] - 2026.08.24 — navigation
+
+- A bottom pill for moving between Pictures and Albums.
+- **The two views are one screen now.** Tapping across slides the pictures past each other while the pill and the search bar stay exactly where they are. Opening the app in Pictures no longer passes through Albums on the way.
+- The startup screen setting now offers Pictures, Albums, Favorites or a folder — and is obeyed.
+- Camera and Properties leave the menus. Properties keeps its bottom action button.
+- The all media grid can no longer be arranged by hand.
+- File metadata reads in full again.
 
 ## [v1.15.0] - 2026.08.22 — selecting
 
@@ -125,6 +134,7 @@ Initial fork work, landed over 2026.08.06–08.09 before fork versions were trac
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
 
+[v1.16.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.16.0
 [v1.15.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.15.0
 [v1.14.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.14.0
 [v1.13.4]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.13.4

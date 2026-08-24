@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The wash behind a segment, tinted at runtime: the plate the screen you are on wears, and the
+    surface a tap flashes over. Rounded to half the segment's own height, so it is a stadium like
+    the pill around it rather than the platform ripple's square.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <solid android:color="@android:color/white" />
+
+    <corners android:radius="@dimen/nav_pill_plate_radius" />
+</shape>

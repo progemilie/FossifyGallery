@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The frosted pill both browsing grids float over their content. The outer frame is shadow room
+    and nothing else, the same arrangement the drop-down uses: a shadow is drawn outside the view
+    casting it, and a group clips its drawing to its padding box unless told not to.
+
+    A segment is an icon over a label in a box of its own, rather than the one TextView wearing a
+    compound drawable that it reads as: a TextView draws that drawable at its top padding and then
+    centres the label in whatever is left below it, which pins the icon to the top of the segment
+    and opens a gap under it. These two centre as one block, which is what a segment wants.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_pill_frame"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:padding="@dimen/glass_menu_shadow_room">
+
+    <org.fossify.gallery.views.GlassPanel
+        android:id="@+id/nav_pill_panel"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/nav_pill_height">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:padding="@dimen/nav_pill_row_padding">
+
+            <org.fossify.gallery.views.NavPillSegment
+                android:id="@+id/nav_pill_pictures"
+                android:layout_width="@dimen/nav_pill_item_min_width"
+                android:layout_height="match_parent"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical"
+                tools:ignore="UseCompoundDrawables">
+
+                <ImageView
+                    android:id="@+id/nav_pill_pictures_icon"
+                    android:layout_width="@dimen/nav_pill_icon_size"
+                    android:layout_height="@dimen/nav_pill_icon_size"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_files_vector" />
+
+                <TextView
+                    android:id="@+id/nav_pill_pictures_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/nav_pill_icon_gap"
+                    android:singleLine="true"
+                    android:text="@string/nav_pictures"
+                    android:textSize="@dimen/nav_pill_label_size" />
+            </org.fossify.gallery.views.NavPillSegment>
+
+            <org.fossify.gallery.views.NavPillSegment
+                android:id="@+id/nav_pill_albums"
+                android:layout_width="@dimen/nav_pill_item_min_width"
+                android:layout_height="match_parent"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical"
+                tools:ignore="UseCompoundDrawables">
+
+                <ImageView
+                    android:id="@+id/nav_pill_albums_icon"
+                    android:layout_width="@dimen/nav_pill_icon_size"
+                    android:layout_height="@dimen/nav_pill_icon_size"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_folders_vector" />
+
+                <TextView
+                    android:id="@+id/nav_pill_albums_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/nav_pill_icon_gap"
+                    android:singleLine="true"
+                    android:text="@string/nav_albums"
+                    android:textSize="@dimen/nav_pill_label_size" />
+            </org.fossify.gallery.views.NavPillSegment>
+
+            <org.fossify.gallery.views.NavPillSegment
+                android:id="@+id/nav_pill_menu"
+                android:layout_width="@dimen/nav_pill_item_min_width"
+                android:layout_height="match_parent"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical"
+                tools:ignore="UseCompoundDrawables">
+
+                <ImageView
+                    android:id="@+id/nav_pill_menu_icon"
+                    android:layout_width="@dimen/nav_pill_icon_size"
+                    android:layout_height="@dimen/nav_pill_icon_size"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_menu_lines_vector" />
+
+                <TextView
+                    android:id="@+id/nav_pill_menu_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/nav_pill_icon_gap"
+                    android:singleLine="true"
+                    android:text="@string/nav_menu"
+                    android:textSize="@dimen/nav_pill_label_size" />
+            </org.fossify.gallery.views.NavPillSegment>
+        </LinearLayout>
+    </org.fossify.gallery.views.GlassPanel>
+</FrameLayout>

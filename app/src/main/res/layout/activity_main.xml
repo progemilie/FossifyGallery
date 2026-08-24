@@ -1,101 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Same shape as the media grid: the folders fill the window, the search bar floats over them and
-    the foot of the list fades out behind the navigation bar. The search bar comes last so it draws
-    on top of what it is floating over.
+    The scaffold both top level grids are shown in. The search bar floats over the top of whichever
+    pane is up and the navigation pill over its foot, and neither of them moves when the panes swap
+    - only content_holder's two children do. Draw order is what puts the chrome over the content, so
+    both come after the holder, the pill last of all.
 -->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/directories_coordinator"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <RelativeLayout
-        android:id="@+id/directories_holder"
+    <!-- what the glass copies, and what a pane swap moves inside -->
+    <FrameLayout
+        android:id="@+id/content_holder"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <org.fossify.commons.views.MyTextView
-            android:id="@+id/directories_switch_searching"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="?attr/actionBarSize"
-            android:background="?attr/selectableItemBackground"
-            android:gravity="center"
-            android:padding="@dimen/activity_margin"
-            android:text="@string/switch_to_file_search"
+        <include
+            android:id="@+id/directory_pane"
+            layout="@layout/pane_directory_grid" />
+
+        <!-- built with the screen but kept out of the layout pass until it is first asked for -->
+        <include
+            android:id="@+id/media_pane"
+            layout="@layout/pane_media_grid"
             android:visibility="gone" />
-
-        <org.fossify.commons.views.MyTextView
-            android:id="@+id/directories_empty_placeholder"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@+id/directories_switch_searching"
-            android:layout_marginTop="?attr/actionBarSize"
-            android:alpha="0.8"
-            android:gravity="center_horizontal"
-            android:paddingStart="@dimen/activity_margin"
-            android:paddingTop="@dimen/activity_margin"
-            android:paddingEnd="@dimen/activity_margin"
-            android:text="@string/no_media_with_filters"
-            android:textSize="@dimen/bigger_text_size"
-            android:textStyle="italic"
-            android:visibility="gone" />
-
-        <org.fossify.commons.views.MyTextView
-            android:id="@+id/directories_empty_placeholder_2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@+id/directories_empty_placeholder"
-            android:layout_centerHorizontal="true"
-            android:background="@drawable/ripple_all_corners"
-            android:padding="@dimen/activity_margin"
-            android:text="@string/change_filters_underlined"
-            android:textSize="@dimen/bigger_text_size"
-            android:visibility="gone" />
-
-        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-            android:id="@+id/directories_refresh_layout"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_below="@+id/directories_switch_searching">
-
-            <com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
-                android:id="@+id/directories_fastscroller"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:supportSwipeToRefresh="true">
-
-                <org.fossify.commons.views.MyRecyclerView
-                    android:id="@+id/directories_grid"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:clipToPadding="false"
-                    android:scrollbars="none"
-                    app:layoutManager="org.fossify.commons.views.MyGridLayoutManager"
-                    app:spanCount="@integer/directory_columns_vertical_scroll" />
-
-            </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
-        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-
-        <!-- inside the holder rather than over it, so the blurred backdrop behind the search pill
-             picks it up along with the list -->
-        <View
-            android:id="@+id/directories_top_fade"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/top_fade_height"
-            android:layout_alignParentTop="true" />
-    </RelativeLayout>
-
-    <View
-        android:id="@+id/directories_bottom_fade"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/bottom_fade_height"
-        android:layout_gravity="bottom" />
+    </FrameLayout>
 
     <org.fossify.commons.views.MySearchMenu
         android:id="@+id/main_menu"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
+
+    <include
+        android:id="@+id/nav_pill"
+        layout="@layout/nav_pill"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

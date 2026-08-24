@@ -162,7 +162,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_below="@+id/settings_open_on_startup_label"
-                    tools:text="@string/startup_folder_grid" />
+                    tools:text="@string/nav_albums" />
 
             </RelativeLayout>
 

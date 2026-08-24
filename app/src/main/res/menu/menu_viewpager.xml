@@ -48,12 +48,6 @@
         android:title="@string/mirror"
         app:showAsAction="ifRoom" />
     <item
-        android:id="@+id/menu_properties"
-        android:icon="@drawable/ic_info_vector"
-        android:showAsAction="never"
-        android:title="@string/properties"
-        app:showAsAction="never" />
-    <item
         android:id="@+id/menu_rename"
         android:title="@string/rename"
         app:showAsAction="never" />
