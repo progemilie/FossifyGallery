@@ -6,11 +6,9 @@ Fork-only changes, newest first. Internal fixes are left out.
 
 - A bottom pill for moving between Pictures and Albums.
 - **The two views are one screen now.** Tapping across slides the pictures past each other while the pill and the search bar stay exactly where they are. Opening the app in Pictures no longer passes through Albums on the way.
-- A smaller pill, and a tap on the view you are in scrolls back to the top.
 - The startup screen setting now offers Pictures, Albums, Favorites or a folder — and is obeyed.
 - Camera and Properties leave the menus. Properties keeps its bottom action button.
 - The all media grid can no longer be arranged by hand.
-- Closing a peek no longer closes the app.
 - File metadata reads in full again.
 
 ## [v1.15.0] - 2026.08.22 — selecting
