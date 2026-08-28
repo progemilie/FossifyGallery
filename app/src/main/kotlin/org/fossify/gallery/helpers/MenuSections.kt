@@ -110,6 +110,9 @@ val VIEWER_MENU = MenuSpec(
                 MenuIcon(R.id.menu_edit, commonsR.drawable.ic_edit_vector),
                 MenuIcon(R.id.menu_resize, R.drawable.ic_minimize_vector),
             ),
+            // above save-as: switching tabs is somewhere to go rather than something done to the
+            // file, so it competes with none of the file operations under it
+            row(R.id.menu_switch_tab),
             row(R.id.menu_save_as),
             row(R.id.menu_rename),
         ),

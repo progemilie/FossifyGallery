@@ -4,6 +4,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="AppCompatResource">
     <item
+        android:id="@+id/menu_switch_tab"
+        android:icon="@drawable/ic_tabs_vector"
+        android:title="@string/switch_tab"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/menu_save_as"
         android:icon="@drawable/ic_check_vector"
         android:title="@string/save_as"

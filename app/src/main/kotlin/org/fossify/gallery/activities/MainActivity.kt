@@ -102,6 +102,7 @@ import org.fossify.gallery.extensions.applyEdgeFade
 import org.fossify.gallery.extensions.applyFolderGroups
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.createDirectoryFromMedia
+import org.fossify.gallery.extensions.currentTab
 import org.fossify.gallery.extensions.directoryDB
 import org.fossify.gallery.extensions.expandFolderGroups
 import org.fossify.gallery.extensions.folderGroups
@@ -118,6 +119,7 @@ import org.fossify.gallery.extensions.handleExcludedFolderPasswordProtection
 import org.fossify.gallery.extensions.handleMediaManagementPrompt
 import org.fossify.gallery.extensions.isDownloadsFolder
 import org.fossify.gallery.extensions.isStartupTargetGone
+import org.fossify.gallery.extensions.isTabLocationGone
 import org.fossify.gallery.extensions.launchAbout
 import org.fossify.gallery.extensions.launchCamera
 import org.fossify.gallery.extensions.launchSettings
@@ -127,8 +129,10 @@ import org.fossify.gallery.extensions.movePinnedDirectoriesToFront
 import org.fossify.gallery.extensions.openRecycleBin
 import org.fossify.gallery.extensions.pruneFolderGroups
 import org.fossify.gallery.extensions.removeInvalidDBDirectories
+import org.fossify.gallery.extensions.resetFirstTab
 import org.fossify.gallery.extensions.smoothScrollToTop
 import org.fossify.gallery.extensions.storeDirectoryItems
+import org.fossify.gallery.extensions.takeTabScroll
 import org.fossify.gallery.extensions.tryDeleteFileDirItem
 import org.fossify.gallery.extensions.updateDBDirectory
 import org.fossify.gallery.extensions.updateWidgets
@@ -148,8 +152,10 @@ import org.fossify.gallery.helpers.LOCATION_INTERNAL
 import org.fossify.gallery.helpers.MAX_COLUMN_COUNT
 import org.fossify.gallery.helpers.MONTH_MILLISECONDS
 import org.fossify.gallery.helpers.MediaFetcher
+import org.fossify.gallery.helpers.OPEN_VIEWER_PATH
 import org.fossify.gallery.helpers.PICKED_PATHS
 import org.fossify.gallery.helpers.RECYCLE_BIN
+import org.fossify.gallery.helpers.RESTORE_TAB
 import org.fossify.gallery.helpers.SET_WALLPAPER_INTENT
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_TEMP_HIDDEN_DURATION
@@ -159,6 +165,7 @@ import org.fossify.gallery.helpers.TYPE_IMAGES
 import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.TYPE_VIDEOS
+import org.fossify.gallery.helpers.TabSwitcher
 import org.fossify.gallery.helpers.getDefaultFileFilter
 import org.fossify.gallery.helpers.getPermissionToRequest
 import org.fossify.gallery.helpers.getPermissionsToRequest
@@ -167,14 +174,22 @@ import org.fossify.gallery.interfaces.GridPane
 import org.fossify.gallery.jobs.NewPhotoFetcher
 import org.fossify.gallery.models.Directory
 import org.fossify.gallery.models.Medium
+import org.fossify.gallery.models.TabLocation
+import org.fossify.gallery.models.TabScreen
 import org.fossify.gallery.views.MediaGridPane
 import org.fossify.gallery.views.NavDestination
 import org.fossify.gallery.views.NavPill
+import org.fossify.gallery.views.TabChoice
 
 /** Where through a pane swap the search bar hands its buttons from one grid to the other. */
 private const val HALFWAY = 0.5f
 
-class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, MediaGridPane.Host {
+class MainActivity :
+    SimpleActivity(),
+    DirectoryOperationsListener,
+    GridPane,
+    MediaGridPane.Host,
+    TabSwitcher.Locatable {
     override var isSearchBarEnabled = true
     
     companion object {
@@ -278,6 +293,12 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
     // the pill navigates away, so it has to go while a selection it would drop is on
     private var mIsSelecting = false
 
+    /** A tab switch has landed here and its place has yet to be put up. */
+    private var mHasTabToRestore = false
+
+    // where a restored tab left the folder grid, held until the folders it names are in it
+    private var mPendingFolderScroll: Pair<String, Int>? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
@@ -286,6 +307,12 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
         // a recreation is not a launch: the startup screen has already been opened over this one,
         // or backed out of, and opening it again would undo that
         mWasDefaultFolderChecked = savedInstanceState != null
+
+        // a launch is the one thing that puts the first tab back to the app's own front door; the
+        // others are left exactly where they were closed
+        if (savedInstanceState == null) {
+            resetFirstTab()
+        }
 
         if (savedInstanceState == null) {
             config.temporarilyShowHidden = false
@@ -318,6 +345,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
             binding.navPill.root.beGone()
         }
 
+        mHasTabToRestore = intent.getBooleanExtra(RESTORE_TAB, false)
         setupInsetPadding()
         setupChrome()
 
@@ -370,6 +398,16 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
         }
     }
 
+    /**
+     * A tab switch drops the stack back onto this screen rather than building a second one, so this
+     * is where every switch to a tab that is not already up arrives.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        mHasTabToRestore = intent.getBooleanExtra(RESTORE_TAB, false)
+    }
+
     override fun onStart() {
         super.onStart()
         mTempShowHiddenHandler.removeCallbacksAndMessages(null)
@@ -382,7 +420,10 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
         config.isThirdPartyIntent = false
         mDateFormat = config.dateFormat
         mTimeFormat = getTimeFormat()
+        // ahead of the activation, which is what loads whichever pane this leaves up
+        applyTabIfPending()
         activePane.onActivated()
+        recordTab()
     }
 
     /** The folder grid brought up: repaint it against the theme, and fetch what it shows. */
@@ -460,6 +501,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
 
     override fun onPause() {
         super.onPause()
+        recordTab()
         activePane.onDeactivated()
     }
 
@@ -755,6 +797,13 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
                 !mIsSelecting &&
                 media?.isReordering != true &&
                 media?.isSelecting != true
+
+        // a group stepped into is still somewhere a tab can be, so unlike the pill the button
+        // survives that - what it cannot survive is a search or a selection it would drop
+        chrome.tabBar?.isAvailable = !binding.mainMenu.isSearchOpen &&
+                !mIsSelecting &&
+                media?.isReordering != true &&
+                media?.isSelecting != true
     }
 
     // ----------------------------------------------------------------- the two panes ----
@@ -764,13 +813,35 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
         chrome = GridChrome(
             topBar = binding.mainMenu,
             contentBehind = binding.contentHolder,
-            navPill = if (mIsThirdPartyIntent) null else navPill
+            navPill = if (mIsThirdPartyIntent) null else navPill,
+            // somebody else's app is picking a picture, which is no place to be keeping tabs
+            tabChooser = if (mIsThirdPartyIntent) null else binding.tabChooser
         )
 
         chrome.attach(this)
         if (!mIsThirdPartyIntent) {
             setupNavPill()
+            setupTabBar()
             prewarmMediaPane()
+        }
+    }
+
+    private fun setupTabBar() {
+        binding.tabChooser.frost(binding.contentHolder)
+        chrome.tabBar?.apply {
+            onQuickSwitch = { TabSwitcher.quickSwitch(this@MainActivity, this@MainActivity) }
+            onChoice = { handleTabChoice(it) }
+        }
+    }
+
+    private fun handleTabChoice(choice: TabChoice) {
+        when (choice) {
+            is TabChoice.New -> TabSwitcher.newTab(this, this)
+            is TabChoice.Switch -> TabSwitcher.switchTo(this, this, choice.index)
+            is TabChoice.Close -> {
+                TabSwitcher.close(this, this, choice.index)
+                chrome.tabBar?.refresh()
+            }
         }
     }
 
@@ -894,6 +965,188 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
                 mIsSwapping = false
             }
             .start()
+    }
+
+
+    // ----------------------------------------------------------------------- the tabs ----
+
+    override fun currentTabLocation(): TabLocation = if (activePane === this) {
+        TabLocation(
+            screen = TabScreen.ALBUMS,
+            groupId = mCurrentGroupId,
+            subfolderPrefix = mCurrentPathPrefix
+        )
+    } else {
+        TabLocation(screen = TabScreen.PICTURES)
+    }
+
+    override fun currentTabScroll(): Pair<String, Int>? = if (activePane === this) {
+        folderGridPosition()
+    } else {
+        mMediaPane?.currentGridPosition()
+    }
+
+    private fun recordTab() {
+        if (!mIsThirdPartyIntent) {
+            TabSwitcher.record(this, this)
+        }
+    }
+
+    /**
+     * Puts the current tab's place back up. Everything here only sets what the activation right
+     * behind it reads, so a tab lands in one pass rather than loading one grid and then another.
+     */
+    private fun applyTabIfPending() {
+        if (!mHasTabToRestore || mIsThirdPartyIntent) {
+            return
+        }
+
+        mHasTabToRestore = false
+        intent.removeExtra(RESTORE_TAB)
+        chrome.tabBar?.refresh()
+
+        val location = currentTab().location?.takeUnless { isTabLocationGone(it) }
+        if (location == null) {
+            // never been anywhere, or its folder has since gone: opened the way a launch opens the
+            // app, which is what makes a new tab follow the "Open on startup" setting
+            openAtStartupScreen()
+        } else {
+            openAt(location)
+        }
+
+        TabSwitcher.onTabApplied()
+    }
+
+    private fun openAtStartupScreen() {
+        leaveOpenGroup()
+        mCurrentPathPrefix = ""
+        mOpenedSubfolders = arrayListOf("")
+        config.showAll = false
+        // the folder grid is the one whose activation reaches openDefaultFolder(), which is what
+        // reads the setting and opens a folder over this screen where it names one
+        swapPaneInstantly(toPictures = false)
+        mWasDefaultFolderChecked = false
+    }
+
+    private fun openAt(location: TabLocation) {
+        when (location.screen) {
+            TabScreen.PICTURES -> {
+                config.showAll = true
+                swapPaneInstantly(toPictures = true)
+            }
+
+            TabScreen.ALBUMS -> {
+                config.showAll = false
+                mCurrentGroupId = location.groupId
+                mCurrentPathPrefix = location.subfolderPrefix
+                mOpenedSubfolders = if (location.subfolderPrefix.isEmpty()) {
+                    arrayListOf("")
+                } else {
+                    arrayListOf("", location.subfolderPrefix)
+                }
+
+                swapPaneInstantly(toPictures = false)
+                updateTopBarForGroup()
+            }
+
+            TabScreen.FOLDER, TabScreen.VIEWER -> openDeepTab(location)
+        }
+
+        restoreTabScroll()
+    }
+
+    /**
+     * A folder, or a file open over one. The all media grid is not a folder to be opened, so a photo
+     * that was reached through Pictures comes back up over that pane rather than over a screen of
+     * its own - which is the stack it was reached by, and so the one Back walks out through.
+     */
+    private fun openDeepTab(location: TabLocation) {
+        if (location.isAllMediaGrid()) {
+            config.showAll = true
+            swapPaneInstantly(toPictures = true)
+            if (location.screen == TabScreen.VIEWER) {
+                mediaPane().openViewerWhenReady(location.path)
+            }
+
+            return
+        }
+
+        config.showAll = false
+        swapPaneInstantly(toPictures = false)
+        Intent(this, MediaActivity::class.java).apply {
+            putExtra(SKIP_AUTHENTICATION, true)
+            putExtra(DIRECTORY, location.gridPath())
+            if (location.screen == TabScreen.VIEWER) {
+                putExtra(OPEN_VIEWER_PATH, location.path)
+            }
+
+            handleMediaIntent(this)
+        }
+    }
+
+    private fun restoreTabScroll() {
+        val (path, offset) = takeTabScroll() ?: return
+        if (activePane === this) {
+            mPendingFolderScroll = path to offset
+        } else {
+            mMediaPane?.restoreScrollTo(path, offset)
+        }
+    }
+
+    /**
+     * Where the folder grid is sitting, as the folder at the top of it and how far it has been
+     * scrolled past the top edge. Taken by path rather than by position, which a rescan shifts.
+     */
+    private fun folderGridPosition(): Pair<String, Int>? {
+        val layoutManager = binding.directoryPane.directoriesGrid.layoutManager as? MyGridLayoutManager
+            ?: return null
+        val position = layoutManager.findFirstVisibleItemPosition()
+        val itemView = layoutManager.findViewByPosition(position) ?: return null
+        val path = getRecyclerAdapter()?.dirs?.getOrNull(position)?.path ?: return null
+        val offset = if (layoutManager.orientation == RecyclerView.HORIZONTAL) {
+            layoutManager.getDecoratedLeft(itemView) - binding.directoryPane.directoriesGrid.paddingLeft
+        } else {
+            layoutManager.getDecoratedTop(itemView) - binding.directoryPane.directoriesGrid.paddingTop
+        }
+
+        return path to offset
+    }
+
+    /** Puts the folder grid back where a tab left it, once the folders it names are in the grid. */
+    private fun applyPendingFolderScroll() {
+        val (path, offset) = mPendingFolderScroll ?: return
+        val position = getRecyclerAdapter()?.dirs?.indexOfFirst { it.path == path } ?: -1
+        if (position < 0) {
+            return
+        }
+
+        mPendingFolderScroll = null
+        (binding.directoryPane.directoriesGrid.layoutManager as? MyGridLayoutManager)
+            ?.scrollToPositionWithOffset(position, offset)
+    }
+
+    /**
+     * The swap a tab landing asks for: the same hand-over [swapTo] makes, without the slide. There
+     * is nothing on screen to slide away from - the pane that was up belongs to the tab just left.
+     */
+    private fun swapPaneInstantly(toPictures: Boolean) {
+        if (mIsThirdPartyIntent) {
+            return
+        }
+
+        val incoming: GridPane = if (toPictures) mediaPane() else this
+        if (incoming === activePane) {
+            return
+        }
+
+        val outgoing = activePane
+        activePane = incoming
+        navPill.selected = if (toPictures) NavDestination.PICTURES else NavDestination.ALBUMS
+        unparkIfNeeded(incoming)
+        outgoing.root.beGone()
+        incoming.root.beVisible()
+        chrome.bind(incoming)
+        outgoing.onDeactivated()
     }
 
     private fun getRecyclerAdapter() = binding.directoryPane.directoriesGrid.adapter as? DirectoryAdapter
@@ -1071,15 +1324,8 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
             return
         }
 
-        navPill.selected = NavDestination.PICTURES
-        val outgoing = activePane
-        activePane = pane
-        unparkIfNeeded(pane)
-        binding.directoryPane.root.beGone()
-        pane.root.beVisible()
-        chrome.bind(pane)
+        swapPaneInstantly(toPictures = true)
         pane.onActivated()
-        outgoing.onDeactivated()
     }
 
     private fun changeViewType() {
@@ -1927,6 +2173,8 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener, GridPane, Me
                     updateDirs(dirsToShow)
                 }
             }
+
+            applyPendingFolderScroll()
         }
 
         // recyclerview sometimes becomes empty at init/update, triggering an invisible refresh like this seems to work fine

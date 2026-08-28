@@ -46,17 +46,24 @@ abstract class HoldChooser @JvmOverloads constructor(
     fun revealOver(button: View) {
         beInvisible()
         post {
-            centerOver(button)
+            position(button)
             beVisible()
         }
     }
+
+    /**
+     * Where the chooser sits once it has been measured. Sideways alone by default, which is all a
+     * chooser laid out along the bottom of the screen needs - one hanging off a button at the top
+     * has to place itself down the screen as well.
+     */
+    protected open fun position(button: View) = centerOver(button)
 
     fun close() {
         onChooserClosed()
         beGone()
     }
 
-    private fun centerOver(button: View) {
+    protected fun centerOver(button: View) {
         if (width == 0) {
             return
         }

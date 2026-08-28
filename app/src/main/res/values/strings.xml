@@ -380,6 +380,11 @@
     <!-- Startup screen -->
     <string name="open_on_startup">Open on startup</string>
     <string name="startup_pick_folder">Choose folder…</string>
+    <!-- Tabs -->
+    <string name="tabs">Tabs</string>
+    <string name="switch_tab">Switch tab</string>
+    <string name="close_tab">Close tab</string>
+    <string name="tab_limit_reached">Up to %1$d tabs</string>
     <!-- Folder groups -->
     <string name="folder_group">Folder group</string>
     <string name="group_folders">Group folders</string>

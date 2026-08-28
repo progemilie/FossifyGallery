@@ -109,6 +109,9 @@ const val CUSTOM_MEDIA_ORDER_FOLDERS = "custom_media_order_folders"
 const val RECENT_COPY_MOVE_DESTINATIONS = "recent_copy_move_destinations"
 const val FOLDER_GROUPS = "folder_groups"
 const val LAST_FOLDER_GROUP_ID = "last_folder_group_id"
+const val TABS_ENABLED = "tabs_enabled"
+const val TABS = "tabs"
+const val CURRENT_TAB = "current_tab"
 
 /**
  * What a folder group's tile carries instead of a real path. Nothing on disk answers to it, so it
@@ -123,6 +126,12 @@ const val MAX_FOLDER_GROUP_COVERS = 4
 const val PATH_SEPARATOR = "|||"
 
 const val MAX_RECENT_COPY_MOVE_DESTINATIONS = 12
+
+/**
+ * How many places the app can hold at once. A tab is only a record of where it is, so this limits
+ * what the switcher can reasonably offer rather than anything being kept in memory.
+ */
+const val MAX_TABS = 3
 
 /** How many folders the copy/move quick chooser offers, recents first. */
 const val MAX_QUICK_CHOOSER_FOLDERS = 12
@@ -193,6 +202,12 @@ const val PICKED_PATHS = "picked_paths"
 const val SHOULD_INIT_FRAGMENT = "should_init_fragment"
 const val PORTRAIT_PATH = "portrait_path"
 const val SKIP_AUTHENTICATION = "skip_authentication"
+
+/** Asks MainActivity to put the current tab's place back up rather than carry on as it was. */
+const val RESTORE_TAB = "restore_tab"
+
+/** Asks a media grid to open the viewer on this file as soon as it has its media. */
+const val OPEN_VIEWER_PATH = "open_viewer_path"
 
 // editor
 const val TEMP_FOLDER_NAME = "images"
@@ -282,6 +297,7 @@ const val BOTTOM_ACTION_MOVE = 8192
 const val BOTTOM_ACTION_RESIZE = 16384
 const val BOTTOM_ACTION_RATING = 32768
 const val BOTTOM_ACTION_MIRROR = 65536
+const val BOTTOM_ACTION_TABS = 131072
 
 const val DEFAULT_BOTTOM_ACTIONS = BOTTOM_ACTION_TOGGLE_FAVORITE or BOTTOM_ACTION_RATING or
     BOTTOM_ACTION_EDIT or BOTTOM_ACTION_SHARE or BOTTOM_ACTION_DELETE

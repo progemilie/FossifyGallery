@@ -16,6 +16,7 @@ import org.fossify.gallery.R
 import org.fossify.gallery.extensions.getDistinctPath
 import org.fossify.gallery.models.AlbumCover
 import org.fossify.gallery.models.FolderGroup
+import org.fossify.gallery.models.Tab
 import java.util.Arrays
 import java.util.Locale
 
@@ -344,6 +345,34 @@ class Config(context: Context) : BaseConfig(context) {
     var lastFolderGroupId: Long
         get() = prefs.getLong(LAST_FOLDER_GROUP_ID, 0L)
         set(lastFolderGroupId) = prefs.edit().putLong(LAST_FOLDER_GROUP_ID, lastFolderGroupId).apply()
+
+    var tabsEnabled: Boolean
+        get() = prefs.getBoolean(TABS_ENABLED, false)
+        set(tabsEnabled) = prefs.edit { putBoolean(TABS_ENABLED, tabsEnabled) }
+
+    // kept here rather than in Room for the same reason the folder groups are: every screen reads
+    // and writes its tab on the main thread
+    private var tabs: String
+        get() = prefs.getString(TABS, "")!!
+        set(tabs) = prefs.edit { putString(TABS, tabs) }
+
+    fun parseTabs(): ArrayList<Tab> {
+        val listType = object : TypeToken<List<Tab>>() {}.type
+        return try {
+            Gson().fromJson<ArrayList<Tab>>(tabs, listType) ?: ArrayList(1)
+        } catch (ignored: Exception) {
+            ArrayList(1)
+        }
+    }
+
+    fun saveTabs(tabList: List<Tab>) {
+        tabs = Gson().toJson(tabList)
+    }
+
+    /** Which tab is up, as a position in that list. Put back to the first one at every launch. */
+    var currentTabIndex: Int
+        get() = prefs.getInt(CURRENT_TAB, 0)
+        set(currentTabIndex) = prefs.edit { putInt(CURRENT_TAB, currentTabIndex) }
 
     var hideSystemUI: Boolean
         get() = prefs.getBoolean(HIDE_SYSTEM_UI, false)

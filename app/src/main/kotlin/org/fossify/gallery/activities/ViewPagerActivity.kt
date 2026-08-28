@@ -108,6 +108,7 @@ import org.fossify.gallery.dialogs.SlideshowDialog
 import org.fossify.gallery.extensions.canBeRated
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.copyMoveFilesToFolder
+import org.fossify.gallery.extensions.currentTabIndex
 import org.fossify.gallery.extensions.favoritesDB
 import org.fossify.gallery.extensions.fixDateTaken
 import org.fossify.gallery.extensions.getFavoritePaths
@@ -129,6 +130,7 @@ import org.fossify.gallery.extensions.setAs
 import org.fossify.gallery.extensions.shareMediumPath
 import org.fossify.gallery.extensions.showFileOnMap
 import org.fossify.gallery.extensions.showSystemUI
+import org.fossify.gallery.extensions.tabCount
 import org.fossify.gallery.extensions.toggleFileVisibility
 import org.fossify.gallery.extensions.tryCopyMoveFilesTo
 import org.fossify.gallery.extensions.tryDeleteFileDirItem
@@ -154,10 +156,13 @@ import org.fossify.gallery.helpers.BOTTOM_ACTION_SET_AS
 import org.fossify.gallery.helpers.BOTTOM_ACTION_SHARE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_SHOW_ON_MAP
 import org.fossify.gallery.helpers.BOTTOM_ACTION_SLIDESHOW
+import org.fossify.gallery.helpers.BOTTOM_ACTION_TABS
 import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_FAVORITE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_VISIBILITY
 import org.fossify.gallery.helpers.ColorModeHelper
 import org.fossify.gallery.helpers.DefaultPageTransformer
+import org.fossify.gallery.helpers.MAX_TABS
+import org.fossify.gallery.helpers.TabSwitcher
 import org.fossify.gallery.helpers.applyBottomActionsOrder
 import org.fossify.gallery.helpers.FadePageTransformer
 import org.fossify.gallery.helpers.GO_TO_NEXT_ITEM
@@ -195,16 +200,23 @@ import org.fossify.gallery.helpers.VIEWER_MENU
 import org.fossify.gallery.helpers.ViewerHeader
 import org.fossify.gallery.helpers.getPermissionToRequest
 import org.fossify.gallery.models.Medium
+import org.fossify.gallery.models.TabLocation
+import org.fossify.gallery.models.TabScreen
 import org.fossify.gallery.models.ThumbnailItem
 import org.fossify.gallery.views.GlassMenu
 import org.fossify.gallery.views.MetadataSheet
 import org.fossify.gallery.views.QuickFolder
+import org.fossify.gallery.views.TabChoice
 import org.fossify.gallery.views.holdToChoose
 import java.io.File
 import kotlin.math.min
 
 @Suppress("UNCHECKED_CAST")
-class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, ViewPagerFragment.FragmentListener {
+class ViewPagerActivity :
+    BaseViewerActivity(),
+    ViewPager.OnPageChangeListener,
+    ViewPagerFragment.FragmentListener,
+    TabSwitcher.Locatable {
     companion object {
         private const val REQUEST_VIEW_VIDEO = 1
         private const val SAVED_PATH = "current_path"
@@ -333,11 +345,20 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         setupOrientation()
         refreshMenuItems()
         updateHeader()
+        recordTab()
     }
 
     override fun onPause() {
         super.onPause()
+        recordTab()
         stopSlideshow()
+    }
+
+    // somebody else's file opened through this screen belongs to no tab of ours
+    private fun recordTab() {
+        if (!isExternalIntent()) {
+            TabSwitcher.record(this, this)
+        }
     }
 
     override fun onDestroy() {
@@ -365,6 +386,9 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         runOnUiThread {
             val rotationDegrees = getCurrentPhotoFragment()?.mCurrentRotationDegrees ?: 0
             binding.mediumViewerToolbar.menu.apply {
+                findItem(R.id.menu_switch_tab).isVisible = config.tabsEnabled
+                        && !isExternalIntent()
+                        && visibleBottomActions and BOTTOM_ACTION_TABS == 0
                 findItem(R.id.menu_show_on_map).isVisible = visibleBottomActions and BOTTOM_ACTION_SHOW_ON_MAP == 0
                 findItem(R.id.menu_slideshow).isVisible = visibleBottomActions and BOTTOM_ACTION_SLIDESHOW == 0
                 findItem(R.id.menu_delete).isVisible = visibleBottomActions and BOTTOM_ACTION_DELETE == 0
@@ -450,6 +474,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 R.id.menu_force_landscape -> toggleOrientation(SCREEN_ORIENTATION_LANDSCAPE)
                 R.id.menu_force_landscape_reverse -> toggleOrientation(SCREEN_ORIENTATION_REVERSE_LANDSCAPE)
                 R.id.menu_default_orientation -> toggleOrientation(SCREEN_ORIENTATION_UNSPECIFIED)
+                R.id.menu_switch_tab -> TabSwitcher.quickSwitch(this, this)
                 R.id.menu_save_as -> saveImageAs()
                 R.id.menu_create_shortcut -> createShortcut()
                 R.id.menu_resize -> resizeImage()
@@ -1256,6 +1281,8 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         binding.bottomActions.bottomResize.setOnClickListener {
             resizeImage()
         }
+
+        setupTabsButton(visibleBottomActions)
     }
 
     private fun setupRatingButton(currentMedium: Medium?) {
@@ -1347,7 +1374,57 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     private fun setupChoosers() {
         binding.ratingChooser.frost(binding.fragmentHolder)
         binding.folderChooser.frost(binding.fragmentHolder)
+        binding.tabChooser.frost(binding.fragmentHolder)
     }
+
+    /**
+     * The tab button, which this screen wears along the bottom rather than on a search bar it does
+     * not have. A tap switches, a hold opens the same list the grids offer.
+     */
+    private fun setupTabsButton(visibleBottomActions: Int) {
+        val button = binding.bottomActions.bottomTabs
+        val isShown = config.tabsEnabled
+                && visibleBottomActions and BOTTOM_ACTION_TABS != 0
+                && !isExternalIntent()
+        button.beVisibleIf(isShown)
+        if (!isShown) {
+            return
+        }
+
+        button.setOnLongClickListener { toast(R.string.switch_tab); true }
+        button.setOnClickListener { TabSwitcher.quickSwitch(this, this) }
+        button.holdToChoose(
+            chooser = binding.tabChooser,
+            onOpen = {
+                binding.tabChooser.setTabs(
+                    count = tabCount(),
+                    current = currentTabIndex(),
+                    canAdd = tabCount() < MAX_TABS
+                )
+                true
+            },
+            onChosen = { binding.tabChooser.choice?.let { handleTabChoice(it) } }
+        )
+    }
+
+    private fun handleTabChoice(choice: TabChoice) {
+        when (choice) {
+            is TabChoice.New -> TabSwitcher.newTab(this, this)
+            is TabChoice.Switch -> TabSwitcher.switchTo(this, this, choice.index)
+            is TabChoice.Close -> {
+                TabSwitcher.close(this, this, choice.index)
+                refreshMenuItems()
+            }
+        }
+    }
+
+    override fun currentTabLocation() = TabLocation(
+        screen = TabScreen.VIEWER,
+        path = getCurrentPath(),
+        // the all media grid is not a folder, so it leaves this empty and the tab comes back up
+        // over the Pictures pane rather than over a screen of its own
+        folderPath = if (mShowAll) "" else mDirectory
+    )
 
     private fun showRatingDialog() {
         val medium = getCurrentMedium() ?: return
