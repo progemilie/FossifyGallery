@@ -69,7 +69,7 @@
     <dimen name="folder_chooser_end_margin">60dp</dimen>
 
     <!-- the tab button worn on the end of the search bar, and the list it holds open -->
-    <dimen name="tab_button_size">32dp</dimen>
+    <dimen name="tab_button_size">34dp</dimen>
     <dimen name="tab_button_gap">8dp</dimen>
     <dimen name="tab_chooser_row_height">48dp</dimen>
     <dimen name="tab_chooser_row_width">104dp</dimen>
@@ -79,6 +79,8 @@
     <dimen name="tab_chooser_drop_gap">8dp</dimen>
     <!-- the rounded square the viewer's tab button wears, with the current tab number inside it -->
     <dimen name="tab_badge_size">24dp</dimen>
+    <!-- the search bar's button draws the square a shade smaller, to sit inside its glass circle -->
+    <dimen name="tab_button_badge_size">22dp</dimen>
     <dimen name="tab_badge_corner_radius">5dp</dimen>
     <dimen name="tab_badge_stroke">2dp</dimen>
     <dimen name="tab_badge_text_size">13sp</dimen>

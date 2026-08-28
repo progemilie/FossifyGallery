@@ -18,8 +18,12 @@ import org.fossify.gallery.R
  * Drawn rather than stored as a vector because the number changes with the tab, and a set of vectors
  * would have to be added to every time [org.fossify.gallery.helpers.MAX_TABS] went up.
  */
-class TabBadgeDrawable(context: Context, @ColorInt private val tint: Int = Color.WHITE) : Drawable() {
-    private val size = context.resources.getDimensionPixelSize(R.dimen.tab_badge_size)
+class TabBadgeDrawable(
+    context: Context,
+    @ColorInt private val tint: Int = Color.WHITE,
+    /** How big to draw it, for a button that wants the square a shade smaller than the default. */
+    private val size: Int = context.resources.getDimensionPixelSize(R.dimen.tab_badge_size),
+) : Drawable() {
     private val cornerRadius = context.resources.getDimension(R.dimen.tab_badge_corner_radius)
     private val bounds = RectF()
 

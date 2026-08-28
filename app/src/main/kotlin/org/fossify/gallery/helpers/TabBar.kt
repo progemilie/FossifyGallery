@@ -38,6 +38,7 @@ class TabBar(
     private val resources = topBar.resources
     private val size = resources.getDimensionPixelSize(R.dimen.tab_button_size)
     private val gap = resources.getDimensionPixelSize(R.dimen.tab_button_gap)
+    private val badgeSize = resources.getDimensionPixelSize(R.dimen.tab_button_badge_size)
 
     private var button: GlassPanel? = null
     private var icon: ImageView? = null
@@ -124,7 +125,7 @@ class TabBar(
             panel.beVisible()
             // rebuilt rather than renumbered, so a theme changed since is picked up with it
             icon?.setImageDrawable(
-                TabBadgeDrawable(context, Glass.contentColor(context)).apply {
+                TabBadgeDrawable(context, Glass.contentColor(context), badgeSize).apply {
                     index = context.currentTabIndex()
                 }
             )
