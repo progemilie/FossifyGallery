@@ -206,8 +206,12 @@ const val SKIP_AUTHENTICATION = "skip_authentication"
 /** Asks MainActivity to put the current tab's place back up rather than carry on as it was. */
 const val RESTORE_TAB = "restore_tab"
 
-/** Asks a media grid to open the viewer on this file as soon as it has its media. */
+/** Asks a media grid to open the viewer on this file, as soon as it is up. */
 const val OPEN_VIEWER_PATH = "open_viewer_path"
+
+/** Where a tab left the grid it is opening: the item that was at the top, and by how far. */
+const val TAB_SCROLL_PATH = "tab_scroll_path"
+const val TAB_SCROLL_OFFSET = "tab_scroll_offset"
 
 // editor
 const val TEMP_FOLDER_NAME = "images"

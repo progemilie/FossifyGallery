@@ -160,6 +160,8 @@ import org.fossify.gallery.helpers.SET_WALLPAPER_INTENT
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_TEMP_HIDDEN_DURATION
 import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
+import org.fossify.gallery.helpers.TAB_SCROLL_OFFSET
+import org.fossify.gallery.helpers.TAB_SCROLL_PATH
 import org.fossify.gallery.helpers.TYPE_GIFS
 import org.fossify.gallery.helpers.TYPE_IMAGES
 import org.fossify.gallery.helpers.TYPE_RAWS
@@ -308,13 +310,10 @@ class MainActivity :
         // or backed out of, and opening it again would undo that
         mWasDefaultFolderChecked = savedInstanceState != null
 
-        // a launch is the one thing that puts the first tab back to the app's own front door; the
-        // others are left exactly where they were closed
         if (savedInstanceState == null) {
+            // a launch is the one thing that puts the first tab back to the app's own front door;
+            // the others are left exactly where they were closed
             resetFirstTab()
-        }
-
-        if (savedInstanceState == null) {
             config.temporarilyShowHidden = false
             config.temporarilyShowExcluded = false
             config.tempSkipDeleteConfirmation = false
@@ -1003,6 +1002,12 @@ class MainActivity :
 
         mHasTabToRestore = false
         intent.removeExtra(RESTORE_TAB)
+        // the bar belongs to the screen rather than to the tab, so a search left open in the tab
+        // being left would otherwise narrow the one being arrived at
+        if (chrome.isSearchOpen) {
+            chrome.closeSearch()
+        }
+
         chrome.tabBar?.refresh()
 
         val location = currentTab().location?.takeUnless { isTabLocationGone(it) }
@@ -1049,7 +1054,11 @@ class MainActivity :
                 updateTopBarForGroup()
             }
 
-            TabScreen.FOLDER, TabScreen.VIEWER -> openDeepTab(location)
+            TabScreen.FOLDER, TabScreen.VIEWER -> {
+                // the scroll belongs to the grid this opens, which is not always one of ours
+                openDeepTab(location)
+                return
+            }
         }
 
         restoreTabScroll()
@@ -1064,8 +1073,9 @@ class MainActivity :
         if (location.isAllMediaGrid()) {
             config.showAll = true
             swapPaneInstantly(toPictures = true)
+            restoreTabScroll()
             if (location.screen == TabScreen.VIEWER) {
-                mediaPane().openViewerWhenReady(location.path)
+                mediaPane().openViewer(location.path)
             }
 
             return
@@ -1073,11 +1083,18 @@ class MainActivity :
 
         config.showAll = false
         swapPaneInstantly(toPictures = false)
+        val scroll = takeTabScroll()
         Intent(this, MediaActivity::class.java).apply {
             putExtra(SKIP_AUTHENTICATION, true)
             putExtra(DIRECTORY, location.gridPath())
             if (location.screen == TabScreen.VIEWER) {
                 putExtra(OPEN_VIEWER_PATH, location.path)
+            }
+
+            // the folder screen is built from scratch, so where the tab left it goes with it
+            scroll?.let {
+                putExtra(TAB_SCROLL_PATH, it.first)
+                putExtra(TAB_SCROLL_OFFSET, it.second)
             }
 
             handleMediaIntent(this)

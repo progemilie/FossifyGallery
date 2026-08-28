@@ -78,6 +78,11 @@
     <dimen name="tab_chooser_text_size">17sp</dimen>
     <!-- how far under the button the list hangs, where it hangs rather than opening upwards -->
     <dimen name="tab_chooser_drop_gap">8dp</dimen>
+    <!-- the rounded square the viewer's tab button wears, with the current tab number inside it -->
+    <dimen name="tab_badge_size">24dp</dimen>
+    <dimen name="tab_badge_corner_radius">5dp</dimen>
+    <dimen name="tab_badge_stroke">2dp</dimen>
+    <dimen name="tab_badge_text_size">13sp</dimen>
 
     <!-- taller than wide, the way the photos themselves usually are -->
     <dimen name="viewer_strip_thumbnail_width">35dp</dimen>

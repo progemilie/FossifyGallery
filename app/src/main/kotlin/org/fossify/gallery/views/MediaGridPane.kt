@@ -205,10 +205,6 @@ class MediaGridPane(
     private var mIsReordering = false
     private var mGridBottomPadding = 0
     private var mGridPositionToRestore: MediaGridNavigator.GridPosition? = null
-
-    // a tab put back up over this grid was on a file rather than on the grid itself, and the viewer
-    // cannot be opened until there is media for it to page through
-    private var mPendingViewerPath = ""
     private var mLatestMediaId = 0L
     private var mLatestMediaDateId = 0L
     private var mLastMediaHandler = Handler()
@@ -266,12 +262,16 @@ class MediaGridPane(
     val isReordering get() = mIsReordering
 
     /**
-     * Opens the viewer on [path] as soon as this grid has the media to open it against. What a tab
-     * sitting on a file asks for: the grid under it has to be there first, both for the pictures
-     * either side of it and for the grid to come back out onto.
+     * Opens the viewer on [path] straight away, which is what a tab sitting on a file asks for.
+     *
+     * Deliberately not held back until this grid has its media: the viewer fetches its own either
+     * way, and waiting only means showing a grid the tab was never on for as long as the scan
+     * takes. The grid still loads behind it, ready to be come back out onto.
      */
-    fun openViewerWhenReady(path: String) {
-        mPendingViewerPath = path
+    fun openViewer(path: String) {
+        mWasFullscreenViewOpen = true
+        viewerReturn.opening(path)
+        openInViewPager(path)
     }
 
     /** Where a tab left this grid, put back on the pass that fills it. */
@@ -1425,7 +1425,6 @@ class MediaGridPane(
             }
             binding.mediaFastscroller.beVisibleIf(binding.mediaEmptyTextPlaceholder.isGone())
             setupAdapter()
-            openPendingViewer()
         }
 
         mLatestMediaId = activity.getLatestMediaId()
@@ -1440,22 +1439,6 @@ class MediaGridPane(
                 }
             }.start()
         }
-    }
-
-    /**
-     * Opens the file a restored tab was left on. Held back until the grid holds it: a viewer opened
-     * over an empty grid has nothing to page to and nothing to come back out onto.
-     */
-    private fun openPendingViewer() {
-        val path = mPendingViewerPath
-        if (path.isEmpty() || mMedia.none { (it as? Medium)?.path == path }) {
-            return
-        }
-
-        mPendingViewerPath = ""
-        mWasFullscreenViewOpen = true
-        viewerReturn.opening(path)
-        openInViewPager(path)
     }
 
     override fun tryDeleteFiles(fileDirItems: ArrayList<FileDirItem>, skipRecycleBin: Boolean) {

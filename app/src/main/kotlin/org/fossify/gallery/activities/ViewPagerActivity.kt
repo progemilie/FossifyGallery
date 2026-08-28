@@ -206,6 +206,7 @@ import org.fossify.gallery.models.ThumbnailItem
 import org.fossify.gallery.views.GlassMenu
 import org.fossify.gallery.views.MetadataSheet
 import org.fossify.gallery.views.QuickFolder
+import org.fossify.gallery.views.TabBadgeDrawable
 import org.fossify.gallery.views.TabChoice
 import org.fossify.gallery.views.holdToChoose
 import java.io.File
@@ -386,9 +387,15 @@ class ViewPagerActivity :
         runOnUiThread {
             val rotationDegrees = getCurrentPhotoFragment()?.mCurrentRotationDegrees ?: 0
             binding.mediumViewerToolbar.menu.apply {
-                findItem(R.id.menu_switch_tab).isVisible = config.tabsEnabled
-                        && !isExternalIntent()
-                        && visibleBottomActions and BOTTOM_ACTION_TABS == 0
+                findItem(R.id.menu_switch_tab).apply {
+                    isVisible = config.tabsEnabled
+                            && !isExternalIntent()
+                            && visibleBottomActions and BOTTOM_ACTION_TABS == 0
+                    // shown as a toolbar button where there is room, so it carries the number too
+                    if (isVisible) {
+                        icon = tabBadge()
+                    }
+                }
                 findItem(R.id.menu_show_on_map).isVisible = visibleBottomActions and BOTTOM_ACTION_SHOW_ON_MAP == 0
                 findItem(R.id.menu_slideshow).isVisible = visibleBottomActions and BOTTOM_ACTION_SLIDESHOW == 0
                 findItem(R.id.menu_delete).isVisible = visibleBottomActions and BOTTOM_ACTION_DELETE == 0
@@ -1391,6 +1398,7 @@ class ViewPagerActivity :
             return
         }
 
+        button.setImageDrawable(tabBadge())
         button.setOnLongClickListener { toast(R.string.switch_tab); true }
         button.setOnClickListener { TabSwitcher.quickSwitch(this, this) }
         button.holdToChoose(
@@ -1406,6 +1414,9 @@ class ViewPagerActivity :
             onChosen = { binding.tabChooser.choice?.let { handleTabChoice(it) } }
         )
     }
+
+    /** The rounded square wearing the number of the tab that is up, for both places it is shown. */
+    private fun tabBadge() = TabBadgeDrawable(this).apply { index = currentTabIndex() }
 
     private fun handleTabChoice(choice: TabChoice) {
         when (choice) {

@@ -21,6 +21,8 @@ import org.fossify.gallery.helpers.OPEN_VIEWER_PATH
 import org.fossify.gallery.helpers.SET_WALLPAPER_INTENT
 import org.fossify.gallery.helpers.SHOW_TEMP_HIDDEN_DURATION
 import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
+import org.fossify.gallery.helpers.TAB_SCROLL_OFFSET
+import org.fossify.gallery.helpers.TAB_SCROLL_PATH
 import org.fossify.gallery.helpers.TabSwitcher
 import org.fossify.gallery.models.TabLocation
 import org.fossify.gallery.models.TabScreen
@@ -94,9 +96,14 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
         chrome.attach(pane)
         setupTabBar()
 
-        // a tab that was left on a file comes back up over the grid it was opened from, so the
-        // grid is built first and the viewer follows once it has media to page through
-        intent.getStringExtra(OPEN_VIEWER_PATH)?.let { pane.openViewerWhenReady(it) }
+        // where a restored tab left this grid, applied on the pass that fills it
+        intent.getStringExtra(TAB_SCROLL_PATH)?.let {
+            pane.restoreScrollTo(it, intent.getIntExtra(TAB_SCROLL_OFFSET, 0))
+        }
+
+        // a tab that was left on a file comes back up over the grid it was opened from, so this
+        // screen is built underneath and the viewer goes straight over the top of it
+        intent.getStringExtra(OPEN_VIEWER_PATH)?.let { pane.openViewer(it) }
 
         if (mShowAll) {
             registerFileUpdateListener()

@@ -189,7 +189,10 @@ class TabChooser @JvmOverloads constructor(
     private companion object {
         const val NO_SELECTION = -1
 
-        /** How long a row has to be rested on before it offers to be closed. */
-        const val CLOSE_DWELL_MS = 500L
+        /**
+         * How long a row has to be rested on before it offers to be closed. Twice a long press:
+         * closing a tab is not something to be arrived at by pausing over the list.
+         */
+        const val CLOSE_DWELL_MS = 1000L
     }
 }

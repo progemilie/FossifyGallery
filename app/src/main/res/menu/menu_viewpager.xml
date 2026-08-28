@@ -3,11 +3,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="AppCompatResource">
+    <!-- ahead of every other ifRoom item so it wins the toolbar's room, and behind save-as, which
+         is always shown and is what an unsaved edit hangs on -->
     <item
         android:id="@+id/menu_switch_tab"
         android:icon="@drawable/ic_tabs_vector"
         android:title="@string/switch_tab"
-        app:showAsAction="never" />
+        app:showAsAction="ifRoom" />
     <item
         android:id="@+id/menu_save_as"
         android:icon="@drawable/ic_check_vector"
