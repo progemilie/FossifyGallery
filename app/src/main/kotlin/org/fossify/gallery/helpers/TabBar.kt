@@ -1,7 +1,6 @@
 package org.fossify.gallery.helpers
 
 import android.view.Gravity
-import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -12,7 +11,6 @@ import org.fossify.commons.views.MySearchMenu
 import org.fossify.gallery.R
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.currentTabIndex
-import org.fossify.gallery.extensions.tabCount
 import org.fossify.gallery.views.GlassPanel
 import org.fossify.gallery.views.TabBadgeDrawable
 import org.fossify.gallery.views.TabChoice
@@ -103,11 +101,7 @@ class TabBar(
             chooser = chooser,
             onOpen = {
                 chooser.dropsBelow = true
-                chooser.setTabs(
-                    count = context.tabCount(),
-                    current = context.currentTabIndex(),
-                    canAdd = context.tabCount() < MAX_TABS
-                )
+                chooser.fillFromTabs()
                 true
             },
             onChosen = { chooser.choice?.let { onChoice?.invoke(it) } }
@@ -146,7 +140,4 @@ class TabBar(
             marginEnd = if (shorten) size + gap else 0
         }
     }
-
-    /** The button itself, for a screen that has to know whether a touch landed on it. */
-    val view: View? get() = button
 }

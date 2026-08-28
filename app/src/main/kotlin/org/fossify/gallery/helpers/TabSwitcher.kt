@@ -3,6 +3,8 @@ package org.fossify.gallery.helpers
 import android.app.Activity
 import android.app.ActivityOptions
 import android.content.Intent
+import org.fossify.commons.extensions.toast
+import org.fossify.gallery.R
 import org.fossify.gallery.activities.MainActivity
 import org.fossify.gallery.activities.MediaActivity
 import org.fossify.gallery.extensions.closeTab
@@ -13,6 +15,7 @@ import org.fossify.gallery.extensions.openNewTab
 import org.fossify.gallery.extensions.recordTabLocation
 import org.fossify.gallery.extensions.tabCount
 import org.fossify.gallery.models.TabLocation
+import org.fossify.gallery.views.TabChoice
 
 /**
  * Moving between tabs. A tab is a record of a place rather than a screen kept alive, so switching
@@ -65,11 +68,31 @@ object TabSwitcher {
         }
     }
 
+    /**
+     * The one dispatch of what a finger let go of the chooser on, so the three screens that offer
+     * it cannot drift apart. [onClosed] repaints whatever wears the tab's number on the screen
+     * making the call: closing a tab below the one you are on renumbers the one you are.
+     */
+    fun handle(activity: Activity, screen: Locatable, choice: TabChoice, onClosed: () -> Unit) {
+        when (choice) {
+            is TabChoice.New -> newTab(activity, screen)
+            is TabChoice.Switch -> switchTo(activity, screen, choice.index)
+            is TabChoice.Close -> {
+                close(activity, screen, choice.index)
+                onClosed()
+            }
+        }
+    }
+
     /** Opens a tab with no place of its own, which comes up on the startup screen. */
     fun newTab(activity: Activity, screen: Locatable) {
         record(activity, screen)
         if (activity.openNewTab()) {
             restart(activity)
+        } else {
+            // the chooser stops offering another one at the limit, so this is only reached by a
+            // tap on a button - which must still say why nothing happened
+            activity.toast(activity.getString(R.string.tab_limit_reached, MAX_TABS))
         }
     }
 
@@ -100,17 +123,21 @@ object TabSwitcher {
     }
 
     /**
+     * Called by the screen the tab has landed on, which is where a switch ends. A folder or a file
+     * is put up by launching over [MainActivity], so for those it is the screen that opens that
+     * says so - not the one that posted the intent, which is still showing the place being left.
+     */
+    fun onTabApplied() {
+        isSwitching = false
+    }
+
+    /**
      * Drops the stack back to [MainActivity] and asks it to put the current tab's place up.
      *
      * CLEAR_TOP with SINGLE_TOP reuses the MainActivity that is already at the root rather than
      * building another, so this finishes whatever is above it and arrives as onNewIntent. The
      * animation is taken out because a tab switch is a swap rather than somewhere new to be.
      */
-    /** Called by the screen that has finished putting a tab up, which is where a switch ends. */
-    fun onTabApplied() {
-        isSwitching = false
-    }
-
     private fun restart(activity: Activity) {
         isSwitching = true
 

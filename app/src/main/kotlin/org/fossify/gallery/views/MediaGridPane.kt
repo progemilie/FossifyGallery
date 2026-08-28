@@ -131,7 +131,10 @@ data class PickRequest(
     val any: Boolean = false,
     val wallpaper: Boolean = false,
     val allowMultiple: Boolean = false,
-)
+) {
+    /** Whether the grid is up for another app to pick something out of rather than to be browsed. */
+    val isPicking get() = image || video || any || wallpaper
+}
 
 private const val LAST_MEDIA_CHECK_PERIOD = 3000L
 

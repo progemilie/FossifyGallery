@@ -181,7 +181,6 @@ import org.fossify.gallery.models.TabScreen
 import org.fossify.gallery.views.MediaGridPane
 import org.fossify.gallery.views.NavDestination
 import org.fossify.gallery.views.NavPill
-import org.fossify.gallery.views.TabChoice
 
 /** Where through a pane swap the search bar hands its buttons from one grid to the other. */
 private const val HALFWAY = 0.5f
@@ -306,23 +305,6 @@ class MainActivity :
         setContentView(binding.root)
         appLaunched(BuildConfig.APPLICATION_ID)
 
-        // a recreation is not a launch: the startup screen has already been opened over this one,
-        // or backed out of, and opening it again would undo that
-        mWasDefaultFolderChecked = savedInstanceState != null
-
-        if (savedInstanceState == null) {
-            // a launch is the one thing that puts the first tab back to the app's own front door;
-            // the others are left exactly where they were closed
-            resetFirstTab()
-            config.temporarilyShowHidden = false
-            config.temporarilyShowExcluded = false
-            config.tempSkipDeleteConfirmation = false
-            config.tempSkipRecycleBin = false
-            removeTempFolder()
-            checkRecycleBinItems()
-            startNewPhotoFetcher()
-        }
-
         mIsPickImageIntent = isPickImageIntent(intent)
         mIsPickVideoIntent = isPickVideoIntent(intent)
         mIsGetImageContentIntent = isGetImageContentIntent(intent)
@@ -337,6 +319,23 @@ class MainActivity :
                 || mIsGetAnyContentIntent
                 || mIsSetWallpaperIntent
 
+        mHasTabToRestore = intent.getBooleanExtra(RESTORE_TAB, false)
+
+        // a recreation is not a launch: the startup screen has already been opened over this one,
+        // or backed out of, and opening it again would undo that
+        mWasDefaultFolderChecked = savedInstanceState != null
+
+        if (savedInstanceState == null) {
+            resetFirstTabIfLaunched()
+            config.temporarilyShowHidden = false
+            config.temporarilyShowExcluded = false
+            config.tempSkipDeleteConfirmation = false
+            config.tempSkipRecycleBin = false
+            removeTempFolder()
+            checkRecycleBinItems()
+            startNewPhotoFetcher()
+        }
+
         // the grids reserve the pill's room in the layout, which the inset is then added to. A
         // picker never puts the pill up, so it hands that room back before the base is taken
         if (mIsThirdPartyIntent) {
@@ -344,7 +343,6 @@ class MainActivity :
             binding.navPill.root.beGone()
         }
 
-        mHasTabToRestore = intent.getBooleanExtra(RESTORE_TAB, false)
         setupInsetPadding()
         setupChrome()
 
@@ -829,17 +827,8 @@ class MainActivity :
         binding.tabChooser.frost(binding.contentHolder)
         chrome.tabBar?.apply {
             onQuickSwitch = { TabSwitcher.quickSwitch(this@MainActivity, this@MainActivity) }
-            onChoice = { handleTabChoice(it) }
-        }
-    }
-
-    private fun handleTabChoice(choice: TabChoice) {
-        when (choice) {
-            is TabChoice.New -> TabSwitcher.newTab(this, this)
-            is TabChoice.Switch -> TabSwitcher.switchTo(this, this, choice.index)
-            is TabChoice.Close -> {
-                TabSwitcher.close(this, this, choice.index)
-                chrome.tabBar?.refresh()
+            onChoice = { choice ->
+                TabSwitcher.handle(this@MainActivity, this@MainActivity, choice) { refresh() }
             }
         }
     }
@@ -992,11 +981,26 @@ class MainActivity :
     }
 
     /**
+     * A launch is the one thing that puts the first tab back to the app's own front door; the
+     * others are left exactly where they were closed. Two things build this screen without being a
+     * launch, and neither may touch the tabs: another app's picker, and a switch that arrived in a
+     * task this screen was not already in - which is here to put a tab up, not to open the app.
+     */
+    private fun resetFirstTabIfLaunched() {
+        if (!mIsThirdPartyIntent && !mHasTabToRestore) {
+            resetFirstTab()
+        }
+    }
+
+    /**
      * Puts the current tab's place back up. Everything here only sets what the activation right
      * behind it reads, so a tab lands in one pass rather than loading one grid and then another.
      */
     private fun applyTabIfPending() {
         if (!mHasTabToRestore || mIsThirdPartyIntent) {
+            // a switch that ended above this screen is over once this one is back on top, whether
+            // the user walked out of it or the screen it asked for never came up at all
+            TabSwitcher.onTabApplied()
             return
         }
 
@@ -1011,15 +1015,20 @@ class MainActivity :
         chrome.tabBar?.refresh()
 
         val location = currentTab().location?.takeUnless { isTabLocationGone(it) }
-        if (location == null) {
+        val landedHere = if (location == null) {
             // never been anywhere, or its folder has since gone: opened the way a launch opens the
             // app, which is what makes a new tab follow the "Open on startup" setting
             openAtStartupScreen()
+            true
         } else {
             openAt(location)
         }
 
-        TabSwitcher.onTabApplied()
+        // a folder is put up by launching over this screen, and that screen says when it is up:
+        // ending the switch here would let this one write its own place over the tab first
+        if (landedHere) {
+            TabSwitcher.onTabApplied()
+        }
     }
 
     private fun openAtStartupScreen() {
@@ -1033,7 +1042,8 @@ class MainActivity :
         mWasDefaultFolderChecked = false
     }
 
-    private fun openAt(location: TabLocation) {
+    /** Whether the tab landed on this screen, rather than on one opened over the top of it. */
+    private fun openAt(location: TabLocation): Boolean {
         when (location.screen) {
             TabScreen.PICTURES -> {
                 config.showAll = true
@@ -1056,12 +1066,12 @@ class MainActivity :
 
             TabScreen.FOLDER, TabScreen.VIEWER -> {
                 // the scroll belongs to the grid this opens, which is not always one of ours
-                openDeepTab(location)
-                return
+                return openDeepTab(location)
             }
         }
 
         restoreTabScroll()
+        return true
     }
 
     /**
@@ -1069,7 +1079,7 @@ class MainActivity :
      * that was reached through Pictures comes back up over that pane rather than over a screen of
      * its own - which is the stack it was reached by, and so the one Back walks out through.
      */
-    private fun openDeepTab(location: TabLocation) {
+    private fun openDeepTab(location: TabLocation): Boolean {
         if (location.isAllMediaGrid()) {
             config.showAll = true
             swapPaneInstantly(toPictures = true)
@@ -1078,14 +1088,16 @@ class MainActivity :
                 mediaPane().openViewer(location.path)
             }
 
-            return
+            // the grid the tab came back onto is this screen's own, whatever is opened over it
+            return true
         }
 
         config.showAll = false
         swapPaneInstantly(toPictures = false)
         val scroll = takeTabScroll()
         Intent(this, MediaActivity::class.java).apply {
-            putExtra(SKIP_AUTHENTICATION, true)
+            // deliberately no SKIP_AUTHENTICATION: a tab is put back up out of nowhere, so a
+            // protected folder has to be asked for again the way tapping into one does
             putExtra(DIRECTORY, location.gridPath())
             if (location.screen == TabScreen.VIEWER) {
                 putExtra(OPEN_VIEWER_PATH, location.path)
@@ -1099,6 +1111,8 @@ class MainActivity :
 
             handleMediaIntent(this)
         }
+
+        return false
     }
 
     private fun restoreTabScroll() {
@@ -1129,15 +1143,18 @@ class MainActivity :
         return path to offset
     }
 
-    /** Puts the folder grid back where a tab left it, once the folders it names are in the grid. */
+    /** Puts the folder grid back where a tab left it, on the first grid the tab lands behind. */
     private fun applyPendingFolderScroll() {
         val (path, offset) = mPendingFolderScroll ?: return
-        val position = getRecyclerAdapter()?.dirs?.indexOfFirst { it.path == path } ?: -1
+        val dirs = getRecyclerAdapter()?.dirs ?: return
+        // given up on rather than held for a folder that may yet turn up: a later scan would
+        // otherwise drag the grid back from wherever the user has scrolled to since
+        mPendingFolderScroll = null
+        val position = dirs.indexOfFirst { it.path == path }
         if (position < 0) {
             return
         }
 
-        mPendingFolderScroll = null
         (binding.directoryPane.directoriesGrid.layoutManager as? MyGridLayoutManager)
             ?.scrollToPositionWithOffset(position, offset)
     }
@@ -1149,6 +1166,12 @@ class MainActivity :
     private fun swapPaneInstantly(toPictures: Boolean) {
         if (mIsThirdPartyIntent) {
             return
+        }
+
+        // a slide still in flight belongs to the tab being left, and its end action would put away
+        // whichever pane this brings up - so it is finished off here rather than left running
+        if (mIsSwapping) {
+            endSlideNow()
         }
 
         val incoming: GridPane = if (toPictures) mediaPane() else this
@@ -1164,6 +1187,18 @@ class MainActivity :
         incoming.root.beVisible()
         chrome.bind(incoming)
         outgoing.onDeactivated()
+    }
+
+    /**
+     * Cuts a slide short and leaves both panes where it would have left them: cancelling runs the
+     * animation's own end action, which is what puts the outgoing pane away.
+     */
+    private fun endSlideNow() {
+        root.animate().cancel()
+        mMediaPane?.root?.animate()?.cancel()
+        root.translationX = 0f
+        mMediaPane?.root?.translationX = 0f
+        mIsSwapping = false
     }
 
     private fun getRecyclerAdapter() = binding.directoryPane.directoriesGrid.adapter as? DirectoryAdapter

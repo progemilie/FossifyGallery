@@ -18,6 +18,9 @@ import org.fossify.gallery.models.TabScreen
  *
  * The first tab is the app's own: it is never closed, and its place is dropped at every launch so
  * the app still opens where "Open on startup" says it should.
+ *
+ * The list is stored as JSON, so every read of it is a parse. Everything here takes it once and
+ * works off what it has rather than asking again.
  */
 
 /** Always at least one, never more than [MAX_TABS], whatever is on file. */
@@ -38,10 +41,13 @@ private fun Context.storeTabs(tabList: List<Tab>) {
 
 fun Context.tabCount() = tabs().size
 
-/** The position of the tab that is up. Never points past the end of the list. */
-fun Context.currentTabIndex() = config.currentTabIndex.coerceIn(0, tabs().lastIndex)
+/** Where the tab that is up sits in a list already in hand. Never points past its end. */
+fun Context.currentTabIndexIn(tabList: List<Tab>) = config.currentTabIndex.coerceIn(0, tabList.lastIndex)
 
-fun Context.currentTab(): Tab = tabs()[currentTabIndex()]
+/** The position of the tab that is up. Never points past the end of the list. */
+fun Context.currentTabIndex() = currentTabIndexIn(tabs())
+
+fun Context.currentTab(): Tab = tabs().let { it[currentTabIndexIn(it)] }
 
 /**
  * Writes down where the tab that is up has got to. Called on every switch and on the way out of
@@ -53,7 +59,7 @@ fun Context.recordTabLocation(location: TabLocation, scrollPath: String = "", sc
     }
 
     val tabList = tabs()
-    val index = currentTabIndex()
+    val index = currentTabIndexIn(tabList)
     tabList[index] = tabList[index].copy(
         location = location,
         scrollPath = scrollPath,
@@ -64,14 +70,14 @@ fun Context.recordTabLocation(location: TabLocation, scrollPath: String = "", sc
 
 /** Where the grid was left, for the screen putting that tab back up. Taken once and cleared. */
 fun Context.takeTabScroll(): Pair<String, Int>? {
-    val tab = currentTab()
+    val tabList = tabs()
+    val index = currentTabIndexIn(tabList)
+    val tab = tabList[index]
     if (tab.scrollPath.isEmpty()) {
         return null
     }
 
-    val tabList = tabs()
-    val index = currentTabIndex()
-    tabList[index] = tabList[index].copy(scrollPath = "", scrollOffset = 0)
+    tabList[index] = tab.copy(scrollPath = "", scrollOffset = 0)
     storeTabs(tabList)
     return tab.scrollPath to tab.scrollOffset
 }
@@ -109,18 +115,18 @@ fun Context.openNewTab(): Boolean {
  */
 fun Context.closeTab(index: Int): Int {
     val tabList = tabs()
+    val current = currentTabIndexIn(tabList)
     if (index !in tabList.indices || tabList.size <= 1) {
-        return currentTabIndex()
+        return current
     }
 
-    val wasCurrent = index == currentTabIndex()
     tabList.removeAt(index)
     // staying where you are unless the tab under you is the one that went, in which case the one
     // that slid into its place is the obvious thing to be looking at
     config.currentTabIndex = when {
-        wasCurrent -> index.coerceAtMost(tabList.lastIndex)
-        index < config.currentTabIndex -> config.currentTabIndex - 1
-        else -> config.currentTabIndex
+        index == current -> index.coerceAtMost(tabList.lastIndex)
+        index < current -> current - 1
+        else -> current
     }
 
     storeTabs(tabList)
@@ -128,7 +134,7 @@ fun Context.closeTab(index: Int): Int {
 }
 
 /** The next tab along, wrapping. What a plain tap on the button asks for. */
-fun Context.nextTabIndex() = (currentTabIndex() + 1) % tabCount()
+fun Context.nextTabIndex() = tabs().let { (currentTabIndexIn(it) + 1) % it.size }
 
 /**
  * Whether a tab's place is still there to go back to. A folder deleted or a photo removed while the

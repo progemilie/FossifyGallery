@@ -29,7 +29,6 @@ import org.fossify.gallery.models.TabScreen
 import org.fossify.gallery.models.ThumbnailItem
 import org.fossify.gallery.views.MediaGridPane
 import org.fossify.gallery.views.PickRequest
-import org.fossify.gallery.views.TabChoice
 
 /**
  * The window a [MediaGridPane] is shown in when it is a screen of its own - a folder tapped into,
@@ -46,6 +45,7 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
 
     private var mPath = ""
     private var mShowAll = false
+    private var mPick = PickRequest()
     private var mTempShowHiddenHandler = Handler()
 
     private lateinit var pane: MediaGridPane
@@ -73,13 +73,14 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
         // no more than which pane the app is on: a folder handed to this screen - by a widget, or by
         // the startup setting - is the folder to show, whichever pane that was
         mShowAll = config.showAll && mPath.isEmpty()
+        mPick = intent.pickRequest()
         pane = MediaGridPane(
             activity = this,
             binding = binding.mediaPane,
             host = this,
             mPath = mPath,
             showAll = mShowAll,
-            pick = intent.pickRequest(),
+            pick = mPick,
             skipAuthentication = intent.getBooleanExtra(SKIP_AUTHENTICATION, false)
         )
 
@@ -90,20 +91,28 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
             topBar = binding.mediaMenu,
             contentBehind = binding.contentHolder,
             // a grid another app is picking from is no place to be keeping tabs
-            tabChooser = if (intent.isPicking()) null else binding.tabChooser
+            tabChooser = if (mPick.isPicking) null else binding.tabChooser
         )
 
         chrome.attach(pane)
         setupTabBar()
 
-        // where a restored tab left this grid, applied on the pass that fills it
+        // both of these are taken off the intent as they are used: they say what a tab landing
+        // asked for once, and a recreation - a rotation, or coming back after the process was
+        // killed - would otherwise open the viewer a second time and yank the grid back
         intent.getStringExtra(TAB_SCROLL_PATH)?.let {
+            // where a restored tab left this grid, applied on the pass that fills it
             pane.restoreScrollTo(it, intent.getIntExtra(TAB_SCROLL_OFFSET, 0))
+            intent.removeExtra(TAB_SCROLL_PATH)
+            intent.removeExtra(TAB_SCROLL_OFFSET)
         }
 
         // a tab that was left on a file comes back up over the grid it was opened from, so this
         // screen is built underneath and the viewer goes straight over the top of it
-        intent.getStringExtra(OPEN_VIEWER_PATH)?.let { pane.openViewer(it) }
+        intent.getStringExtra(OPEN_VIEWER_PATH)?.let {
+            intent.removeExtra(OPEN_VIEWER_PATH)
+            pane.openViewer(it)
+        }
 
         if (mShowAll) {
             registerFileUpdateListener()
@@ -123,6 +132,9 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
         chrome.updateColors()
         onPaneStateChanged()
         pane.onActivated()
+        // a switch that asked for a folder is over once that folder is up, which is here - the
+        // screen that launched this one is still showing the place being left
+        TabSwitcher.onTabApplied()
         recordTab()
     }
 
@@ -203,14 +215,7 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
         chrome.tabBar?.apply {
             onQuickSwitch = { TabSwitcher.quickSwitch(this@MediaActivity, this@MediaActivity) }
             onChoice = { choice ->
-                when (choice) {
-                    is TabChoice.New -> TabSwitcher.newTab(this@MediaActivity, this@MediaActivity)
-                    is TabChoice.Switch -> TabSwitcher.switchTo(this@MediaActivity, this@MediaActivity, choice.index)
-                    is TabChoice.Close -> {
-                        TabSwitcher.close(this@MediaActivity, this@MediaActivity, choice.index)
-                        refresh()
-                    }
-                }
+                TabSwitcher.handle(this@MediaActivity, this@MediaActivity, choice) { refresh() }
             }
         }
     }
@@ -220,7 +225,7 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
     override fun currentTabScroll() = pane.currentGridPosition()
 
     private fun recordTab() {
-        if (!intent.isPicking()) {
+        if (!mPick.isPicking) {
             TabSwitcher.record(this, this)
         }
     }
@@ -248,12 +253,6 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
     }
 
 }
-
-/** Whether this grid is up for another app to pick something out of rather than to be browsed. */
-private fun Intent.isPicking() = getBooleanExtra(GET_IMAGE_INTENT, false)
-        || getBooleanExtra(GET_VIDEO_INTENT, false)
-        || getBooleanExtra(GET_ANY_INTENT, false)
-        || getBooleanExtra(SET_WALLPAPER_INTENT, false)
 
 /** What another app asked this grid to pick for it, if anything. */
 private fun Intent.pickRequest() = PickRequest(

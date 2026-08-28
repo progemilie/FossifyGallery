@@ -40,11 +40,16 @@ class TabBadgeDrawable(
         color = tint
     }
 
+    // kept rather than formatted in draw(): the label is a locale lookup and an allocation, and it
+    // only ever changes with the index
+    private var label = tabLabel(0)
+
     /** Which tab the badge is showing, as a position in the list. */
     var index: Int = 0
         set(value) {
             if (field != value) {
                 field = value
+                label = tabLabel(value)
                 invalidateSelf()
             }
         }
@@ -61,7 +66,7 @@ class TabBadgeDrawable(
 
         // centred on the glyph rather than on the baseline, which sits low in the square
         val middle = (textPaint.descent() + textPaint.ascent()) / 2
-        canvas.drawText(tabLabel(index), bounds.centerX(), bounds.centerY() - middle, textPaint)
+        canvas.drawText(label, bounds.centerX(), bounds.centerY() - middle, textPaint)
     }
 
     override fun setAlpha(alpha: Int) {

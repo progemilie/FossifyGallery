@@ -6,7 +6,10 @@ import android.view.HapticFeedbackConstants
 import android.view.View
 import android.widget.LinearLayout
 import org.fossify.gallery.R
+import org.fossify.gallery.extensions.currentTabIndexIn
+import org.fossify.gallery.extensions.tabs
 import org.fossify.gallery.helpers.Glass
+import org.fossify.gallery.helpers.MAX_TABS
 
 /** What a finger letting go of the tab chooser meant. */
 sealed interface TabChoice {
@@ -96,21 +99,23 @@ class TabChooser @JvmOverloads constructor(
     }
 
     /**
-     * Fills the list and repaints it, so a theme changed since it was last up is picked up on
-     * opening. [canAdd] is false once the app is holding as many tabs as it will.
+     * Fills the list from the tabs on file and repaints it, so a theme changed since it was last up
+     * is picked up on opening. The same list wherever the chooser is offered, off one read of it.
      */
-    fun setTabs(count: Int, current: Int, canAdd: Boolean) {
-        tabCount = count
-        currentIndex = current
-        canAddTab = canAdd
+    fun fillFromTabs() {
+        val tabList = context.tabs()
+        tabCount = tabList.size
+        currentIndex = context.currentTabIndexIn(tabList)
+        // no last row offering another one once the app is holding as many tabs as it will
+        canAddTab = tabCount < MAX_TABS
         selectedIndex = NO_SELECTION
         armedIndex = NO_SELECTION
         isOnCross = false
 
         rows.removeAllViews()
         // the last tab left cannot be closed - the app is always looking at something
-        repeat(count) { rows.addTabRow(label = tabLabel(it), closable = count > 1, metrics = metrics) }
-        if (canAdd) {
+        repeat(tabCount) { rows.addTabRow(label = tabLabel(it), closable = tabCount > 1, metrics = metrics) }
+        if (canAddTab) {
             rows.addTabRow(label = "+", closable = false, metrics = metrics)
         }
 

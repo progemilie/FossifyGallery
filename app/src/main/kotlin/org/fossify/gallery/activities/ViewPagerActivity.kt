@@ -130,7 +130,6 @@ import org.fossify.gallery.extensions.setAs
 import org.fossify.gallery.extensions.shareMediumPath
 import org.fossify.gallery.extensions.showFileOnMap
 import org.fossify.gallery.extensions.showSystemUI
-import org.fossify.gallery.extensions.tabCount
 import org.fossify.gallery.extensions.toggleFileVisibility
 import org.fossify.gallery.extensions.tryCopyMoveFilesTo
 import org.fossify.gallery.extensions.tryDeleteFileDirItem
@@ -161,7 +160,6 @@ import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_FAVORITE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_VISIBILITY
 import org.fossify.gallery.helpers.ColorModeHelper
 import org.fossify.gallery.helpers.DefaultPageTransformer
-import org.fossify.gallery.helpers.MAX_TABS
 import org.fossify.gallery.helpers.TabSwitcher
 import org.fossify.gallery.helpers.applyBottomActionsOrder
 import org.fossify.gallery.helpers.FadePageTransformer
@@ -1401,7 +1399,6 @@ class ViewPagerActivity :
         }
 
         button.setImageDrawable(tabBadge())
-        button.setOnLongClickListener { toast(R.string.switch_tab); true }
         button.setOnClickListener { TabSwitcher.quickSwitch(this, this) }
         button.holdToChooseTab(dropsBelow = false)
     }
@@ -1415,11 +1412,7 @@ class ViewPagerActivity :
             chooser = binding.tabChooser,
             onOpen = {
                 binding.tabChooser.dropsBelow = dropsBelow
-                binding.tabChooser.setTabs(
-                    count = tabCount(),
-                    current = currentTabIndex(),
-                    canAdd = tabCount() < MAX_TABS
-                )
+                binding.tabChooser.fillFromTabs()
                 true
             },
             onChosen = { binding.tabChooser.choice?.let { handleTabChoice(it) } }
@@ -1459,13 +1452,10 @@ class ViewPagerActivity :
     private var mBoundTabMenuView: View? = null
 
     private fun handleTabChoice(choice: TabChoice) {
-        when (choice) {
-            is TabChoice.New -> TabSwitcher.newTab(this, this)
-            is TabChoice.Switch -> TabSwitcher.switchTo(this, this, choice.index)
-            is TabChoice.Close -> {
-                TabSwitcher.close(this, this, choice.index)
-                refreshMenuItems()
-            }
+        TabSwitcher.handle(this, this, choice) {
+            // this screen wears the number in two places, and only one of them is a menu item
+            refreshMenuItems()
+            binding.bottomActions.bottomTabs.setImageDrawable(tabBadge())
         }
     }
 
