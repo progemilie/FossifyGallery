@@ -71,7 +71,6 @@
     <!-- the tab button worn on the end of the search bar, and the list it holds open -->
     <dimen name="tab_button_size">32dp</dimen>
     <dimen name="tab_button_gap">8dp</dimen>
-    <dimen name="tab_button_text_size">15sp</dimen>
     <dimen name="tab_chooser_row_height">48dp</dimen>
     <dimen name="tab_chooser_row_width">104dp</dimen>
     <dimen name="tab_chooser_close_width">40dp</dimen>

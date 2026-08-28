@@ -1,11 +1,10 @@
 package org.fossify.gallery.helpers
 
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.TextView
+import android.widget.ImageView
 import androidx.core.view.updateLayoutParams
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
@@ -15,9 +14,9 @@ import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.currentTabIndex
 import org.fossify.gallery.extensions.tabCount
 import org.fossify.gallery.views.GlassPanel
+import org.fossify.gallery.views.TabBadgeDrawable
 import org.fossify.gallery.views.TabChoice
 import org.fossify.gallery.views.TabChooser
-import org.fossify.gallery.views.tabLabel
 import org.fossify.gallery.views.holdToChoose
 
 /**
@@ -41,7 +40,7 @@ class TabBar(
     private val gap = resources.getDimensionPixelSize(R.dimen.tab_button_gap)
 
     private var button: GlassPanel? = null
-    private var label: TextView? = null
+    private var icon: ImageView? = null
 
     /** Whether the screen wants the button at all - tabs turned off, or somewhere they make no sense. */
     var isAvailable = true
@@ -81,19 +80,15 @@ class TabBar(
             contentDescription = context.getString(R.string.switch_tab)
         }
 
-        val text = TextView(context).apply {
-            gravity = Gravity.CENTER
-            setTextSize(
-                TypedValue.COMPLEX_UNIT_PX,
-                resources.getDimension(R.dimen.tab_button_text_size)
-            )
-        }
-
+        // the same rounded square the viewer wears, so the tab switcher looks the one thing
+        // wherever it is offered
+        val badge = ImageView(context)
         panel.addView(
-            text,
+            badge,
             FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER
             )
         )
 
@@ -118,7 +113,7 @@ class TabBar(
         )
 
         button = panel
-        label = text
+        icon = badge
     }
 
     /** Re-reads which tab is up, and whether the button belongs on screen at all. */
@@ -127,8 +122,12 @@ class TabBar(
         val shouldShow = isAvailable && context.config.tabsEnabled
         if (shouldShow) {
             panel.beVisible()
-            label?.text = tabLabel(context.currentTabIndex())
-            label?.setTextColor(Glass.contentColor(context))
+            // rebuilt rather than renumbered, so a theme changed since is picked up with it
+            icon?.setImageDrawable(
+                TabBadgeDrawable(context, Glass.contentColor(context)).apply {
+                    index = context.currentTabIndex()
+                }
+            )
         } else {
             panel.beGone()
             chooser.close()
