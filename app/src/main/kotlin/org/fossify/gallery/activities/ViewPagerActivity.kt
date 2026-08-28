@@ -395,6 +395,8 @@ class ViewPagerActivity :
                     if (isVisible) {
                         icon = tabBadge()
                     }
+
+                    bindTabMenuHold(isVisible)
                 }
                 findItem(R.id.menu_show_on_map).isVisible = visibleBottomActions and BOTTOM_ACTION_SHOW_ON_MAP == 0
                 findItem(R.id.menu_slideshow).isVisible = visibleBottomActions and BOTTOM_ACTION_SLIDESHOW == 0
@@ -1401,9 +1403,18 @@ class ViewPagerActivity :
         button.setImageDrawable(tabBadge())
         button.setOnLongClickListener { toast(R.string.switch_tab); true }
         button.setOnClickListener { TabSwitcher.quickSwitch(this, this) }
-        button.holdToChoose(
+        button.holdToChooseTab(dropsBelow = false)
+    }
+
+    /**
+     * The hold both of the viewer's tab buttons answer with the same list. [dropsBelow] is which way
+     * it opens: the bottom bar's button has it above, the toolbar's under.
+     */
+    private fun View.holdToChooseTab(dropsBelow: Boolean) {
+        holdToChoose(
             chooser = binding.tabChooser,
             onOpen = {
+                binding.tabChooser.dropsBelow = dropsBelow
                 binding.tabChooser.setTabs(
                     count = tabCount(),
                     current = currentTabIndex(),
@@ -1415,8 +1426,37 @@ class ViewPagerActivity :
         )
     }
 
+    /**
+     * Hangs the same hold on the toolbar button, where the entry is shown as one rather than waiting
+     * in the drop-down.
+     *
+     * The toolbar builds its own view for a menu item and builds a fresh one whenever what it is
+     * showing changes, so this is asked again on every refresh and binds whichever view is standing
+     * for the item now. Posted because that view does not exist until the menu has been laid out.
+     */
+    private fun bindTabMenuHold(isShown: Boolean) {
+        if (!isShown) {
+            mBoundTabMenuView = null
+            return
+        }
+
+        binding.mediumViewerToolbar.post {
+            val view = binding.mediumViewerToolbar.findViewById<View>(R.id.menu_switch_tab)
+            if (view == null || view === mBoundTabMenuView) {
+                return@post
+            }
+
+            mBoundTabMenuView = view
+            // a tap still goes through performClick, which is how the toolbar invokes the item
+            view.holdToChooseTab(dropsBelow = true)
+        }
+    }
+
     /** The rounded square wearing the number of the tab that is up, for both places it is shown. */
     private fun tabBadge() = TabBadgeDrawable(this).apply { index = currentTabIndex() }
+
+    // whichever view the toolbar is currently standing the tab entry up as, see bindTabMenuHold
+    private var mBoundTabMenuView: View? = null
 
     private fun handleTabChoice(choice: TabChoice) {
         when (choice) {
