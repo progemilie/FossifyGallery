@@ -36,8 +36,9 @@ There is no `app/src/test` or `app/src/androidTest` yet, so `testFossDebugUnitTe
 Lint and Detekt use baseline files to suppress pre-existing issues — new code should not add new
 findings. `.editorconfig` enforces LF, 4-space indent, 160-char max line length.
 
-adb is on PATH for testing in the emulator: emulator-5554, a Pixel_10, API 37, 1080x2424 at
+`adb` is on PATH for testing in the emulator: emulator-5554, a Pixel_10, API 37, 1080x2424 at
 420dpi, with many folders of pictures under /Pictures.
+`emulator` is added to PATH pointing to Android sdk emulator.
 
 ## Architecture
 
