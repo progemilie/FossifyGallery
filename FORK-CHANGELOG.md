@@ -2,6 +2,16 @@
 
 Fork-only changes, newest first. Internal fixes are left out.
 
+## [v1.19.0] - 2026.08.29 — one UI
+
+- **A group can be taken in from its header.** While selecting, every date header carries a tick;
+  tapping it takes that whole day in, and tapping it again lets it go.
+- **Settings is thirteen cards.** Each is shut down to its title and a line saying what is inside
+  until it is tapped, only one is open at a time, and a card that opens below the fold brings itself
+  back into view.
+- The rating, copy/move and tab choosers now open and close with the same short grow-and-fade the
+  three dots' drop-down always had.
+
 ## [v1.18.0] - 2026.08.28 — tabs
 
 - **The app can hold up to three places at once.** A tab remembers a screen, a folder or a photo you had open, and switching to one puts you straight back there.
@@ -145,6 +155,7 @@ Initial fork work, landed over 2026.08.06–08.09 before fork versions were trac
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
 
+[v1.19.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.19.0
 [v1.18.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.18.0
 [v1.17.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.17.0
 [v1.16.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.16.0
