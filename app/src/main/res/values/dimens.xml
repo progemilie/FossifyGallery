@@ -72,9 +72,19 @@
     <dimen name="tab_button_size">34dp</dimen>
     <dimen name="tab_button_gap">8dp</dimen>
     <dimen name="tab_chooser_row_height">48dp</dimen>
-    <dimen name="tab_chooser_row_width">104dp</dimen>
-    <dimen name="tab_chooser_close_width">40dp</dimen>
+    <!-- no wider than the number it holds: the cross that closes a tab is its own circle beside it -->
+    <dimen name="tab_chooser_row_width">56dp</dimen>
     <dimen name="tab_chooser_text_size">17sp</dimen>
+    <!-- that circle, and the gap it is held off the list by -->
+    <dimen name="tab_chooser_close_size">40dp</dimen>
+    <dimen name="tab_chooser_close_gap">10dp</dimen>
+    <dimen name="tab_chooser_close_padding">11dp</dimen>
+    <!-- how far past its own sides the list still answers the finger. it is held open from a button
+         beside it rather than under it, so the finger never comes onto the rows at all -->
+    <dimen name="tab_chooser_side_reach">56dp</dimen>
+    <!-- how far the list is held to the side of the button it hangs off, so that the finger holding
+         that button down rests beside the numbers rather than over them -->
+    <dimen name="tab_chooser_finger_clearance">20dp</dimen>
     <!-- how far under the button the list hangs, where it hangs rather than opening upwards -->
     <dimen name="tab_chooser_drop_gap">8dp</dimen>
     <!-- the rounded square the viewer's tab button wears, with the current tab number inside it -->

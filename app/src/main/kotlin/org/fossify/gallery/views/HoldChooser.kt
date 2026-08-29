@@ -64,21 +64,30 @@ abstract class HoldChooser @JvmOverloads constructor(
     }
 
     protected fun centerOver(button: View) {
+        placeLeftEdgeAt(button.centerX() - width / 2f)
+    }
+
+    /** Where on the screen [button] is across, which is what a chooser places itself against. */
+    protected fun View.centerX(): Float {
+        val location = IntArray(2)
+        getLocationOnScreen(location)
+        return location[0] + width / 2f
+    }
+
+    /** Puts the chooser's left hand edge here on the screen, or as near to it as the margins allow. */
+    protected fun placeLeftEdgeAt(wantedLeft: Float) {
         if (width == 0) {
             return
         }
 
-        val buttonLocation = IntArray(2)
-        button.getLocationOnScreen(buttonLocation)
         val chooserLocation = IntArray(2)
         getLocationOnScreen(chooserLocation)
 
         val untranslatedLeft = chooserLocation[0] - translationX
-        val wanted = buttonLocation[0] + button.width / 2f - width / 2f
         val furthestLeft = resources.getDimensionPixelSize(R.dimen.chooser_edge_margin).toFloat()
         val endMargin = resources.getDimensionPixelSize(endMarginId)
         val furthestRight = maxOf(furthestLeft, (context.realScreenSize.x - width - endMargin).toFloat())
-        translationX = wanted.coerceIn(furthestLeft, furthestRight) - untranslatedLeft
+        translationX = wantedLeft.coerceIn(furthestLeft, furthestRight) - untranslatedLeft
     }
 }
 

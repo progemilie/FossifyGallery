@@ -19,12 +19,16 @@ sealed interface TabChoice {
 }
 
 /**
- * The list of tabs, held open while the tab button is. Rows are the tabs by number, with a last row
- * offering another one while there is room for it.
+ * The list of tabs, held open while the tab button is. Rows are the tabs by number and nothing else,
+ * with a last row offering another one while there is room for it.
  *
- * Closing is behind a dwell: resting on a row long enough grows a cross beside it, which has to be
- * slid onto before letting go. Nothing is closed by hesitating, and a row released on is still the
- * tab switched to. Building and painting the rows is in TabChooserRows.kt.
+ * Closing is behind a dwell: resting on a row long enough grows a [TabCloseButton] beside it, which
+ * has to be slid onto before letting go. Nothing is closed by hesitating, and a row released on is
+ * still the tab switched to. Building and painting the rows is in TabChooserRows.kt.
+ *
+ * The button this is held open from sits *beside* the list rather than under it - on the very end of
+ * a search bar, or along the bottom bar - so the list is kept clear of the finger holding it down
+ * and answers to a reach past its own sides rather than only to what is directly over it.
  */
 class TabChooser @JvmOverloads constructor(
     context: Context,
@@ -36,12 +40,16 @@ class TabChooser @JvmOverloads constructor(
 
     private val rowHeight = resources.getDimensionPixelSize(R.dimen.tab_chooser_row_height)
     private val dropGap = resources.getDimensionPixelSize(R.dimen.tab_chooser_drop_gap)
+    private val closeGap = resources.getDimensionPixelSize(R.dimen.tab_chooser_close_gap)
+    private val sideReach = resources.getDimensionPixelSize(R.dimen.tab_chooser_side_reach)
+    private val fingerClearance = resources.getDimensionPixelSize(R.dimen.tab_chooser_finger_clearance)
+    private val edgeMargin = resources.getDimensionPixelSize(R.dimen.chooser_edge_margin)
     private val rows = LinearLayout(context)
+    private val closeButton = TabCloseButton(context)
 
     private val metrics = TabRowMetrics(
         rowWidth = resources.getDimensionPixelSize(R.dimen.tab_chooser_row_width),
         rowHeight = rowHeight,
-        closeWidth = resources.getDimensionPixelSize(R.dimen.tab_chooser_close_width),
         textSize = resources.getDimension(R.dimen.tab_chooser_text_size),
     )
 
@@ -50,6 +58,7 @@ class TabChooser @JvmOverloads constructor(
 
     private var tabCount = 0
     private var canAddTab = false
+    private var canCloseTabs = false
     private var currentIndex = 0
 
     /** Which row the finger is over, by position so two identical labels cannot both answer to it. */
@@ -70,9 +79,15 @@ class TabChooser @JvmOverloads constructor(
     /** Whether the finger has since moved sideways onto that cross. */
     private var isOnCross = false
 
+    // the cross grows in off the left hand edge of the list, level with the row that armed it
     private val armRunnable = Runnable {
         armedIndex = selectedIndex
         performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        closeButton.growInAt(
+            rightEdge = screenLocation()[0] - closeGap,
+            centreY = rows.screenLocation()[1] + (armedIndex + 0.5f) * rowHeight,
+        )
+
         repaint()
     }
 
@@ -103,29 +118,41 @@ class TabChooser @JvmOverloads constructor(
      * is picked up on opening. The same list wherever the chooser is offered, off one read of it.
      */
     fun fillFromTabs() {
+        // the cross is put beside this panel rather than inside it, a panel being clipped to its own
+        // rounded rect. Left until the list is first asked for, by when the frosting is settled
+        closeButton.attachBeside(this, contentBehind)
+
         val tabList = context.tabs()
         tabCount = tabList.size
         currentIndex = context.currentTabIndexIn(tabList)
         // no last row offering another one once the app is holding as many tabs as it will
         canAddTab = tabCount < MAX_TABS
+        // the last tab left cannot be closed - the app is always looking at something
+        canCloseTabs = tabCount > 1
         selectedIndex = NO_SELECTION
-        armedIndex = NO_SELECTION
-        isOnCross = false
+        disarmClose()
 
         rows.removeAllViews()
-        // the last tab left cannot be closed - the app is always looking at something
-        repeat(tabCount) { rows.addTabRow(label = tabLabel(it), closable = tabCount > 1, metrics = metrics) }
+        repeat(tabCount) { rows.addTabRow(label = tabLabel(it), metrics = metrics) }
         if (canAddTab) {
-            rows.addTabRow(label = "+", closable = false, metrics = metrics)
+            rows.addTabRow(label = "+", metrics = metrics)
         }
 
         repaint()
     }
 
     override fun updateSelectionFor(rawX: Float, rawY: Float) {
+        if (closeButton.isReachedBy(rawX, rawY, verticalSlop = rowHeight / 2f)) {
+            // the cross stands in for the row it grew beside, so a finger that has reached it holds
+            // on to that row rather than picking whatever it has ended up level with
+            setOnCross(true)
+            return
+        }
+
+        setOnCross(false)
         val screenLeft = screenLocation()[0]
-        if (rawX < screenLeft || rawX > screenLeft + width) {
-            // off to one side, which is how the gesture is abandoned
+        if (rawX < screenLeft - sideReach || rawX > screenLeft + width + sideReach) {
+            // out past the reach to one side, which is how the gesture is abandoned
             selectedIndex = NO_SELECTION
             return
         }
@@ -136,13 +163,17 @@ class TabChooser @JvmOverloads constructor(
         } else {
             (offsetInList / rowHeight).toInt().takeIf { it < rows.childCount } ?: NO_SELECTION
         }
-
-        updateCrossReach(rawX)
     }
 
-    /** Hangs under the button where it was told to, and opens over it as usual otherwise. */
+    /**
+     * Sits to the side of its button rather than centred under it - one narrow column of numbers
+     * would be entirely under the finger holding that button down - and never so far over that the
+     * cross has nowhere to grow. Hangs under the button where it was told to, and opens above it
+     * as usual otherwise.
+     */
     override fun position(button: View) {
-        centerOver(button)
+        val roomForCross = (edgeMargin + closeButton.size + closeGap).toFloat()
+        placeLeftEdgeAt((button.centerX() - fingerClearance - width).coerceAtLeast(roomForCross))
         if (!dropsBelow || height == 0) {
             return
         }
@@ -153,26 +184,23 @@ class TabChooser @JvmOverloads constructor(
 
     override fun onChooserClosed() {
         removeCallbacks(armRunnable)
+        closeButton.hide()
     }
 
     private fun isNewTabRow(index: Int) = canAddTab && index == tabCount
 
-    /** Whether the finger has crossed onto the cross of the row it armed. */
-    private fun updateCrossReach(rawX: Float) {
-        val wasOnCross = isOnCross
-        val cross = crossOf(armedIndex)
-        isOnCross = cross != null
-                && selectedIndex == armedIndex
-                && rawX >= cross.screenLocation()[0]
-
-        if (wasOnCross != isOnCross) {
-            repaint()
+    private fun setOnCross(value: Boolean) {
+        if (isOnCross == value) {
+            return
         }
+
+        isOnCross = value
+        closeButton.paint(isUnderFinger = value)
+        repaint()
     }
 
     private fun armCloseIfPossible() {
-        val cross = crossOf(selectedIndex) ?: return
-        if (cross.isEnabled) {
+        if (canCloseTabs && selectedIndex != NO_SELECTION && !isNewTabRow(selectedIndex)) {
             postDelayed(armRunnable, CLOSE_DWELL_MS)
         }
     }
@@ -181,15 +209,10 @@ class TabChooser @JvmOverloads constructor(
         removeCallbacks(armRunnable)
         armedIndex = NO_SELECTION
         isOnCross = false
+        closeButton.hide()
     }
 
-    private fun crossOf(index: Int) = if (index == NO_SELECTION || isNewTabRow(index)) {
-        null
-    } else {
-        rows.tabRowCross(index)
-    }
-
-    private fun repaint() = rows.paintTabRows(selectedIndex, armedIndex, isOnCross, currentIndex)
+    private fun repaint() = rows.paintTabRows(selectedIndex, isOnCross, currentIndex)
 
     private companion object {
         const val NO_SELECTION = -1

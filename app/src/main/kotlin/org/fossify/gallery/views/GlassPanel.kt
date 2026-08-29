@@ -29,7 +29,13 @@ open class GlassPanel @JvmOverloads constructor(
 ) : BlurView(context, attrs, defStyleAttr) {
 
     private var backdrop: BlurViewFacade? = null
-    private var contentBehind: ViewGroup? = null
+
+    /**
+     * What this panel is a copy of, once [frost] has been told. Reachable by a panel that keeps a
+     * second one of its own beside it, which has to be pointed at the same content.
+     */
+    protected var contentBehind: ViewGroup? = null
+        private set
 
     // whether the blur is actually running; false leaves the panel a flat fill
     private var isFrosted = false
