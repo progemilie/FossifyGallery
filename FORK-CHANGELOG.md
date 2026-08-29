@@ -5,11 +5,8 @@ Fork-only changes, newest first. Internal fixes are left out.
 ## [v1.18.0] - 2026.08.28 — tabs
 
 - **The app can hold up to three places at once.** A tab remembers a screen, a folder or a photo you had open, and switching to one puts you straight back there.
-- The button sits on the end of the search bar. Tapping it moves to the next tab, holding it opens the list, and sliding onto a tab and resting there offers to close it.
-- A new tab opens on whatever "Open on startup" names.
 - Tabs are remembered when the app closes. The first one always opens where the app does.
-- The viewer has no search bar, so it offers the same thing as a bottom action, or from the three dots.
-- Off until you turn it on, under Settings.
+- Turn on the setting to access
 
 ## [v1.17.0] - 2026.08.24 — viewer menu
 
