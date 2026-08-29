@@ -93,7 +93,11 @@ import org.fossify.gallery.extensions.updateDBMediaPath
 import org.fossify.gallery.extensions.updateFavorite
 import org.fossify.gallery.extensions.updateFavoritePaths
 import org.fossify.gallery.extensions.updateFilesRating
+import org.fossify.gallery.helpers.clearPanelMotion
 import org.fossify.gallery.helpers.GridZoom
+import org.fossify.gallery.helpers.hidePanel
+import org.fossify.gallery.helpers.PANEL_ENTER_MS
+import org.fossify.gallery.helpers.PANEL_EXIT_MS
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
@@ -102,6 +106,7 @@ import org.fossify.gallery.helpers.ROUNDED_CORNERS_SMALL
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_FAVORITES
 import org.fossify.gallery.helpers.SHOW_RECYCLE_BIN
+import org.fossify.gallery.helpers.showPanel
 import org.fossify.gallery.helpers.SimpleThumbnailLoader
 import org.fossify.gallery.helpers.ThumbnailPrefetcher
 import org.fossify.gallery.helpers.ThumbnailSizes
@@ -275,6 +280,10 @@ class MediaAdapter(
     }
 
     override fun prepareActionMode(menu: Menu) {
+        // upstream invalidates the action mode whenever the count in its title changes, which is the
+        // one place every way of selecting something passes through
+        repaintSectionChecks()
+
         val selectedItems = getSelectedItems()
         if (selectedItems.isEmpty()) {
             return
@@ -349,11 +358,13 @@ class MediaAdapter(
 
     override fun onActionModeCreated() {
         updatePeekButtons(selecting = true)
+        updateSectionChecks(selecting = true)
         onSelectionModeChanged?.invoke(true)
     }
 
     override fun onActionModeDestroyed() {
         updatePeekButtons(selecting = false)
+        updateSectionChecks(selecting = false)
         onSelectionModeChanged?.invoke(false)
     }
 
@@ -1257,6 +1268,120 @@ class MediaAdapter(
         ThumbnailSectionBinding.bind(view).apply {
             thumbnailSection.text = section.title
             thumbnailSection.setTextColor(textColor)
+            // a header recycled out of a shifted one, or out of a tick caught mid fade
+            thumbnailSection.translationX = 0f
+            thumbnailSectionCheck.clearPanelMotion()
+
+            val selecting = isSelecting()
+            thumbnailSectionCheck.beVisibleIf(selecting)
+            thumbnailSectionCheck.isClickable = selecting
+            if (selecting) {
+                paintSectionCheck(thumbnailSectionCheck, isWholeGroupSelected(view.groupRange()))
+                // asked of the grid at the moment of the tap rather than bound in: a header outlives
+                // several positions as the list is scrolled past it
+                thumbnailSectionCheck.setOnClickListener { toggleGroup(view.groupRange()) }
+            }
+        }
+    }
+
+    /**
+     * The items under this group's header, or an empty range for anything that is not one. Read off
+     * the grid rather than off a position handed in at bind time, which a recycled header outlives.
+     */
+    private fun View.groupRange(): IntRange {
+        val header = recyclerView.getChildAdapterPosition(this)
+        if (header == RecyclerView.NO_POSITION || !isASectionTitle(header)) {
+            return IntRange.EMPTY
+        }
+
+        var last = header
+        while (last + 1 < media.size && media[last + 1] is Medium) {
+            last++
+        }
+
+        return (header + 1)..last
+    }
+
+    private fun isWholeGroupSelected(group: IntRange) =
+        !group.isEmpty() && group.all { selectedKeys.contains(getItemSelectionKey(it)) }
+
+    /**
+     * Takes the whole group in, or lets the whole group go when it was already in. Upstream's own
+     * toggle does the work, exactly as [applySelection] leans on it - only the last of them redraws
+     * the title, and letting go of a group that was the entire selection ends the mode with it.
+     */
+    private fun toggleGroup(group: IntRange) {
+        if (group.isEmpty()) {
+            return
+        }
+
+        val select = !isWholeGroupSelected(group)
+        group.forEachIndexed { index, position ->
+            toggleItemSelection(select, position, index == group.count() - 1)
+        }
+    }
+
+    private fun paintSectionCheck(check: ImageView, selected: Boolean) {
+        if (selected) {
+            check.setBackgroundResource(R.drawable.circle_background)
+            check.setImageResource(org.fossify.commons.R.drawable.ic_check_vector)
+            check.background?.applyColorFilter(properPrimaryColor)
+            check.applyColorFilter(contrastColor)
+        } else {
+            check.setBackgroundResource(R.drawable.circle_outline)
+            check.setImageDrawable(null)
+            check.background?.applyColorFilter(textColor)
+        }
+    }
+
+    /** Brings every header on screen in line with what is currently selected under it. */
+    private fun repaintSectionChecks() {
+        if (!isSelecting()) {
+            return
+        }
+
+        for (i in 0 until recyclerView.childCount) {
+            val header = recyclerView.getChildAt(i) ?: continue
+            val check = header.findViewById<ImageView>(R.id.thumbnail_section_check) ?: continue
+            paintSectionCheck(check, isWholeGroupSelected(header.groupRange()))
+        }
+    }
+
+    /**
+     * Puts the group ticks up or away on the headers already on screen, alongside [updatePeekButtons]
+     * and for the same reason. The title slides the tick's own width out of the way rather than
+     * jumping: the layout has already made room by the time this runs, so the title is carried back
+     * to where it was and let go of.
+     */
+    private fun updateSectionChecks(selecting: Boolean) {
+        val shift = resources.getDimensionPixelSize(R.dimen.selection_check_size) +
+            resources.getDimensionPixelSize(R.dimen.section_check_gap)
+
+        for (i in 0 until recyclerView.childCount) {
+            val header = recyclerView.getChildAt(i) ?: continue
+            val check = header.findViewById<ImageView>(R.id.thumbnail_section_check) ?: continue
+            val title = header.findViewById<View>(R.id.thumbnail_section) ?: continue
+            check.isClickable = selecting
+            title.animate().cancel()
+            if (selecting) {
+                paintSectionCheck(check, isWholeGroupSelected(header.groupRange()))
+                check.setOnClickListener { toggleGroup(header.groupRange()) }
+                check.showPanel()
+                // the tick takes its place the moment it is VISIBLE, so the title is already where
+                // it is going to end up and only has to be carried back and let go of
+                title.translationX = -shift.toFloat()
+                title.animate().translationX(0f).setDuration(PANEL_ENTER_MS).start()
+            } else {
+                // going the other way the tick holds its place until it is GONE, so the title walks
+                // to where the layout is about to put it. The one end action settles both, the
+                // title's own animator being cancelled rather than raced: two of them writing the
+                // same translation leaves whichever finishes last with the final say
+                title.animate().translationX(-shift.toFloat()).setDuration(PANEL_EXIT_MS).start()
+                check.hidePanel(onGone = {
+                    title.animate().cancel()
+                    title.translationX = 0f
+                })
+            }
         }
     }
 
