@@ -270,7 +270,10 @@ paints an opaque band under its own bar.
   measured height, which already carries the status bar inset. Doing it in the layout double-counts.
 - **Frosted glass** — `helpers/Glass.kt` holds every colour and radius, `views/GlassPanel.kt` is the
   `BlurView` that wears it. A panel is told what to copy with `frost(contentBehind)`, which need not
-  be an ancestor, and paints itself flat below Android 12.
+  be an ancestor, and paints itself flat below Android 12. **Every panel comes and goes through
+  `helpers/PanelAnim.kt`'s `showPanel`/`hidePanel`** — one `PanelMotion` named at the one call site,
+  matched to the platform drop-down animation `GlassMenu`'s popup still gets for free. Nothing there
+  touches translation: a panel places itself against its anchor with it.
 
 ## Style
 
