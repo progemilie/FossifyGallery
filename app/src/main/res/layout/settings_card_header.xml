@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/settings_card_header"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:paddingStart="@dimen/settings_label_start_margin"
+    android:paddingTop="@dimen/normal_margin"
+    android:paddingEnd="@dimen/settings_label_start_margin"
+    android:paddingBottom="@dimen/normal_margin">
+
+    <ImageView
+        android:id="@+id/settings_card_chevron"
+        android:layout_width="@dimen/normal_icon_size"
+        android:layout_height="@dimen/normal_icon_size"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_chevron_down_vector" />
+
+    <org.fossify.commons.views.MyTextView
+        android:id="@+id/settings_card_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_toStartOf="@id/settings_card_chevron"
+        android:textSize="@dimen/bigger_text_size"
+        android:textStyle="bold"
+        tools:text="Thumbnails" />
+
+    <org.fossify.commons.views.MyTextView
+        android:id="@+id/settings_card_description"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/settings_card_title"
+        android:layout_marginTop="@dimen/tiny_margin"
+        android:layout_toStartOf="@id/settings_card_chevron"
+        tools:text="Cropping, animated GIFs and what a thumbnail shows" />
+</RelativeLayout>

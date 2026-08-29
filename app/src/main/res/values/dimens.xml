@@ -7,6 +7,11 @@
     <dimen name="favorite_list_icon_size">17dp</dimen>
     <dimen name="selection_check_size">26dp</dimen>
 
+    <dimen name="settings_card_corner_radius">16dp</dimen>
+    <dimen name="settings_card_elevation">2dp</dimen>
+    <dimen name="settings_card_gap">8dp</dimen>
+    <dimen name="settings_card_margin">12dp</dimen>
+
     <!-- between a group header's tick and its title, and how far the title slides for it -->
     <dimen name="section_check_gap">12dp</dimen>
     <dimen name="drag_handle_size">34dp</dimen>

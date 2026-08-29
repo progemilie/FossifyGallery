@@ -2,6 +2,13 @@
 
     <style name="AppTheme" parent="AppTheme.Base" />
 
+    <!-- one section of the settings screen; see org.fossify.gallery.views.SettingsCard -->
+    <style name="SettingsCardStyle">
+        <item name="android:layout_marginStart">@dimen/settings_card_margin</item>
+        <item name="android:layout_marginTop">@dimen/settings_card_gap</item>
+        <item name="android:layout_marginEnd">@dimen/settings_card_margin</item>
+    </style>
+
     <style name="CustomBottomSheetDialogTheme" parent="Theme.Design.Light.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/CustomBottomSheetStyle</item>
     </style>

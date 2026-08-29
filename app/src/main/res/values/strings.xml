@@ -413,4 +413,19 @@
         Haven't found some strings? There's more at
         https://github.com/FossifyOrg/Commons/tree/master/commons/src/main/res
     -->
+
+    <!-- what a settings card says of itself while it is shut -->
+    <string name="settings_color_customization_summary">App colors and the frosted glass chrome</string>
+    <string name="settings_general_summary">Language, startup, tabs and which folders are shown</string>
+    <string name="settings_videos_summary">Autoplay, looping, gestures and what a tap does</string>
+    <string name="settings_thumbnails_summary">Cropping, animated GIFs and what a thumbnail shows</string>
+    <string name="settings_scrolling_summary">Which way the grids scroll, and pull to refresh</string>
+    <string name="settings_fullscreen_media_summary">Brightness, rotation, gestures and the system bars</string>
+    <string name="settings_deep_zoomable_images_summary">Zooming, rotating and image quality in the viewer</string>
+    <string name="settings_extended_details_summary">The details drawn over a photo in the viewer</string>
+    <string name="settings_security_summary">Password protection for the app and its hidden items</string>
+    <string name="settings_file_operations_summary">Deleting, empty folders and keeping timestamps</string>
+    <string name="settings_bottom_actions_summary">The row of buttons under a fullscreen photo</string>
+    <string name="settings_recycle_bin_summary">Where deleted files go, and emptying it</string>
+    <string name="settings_migrating_summary">Import and export settings, favorites and arrangements</string>
 </resources>

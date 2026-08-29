@@ -12,12 +12,15 @@ import org.fossify.commons.dialogs.*
 import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.*
 import org.fossify.commons.models.RadioItem
+import androidx.core.view.children
 import org.fossify.gallery.R
 import org.fossify.gallery.databinding.ActivitySettingsBinding
 import org.fossify.gallery.dialogs.*
 import org.fossify.gallery.extensions.*
 import org.fossify.gallery.helpers.*
 import org.fossify.gallery.models.AlbumCover
+import org.fossify.gallery.views.SettingsCard
+import org.fossify.gallery.views.makeAccordion
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -118,22 +121,39 @@ class SettingsActivity : SimpleActivity() {
         setupExportSettings()
         setupImportSettings()
 
-        arrayOf(
-            binding.settingsColorCustomizationSectionLabel,
-            binding.settingsGeneralSettingsLabel,
-            binding.settingsVideosLabel,
-            binding.settingsThumbnailsLabel,
-            binding.settingsScrollingLabel,
-            binding.settingsFullscreenMediaLabel,
-            binding.settingsDeepZoomableImagesLabel,
-            binding.settingsExtendedDetailsLabel,
-            binding.settingsSecurityLabel,
-            binding.settingsFileOperationsLabel,
-            binding.settingsBottomActionsLabel,
-            binding.settingsRecycleBinLabel,
-            binding.settingsMigratingLabel
-        ).forEach {
-            it.setTextColor(getProperPrimaryColor())
+        setupCards()
+    }
+
+    /**
+     * The sections, each shut down to its title and a line saying what is inside, and only one of
+     * them open at a time. Found by walking the holder rather than named one by one: the layout is
+     * where the sections are decided, and a card added there wants nothing here to go with it.
+     *
+     * Run after [updateTextColors], which paints every label on the screen and would otherwise take
+     * the titles down to the ordinary text colour with them.
+     */
+    private fun setupCards() {
+        val cards = binding.settingsHolder.children.filterIsInstance<SettingsCard>().toList()
+        cards.forEach {
+            it.updateColors()
+            it.onOpenSettled = ::revealCard
+        }
+
+        cards.makeAccordion()
+    }
+
+    /**
+     * Brings a card that has just grown past the foot of the screen back into view, by the least
+     * that will do it: a card already showing in full is not moved at all, and one too tall to fit
+     * is brought no further than its own title, which would otherwise be the first thing to go.
+     */
+    private fun revealCard(card: SettingsCard) {
+        val scroller = binding.settingsNestedScrollview
+        val hidden = card.bottom - (scroller.scrollY + scroller.height - scroller.paddingBottom)
+        val roomAboveIt = card.top - scroller.scrollY
+        val scrollBy = minOf(hidden, roomAboveIt)
+        if (scrollBy > 0) {
+            scroller.smoothScrollBy(0, scrollBy)
         }
     }
 
