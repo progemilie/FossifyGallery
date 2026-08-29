@@ -8,12 +8,14 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import androidx.annotation.DimenRes
-import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beInvisible
-import org.fossify.commons.extensions.beVisible
-import org.fossify.commons.extensions.isGone
 import org.fossify.commons.extensions.realScreenSize
 import org.fossify.gallery.R
+import org.fossify.gallery.helpers.PanelMotion
+import org.fossify.gallery.helpers.PanelPivot
+import org.fossify.gallery.helpers.clearPanelMotion
+import org.fossify.gallery.helpers.hidePanel
+import org.fossify.gallery.helpers.showPanel
 
 /**
  * A picker that opens over a bottom action button while it is held, is driven by the same finger
@@ -39,15 +41,37 @@ abstract class HoldChooser @JvmOverloads constructor(
     /** The chooser is going away, for anything a subclass has running while it is up. */
     protected open fun onChooserClosed() = Unit
 
-    /** GONE rather than not-VISIBLE, since a chooser spends its first frame laid out but not drawn. */
-    val isChooserUp get() = !isGone()
+    /** How this chooser comes and goes. See [PanelMotion]. */
+    var motion = PanelMotion.GROW
+
+    // whether the finger is still driving this chooser, which stops the moment it is closed rather
+    // than when it finishes leaving - the button it hangs off may be pressed again before the fade
+    // is over, and a chooser still fading counts as gone
+    private var isOpen = false
+
+    // where the last reveal grew the chooser out of, so it goes back into the same place
+    private var openPivot = PanelPivot.CENTER
+
+    /** Whether the chooser is up and being read from. */
+    val isChooserUp get() = isOpen
 
     /** Lays the chooser out unseen, positions it over [button] and only then draws it. */
     fun revealOver(button: View) {
+        isOpen = true
+        animate().cancel()
         beInvisible()
         post {
+            // a hold let go of inside the one frame this waits for
+            if (!isOpen) {
+                return@post
+            }
+
+            // placed untransformed: a chooser caught still leaving would otherwise be positioned by
+            // its shrunken self, and the pivot worked out off the wrong rectangle
+            clearPanelMotion()
             position(button)
-            beVisible()
+            openPivot = PanelPivot.over(this, button)
+            showPanel(motion, openPivot)
         }
     }
 
@@ -59,8 +83,13 @@ abstract class HoldChooser @JvmOverloads constructor(
     protected open fun position(button: View) = centerOver(button)
 
     fun close() {
+        if (!isOpen) {
+            return
+        }
+
+        isOpen = false
         onChooserClosed()
-        beGone()
+        hidePanel(motion, openPivot)
     }
 
     protected fun centerOver(button: View) {
