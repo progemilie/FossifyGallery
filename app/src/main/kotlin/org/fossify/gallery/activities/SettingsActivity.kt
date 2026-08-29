@@ -60,6 +60,7 @@ class SettingsActivity : SimpleActivity() {
         setupLanguage()
         setupChangeDateTimeFormat()
         setupOpenOnStartup()
+        setupTabs()
         setupFileLoadingPriority()
         setupManageIncludedFolders()
         setupManageExcludedFolders()
@@ -258,6 +259,19 @@ class SettingsActivity : SimpleActivity() {
     private fun saveStartupTarget(target: String) {
         config.defaultFolder = target
         binding.settingsOpenOnStartup.text = startupTargetLabel(target)
+    }
+
+    /**
+     * Turning tabs off puts every screen back the way it was - the button leaves the search bar,
+     * the bar goes back to full width, and the bottom action and its menu twin both go. The tabs
+     * themselves are left on file rather than thrown away, so turning it back on finds them.
+     */
+    private fun setupTabs() {
+        binding.settingsTabs.isChecked = config.tabsEnabled
+        binding.settingsTabsHolder.setOnClickListener {
+            binding.settingsTabs.toggle()
+            config.tabsEnabled = binding.settingsTabs.isChecked
+        }
     }
 
     private fun setupFileLoadingPriority() {
@@ -1126,6 +1140,7 @@ class SettingsActivity : SimpleActivity() {
                 put(SHOW_THUMBNAIL_FILE_TYPES, config.showThumbnailFileTypes)
                 put(MARK_FAVORITE_ITEMS, config.markFavoriteItems)
                 put(GLASS_UI, config.glassUI)
+                put(TABS_ENABLED, config.tabsEnabled)
                 put(SCROLL_HORIZONTALLY, config.scrollHorizontally)
                 put(ENABLE_PULL_TO_REFRESH, config.enablePullToRefresh)
                 put(MAX_BRIGHTNESS, config.maxBrightness)
@@ -1273,6 +1288,7 @@ class SettingsActivity : SimpleActivity() {
                 SHOW_THUMBNAIL_FILE_TYPES -> config.showThumbnailFileTypes = value.toBoolean()
                 MARK_FAVORITE_ITEMS -> config.markFavoriteItems = value.toBoolean()
                 GLASS_UI -> config.glassUI = value.toBoolean()
+                TABS_ENABLED -> config.tabsEnabled = value.toBoolean()
                 SCROLL_HORIZONTALLY -> config.scrollHorizontally = value.toBoolean()
                 ENABLE_PULL_TO_REFRESH -> config.enablePullToRefresh = value.toBoolean()
                 MAX_BRIGHTNESS -> config.maxBrightness = value.toBoolean()

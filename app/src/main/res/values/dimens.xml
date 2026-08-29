@@ -68,6 +68,33 @@
          otherwise put their chooser against the screen edge -->
     <dimen name="folder_chooser_end_margin">60dp</dimen>
 
+    <!-- the tab button worn on the end of the search bar, and the list it holds open -->
+    <dimen name="tab_button_size">34dp</dimen>
+    <dimen name="tab_button_gap">8dp</dimen>
+    <dimen name="tab_chooser_row_height">48dp</dimen>
+    <!-- no wider than the number it holds: the cross that closes a tab is its own circle beside it -->
+    <dimen name="tab_chooser_row_width">56dp</dimen>
+    <dimen name="tab_chooser_text_size">17sp</dimen>
+    <!-- that circle, and the gap it is held off the list by -->
+    <dimen name="tab_chooser_close_size">40dp</dimen>
+    <dimen name="tab_chooser_close_gap">10dp</dimen>
+    <dimen name="tab_chooser_close_padding">11dp</dimen>
+    <!-- how far past its own sides the list still answers the finger. it is held open from a button
+         beside it rather than under it, so the finger never comes onto the rows at all -->
+    <dimen name="tab_chooser_side_reach">56dp</dimen>
+    <!-- how far the list is held to the side of the button it hangs off, so that the finger holding
+         that button down rests beside the numbers rather than over them -->
+    <dimen name="tab_chooser_finger_clearance">20dp</dimen>
+    <!-- how far under the button the list hangs, where it hangs rather than opening upwards -->
+    <dimen name="tab_chooser_drop_gap">8dp</dimen>
+    <!-- the rounded square the viewer's tab button wears, with the current tab number inside it -->
+    <dimen name="tab_badge_size">24dp</dimen>
+    <!-- the search bar's button draws the square a shade smaller, to sit inside its glass circle -->
+    <dimen name="tab_button_badge_size">22dp</dimen>
+    <dimen name="tab_badge_corner_radius">5dp</dimen>
+    <dimen name="tab_badge_stroke">2dp</dimen>
+    <dimen name="tab_badge_text_size">13sp</dimen>
+
     <!-- taller than wide, the way the photos themselves usually are -->
     <dimen name="viewer_strip_thumbnail_width">35dp</dimen>
     <dimen name="viewer_strip_thumbnail_height">40dp</dimen>

@@ -131,7 +131,10 @@ data class PickRequest(
     val any: Boolean = false,
     val wallpaper: Boolean = false,
     val allowMultiple: Boolean = false,
-)
+) {
+    /** Whether the grid is up for another app to pick something out of rather than to be browsed. */
+    val isPicking get() = image || video || any || wallpaper
+}
 
 private const val LAST_MEDIA_CHECK_PERIOD = 3000L
 
@@ -260,6 +263,30 @@ class MediaGridPane(
 
     /** Whether an arrangement is being made, which takes the bottom of the screen over. */
     val isReordering get() = mIsReordering
+
+    /**
+     * Opens the viewer on [path] straight away, which is what a tab sitting on a file asks for.
+     *
+     * Deliberately not held back until this grid has its media: the viewer fetches its own either
+     * way, and waiting only means showing a grid the tab was never on for as long as the scan
+     * takes. The grid still loads behind it, ready to be come back out onto.
+     */
+    fun openViewer(path: String) {
+        mWasFullscreenViewOpen = true
+        viewerReturn.opening(path)
+        openInViewPager(path)
+    }
+
+    /** Where a tab left this grid, put back on the pass that fills it. */
+    fun restoreScrollTo(path: String, offset: Int) {
+        mGridPositionToRestore = MediaGridNavigator.GridPosition(path, offset)
+    }
+
+    /** Where the grid is sitting, for the tab that is up to remember it by. */
+    fun currentGridPosition(): Pair<String, Int>? {
+        val position = getMediaAdapter()?.gridNavigator?.currentPosition() ?: return null
+        return position.path to position.offset
+    }
 
     /** Whether a selection is on, which the pill must not be able to navigate away from. */
     val isSelecting get() = mIsSelecting

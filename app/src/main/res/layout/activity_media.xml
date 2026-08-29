@@ -26,4 +26,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
+    <!-- hangs under the tab button on the end of the bar, which is where it is nudged to at runtime -->
+    <org.fossify.gallery.views.TabChooser
+        android:id="@+id/tab_chooser"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:visibility="gone" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

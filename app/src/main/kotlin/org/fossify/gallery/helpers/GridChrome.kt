@@ -5,6 +5,7 @@ import org.fossify.commons.views.MySearchMenu
 import org.fossify.gallery.interfaces.GridPane
 import org.fossify.gallery.views.GlassMenu
 import org.fossify.gallery.views.NavPill
+import org.fossify.gallery.views.TabChooser
 
 /**
  * The chrome a browsing screen floats over its content - the search bar and, on the two top level
@@ -18,8 +19,12 @@ class GridChrome(
     val topBar: MySearchMenu,
     private val contentBehind: ViewGroup,
     val navPill: NavPill? = null,
+    tabChooser: TabChooser? = null,
 ) {
     val floatingTopBar = FloatingTopBar(topBar, contentBehind)
+
+    /** The tab button worn on the end of the bar, where the screen has a chooser for it to open. */
+    val tabBar = tabChooser?.let { TabBar(topBar, it) }
 
     private var pane: GridPane? = null
 
@@ -75,6 +80,8 @@ class GridChrome(
     fun updateColors() {
         topBar.updateColors()
         floatingTopBar.makeFloating()
+        // behind the lifting above, which is what leaves the bar with room to hang a button off
+        tabBar?.apply(contentBehind)
         navPill?.updateColors()
     }
 

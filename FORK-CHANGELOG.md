@@ -2,6 +2,12 @@
 
 Fork-only changes, newest first. Internal fixes are left out.
 
+## [v1.18.0] - 2026.08.28 — tabs
+
+- **The app can hold up to three places at once.** A tab remembers a screen, a folder or a photo you had open, and switching to one puts you straight back there.
+- Tabs are remembered when the app closes. The first one always opens where the app does.
+- Turn on the setting to access
+
 ## [v1.17.0] - 2026.08.24 — viewer menu
 
 - **The viewer's drop-down opens short.** An arrow beside Settings unfolds the rest of it.
@@ -139,6 +145,7 @@ Initial fork work, landed over 2026.08.06–08.09 before fork versions were trac
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
 
+[v1.18.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.18.0
 [v1.17.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.17.0
 [v1.16.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.16.0
 [v1.15.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.15.0

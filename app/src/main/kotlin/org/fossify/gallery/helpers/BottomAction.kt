@@ -94,6 +94,10 @@ val ALL_BOTTOM_ACTIONS = listOf(
         BOTTOM_ACTION_RESIZE, R.id.bottom_resize,
         commonsR.string.resize, R.drawable.ic_minimize_vector
     ),
+    BottomAction(
+        BOTTOM_ACTION_TABS, R.id.bottom_tabs,
+        R.string.switch_tab, R.drawable.ic_tabs_vector
+    ),
 )
 
 /**

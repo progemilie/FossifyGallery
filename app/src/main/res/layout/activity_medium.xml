@@ -51,6 +51,14 @@
         android:layout_marginBottom="@dimen/small_margin"
         android:visibility="gone" />
 
+    <org.fossify.gallery.views.TabChooser
+        android:id="@+id/tab_chooser"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/bottom_chrome"
+        android:layout_marginBottom="@dimen/small_margin"
+        android:visibility="gone" />
+
     <ImageView
         android:id="@+id/top_shadow"
         android:layout_width="match_parent"
