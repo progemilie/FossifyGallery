@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.allViews
 import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
@@ -218,7 +219,8 @@ class MediaAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = when {
-            viewType == ITEM_SECTION -> ThumbnailSectionBinding.inflate(layoutInflater, parent, false)
+            viewType == ITEM_SECTION ->
+                ThumbnailSectionBinding.inflate(layoutInflater, parent, false).also { it.sinkCheckIntoPadding() }
             viewType == ITEM_MEDIUM_SIMPLE -> PhotoItemGridSimpleBinding.inflate(layoutInflater, parent, false)
             isListViewType -> {
                 if (viewType == ITEM_MEDIUM_PHOTO) {
@@ -1318,6 +1320,23 @@ class MediaAdapter(
         val select = !isWholeGroupSelected(group)
         group.forEachIndexed { index, position ->
             toggleItemSelection(select, position, index == group.count() - 1)
+        }
+    }
+
+    /**
+     * Lets the tick be taller than the line of text beside it without the header growing to hold it.
+     * Read off the text rather than fixed, since how tall a line is follows the font scale, and set
+     * once per header built - a margin written during a bind would ask for a layout every time one
+     * scrolled past.
+     *
+     * The tick then hangs a few pixels into padding many times that size, so nothing is ever seen to
+     * overflow. Without this a selection starting would push every row of the grid down with it.
+     */
+    private fun ThumbnailSectionBinding.sinkCheckIntoPadding() {
+        val overhang = resources.getDimensionPixelSize(R.dimen.selection_check_size) - thumbnailSection.lineHeight
+        thumbnailSectionCheck.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            topMargin = -(overhang / 2).coerceAtLeast(0)
+            bottomMargin = topMargin
         }
     }
 
