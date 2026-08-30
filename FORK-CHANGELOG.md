@@ -10,7 +10,11 @@ Fork-only changes, newest first. Internal fixes are left out.
   until it is tapped, only one is open at a time, and a card that opens below the fold brings itself
   back into view.
 - The rating, copy/move and tab choosers now open and close with the same short grow-and-fade the
-  three dots' drop-down always had.
+  three dots' drop-down always had, and swell whatever letting go would pick.
+- Settings cards carry an icon, a hairline between one setting and the next, a smaller arrow and
+  smaller switches - and the screen opens in a third of the time it did.
+- The search bar names the folder you are in rather than offering to search in it.
+- The search pill steps aside while a folder is being arranged by hand.
 
 ## [v1.18.0] - 2026.08.28 — tabs
 
