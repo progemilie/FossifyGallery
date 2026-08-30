@@ -7,6 +7,16 @@
     <dimen name="favorite_list_icon_size">17dp</dimen>
     <dimen name="selection_check_size">26dp</dimen>
 
+    <!--
+        Material draws its switch from these three, so overriding them here is what takes every
+        switch in the app down a notch - a column of settings should read as a column of labels
+        with a control beside each, not as a column of controls. 52x32 and a 32 thumb are the
+        library's own.
+    -->
+    <dimen name="mtrl_switch_track_width">46dp</dimen>
+    <dimen name="mtrl_switch_track_height">28dp</dimen>
+    <dimen name="mtrl_switch_thumb_size">28dp</dimen>
+
     <!-- smaller than commons' normal_icon_size, which next to one line of text is a slab -->
     <dimen name="settings_card_chevron_size">36dp</dimen>
     <dimen name="settings_card_icon_size">24dp</dimen>
