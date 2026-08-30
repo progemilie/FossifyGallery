@@ -10,6 +10,7 @@ import android.widget.TextView
 import androidx.appcompat.view.ActionMode
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.children
+import org.fossify.gallery.R
 import org.fossify.gallery.views.GlassMenu
 import org.fossify.gallery.views.SelectionPills
 
@@ -169,7 +170,9 @@ class SelectionChrome(
             pills.setCount((custom as? TextView)?.text ?: titleText)
 
             val visible = backingMenu.children.filter { it.isVisible }.toList()
-            val buttons = visible.filter { it.icon != null && it.subMenu == null }
+            val buttons = visible.filter {
+                it.icon != null && it.subMenu == null && it.itemId !in MENU_ONLY_ACTIONS
+            }
             val shown = if (visible.size <= MAX_ACTIONS && buttons.size == visible.size) {
                 buttons
             } else {
@@ -190,5 +193,11 @@ class SelectionChrome(
          * width of the navigation pill it stands in place of; the rest go behind the menu segment.
          */
         const val MAX_ACTIONS = 5
+
+        /**
+         * Kept behind the menu segment however much room the row has: the mirror rewrites every
+         * selected file in place, which is not something a stray tap should reach.
+         */
+        val MENU_ONLY_ACTIONS = setOf(R.id.cab_mirror)
     }
 }
