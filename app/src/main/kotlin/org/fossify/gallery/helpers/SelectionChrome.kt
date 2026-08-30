@@ -187,13 +187,16 @@ class SelectionChrome(
          * navigation pill it stands in place of.
          *
          * Confirming leads them because it is the whole point of the selection it appears in -
-         * somebody else's app waiting on a picture - and it is up nowhere else.
+         * somebody else's app waiting on a picture - and it is up nowhere else. Pinning is only
+         * ever up on the folder grid, which has no share of its own for it to lengthen the row past.
          */
         val PILL_ACTIONS = listOf(
             R.id.cab_confirm_selection,
             R.id.cab_delete,
             R.id.cab_share,
             R.id.cab_properties,
+            R.id.cab_pin,
+            R.id.cab_unpin,
         )
     }
 }
