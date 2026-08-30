@@ -9,6 +9,7 @@ import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.Glass
+import org.fossify.gallery.helpers.markChosen
 import org.fossify.gallery.helpers.XmpRating
 import kotlin.math.ceil
 
@@ -52,6 +53,8 @@ class RatingChooser @JvmOverloads constructor(
         }
 
         row.orientation = LinearLayout.HORIZONTAL
+        // the star the finger is at is drawn a little bigger than its own bounds
+        row.clipChildren = false
         addView(row, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
 
         clearSlot = ImageView(context).apply {
@@ -115,6 +118,8 @@ class RatingChooser @JvmOverloads constructor(
     private fun updateIcons() {
         val idleColor = Glass.contentColor(context).adjustAlpha(IDLE_ICON_ALPHA)
         clearSlot.applyColorFilter(if (rating == 0) Glass.contentColor(context) else idleColor)
+        // the star the finger is at is the rating; the block stands in for it when there is none
+        clearSlot.markChosen(rating == 0)
         val filledColor = Glass.readableOnGlass(context, ContextCompat.getColor(context, R.color.star_enabled))
 
         stars.forEachIndexed { index, star ->
@@ -128,6 +133,7 @@ class RatingChooser @JvmOverloads constructor(
             )
 
             star.applyColorFilter(if (isFilled) filledColor else idleColor)
+            star.markChosen(index == rating - 1)
         }
     }
 }

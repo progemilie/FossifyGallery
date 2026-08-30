@@ -17,6 +17,7 @@ import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.Glass
 import org.fossify.gallery.helpers.MAX_VISIBLE_QUICK_CHOOSER_FOLDERS
+import org.fossify.gallery.helpers.markChosen
 import org.fossify.commons.R as commonsR
 
 /** A folder the quick chooser can copy or move to. */
@@ -77,6 +78,8 @@ class FolderChooser @JvmOverloads constructor(
         column.addView(scrollUp)
 
         rows.orientation = LinearLayout.VERTICAL
+        // the row the finger is over is drawn a little bigger than its own bounds
+        rows.clipChildren = false
         scroller.apply {
             isVerticalScrollBarEnabled = false
             overScrollMode = OVER_SCROLL_NEVER
@@ -200,6 +203,7 @@ class FolderChooser @JvmOverloads constructor(
             val isSelected = index == selectedIndex
             row.setBackgroundResource(if (isSelected) R.drawable.chooser_row_selected else 0)
             row.background?.setTint(highlight)
+            row.markChosen(isSelected)
             row.setTextColor(if (isSelected) highlight.getContrastColor() else Glass.contentColor(context))
         }
     }

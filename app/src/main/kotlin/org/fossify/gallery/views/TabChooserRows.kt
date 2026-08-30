@@ -11,6 +11,7 @@ import org.fossify.commons.extensions.getContrastColor
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.Glass
+import org.fossify.gallery.helpers.markChosen
 
 /**
  * Building and painting [TabChooser]'s rows, split out of it to stay under detekt's function count
@@ -52,6 +53,7 @@ internal fun LinearLayout.paintTabRows(selectedIndex: Int, isOnCross: Boolean, c
 
         row.setBackgroundResource(if (wearsPlate) R.drawable.chooser_row_selected else 0)
         row.background?.setTint(highlight)
+        row.markChosen(wearsPlate)
         row.setTextColor(if (wearsPlate) highlight.getContrastColor() else content)
         row.setTypeface(null, if (index == currentIndex) Typeface.BOLD else Typeface.NORMAL)
     }

@@ -130,6 +130,36 @@ fun View.hidePanel(
         .start()
 }
 
+// how much bigger the thing a finger is currently over is drawn than the rest of the list, and how
+// long it takes to swell. Small and quick: this is the answer to a finger still moving, and anything
+// slower would still be catching up as it passed the next one
+private const val CHOICE_SWELL = 1.12f
+private const val CHOICE_MS = 120L
+
+/**
+ * Swells this into the thing that would be picked if the finger let go now, or lets it settle back.
+ * The one gesture every chooser held open over a button answers with - the row of stars, the folder
+ * list, the tabs - so all three swell by the same amount over the same time.
+ *
+ * A scale is a draw and not a layout, so nothing beside it moves to make room. Rows already where
+ * they belong are left alone rather than re-animated, these being repainted in full every time the
+ * finger crosses from one to the next.
+ */
+fun View.markChosen(chosen: Boolean) {
+    val target = if (chosen) CHOICE_SWELL else 1f
+    if (scaleX == target) {
+        return
+    }
+
+    animate().cancel()
+    animate()
+        .scaleX(target)
+        .scaleY(target)
+        .setDuration(CHOICE_MS)
+        .setInterpolator(enterCurve())
+        .start()
+}
+
 /** Puts the panel back the way an untouched one looks, for anything measuring or placing it. */
 fun View.clearPanelMotion() {
     alpha = 1f
