@@ -6,6 +6,8 @@ import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -141,8 +143,20 @@ class FolderChooser @JvmOverloads constructor(
         }
     }
 
-    private fun buildRow(folder: QuickFolder) = TextView(context).apply {
+    /**
+     * Two views rather than one: the plate is the outer, which stays exactly the size of its row,
+     * and the name is the inner, which is what swells when the finger reaches it. Swelling the
+     * plate instead would draw it bigger than the row it belongs to, rounded corners and all.
+     */
+    private fun buildRow(folder: QuickFolder) = FrameLayout(context).apply {
         layoutParams = LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, rowHeight)
+        // so a swollen name is not cut off at the edge of the plate it is sitting on
+        clipChildren = false
+        addView(buildLabel(folder))
+    }
+
+    private fun buildLabel(folder: QuickFolder) = TextView(context).apply {
+        layoutParams = FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT)
         text = folder.name
         gravity = Gravity.CENTER_VERTICAL
         isSingleLine = true
@@ -152,6 +166,10 @@ class FolderChooser @JvmOverloads constructor(
         setTextColor(Glass.contentColor(context))
         setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize)
         setPadding(rowPadding, 0, rowPadding, 0)
+        // grown out of where the name starts rather than out of the middle of the row: a name left
+        // aligned in a row as wide as the list would otherwise swell off the front of it
+        pivotX = 0f
+        pivotY = rowHeight / 2f
     }
 
     /** Re-reads what the finger at [rawX], [rawY] is over, starting or stopping the edge scroll to match. */
@@ -199,12 +217,13 @@ class FolderChooser @JvmOverloads constructor(
     private fun updateRowHighlights() {
         val highlight = context.getProperPrimaryColor()
         repeat(rows.childCount) { index ->
-            val row = rows.getChildAt(index) as TextView
+            val plate = rows.getChildAt(index) as ViewGroup
+            val label = plate.getChildAt(0) as TextView
             val isSelected = index == selectedIndex
-            row.setBackgroundResource(if (isSelected) R.drawable.chooser_row_selected else 0)
-            row.background?.setTint(highlight)
-            row.markChosen(isSelected)
-            row.setTextColor(if (isSelected) highlight.getContrastColor() else Glass.contentColor(context))
+            plate.setBackgroundResource(if (isSelected) R.drawable.chooser_row_selected else 0)
+            plate.background?.setTint(highlight)
+            label.markChosen(isSelected)
+            label.setTextColor(if (isSelected) highlight.getContrastColor() else Glass.contentColor(context))
         }
     }
 

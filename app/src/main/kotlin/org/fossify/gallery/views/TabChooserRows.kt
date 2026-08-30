@@ -4,6 +4,8 @@ import android.graphics.Typeface
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import java.text.NumberFormat
@@ -30,14 +32,29 @@ data class TabRowMetrics(
     val textSize: Float,
 )
 
-/** A row is the number and nothing else - closing is [TabCloseButton]'s, off to the side. */
+/**
+ * A row is the number and nothing else - closing is [TabCloseButton]'s, off to the side.
+ *
+ * Two views rather than one: the plate is the outer, which stays exactly the size of its row, and
+ * the number is the inner, which is what swells when the finger reaches it.
+ */
 internal fun LinearLayout.addTabRow(label: String, metrics: TabRowMetrics) {
-    addView(TextView(context).apply {
+    val plate = FrameLayout(context).apply {
         layoutParams = LinearLayout.LayoutParams(metrics.rowWidth, metrics.rowHeight)
+        // so a swollen number is not cut off at the edge of the plate it is sitting on
+        clipChildren = false
+    }
+
+    plate.addView(TextView(context).apply {
+        layoutParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT
+        )
         text = label
         gravity = Gravity.CENTER
         setTextSize(TypedValue.COMPLEX_UNIT_PX, metrics.textSize)
     })
+
+    addView(plate)
 }
 
 /**
@@ -48,14 +65,15 @@ internal fun LinearLayout.paintTabRows(selectedIndex: Int, isOnCross: Boolean, c
     val highlight = context.getProperPrimaryColor()
     val content = Glass.contentColor(context)
     repeat(childCount) { index ->
-        val row = getChildAt(index) as TextView
+        val plate = getChildAt(index) as ViewGroup
+        val number = plate.getChildAt(0) as TextView
         val wearsPlate = index == selectedIndex && !isOnCross
 
-        row.setBackgroundResource(if (wearsPlate) R.drawable.chooser_row_selected else 0)
-        row.background?.setTint(highlight)
-        row.markChosen(wearsPlate)
-        row.setTextColor(if (wearsPlate) highlight.getContrastColor() else content)
-        row.setTypeface(null, if (index == currentIndex) Typeface.BOLD else Typeface.NORMAL)
+        plate.setBackgroundResource(if (wearsPlate) R.drawable.chooser_row_selected else 0)
+        plate.background?.setTint(highlight)
+        number.markChosen(wearsPlate)
+        number.setTextColor(if (wearsPlate) highlight.getContrastColor() else content)
+        number.setTypeface(null, if (index == currentIndex) Typeface.BOLD else Typeface.NORMAL)
     }
 }
 

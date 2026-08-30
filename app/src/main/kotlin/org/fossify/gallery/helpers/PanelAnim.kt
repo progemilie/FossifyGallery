@@ -131,8 +131,8 @@ fun View.hidePanel(
 }
 
 // how much bigger the thing a finger is currently over is drawn than the rest of the list, and how
-// long it takes to swell. Small and quick: this is the answer to a finger still moving, and anything
-// slower would still be catching up as it passed the next one
+// long it takes to swell. Quick: this is the answer to a finger still moving, and anything slower
+// would still be catching up as it passed the next one
 private const val CHOICE_SWELL = 1.12f
 private const val CHOICE_MS = 120L
 
@@ -140,6 +140,9 @@ private const val CHOICE_MS = 120L
  * Swells this into the thing that would be picked if the finger let go now, or lets it settle back.
  * The one gesture every chooser held open over a button answers with - the row of stars, the folder
  * list, the tabs - so all three swell by the same amount over the same time.
+ *
+ * Called on the label or the icon and never on the plate behind it: a highlight drawn bigger than
+ * the row it belongs to is a highlight whose rounded corners have been clipped off.
  *
  * A scale is a draw and not a layout, so nothing beside it moves to make room. Rows already where
  * they belong are left alone rather than re-animated, these being repainted in full every time the
