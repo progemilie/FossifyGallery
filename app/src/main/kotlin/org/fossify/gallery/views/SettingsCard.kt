@@ -4,6 +4,9 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.LayoutInflater
@@ -12,9 +15,11 @@ import android.view.animation.AnimationUtils
 import android.widget.LinearLayout
 import androidx.core.content.res.use
 import androidx.core.view.children
+import androidx.core.view.isVisible
 import androidx.core.view.doOnPreDraw
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
+import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisibleIf
@@ -41,10 +46,7 @@ class SettingsCard @JvmOverloads constructor(
 
     private val binding = SettingsCardHeaderBinding.inflate(LayoutInflater.from(context), this, false)
 
-    private val rows = LinearLayout(context).apply {
-        orientation = VERTICAL
-        beGone()
-    }
+    private val rows = SettingsRows(context).apply { beGone() }
 
     private var heightAnimator: ValueAnimator? = null
 
@@ -96,6 +98,7 @@ class SettingsCard @JvmOverloads constructor(
         binding.settingsCardIcon.applyColorFilter(context.getProperPrimaryColor())
         binding.settingsCardDescription.setTextColor(context.getProperTextColor())
         binding.settingsCardChevron.applyColorFilter(context.getProperTextColor())
+        rows.lineColor = context.getProperTextColor().adjustAlpha(DIVIDER_ALPHA)
     }
 
     fun toggle() {
@@ -176,6 +179,46 @@ class SettingsCard @JvmOverloads constructor(
     private companion object {
         /** How far the chevron turns over to say the card is open. */
         const val TURNED = 180f
+
+        /** How much of the text colour is left in the rule between two settings. */
+        const val DIVIDER_ALPHA = 0.12f
+    }
+}
+
+/**
+ * The rows of one card, with a hairline between them. Drawn rather than laid out: a divider view
+ * between every pair would add its own height to a card whose opening is animated to the pixel, and
+ * these are meant to cost nothing. Inset to where the labels start, so the column of text is what
+ * the rules line up with.
+ */
+private class SettingsRows(context: Context) : LinearLayout(context) {
+    private val inset = resources
+        .getDimensionPixelSize(org.fossify.commons.R.dimen.settings_label_start_margin).toFloat()
+    private val paint = Paint().apply {
+        strokeWidth = resources.getDimension(R.dimen.settings_card_divider_thickness)
+    }
+
+    /** Set rather than themed, the card being the one place any of its colours are read. */
+    var lineColor: Int = Color.TRANSPARENT
+        set(value) {
+            field = value
+            paint.color = value
+            invalidate()
+        }
+
+    init {
+        orientation = VERTICAL
+    }
+
+    override fun dispatchDraw(canvas: Canvas) {
+        super.dispatchDraw(canvas)
+        val shown = children.filter { it.isVisible }.toList()
+        // sat just inside each row's foot rather than on the boundary, where half of a hairline
+        // would fall outside the last row and be clipped away with it
+        val half = paint.strokeWidth / 2f
+        shown.dropLast(1).forEach {
+            canvas.drawLine(inset, it.bottom - half, width - inset, it.bottom - half, paint)
+        }
     }
 }
 
