@@ -3,8 +3,10 @@ package org.fossify.gallery.activities
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.text.TextUtils
+import android.widget.TextView
 import android.widget.Toast
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -13,6 +15,7 @@ import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.*
 import org.fossify.commons.models.RadioItem
 import androidx.core.view.children
+import androidx.core.view.updatePadding
 import org.fossify.gallery.R
 import org.fossify.gallery.databinding.ActivitySettingsBinding
 import org.fossify.gallery.dialogs.*
@@ -47,13 +50,70 @@ class SettingsActivity : SimpleActivity() {
             padTopSystem = listOf(binding.settingsAppbar),
             padBottomSystem = listOf(binding.settingsNestedScrollview)
         )
-        setupMaterialScrollListener(binding.settingsNestedScrollview, binding.settingsAppbar)
+
+        // no setupMaterialScrollListener: what it does is fade a band of colour in under the bar
+        // once the content has scrolled, and this screen has nothing there for it to colour
+        binding.settingsAppbar.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (bottom - top != oldBottom - oldTop) {
+                keepCardsClearOfTopBar()
+            }
+        }
+
+        binding.settingsNestedScrollview.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+            updateTitleFade(scrollY)
+        }
     }
 
     override fun onResume() {
         super.onResume()
         setupTopAppBar(binding.settingsAppbar, NavigationIcon.Arrow)
+        // behind setupTopAppBar, which is what paints the bar back onto its band of colour
+        makeTopBarFloating()
+        updateEdgeFades()
         setupSettingItems()
+    }
+
+    /**
+     * Takes the bar off its band of colour and hands the cards the room it takes up, so they scroll
+     * under it rather than starting below it. The bar's height is the status bar inset plus its own,
+     * which only the running app knows - hence the layout listener above rather than a dimen.
+     */
+    private fun makeTopBarFloating() {
+        binding.settingsAppbar.setBackgroundColor(Color.TRANSPARENT)
+        binding.settingsAppbar.stateListAnimator = null
+        binding.settingsAppbar.elevation = 0f
+        binding.settingsToolbar.setBackgroundColor(Color.TRANSPARENT)
+        keepCardsClearOfTopBar()
+        updateTitleFade(binding.settingsNestedScrollview.scrollY)
+    }
+
+    private fun keepCardsClearOfTopBar() {
+        binding.settingsNestedScrollview.updatePadding(top = binding.settingsAppbar.height)
+    }
+
+    /**
+     * The heading goes as soon as the screen is scrolled - it names a screen the user is already
+     * looking at, and over the cards passing under it there is nothing for it to sit against. The
+     * arrow beside it stays: that is the way out.
+     */
+    private fun updateTitleFade(scrollY: Int) {
+        val distance = resources.getDimension(R.dimen.settings_title_fade_distance)
+        toolbarTitleView()?.alpha = 1f - (scrollY / distance).coerceIn(0f, 1f)
+    }
+
+    /**
+     * The toolbar makes its own title view and keeps it to itself, so it is picked out of the
+     * toolbar's children by the text it is showing.
+     */
+    private fun toolbarTitleView() = binding.settingsToolbar.children
+        .filterIsInstance<TextView>()
+        .firstOrNull { it.text == binding.settingsToolbar.title }
+
+    // repainted on every resume rather than set once: the fades are drawn in the theme's own
+    // background colour, and the theme can change while this screen is in the back stack
+    private fun updateEdgeFades() {
+        binding.settingsTopFade.applyEdgeFade(atTop = true)
+        binding.settingsBottomFade.applyEdgeFade(atTop = false)
     }
 
     private fun setupSettingItems() {
@@ -155,7 +215,9 @@ class SettingsActivity : SimpleActivity() {
      */
     private fun revealCard(card: SettingsCard) {
         val scroller = binding.settingsNestedScrollview
-        val hidden = card.bottom - (scroller.scrollY + scroller.height - scroller.paddingBottom)
+        // the holder starts at the scroller's top padding, which is the room made for the bar
+        val hidden = scroller.paddingTop + card.bottom -
+                (scroller.scrollY + scroller.height - scroller.paddingBottom)
         val roomAboveIt = card.top - scroller.scrollY
         val scrollBy = minOf(hidden, roomAboveIt)
         if (scrollBy > 0) {

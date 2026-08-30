@@ -6,35 +6,22 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <org.fossify.commons.views.MyAppBarLayout
-        android:id="@+id/settings_appbar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/settings_toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="@color/color_primary"
-            app:title="@string/settings"
-            app:titleTextAppearance="@style/AppTheme.ActionBar.TitleTextStyle" />
-
-    </org.fossify.commons.views.MyAppBarLayout>
-
+    <!-- the bar floats over the cards rather than standing on a band of its own, so the content
+         comes first and the bar last: draw order is what puts it on top -->
     <androidx.core.widget.NestedScrollView
         android:id="@+id/settings_nested_scrollview"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
         android:fillViewport="true"
-        android:scrollbars="none"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:scrollbars="none">
 
         <LinearLayout
             android:id="@+id/settings_holder"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingBottom="@dimen/settings_card_gap">
+            android:paddingBottom="@dimen/bottom_fade_height">
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_color_customization_card"
                 style="@style/SettingsCardStyle"
@@ -1180,4 +1167,35 @@
             </org.fossify.gallery.views.SettingsCard>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <!-- the same softening the grids wear at either end, so a card scrolling past the bar or the
+         navigation buttons fades into the background rather than being cut off by them -->
+    <View
+        android:id="@+id/settings_top_fade"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/top_fade_height"
+        android:layout_gravity="top" />
+
+    <View
+        android:id="@+id/settings_bottom_fade"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/bottom_fade_height"
+        android:layout_gravity="bottom" />
+
+    <org.fossify.commons.views.MyAppBarLayout
+        android:id="@+id/settings_appbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/settings_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@android:color/transparent"
+            app:title="@string/settings"
+            app:titleTextAppearance="@style/AppTheme.ActionBar.TitleTextStyle" />
+
+    </org.fossify.commons.views.MyAppBarLayout>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

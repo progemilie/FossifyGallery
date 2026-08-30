@@ -38,6 +38,9 @@
     <dimen name="settings_card_gap">8dp</dimen>
     <dimen name="settings_card_margin">12dp</dimen>
 
+    <!-- how far the screen scrolls before its heading has gone entirely -->
+    <dimen name="settings_title_fade_distance">48dp</dimen>
+
     <!-- between a group header's tick and its title, and how far the title slides for it -->
     <dimen name="section_check_gap">12dp</dimen>
     <dimen name="drag_handle_size">34dp</dimen>
