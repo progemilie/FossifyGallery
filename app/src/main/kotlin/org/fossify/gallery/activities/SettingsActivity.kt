@@ -23,6 +23,7 @@ import org.fossify.gallery.extensions.*
 import org.fossify.gallery.helpers.*
 import org.fossify.gallery.models.AlbumCover
 import org.fossify.gallery.views.SettingsCard
+import org.fossify.gallery.views.explains
 import org.fossify.gallery.views.makeAccordion
 import java.io.File
 import java.io.InputStream
@@ -360,6 +361,9 @@ class SettingsActivity : SimpleActivity() {
             binding.settingsTabs.toggle()
             config.tabsEnabled = binding.settingsTabs.isChecked
         }
+
+        binding.settingsTabsInfo.applyColorFilter(getProperTextColor())
+        binding.settingsTabsInfo.explains(getString(R.string.tabs_info))
     }
 
     private fun setupFileLoadingPriority() {

@@ -257,4 +257,10 @@
     <dimen name="dropdown_drop_gap">4dp</dimen>
     <dimen name="dropdown_screen_margin">8dp</dimen>
     <dimen name="dropdown_order_button">44dp</dimen>
+
+    <!-- the note the (i) beside a setting opens, drawn on the dropdown's surface -->
+    <dimen name="info_popup_width">280dp</dimen>
+    <dimen name="info_popup_padding">14dp</dimen>
+    <dimen name="settings_info_button">40dp</dimen>
+    <dimen name="settings_info_padding">10dp</dimen>
 </resources>
