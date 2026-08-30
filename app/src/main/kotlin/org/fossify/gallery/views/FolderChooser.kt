@@ -18,6 +18,7 @@ import org.fossify.commons.extensions.getContrastColor
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.Glass
+import org.fossify.gallery.helpers.LINE_CHOICE_SWELL
 import org.fossify.gallery.helpers.MAX_VISIBLE_QUICK_CHOOSER_FOLDERS
 import org.fossify.gallery.helpers.markChosen
 import org.fossify.commons.R as commonsR
@@ -222,7 +223,7 @@ class FolderChooser @JvmOverloads constructor(
             val isSelected = index == selectedIndex
             plate.setBackgroundResource(if (isSelected) R.drawable.chooser_row_selected else 0)
             plate.background?.setTint(highlight)
-            label.markChosen(isSelected)
+            label.markChosen(isSelected, LINE_CHOICE_SWELL)
             label.setTextColor(if (isSelected) highlight.getContrastColor() else Glass.contentColor(context))
         }
     }

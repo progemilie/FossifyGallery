@@ -130,16 +130,23 @@ fun View.hidePanel(
         .start()
 }
 
-// how much bigger the thing a finger is currently over is drawn than the rest of the list, and how
-// long it takes to swell. Quick: this is the answer to a finger still moving, and anything slower
-// would still be catching up as it passed the next one
-private const val CHOICE_SWELL = 1.12f
+/** How much bigger the thing a finger is currently over is drawn than the rest of the list. */
+const val CHOICE_SWELL = 1.22f
+
+/**
+ * What a row carrying a whole line of text swells by instead: the same fraction of a folder name
+ * running the width of the list is a great deal more movement than it is of a digit or a star.
+ */
+const val LINE_CHOICE_SWELL = 1.12f
+
+// quick: this is the answer to a finger still moving, and anything slower would still be catching
+// up as it passed the next one
 private const val CHOICE_MS = 120L
 
 /**
  * Swells this into the thing that would be picked if the finger let go now, or lets it settle back.
  * The one gesture every chooser held open over a button answers with - the row of stars, the folder
- * list, the tabs - so all three swell by the same amount over the same time.
+ * list, the tabs - so all three swell over the same time and off the same pair of numbers.
  *
  * Called on the label or the icon and never on the plate behind it: a highlight drawn bigger than
  * the row it belongs to is a highlight whose rounded corners have been clipped off.
@@ -148,8 +155,8 @@ private const val CHOICE_MS = 120L
  * they belong are left alone rather than re-animated, these being repainted in full every time the
  * finger crosses from one to the next.
  */
-fun View.markChosen(chosen: Boolean) {
-    val target = if (chosen) CHOICE_SWELL else 1f
+fun View.markChosen(chosen: Boolean, swell: Float = CHOICE_SWELL) {
+    val target = if (chosen) swell else 1f
     if (scaleX == target) {
         return
     }
