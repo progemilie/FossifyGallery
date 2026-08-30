@@ -6,6 +6,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.text.TextUtils
+import android.widget.RelativeLayout
 import android.widget.TextView
 import android.widget.Toast
 import com.google.gson.Gson
@@ -15,6 +16,7 @@ import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.*
 import org.fossify.commons.models.RadioItem
 import androidx.core.view.children
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import org.fossify.gallery.R
 import org.fossify.gallery.databinding.ActivitySettingsBinding
@@ -364,6 +366,21 @@ class SettingsActivity : SimpleActivity() {
 
         binding.settingsTabsInfo.applyColorFilter(getProperTextColor())
         binding.settingsTabsInfo.explains(getString(R.string.tabs_info))
+        placeTabsInfo()
+    }
+
+    /**
+     * The (i) sits just past the end of the switch's own label, whose width only the paint drawing
+     * it knows - so it is placed here rather than in the layout, where anchoring the switch to it
+     * would have pulled the switch off the line the rest of the rows keep. The icon's own padding
+     * is the gap.
+     */
+    private fun placeTabsInfo() {
+        val label = binding.settingsTabs
+        val textEnd = label.paddingStart + label.paint.measureText(label.text.toString())
+        binding.settingsTabsInfo.updateLayoutParams<RelativeLayout.LayoutParams> {
+            marginStart = textEnd.toInt()
+        }
     }
 
     private fun setupFileLoadingPriority() {
