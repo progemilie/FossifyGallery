@@ -7,6 +7,8 @@
     <dimen name="favorite_list_icon_size">17dp</dimen>
     <dimen name="selection_check_size">26dp</dimen>
 
+    <!-- smaller than commons' normal_icon_size, which next to one line of text is a slab -->
+    <dimen name="settings_card_chevron_size">36dp</dimen>
     <dimen name="settings_card_icon_size">24dp</dimen>
     <dimen name="settings_card_icon_gap">16dp</dimen>
     <dimen name="settings_card_corner_radius">16dp</dimen>

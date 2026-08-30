@@ -12,8 +12,8 @@
 
     <ImageView
         android:id="@+id/settings_card_chevron"
-        android:layout_width="@dimen/normal_icon_size"
-        android:layout_height="@dimen/normal_icon_size"
+        android:layout_width="@dimen/settings_card_chevron_size"
+        android:layout_height="@dimen/settings_card_chevron_size"
         android:layout_alignParentEnd="true"
         android:layout_centerVertical="true"
         android:contentDescription="@null"
