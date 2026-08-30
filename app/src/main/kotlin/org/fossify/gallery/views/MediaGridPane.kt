@@ -482,12 +482,10 @@ class MediaGridPane(
             else -> activity.getHumanizedFilename(mPath)
         }
 
+        // the folder's own name rather than "Search in <folder>": the bar is where you are as much
+        // as it is a search box, and the open folder group's name reads the same way on the pill
         topBar.updateHintText(
-            if (mShowAll) {
-                activity.getString(org.fossify.commons.R.string.search_files)
-            } else {
-                activity.getString(org.fossify.commons.R.string.search_in_placeholder, dirName)
-            }
+            if (mShowAll) activity.getString(org.fossify.commons.R.string.search_files) else dirName
         )
 
         topBar.toggleForceArrowBackIcon(!mShowAll)
