@@ -48,6 +48,9 @@ class SettingsCard @JvmOverloads constructor(
 
     private val rows = SettingsRows(context).apply { beGone() }
 
+    /** This card's settings, for a screen that paints them only once they can be seen. */
+    val settings: ViewGroup get() = rows
+
     private var heightAnimator: ValueAnimator? = null
 
     /** Told when this card opens, for a screen that lets only one of them be open at a time. */
@@ -222,7 +225,13 @@ private class SettingsRows(context: Context) : LinearLayout(context) {
     }
 }
 
-/** Lets only one of these be open at a time: opening one shuts whichever was. */
-fun List<SettingsCard>.makeAccordion() = forEach { card ->
-    card.onOpened = { opened -> forEach { if (it !== opened) it.close() } }
+/**
+ * Lets only one of these be open at a time: opening one shuts whichever was. [alsoOnOpen] is
+ * anything the screen has to do about the card that just opened, run before its first frame.
+ */
+fun List<SettingsCard>.makeAccordion(alsoOnOpen: (SettingsCard) -> Unit = {}) = forEach { card ->
+    card.onOpened = { opened ->
+        forEach { if (it !== opened) it.close() }
+        alsoOnOpen(opened)
+    }
 }

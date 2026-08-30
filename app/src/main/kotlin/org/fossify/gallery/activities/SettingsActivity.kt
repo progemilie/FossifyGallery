@@ -112,7 +112,6 @@ class SettingsActivity : SimpleActivity() {
         setupShowRecycleBin()
         setupShowRecycleBinLast()
         setupEmptyRecycleBin()
-        updateTextColors(binding.settingsHolder)
         setupClearCache()
         setupExportFavorites()
         setupImportFavorites()
@@ -128,9 +127,6 @@ class SettingsActivity : SimpleActivity() {
      * The sections, each shut down to its title and a line saying what is inside, and only one of
      * them open at a time. Found by walking the holder rather than named one by one: the layout is
      * where the sections are decided, and a card added there wants nothing here to go with it.
-     *
-     * Run after [updateTextColors], which paints every label on the screen and would otherwise take
-     * the titles down to the ordinary text colour with them.
      */
     private fun setupCards() {
         val cards = binding.settingsHolder.children.filterIsInstance<SettingsCard>().toList()
@@ -139,8 +135,18 @@ class SettingsActivity : SimpleActivity() {
             it.onOpenSettled = ::revealCard
         }
 
-        cards.makeAccordion()
+        cards.makeAccordion(::paintSettings)
+        // the theme can have changed while the screen was away, so whatever is open is painted again
+        cards.firstOrNull { it.isOpen }?.let(::paintSettings)
     }
+
+    /**
+     * Paints one card's settings, and only ever a card that can be seen. [updateTextColors] walks
+     * whatever it is handed, and handing it the whole screen repainted two hundred views for the
+     * dozen that were showing - two thirds of the time this screen took to come up. A card is
+     * painted as it opens, which is before the frame it first draws in.
+     */
+    private fun paintSettings(card: SettingsCard) = updateTextColors(card.settings)
 
     /**
      * Brings a card that has just grown past the foot of the screen back into view, by the least
