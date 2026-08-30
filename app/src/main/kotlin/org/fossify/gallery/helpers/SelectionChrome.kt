@@ -162,23 +162,15 @@ class SelectionChrome(
         }
 
         /**
-         * Reads the menu again: what the selection holds, and which of its actions the pill can show
-         * as buttons of its own. An item with a submenu is left for the drop-down, which is the only
-         * one of the two with room to open one.
+         * Reads the menu again: what the selection holds, and which of [PILL_ACTIONS] apply to it.
+         * Everything else goes to the drop-down, which is also the only one of the two with room to
+         * open a submenu.
          */
         private fun fillPills() {
             pills.setCount((custom as? TextView)?.text ?: titleText)
 
             val visible = backingMenu.children.filter { it.isVisible }.toList()
-            val buttons = visible.filter {
-                it.icon != null && it.subMenu == null && it.itemId !in MENU_ONLY_ACTIONS
-            }
-            val shown = if (visible.size <= MAX_ACTIONS && buttons.size == visible.size) {
-                buttons
-            } else {
-                buttons.take(MAX_ACTIONS - 1)
-            }
-
+            val shown = PILL_ACTIONS.mapNotNull { id -> visible.firstOrNull { it.itemId == id } }
             overflow = LinkedHashMap<Int, MenuItem>().apply {
                 visible.filterNot { it in shown }.forEach { put(it.itemId, it) }
             }
@@ -189,15 +181,19 @@ class SelectionChrome(
 
     private companion object {
         /**
-         * How many actions the pill shows as buttons of its own. Chosen so it comes out about the
-         * width of the navigation pill it stands in place of; the rest go behind the menu segment.
+         * What the pill shows as buttons of its own, in the order it shows them; everything else the
+         * selection can do goes behind the menu segment. Named rather than counted, so a button
+         * stays where it was whatever is selected, and the pill stays about the width of the
+         * navigation pill it stands in place of.
+         *
+         * Confirming leads them because it is the whole point of the selection it appears in -
+         * somebody else's app waiting on a picture - and it is up nowhere else.
          */
-        const val MAX_ACTIONS = 5
-
-        /**
-         * Kept behind the menu segment however much room the row has: the mirror rewrites every
-         * selected file in place, which is not something a stray tap should reach.
-         */
-        val MENU_ONLY_ACTIONS = setOf(R.id.cab_mirror)
+        val PILL_ACTIONS = listOf(
+            R.id.cab_confirm_selection,
+            R.id.cab_delete,
+            R.id.cab_share,
+            R.id.cab_properties,
+        )
     }
 }
