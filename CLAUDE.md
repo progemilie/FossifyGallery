@@ -214,6 +214,8 @@ the filesystem, far too slow to run when the hold fires.
 all three browsing screens. It builds itself from the toolbar's own `Menu` every time it opens and
 picks through `performIdentifierAction`, so each screen's `refreshMenuItems()` and click listener
 carry over untouched; whatever the toolbar is already showing as a button of its own is left out.
+Where the items come from is the caller's to say, so `openedBy()` serves the selection pill's menu
+button off an action mode's menu with the same panel.
 
 `helpers/MenuSections.kt` holds one `MenuSpec` per screen: the sections, drawn with a dotted rule
 between them, and which items are drawn as a row of icons rather than a row each. **A spec only
@@ -269,6 +271,14 @@ paints an opaque band under its own bar.
 - **Grids** — `MySearchMenu` is the *last* child of the `CoordinatorLayout` (draw order puts it over
   the grid) and the grid gets no top inset of its own; `keepGridClearOfTopBar()` pads it by the bar's
   measured height, which already carries the status bar inset. Doing it in the layout double-counts.
+- **A selection** — the platform's contextual action bar is never built:
+  `onWindowStartingSupportActionMode` is AppCompat's offer to supply an action mode of a screen's
+  own, and `helpers/SelectionChrome.kt` takes it, so nothing covers the top of the grid.
+  `views/SelectionPills.kt` is what stands in its place — the count at the top, the actions along
+  the foot, built to the navigation pill's measurements and never panned away with the grid.
+  Everything upstream does through the action mode carries over: the adapter inflates its menu,
+  hides what does not apply in `prepareActionMode()` and invalidates on every change, which is what
+  fills the pills in again.
 - **Frosted glass** — `helpers/Glass.kt` holds every colour and radius, `views/GlassPanel.kt` is the
   `BlurView` that wears it. A panel is told what to copy with `frost(contentBehind)`, which need not
   be an ancestor, and paints itself flat below Android 12. **Every panel comes and goes through
