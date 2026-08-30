@@ -549,7 +549,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_videos_card"
                 style="@style/SettingsCardStyle"
-                app:cardIcon="@drawable/ic_play_vector"
+                app:cardIcon="@drawable/ic_video_player_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_videos_summary"
