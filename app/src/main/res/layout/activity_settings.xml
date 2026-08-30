@@ -38,7 +38,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_color_customization_card"
                 style="@style/SettingsCardStyle"
-                app:cardIcon="@drawable/ic_photo_filter_vector"
+                app:cardIcon="@drawable/ic_palette_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_color_customization_summary"
@@ -1058,7 +1058,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_migrating_card"
                 style="@style/SettingsCardStyle"
-                app:cardIcon="@drawable/ic_save_vector"
+                app:cardIcon="@drawable/ic_export_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_migrating_summary"
