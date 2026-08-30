@@ -96,8 +96,9 @@ class SettingsCard @JvmOverloads constructor(
     /** Re-reads the theme. Called on every resume, since the colours can change while this is up. */
     fun updateColors() {
         (background as? GradientDrawable)?.setColor(Glass.tint(context))
-        binding.settingsCardTitle.setTextColor(context.getProperPrimaryColor())
-        // painted with the title rather than with the rows, the two of them being the one heading
+        // the title reads as text rather than as a link: the icon beside it is the one accent a
+        // card wears, and a whole column of tinted headings was more colour than the screen wanted
+        binding.settingsCardTitle.setTextColor(context.getProperTextColor())
         binding.settingsCardIcon.applyColorFilter(context.getProperPrimaryColor())
         binding.settingsCardDescription.setTextColor(context.getProperTextColor())
         binding.settingsCardChevron.applyColorFilter(context.getProperTextColor())
