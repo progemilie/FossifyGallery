@@ -131,12 +131,9 @@ fun View.hidePanel(
 }
 
 /** How much bigger the thing a finger is currently over is drawn than the rest of the list. */
-const val CHOICE_SWELL = 1.22f
+const val CHOICE_SWELL = 1.30f
 
-/**
- * What a row carrying a whole line of text swells by instead: the same fraction of a folder name
- * running the width of the list is a great deal more movement than it is of a digit or a star.
- */
+/** What a row carrying a whole line of text swells by instead. */
 const val LINE_CHOICE_SWELL = 1.12f
 
 // quick: this is the answer to a finger still moving, and anything slower would still be catching
