@@ -72,6 +72,7 @@ class SettingsCard @JvmOverloads constructor(
         context.obtainStyledAttributes(attrs, R.styleable.SettingsCard).use {
             binding.settingsCardTitle.text = it.getString(R.styleable.SettingsCard_cardTitle)
             binding.settingsCardDescription.text = it.getString(R.styleable.SettingsCard_cardDescription)
+            binding.settingsCardIcon.setImageResource(it.getResourceId(R.styleable.SettingsCard_cardIcon, 0))
         }
     }
 
@@ -91,6 +92,8 @@ class SettingsCard @JvmOverloads constructor(
     fun updateColors() {
         (background as? GradientDrawable)?.setColor(Glass.tint(context))
         binding.settingsCardTitle.setTextColor(context.getProperPrimaryColor())
+        // painted with the title rather than with the rows, the two of them being the one heading
+        binding.settingsCardIcon.applyColorFilter(context.getProperPrimaryColor())
         binding.settingsCardDescription.setTextColor(context.getProperTextColor())
         binding.settingsCardChevron.applyColorFilter(context.getProperTextColor())
     }

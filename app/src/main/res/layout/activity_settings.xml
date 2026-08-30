@@ -38,6 +38,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_color_customization_card"
                 style="@style/SettingsCardStyle"
+                app:cardIcon="@drawable/ic_photo_filter_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_color_customization_summary"
@@ -80,6 +81,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_general_card"
                 style="@style/SettingsCardStyle"
+                app:cardIcon="@drawable/ic_settings_cog_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_general_summary"
@@ -284,6 +286,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_thumbnails_card"
                 style="@style/SettingsCardStyle"
+                app:cardIcon="@drawable/ic_column_count_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_thumbnails_summary"
@@ -362,6 +365,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_fullscreen_media_card"
                 style="@style/SettingsCardStyle"
+                app:cardIcon="@drawable/ic_maximize_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_fullscreen_media_summary"
@@ -545,6 +549,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_videos_card"
                 style="@style/SettingsCardStyle"
+                app:cardIcon="@drawable/ic_play_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_videos_summary"
@@ -653,6 +658,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_extended_details_card"
                 style="@style/SettingsCardStyle"
+                app:cardIcon="@drawable/ic_info_outline_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_extended_details_summary"
@@ -693,6 +699,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_bottom_actions_card"
                 style="@style/SettingsCardStyle"
+                app:cardIcon="@drawable/ic_bottom_actions_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_bottom_actions_summary"
@@ -733,6 +740,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_scrolling_card"
                 style="@style/SettingsCardStyle"
+                app:cardIcon="@drawable/ic_arrow_down_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_scrolling_summary"
@@ -773,6 +781,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_deep_zoomable_images_card"
                 style="@style/SettingsCardStyle"
+                app:cardIcon="@drawable/ic_expand_diagonal_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_deep_zoomable_images_summary"
@@ -843,6 +852,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_security_card"
                 style="@style/SettingsCardStyle"
+                app:cardIcon="@drawable/ic_lock_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_security_summary"
@@ -913,6 +923,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_file_operations_card"
                 style="@style/SettingsCardStyle"
+                app:cardIcon="@drawable/ic_move_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_file_operations_summary"
@@ -968,6 +979,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_recycle_bin_card"
                 style="@style/SettingsCardStyle"
+                app:cardIcon="@drawable/ic_delete_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_recycle_bin_summary"
@@ -1046,6 +1058,7 @@
             <org.fossify.gallery.views.SettingsCard
                 android:id="@+id/settings_migrating_card"
                 style="@style/SettingsCardStyle"
+                app:cardIcon="@drawable/ic_save_vector"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardDescription="@string/settings_migrating_summary"

@@ -7,6 +7,8 @@
     <dimen name="favorite_list_icon_size">17dp</dimen>
     <dimen name="selection_check_size">26dp</dimen>
 
+    <dimen name="settings_card_icon_size">24dp</dimen>
+    <dimen name="settings_card_icon_gap">16dp</dimen>
     <dimen name="settings_card_corner_radius">16dp</dimen>
     <dimen name="settings_card_elevation">2dp</dimen>
     <dimen name="settings_card_gap">8dp</dimen>

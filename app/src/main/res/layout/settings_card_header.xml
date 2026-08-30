@@ -19,11 +19,22 @@
         android:contentDescription="@null"
         android:src="@drawable/ic_chevron_down_vector" />
 
+    <ImageView
+        android:id="@+id/settings_card_icon"
+        android:layout_width="@dimen/settings_card_icon_size"
+        android:layout_height="@dimen/settings_card_icon_size"
+        android:layout_alignParentStart="true"
+        android:layout_centerVertical="true"
+        android:contentDescription="@null"
+        tools:src="@drawable/ic_column_count_vector" />
+
     <org.fossify.commons.views.MyTextView
         android:id="@+id/settings_card_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/settings_card_icon_gap"
         android:layout_toStartOf="@id/settings_card_chevron"
+        android:layout_toEndOf="@id/settings_card_icon"
         android:textSize="@dimen/bigger_text_size"
         android:textStyle="bold"
         tools:text="Thumbnails" />
@@ -33,7 +44,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/settings_card_title"
+        android:layout_marginStart="@dimen/settings_card_icon_gap"
         android:layout_marginTop="@dimen/tiny_margin"
         android:layout_toStartOf="@id/settings_card_chevron"
+        android:layout_toEndOf="@id/settings_card_icon"
         tools:text="Cropping, animated GIFs and what a thumbnail shows" />
 </RelativeLayout>
