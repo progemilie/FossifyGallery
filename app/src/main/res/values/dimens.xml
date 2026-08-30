@@ -230,6 +230,10 @@
     <dimen name="nav_pill_label_size">11sp</dimen>
     <dimen name="nav_pill_plate_radius">24dp</dimen>
 
+    <!-- one action in the pill a selection puts up at the foot of the screen. Narrower than a
+         navigation segment, which carries a label under its icon where these carry none -->
+    <dimen name="selection_action_width">56dp</dimen>
+
     <!-- how far below the floating bar a pull to refresh spinner comes to rest -->
     <dimen name="refresh_spinner_travel">64dp</dimen>
     <!-- folder groups: the gap between a group tile's collage cells, and the frame around it -->

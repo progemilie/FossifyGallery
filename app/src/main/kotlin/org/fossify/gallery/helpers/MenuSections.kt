@@ -149,3 +149,10 @@ val VIEWER_MENU = MenuSpec(
         row(R.id.menu_change_orientation),
     )
 )
+
+/**
+ * A selection's actions, less the few the pill along the foot of the screen has already taken as
+ * buttons of its own. One column, in the order the action mode's own menu lists them: which of
+ * these apply changes with what is selected, so any grouping fixed here would keep coming apart.
+ */
+val SELECTION_MENU = MenuSpec(listOf(emptyList()))

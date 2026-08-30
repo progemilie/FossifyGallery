@@ -30,6 +30,7 @@ import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.deleteFiles
+import org.fossify.commons.extensions.ensureBasePadding
 import org.fossify.commons.extensions.getDoesFilePathExist
 import org.fossify.commons.extensions.getFilenameFromPath
 import org.fossify.commons.extensions.getIsPathDirectory
@@ -135,6 +136,10 @@ data class PickRequest(
     /** Whether the grid is up for another app to pick something out of rather than to be browsed. */
     val isPicking get() = image || video || any || wallpaper
 }
+
+/** How commons keeps a view's own padding, before the window insets are added to it. */
+private const val BASE_PADDING_SIDES = 4
+private const val BASE_PADDING_BOTTOM = 3
 
 private const val LAST_MEDIA_CHECK_PERIOD = 3000L
 
@@ -290,6 +295,35 @@ class MediaGridPane(
 
     /** Whether a selection is on, which the pill must not be able to navigate away from. */
     val isSelecting get() = mIsSelecting
+
+    /** How much room the grid is currently keeping at its foot for a pill floating over it. */
+    private var mBottomRoom = 0
+
+    /**
+     * Makes room at the foot of the grid for the selection's pill, where the screen showing this
+     * pane has none of its own to spare - a folder opened as a screen keeps no navigation pill, so
+     * without this its last row would sit under the pill with nothing left to scroll.
+     *
+     * The room goes into the base commons builds the grid's padding from, not on top of the padding
+     * itself: that padding is rebuilt as base plus the window insets every time the insets come
+     * round again, and anything merely added afterwards is dropped the next time they do. The
+     * padding is then set outright as well, the rebuild being whenever the window next says so.
+     */
+    fun reserveBottomRoom(reserve: Boolean) {
+        val room = if (reserve) resources.getDimensionPixelSize(R.dimen.nav_pill_reserved_height) else 0
+        if (room == mBottomRoom) {
+            return
+        }
+
+        binding.mediaGrid.ensureBasePadding().let { base ->
+            if (base.size == BASE_PADDING_SIDES) {
+                base[BASE_PADDING_BOTTOM] = room
+            }
+        }
+
+        binding.mediaGrid.updatePadding(bottom = binding.mediaGrid.paddingBottom - mBottomRoom + room)
+        mBottomRoom = room
+    }
 
     init {
         binding.mediaRefreshLayout.setOnRefreshListener { getMedia() }

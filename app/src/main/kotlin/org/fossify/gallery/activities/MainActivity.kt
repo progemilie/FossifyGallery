@@ -16,6 +16,7 @@ import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import android.widget.RelativeLayout
 import android.widget.Toast
+import androidx.appcompat.view.ActionMode
 import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -158,6 +159,7 @@ import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.RESTORE_TAB
 import org.fossify.gallery.helpers.SET_WALLPAPER_INTENT
 import org.fossify.gallery.helpers.SHOW_ALL
+import org.fossify.gallery.helpers.SelectionChrome
 import org.fossify.gallery.helpers.SHOW_TEMP_HIDDEN_DURATION
 import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
 import org.fossify.gallery.helpers.TAB_SCROLL_OFFSET
@@ -181,6 +183,7 @@ import org.fossify.gallery.models.TabScreen
 import org.fossify.gallery.views.MediaGridPane
 import org.fossify.gallery.views.NavDestination
 import org.fossify.gallery.views.NavPill
+import org.fossify.gallery.views.SelectionPills
 
 /** Where through a pane swap the search bar hands its buttons from one grid to the other. */
 private const val HALFWAY = 0.5f
@@ -268,6 +271,24 @@ class MainActivity :
     private val binding by viewBinding(ActivityMainBinding::inflate)
     private val navPill by lazy { NavPill(binding.navPill) }
     private lateinit var chrome: GridChrome
+
+    /**
+     * The pills a selection is made through, in place of the platform's contextual action bar:
+     * AppCompat offers this before building a bar of its own, and answering it means never getting
+     * one. See [SelectionChrome].
+     */
+    override fun onWindowStartingSupportActionMode(callback: ActionMode.Callback) =
+        selectionChrome.start(callback)
+
+    private val selectionChrome by lazy {
+        SelectionChrome(
+            context = this,
+            pills = SelectionPills(
+                binding.selectionTopPill, binding.selectionBottomPill, binding.contentHolder
+            ),
+            contentBehind = binding.contentHolder,
+        ).apply { onActiveChanged = { onPaneStateChanged() } }
+    }
 
     /**
      * The all media grid, built the first time it is wanted and kept from then on. The swap is only
@@ -413,6 +434,7 @@ class MainActivity :
     override fun onResume() {
         super.onResume()
         chrome.updateColors()
+        selectionChrome.updateColors()
         onPaneStateChanged()
         config.isThirdPartyIntent = false
         mDateFormat = config.dateFormat
@@ -786,6 +808,8 @@ class MainActivity :
             !config.scrollHorizontally && media?.isReordering != true
         // an arrangement has its own bar at the foot and nothing to search, so the pill goes
         chrome.floatingTopBar.isAvailable = media?.isReordering != true
+        // the selection's own pill stands where the bar does, so the bar goes but its room stays
+        chrome.floatingTopBar.isCovered = selectionChrome.isActive
         if (mIsThirdPartyIntent) {
             return
         }
@@ -861,12 +885,13 @@ class MainActivity :
             // whole height of the bar, which already carries this inset
             padTopSystem = listOf(
                 binding.mainMenu,
+                binding.selectionTopPill.root,
                 binding.directoryPane.directoriesSwitchSearching,
                 binding.directoryPane.directoriesEmptyPlaceholder,
                 binding.mediaPane.mediaEmptyTextPlaceholder
             ),
             padBottomImeAndSystem = clearOfTheBottom,
-            padBottomSystem = listOf(binding.navPill.root)
+            padBottomSystem = listOf(binding.navPill.root, binding.selectionBottomPill.root)
         )
     }
 

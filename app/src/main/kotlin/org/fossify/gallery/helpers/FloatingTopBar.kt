@@ -70,6 +70,25 @@ class FloatingTopBar(
             keepGridClear()
         }
 
+    /**
+     * Whether something else is standing in the bar's place - the pill a selection puts up. The bar
+     * goes, but the room it takes up stays exactly where it was, so the grid under it does not jump
+     * the moment a long press lands on one of its items.
+     */
+    var isCovered = false
+        set(value) {
+            if (field == value) {
+                return
+            }
+
+            field = value
+            topBar.beVisibleIf(!value)
+            glass?.isFrostPaused = value
+            if (!value) {
+                show()
+            }
+        }
+
     /** Stops the bar from panning away and brings it back down if it had. */
     var isPanningEnabled: Boolean
         get() = panner.isPanningEnabled

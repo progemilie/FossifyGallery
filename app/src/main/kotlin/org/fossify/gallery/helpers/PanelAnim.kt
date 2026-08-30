@@ -37,6 +37,9 @@ data class PanelPivot(val x: Float, val y: Float) {
         val CENTER = PanelPivot(0.5f, 0.5f)
         val TOP = PanelPivot(0.5f, 0f)
 
+        /** The middle of a panel's bottom edge - what one standing on the foot grows out of. */
+        val BOTTOM = PanelPivot(0.5f, 1f)
+
         /**
          * The point on [panel] nearest [anchor]'s middle: where a panel opened from a button grows
          * out of. An anchor off to one side or wholly below the panel clamps to the nearest edge,

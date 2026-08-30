@@ -3,6 +3,7 @@ package org.fossify.gallery.activities
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
+import androidx.appcompat.view.ActionMode
 import androidx.core.view.updatePadding
 import org.fossify.commons.extensions.appLockManager
 import org.fossify.commons.extensions.showErrorToast
@@ -18,6 +19,7 @@ import org.fossify.gallery.helpers.GET_IMAGE_INTENT
 import org.fossify.gallery.helpers.GET_VIDEO_INTENT
 import org.fossify.gallery.helpers.GridChrome
 import org.fossify.gallery.helpers.OPEN_VIEWER_PATH
+import org.fossify.gallery.helpers.SelectionChrome
 import org.fossify.gallery.helpers.SET_WALLPAPER_INTENT
 import org.fossify.gallery.helpers.SHOW_TEMP_HIDDEN_DURATION
 import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
@@ -29,6 +31,7 @@ import org.fossify.gallery.models.TabScreen
 import org.fossify.gallery.models.ThumbnailItem
 import org.fossify.gallery.views.MediaGridPane
 import org.fossify.gallery.views.PickRequest
+import org.fossify.gallery.views.SelectionPills
 
 /**
  * The window a [MediaGridPane] is shown in when it is a screen of its own - a folder tapped into,
@@ -50,6 +53,24 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
 
     private lateinit var pane: MediaGridPane
     private lateinit var chrome: GridChrome
+
+    /**
+     * The pills a selection is made through, in place of the platform's contextual action bar:
+     * AppCompat offers this before building a bar of its own, and answering it means never getting
+     * one. See [SelectionChrome].
+     */
+    override fun onWindowStartingSupportActionMode(callback: ActionMode.Callback) =
+        selectionChrome.start(callback)
+
+    private val selectionChrome by lazy {
+        SelectionChrome(
+            context = this,
+            pills = SelectionPills(
+                binding.selectionTopPill, binding.selectionBottomPill, binding.contentHolder
+            ),
+            contentBehind = binding.contentHolder,
+        ).apply { onActiveChanged = { onPaneStateChanged() } }
+    }
 
     override val topBar: MySearchMenu get() = binding.mediaMenu
 
@@ -130,6 +151,7 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
     override fun onResume() {
         super.onResume()
         chrome.updateColors()
+        selectionChrome.updateColors()
         onPaneStateChanged()
         pane.onActivated()
         // a switch that asked for a folder is over once that folder is up, which is here - the
@@ -202,6 +224,11 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
         chrome.floatingTopBar.isPanningEnabled = !config.scrollHorizontally && !pane.isReordering
         // an arrangement has its own bar at the foot and nothing to search, so the pill goes
         chrome.floatingTopBar.isAvailable = !pane.isReordering
+        // the selection's own pill stands where the bar does, so the bar goes but its room stays
+        chrome.floatingTopBar.isCovered = selectionChrome.isActive
+        // that pill floats over the foot of a grid which, unlike the two top level ones, reserves
+        // no room down there of its own - without this the last row could not be scrolled clear
+        pane.reserveBottomRoom(selectionChrome.isActive)
         // nothing here may navigate away from a search, a selection or an arrangement it would drop
         chrome.tabBar?.isAvailable = !chrome.isSearchOpen && !pane.isReordering && !pane.isSelecting
     }
@@ -245,12 +272,17 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
         setupEdgeToEdge(
             // the grid gets no top inset of its own - keepGridClear() pads it by the whole height
             // of the bar, which already carries this inset
-            padTopSystem = listOf(binding.mediaMenu, binding.mediaPane.mediaEmptyTextPlaceholder),
+            padTopSystem = listOf(
+                binding.mediaMenu,
+                binding.selectionTopPill.root,
+                binding.mediaPane.mediaEmptyTextPlaceholder
+            ),
             padBottomImeAndSystem = if (pane.isReordering) {
                 listOf(reorderBar)
             } else {
                 listOf(binding.mediaPane.mediaGrid, reorderBar)
-            }
+            },
+            padBottomSystem = listOf(binding.selectionBottomPill.root)
         )
     }
 
