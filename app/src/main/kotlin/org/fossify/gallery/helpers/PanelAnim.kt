@@ -134,7 +134,7 @@ fun View.hidePanel(
 }
 
 /** How much bigger the thing a finger is currently over is drawn than the rest of the list. */
-const val CHOICE_SWELL = 1.30f
+const val CHOICE_SWELL = 1.25f
 
 /** What a row carrying a whole line of text swells by instead. */
 const val LINE_CHOICE_SWELL = 1.12f
