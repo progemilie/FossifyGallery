@@ -52,6 +52,9 @@ class NavPill(private val binding: NavPillBinding) {
             updateColors()
         }
 
+    /** Told whenever the pill comes or goes, for chrome that stands in for it while it is away. */
+    var onAvailabilityChanged: ((Boolean) -> Unit)? = null
+
     /**
      * Whether the screen wants the pill at all. Gone rather than panned away: a group stepped into,
      * a selection started or a search opened is not something a scroll should bring it back from.
@@ -69,6 +72,8 @@ class NavPill(private val binding: NavPillBinding) {
             } else {
                 root.beGone()
             }
+
+            onAvailabilityChanged?.invoke(value)
         }
 
     /** Stops the pill from panning away and brings it back up if it had. */
