@@ -209,7 +209,9 @@ class FloatingTopBar(
     }
 
     fun show() {
-        if (!isHidden && topBar.translationY == 0f) {
+        // a pan already on its way back is left alone: this is asked on every scroll frame, and
+        // restarting the animation each one would leave the bar hanging where the finger turned
+        if (!isHidden) {
             return
         }
 

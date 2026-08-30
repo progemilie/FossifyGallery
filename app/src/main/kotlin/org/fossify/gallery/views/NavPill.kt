@@ -122,7 +122,9 @@ class NavPill(private val binding: NavPillBinding) {
     }
 
     fun show() {
-        if (!isHidden && root.translationY == 0f) {
+        // a pan already on its way back is left alone: this is asked on every scroll frame, and
+        // restarting the animation each one would leave the pill hanging where the finger turned
+        if (!isHidden) {
             return
         }
 
