@@ -784,6 +784,8 @@ class MainActivity :
         val media = mMediaPane
         chrome.floatingTopBar.isPanningEnabled =
             !config.scrollHorizontally && media?.isReordering != true
+        // an arrangement has its own bar at the foot and nothing to search, so the pill goes
+        chrome.floatingTopBar.isAvailable = media?.isReordering != true
         if (mIsThirdPartyIntent) {
             return
         }

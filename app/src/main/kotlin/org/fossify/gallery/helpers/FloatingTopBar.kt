@@ -6,9 +6,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.widget.FrameLayout
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.onGlobalLayout
 import org.fossify.commons.views.MySearchMenu
 import org.fossify.gallery.R
@@ -45,6 +48,27 @@ class FloatingTopBar(
             outline.setRoundRect(0, 0, view.width, view.height, pillRadius)
         }
     }
+
+    /**
+     * Whether the screen wants the bar at all. Gone rather than panned away - an arrangement being
+     * made is not something a scroll should bring the bar back from - and the grid keeps only the
+     * status bar's own room while it is, instead of the bar's.
+     */
+    var isAvailable = true
+        set(value) {
+            if (field == value) {
+                return
+            }
+
+            field = value
+            topBar.beVisibleIf(value)
+            glass?.isFrostPaused = !value
+            if (value) {
+                show()
+            }
+
+            keepGridClear()
+        }
 
     /** Stops the bar from panning away and brings it back down if it had. */
     var isPanningEnabled: Boolean
@@ -189,6 +213,13 @@ class FloatingTopBar(
             .start()
     }
 
+    /**
+     * What the bar takes off the top of the screen. With the bar away that is the status bar alone -
+     * a GONE view keeps the height it last had, so this cannot be read off the bar itself.
+     */
     val occupiedHeight: Int
-        get() = topBar.height
+        get() = if (isAvailable) topBar.height else systemTopInset()
+
+    private fun systemTopInset() = ViewCompat.getRootWindowInsets(topBar)
+        ?.getInsets(WindowInsetsCompat.Type.systemBars())?.top ?: 0
 }

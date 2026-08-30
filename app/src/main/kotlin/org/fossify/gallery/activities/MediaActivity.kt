@@ -200,6 +200,8 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
     // the bar is the way out of that mode
     override fun onPaneStateChanged() {
         chrome.floatingTopBar.isPanningEnabled = !config.scrollHorizontally && !pane.isReordering
+        // an arrangement has its own bar at the foot and nothing to search, so the pill goes
+        chrome.floatingTopBar.isAvailable = !pane.isReordering
         // nothing here may navigate away from a search, a selection or an arrangement it would drop
         chrome.tabBar?.isAvailable = !chrome.isSearchOpen && !pane.isReordering && !pane.isSelecting
     }
