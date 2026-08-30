@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <dimen name="dir_tmb_size">150dp</dimen>
     <dimen name="medium_tmb_size">100dp</dimen>
     <dimen name="sd_card_icon_size">20dp</dimen>
@@ -13,9 +13,20 @@
         with a control beside each, not as a column of controls. 52x32 and a 32 thumb are the
         library's own.
     -->
-    <dimen name="mtrl_switch_track_width">46dp</dimen>
-    <dimen name="mtrl_switch_track_height">28dp</dimen>
-    <dimen name="mtrl_switch_thumb_size">28dp</dimen>
+    <dimen
+        name="mtrl_switch_track_width"
+        tools:ignore="UnusedResources"
+        tools:override="true">46dp</dimen>
+
+    <dimen
+        name="mtrl_switch_track_height"
+        tools:ignore="UnusedResources"
+        tools:override="true">28dp</dimen>
+
+    <dimen
+        name="mtrl_switch_thumb_size"
+        tools:ignore="UnusedResources"
+        tools:override="true">28dp</dimen>
 
     <!-- smaller than commons' normal_icon_size, which next to one line of text is a slab -->
     <dimen name="settings_card_chevron_size">36dp</dimen>
