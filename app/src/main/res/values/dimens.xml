@@ -108,9 +108,10 @@
     <!-- the tab button worn on the end of the search bar, and the list it holds open -->
     <dimen name="tab_button_size">34dp</dimen>
     <dimen name="tab_button_gap">8dp</dimen>
+    <!-- square, so a column of them reads as a stack of tiles rather than as a list of rows. The
+         cross that closes a tab is its own circle beside the list, so nothing else wants the width -->
     <dimen name="tab_chooser_row_height">48dp</dimen>
-    <!-- no wider than the number it holds: the cross that closes a tab is its own circle beside it -->
-    <dimen name="tab_chooser_row_width">56dp</dimen>
+    <dimen name="tab_chooser_row_width">48dp</dimen>
     <dimen name="tab_chooser_text_size">17sp</dimen>
     <!-- that circle, and the gap it is held off the list by -->
     <dimen name="tab_chooser_close_size">40dp</dimen>
