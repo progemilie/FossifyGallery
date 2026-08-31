@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
@@ -209,8 +210,7 @@ class ContinuityTransition(
      */
     fun finishThrough(finishNow: () -> Unit) {
         if (!close(finishNow)) {
-            finishNow()
-            activity.overridePendingTransition(0, commonsR.anim.slide_down)
+            activity.slideOutOnClose(finishNow)
         }
     }
 
@@ -309,6 +309,22 @@ class ContinuityTransition(
 private fun Bitmap.aspect() = if (height == 0) 1f else width.toFloat() / height
 
 /**
+ * Asks for no window animation at all, in whichever terms the platform actually reads.
+ *
+ * res/anim/viewer_hold.xml says the same thing through the theme, which was the only way to say it
+ * before API 34; from there up the system drives activity transitions itself and ignores the theme,
+ * sliding the whole window up on the way in and down on the way out, over the top of a flight. Both
+ * are needed - the theme below 34, this from 34 - and either alone leaves the flight buried under a
+ * slide on some version or other.
+ */
+fun Activity.holdWindowStill() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        overrideActivityTransition(Activity.OVERRIDE_TRANSITION_OPEN, 0, 0)
+        overrideActivityTransition(Activity.OVERRIDE_TRANSITION_CLOSE, 0, 0)
+    }
+}
+
+/**
  * Gives a viewer window's surface an alpha channel, without which the grid behind it is not
  * composited at all - being translucent by theme is not enough on its own. Only on while something
  * is flying: an opaque surface is a cheaper one to draw a fullscreen photo into.
@@ -316,6 +332,22 @@ private fun Bitmap.aspect() = if (height == 0) 1f else width.toFloat() / height
 private fun Activity.letGridShowThrough(letThrough: Boolean) {
     if (ViewerTransition.isSupported) {
         window.setFormat(if (letThrough) PixelFormat.TRANSLUCENT else PixelFormat.OPAQUE)
+    }
+}
+
+/**
+ * Closes on a slide, this being the one exit that wants a window animation - the theme and
+ * [holdWindowStill] between them leave the viewer none, so that every other exit is a shrink drawn
+ * over the grid. Named through whichever API the platform honours.
+ */
+private fun Activity.slideOutOnClose(finishNow: () -> Unit) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        overrideActivityTransition(Activity.OVERRIDE_TRANSITION_CLOSE, 0, commonsR.anim.slide_down)
+        finishNow()
+    } else {
+        finishNow()
+        @Suppress("DEPRECATION")
+        overridePendingTransition(0, commonsR.anim.slide_down)
     }
 }
 
