@@ -11,7 +11,6 @@ import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.view.animation.AnimationUtils
 import android.widget.LinearLayout
 import androidx.core.content.res.use
 import androidx.core.view.children
@@ -29,6 +28,7 @@ import org.fossify.gallery.R
 import org.fossify.gallery.databinding.SettingsCardHeaderBinding
 import org.fossify.gallery.helpers.Glass
 import org.fossify.gallery.helpers.PANEL_ENTER_MS
+import org.fossify.gallery.helpers.enterCurve
 
 /**
  * One section of the settings screen: a title and a line saying what is inside it, until it is
@@ -159,7 +159,7 @@ class SettingsCard @JvmOverloads constructor(
 
         heightAnimator = ValueAnimator.ofInt(from, measuredHeight).apply {
             duration = PANEL_ENTER_MS
-            interpolator = AnimationUtils.loadInterpolator(context, android.R.interpolator.fast_out_slow_in)
+            interpolator = enterCurve()
             addUpdateListener { setFixedHeight(it.animatedValue as Int) }
             // the height is let go of again at the end, or the card could never answer a row of its
             // own changing size - a switch turning a second row on underneath it, say

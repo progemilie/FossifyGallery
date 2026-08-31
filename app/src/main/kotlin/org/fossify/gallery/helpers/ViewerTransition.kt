@@ -16,6 +16,7 @@ import org.fossify.gallery.adapters.MediaAdapter
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.lowResPhotoRequest
 import org.fossify.gallery.models.Medium
+import org.fossify.gallery.models.ThumbnailItem
 
 /**
  * The hand-off between a media grid and the fullscreen viewer, so the two of them draw one
@@ -26,12 +27,10 @@ import org.fossify.gallery.models.Medium
  * cross between them is a live bitmap rather than a second decode of it, which no Intent will carry.
  *
  * **A flight is drawn with the photo's own picture, never with the tile's.** With crop thumbnails
- * on - the default - a tile's bitmap has had its edges thrown away by a `CenterCrop` transform, so
- * there is nothing left in it to unfold into a fullscreen photo and a flight drawn with it can only
- * fill the screen and cut to the real thing. [flightPicture] fetches the uncropped copy instead,
- * starting the moment the tile is tapped, and it is the very picture the viewer paints first
- * ([org.fossify.gallery.extensions.lowResPhotoRequest]) - so the hand-over at the end of a flight
- * is not a cross-fade but nothing happening at all.
+ * on - the default - a tile's bitmap has no edges left to unfold into a fullscreen photo, so
+ * [flightPicture] fetches the uncropped copy the viewer itself paints first
+ * ([org.fossify.gallery.extensions.lowResPhotoRequest]) - making the hand-over at the end of a
+ * flight nothing happening at all rather than a cross-fade.
  *
  * The illusion only holds while the grid is still drawn underneath, so the viewer's window is
  * translucent - and a translucent activity may not ask for an orientation before API 28, which the
@@ -115,8 +114,8 @@ object ViewerTransition {
     }
 
     /**
-     * Hands the tile at [path] over to whichever fullscreen screen is about to be started, and puts
-     * the picture it will be flown with on its way. Answers whether there is a flight to make:
+     * Hands the tile showing [path] over to whichever fullscreen screen is about to be started, and
+     * puts the picture it will be flown with on its way. Answers whether there is a flight to make:
      * false where the tile is not on screen, where it has drawn nothing yet, or where the platform
      * will not let the viewer's window be translucent.
      *
@@ -124,7 +123,8 @@ object ViewerTransition {
      * what answers where to fly a photo back to however far it was swiped from the tile it opened.
      * Nothing here says how to start that screen - see res/anim/viewer_hold.xml.
      */
-    fun beginFlight(context: Context, adapter: MediaAdapter?, medium: Medium): Boolean {
+    fun beginFlight(context: Context, adapter: MediaAdapter?, items: List<ThumbnailItem>, path: String): Boolean {
+        val medium = items.filterIsInstance<Medium>().firstOrNull { it.path == path } ?: return false
         val navigator = adapter?.gridNavigator?.takeIf { isSupported } ?: return false
         val isCropped = context.config.cropThumbnails
         // asked without a scroll, so the answer comes back before this line does
@@ -154,11 +154,9 @@ object ViewerTransition {
         flightPath = medium.path
         flightTarget?.let { Glide.with(context).clear(it) }
 
-        // Warming the viewer's own first paint is the point of loading it as a Drawable through the
-        // shared request rather than as a bitmap: the same key, so the viewer finds it in memory.
-        // The pixels a flight draws are taken as a copy all the same - Glide's are its to hand back
-        // to the pool the moment the grid this was started from is cleared, and a flight outlives
-        // that whenever the grid is trimmed behind the viewer.
+        // loaded through the shared request so the viewer finds it in memory under the same key.
+        // The pixels are copied out all the same: Glide hands its own back to the pool as soon as
+        // the grid is cleared, which a flight outlives
         val target = object : CustomTarget<Drawable>() {
             override fun onResourceReady(resource: Drawable, transition: Transition<in Drawable>?) {
                 if (flightPath != medium.path) {

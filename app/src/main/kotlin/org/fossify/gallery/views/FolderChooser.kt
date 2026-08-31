@@ -1,26 +1,16 @@
 package org.fossify.gallery.views
 
 import android.content.Context
-import android.text.TextUtils
 import android.util.AttributeSet
-import android.util.TypedValue
-import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup
-import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import android.widget.TextView
 import androidx.core.view.isVisible
 import org.fossify.commons.extensions.applyColorFilter
-import org.fossify.commons.extensions.getContrastColor
-import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.Glass
-import org.fossify.gallery.helpers.LINE_CHOICE_SWELL
 import org.fossify.gallery.helpers.MAX_VISIBLE_QUICK_CHOOSER_FOLDERS
-import org.fossify.gallery.helpers.markChosen
 import org.fossify.commons.R as commonsR
 
 /** A folder the quick chooser can copy or move to. */
@@ -62,7 +52,7 @@ class FolderChooser @JvmOverloads constructor(
         set(value) {
             if (field != value) {
                 field = value
-                updateRowHighlights()
+                rows.paintFolderRows(value)
             }
         }
 
@@ -118,7 +108,7 @@ class FolderChooser @JvmOverloads constructor(
         this.folders = folders
         selectedIndex = NO_SELECTION
         rows.removeAllViews()
-        folders.forEach { rows.addView(buildRow(it)) }
+        folders.forEach { rows.addFolderRow(it, rowHeight, rowPadding, textSize) }
 
         scrollUp.applyColorFilter(Glass.contentColor(context))
         scrollDown.applyColorFilter(Glass.contentColor(context))
@@ -142,35 +132,6 @@ class FolderChooser @JvmOverloads constructor(
             scroller.scrollTo(0, autoScroller.maxScroll())
             updateScrollIndicators()
         }
-    }
-
-    /**
-     * Two views rather than one: the plate is the outer, which stays exactly the size of its row,
-     * and the name is the inner, which is what swells when the finger reaches it. Swelling the
-     * plate instead would draw it bigger than the row it belongs to, rounded corners and all.
-     */
-    private fun buildRow(folder: QuickFolder) = FrameLayout(context).apply {
-        layoutParams = LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, rowHeight)
-        // so a swollen name is not cut off at the edge of the plate it is sitting on
-        clipChildren = false
-        addView(buildLabel(folder))
-    }
-
-    private fun buildLabel(folder: QuickFolder) = TextView(context).apply {
-        layoutParams = FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT)
-        text = folder.name
-        gravity = Gravity.CENTER_VERTICAL
-        isSingleLine = true
-        ellipsize = TextUtils.TruncateAt.MIDDLE
-        minWidth = resources.getDimensionPixelSize(R.dimen.folder_chooser_min_row_width)
-        maxWidth = resources.getDimensionPixelSize(R.dimen.folder_chooser_max_row_width)
-        setTextColor(Glass.contentColor(context))
-        setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize)
-        setPadding(rowPadding, 0, rowPadding, 0)
-        // grown out of where the name starts rather than out of the middle of the row: a name left
-        // aligned in a row as wide as the list would otherwise swell off the front of it
-        pivotX = 0f
-        pivotY = rowHeight / 2f
     }
 
     /** Re-reads what the finger at [rawX], [rawY] is over, starting or stopping the edge scroll to match. */
@@ -213,19 +174,6 @@ class FolderChooser @JvmOverloads constructor(
 
         scrollUp.alpha = if (autoScroller.canScrollUp()) 1f else DIMMED_ALPHA
         scrollDown.alpha = if (autoScroller.canScrollDown()) 1f else DIMMED_ALPHA
-    }
-
-    private fun updateRowHighlights() {
-        val highlight = context.getProperPrimaryColor()
-        repeat(rows.childCount) { index ->
-            val plate = rows.getChildAt(index) as ViewGroup
-            val label = plate.getChildAt(0) as TextView
-            val isSelected = index == selectedIndex
-            plate.setBackgroundResource(if (isSelected) R.drawable.chooser_row_selected else 0)
-            plate.background?.setTint(highlight)
-            label.markChosen(isSelected, LINE_CHOICE_SWELL)
-            label.setTextColor(if (isSelected) highlight.getContrastColor() else Glass.contentColor(context))
-        }
     }
 
     private fun locationOnScreen(view: View): FloatArray {

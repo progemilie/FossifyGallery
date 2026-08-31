@@ -27,8 +27,8 @@ import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.showSystemUI
 import org.fossify.gallery.fragments.ViewPagerFragment
-import org.fossify.gallery.helpers.Glass
 import org.fossify.gallery.helpers.ContinuityTransition
+import org.fossify.gallery.helpers.Glass
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.PeekSession
 import org.fossify.gallery.models.Medium
@@ -62,9 +62,6 @@ class PeekViewerActivity :
 
     override val appBarLayout: AppBarLayout
         get() = binding.peekAppbar
-
-    /** Whether the shrink back into the grid has already run, see [finish]. */
-    private var isShrinking = false
 
     /** The tile this peek grew out of, and the tile it shrinks back into. */
     private val continuity by lazy {
@@ -118,22 +115,11 @@ class PeekViewerActivity :
     /** The grid takes the selection off [PeekSession]; the path is what it scrolls back to. */
     override fun finish() {
         setResult(RESULT_OK, Intent().putExtra(PATH, currentMedium()?.path.orEmpty()))
-
-        // the shrink runs first where there is a tile to shrink into and comes back through here
-        // when it lands - super.finish() cannot be reached from inside the lambda that does it
-        if (isShrinking) {
-            super.finish()
-            return
-        }
-
-        isShrinking = continuity.close { finish() }
-        if (!isShrinking) {
-            super.finish()
-            // the theme's own close animation is nothing at all, since it would otherwise run over
-            // the shrink - so a close with no tile to shrink into names one of its own
-            overridePendingTransition(0, org.fossify.commons.R.anim.slide_down)
-        }
+        continuity.finishThrough(::finishNow)
     }
+
+    // super.finish() cannot be reached from inside the lambda the shrink lands in
+    private fun finishNow() = super.finish()
 
     private fun currentFragment() = (binding.viewPager.adapter as? MyPagerAdapter)
         ?.getCurrentFragment(binding.viewPager.currentItem)

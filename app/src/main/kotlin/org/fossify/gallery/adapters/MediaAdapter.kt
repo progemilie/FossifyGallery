@@ -13,6 +13,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.allViews
+import androidx.core.view.children
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
@@ -1278,10 +1279,7 @@ class MediaAdapter(
             thumbnailSectionCheck.beVisibleIf(selecting)
             thumbnailSectionCheck.isClickable = selecting
             if (selecting) {
-                paintSectionCheck(thumbnailSectionCheck, isWholeGroupSelected(view.groupRange()))
-                // asked of the grid at the moment of the tap rather than bound in: a header outlives
-                // several positions as the list is scrolled past it
-                thumbnailSectionCheck.setOnClickListener { toggleGroup(view.groupRange()) }
+                thumbnailSectionCheck.armForGroup(view)
             }
         }
     }
@@ -1324,19 +1322,34 @@ class MediaAdapter(
     }
 
     /**
-     * Lets the tick be taller than the line of text beside it without the header growing to hold it.
-     * Read off the text rather than fixed, since how tall a line is follows the font scale, and set
-     * once per header built - a margin written during a bind would ask for a layout every time one
-     * scrolled past.
-     *
-     * The tick then hangs a few pixels into padding many times that size, so nothing is ever seen to
-     * overflow. Without this a selection starting would push every row of the grid down with it.
+     * Lets the tick be taller than the line of text beside it without the header growing to hold it,
+     * which would push every row of the grid down as a selection started. Measured off the text,
+     * since how tall a line is follows the font scale, and set once per header built rather than at
+     * bind time, where it would ask for a layout every time one scrolled past.
      */
     private fun ThumbnailSectionBinding.sinkCheckIntoPadding() {
         val overhang = resources.getDimensionPixelSize(R.dimen.selection_check_size) - thumbnailSection.lineHeight
         thumbnailSectionCheck.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             topMargin = -(overhang / 2).coerceAtLeast(0)
             bottomMargin = topMargin
+        }
+    }
+
+    /**
+     * Points the tick at the group under [header] and paints it for what is selected there. The
+     * group is asked of the grid at the moment of the tap rather than bound in: a header outlives
+     * several positions as the list is scrolled past it.
+     */
+    private fun ImageView.armForGroup(header: View) {
+        paintSectionCheck(this, isWholeGroupSelected(header.groupRange()))
+        setOnClickListener { toggleGroup(header.groupRange()) }
+    }
+
+    /** Every group header currently on screen, with the tick it wears. */
+    private fun forEachSectionCheck(action: (header: View, check: ImageView) -> Unit) {
+        recyclerView.children.forEach { header ->
+            val check = header.findViewById<ImageView>(R.id.thumbnail_section_check) ?: return@forEach
+            action(header, check)
         }
     }
 
@@ -1355,14 +1368,8 @@ class MediaAdapter(
 
     /** Brings every header on screen in line with what is currently selected under it. */
     private fun repaintSectionChecks() {
-        if (!isSelecting()) {
-            return
-        }
-
-        for (i in 0 until recyclerView.childCount) {
-            val header = recyclerView.getChildAt(i) ?: continue
-            val check = header.findViewById<ImageView>(R.id.thumbnail_section_check) ?: continue
-            paintSectionCheck(check, isWholeGroupSelected(header.groupRange()))
+        if (isSelecting()) {
+            forEachSectionCheck { header, check -> paintSectionCheck(check, isWholeGroupSelected(header.groupRange())) }
         }
     }
 
@@ -1376,15 +1383,12 @@ class MediaAdapter(
         val shift = resources.getDimensionPixelSize(R.dimen.selection_check_size) +
             resources.getDimensionPixelSize(R.dimen.section_check_gap)
 
-        for (i in 0 until recyclerView.childCount) {
-            val header = recyclerView.getChildAt(i) ?: continue
-            val check = header.findViewById<ImageView>(R.id.thumbnail_section_check) ?: continue
-            val title = header.findViewById<View>(R.id.thumbnail_section) ?: continue
+        forEachSectionCheck { header, check ->
+            val title = header.findViewById<View>(R.id.thumbnail_section) ?: return@forEachSectionCheck
             check.isClickable = selecting
             title.animate().cancel()
             if (selecting) {
-                paintSectionCheck(check, isWholeGroupSelected(header.groupRange()))
-                check.setOnClickListener { toggleGroup(header.groupRange()) }
+                check.armForGroup(header)
                 check.showPanel()
                 // the tick takes its place the moment it is VISIBLE, so the title is already where
                 // it is going to end up and only has to be carried back and let go of
@@ -1392,9 +1396,8 @@ class MediaAdapter(
                 title.animate().translationX(0f).setDuration(PANEL_ENTER_MS).start()
             } else {
                 // going the other way the tick holds its place until it is GONE, so the title walks
-                // to where the layout is about to put it. The one end action settles both, the
-                // title's own animator being cancelled rather than raced: two of them writing the
-                // same translation leaves whichever finishes last with the final say
+                // to where the layout is about to put it. Both are settled by the one end action,
+                // the title's animator cancelled rather than raced against it
                 title.animate().translationX(-shift.toFloat()).setDuration(PANEL_EXIT_MS).start()
                 check.hidePanel(onGone = {
                     title.animate().cancel()

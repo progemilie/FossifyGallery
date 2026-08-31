@@ -159,9 +159,9 @@ import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.RESTORE_TAB
 import org.fossify.gallery.helpers.SET_WALLPAPER_INTENT
 import org.fossify.gallery.helpers.SHOW_ALL
-import org.fossify.gallery.helpers.SelectionChrome
 import org.fossify.gallery.helpers.SHOW_TEMP_HIDDEN_DURATION
 import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
+import org.fossify.gallery.helpers.SelectionChrome
 import org.fossify.gallery.helpers.TAB_SCROLL_OFFSET
 import org.fossify.gallery.helpers.TAB_SCROLL_PATH
 import org.fossify.gallery.helpers.TYPE_GIFS
@@ -183,7 +183,6 @@ import org.fossify.gallery.models.TabScreen
 import org.fossify.gallery.views.MediaGridPane
 import org.fossify.gallery.views.NavDestination
 import org.fossify.gallery.views.NavPill
-import org.fossify.gallery.views.SelectionPills
 
 /** Where through a pane swap the search bar hands its buttons from one grid to the other. */
 private const val HALFWAY = 0.5f
@@ -272,22 +271,15 @@ class MainActivity :
     private val navPill by lazy { NavPill(binding.navPill) }
     private lateinit var chrome: GridChrome
 
-    /**
-     * The pills a selection is made through, in place of the platform's contextual action bar:
-     * AppCompat offers this before building a bar of its own, and answering it means never getting
-     * one. See [SelectionChrome].
-     */
+    // answered before AppCompat builds a contextual action bar, so it never builds one
     override fun onWindowStartingSupportActionMode(callback: ActionMode.Callback) =
         selectionChrome.start(callback)
 
+    /** The pills a selection is made through, in place of that bar. See [SelectionChrome]. */
     private val selectionChrome by lazy {
-        SelectionChrome(
-            context = this,
-            pills = SelectionPills(
-                binding.selectionTopPill, binding.selectionBottomPill, binding.contentHolder
-            ),
-            contentBehind = binding.contentHolder,
-        ).apply { onActiveChanged = { onPaneStateChanged() } }
+        SelectionChrome.over(
+            binding.selectionTopPill, binding.selectionBottomPill, binding.contentHolder
+        ) { onPaneStateChanged() }
     }
 
     /**

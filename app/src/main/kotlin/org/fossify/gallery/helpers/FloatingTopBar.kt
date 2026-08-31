@@ -56,18 +56,11 @@ class FloatingTopBar(
      */
     var isAvailable = true
         set(value) {
-            if (field == value) {
-                return
+            if (field != value) {
+                field = value
+                applyVisibility()
+                keepGridClear()
             }
-
-            field = value
-            topBar.beVisibleIf(value)
-            glass?.isFrostPaused = !value
-            if (value) {
-                show()
-            }
-
-            keepGridClear()
         }
 
     /**
@@ -77,17 +70,21 @@ class FloatingTopBar(
      */
     var isCovered = false
         set(value) {
-            if (field == value) {
-                return
-            }
-
-            field = value
-            topBar.beVisibleIf(!value)
-            glass?.isFrostPaused = value
-            if (!value) {
-                show()
+            if (field != value) {
+                field = value
+                applyVisibility()
             }
         }
+
+    // both reasons for the bar to go answered in one place, so neither can put it back over the other
+    private fun applyVisibility() {
+        val isShown = isAvailable && !isCovered
+        topBar.beVisibleIf(isShown)
+        glass?.isFrostPaused = !isShown
+        if (isShown) {
+            show()
+        }
+    }
 
     /** Stops the bar from panning away and brings it back down if it had. */
     var isPanningEnabled: Boolean

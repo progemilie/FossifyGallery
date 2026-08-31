@@ -9,15 +9,15 @@ import android.text.TextUtils
 import android.widget.RelativeLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.view.children
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.fossify.commons.dialogs.*
 import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.*
 import org.fossify.commons.models.RadioItem
-import androidx.core.view.children
-import androidx.core.view.updateLayoutParams
-import androidx.core.view.updatePadding
 import org.fossify.gallery.R
 import org.fossify.gallery.databinding.ActivitySettingsBinding
 import org.fossify.gallery.dialogs.*
@@ -204,10 +204,9 @@ class SettingsActivity : SimpleActivity() {
     }
 
     /**
-     * Paints one card's settings, and only ever a card that can be seen. [updateTextColors] walks
-     * whatever it is handed, and handing it the whole screen repainted two hundred views for the
-     * dozen that were showing - two thirds of the time this screen took to come up. A card is
-     * painted as it opens, which is before the frame it first draws in.
+     * Paints one card's settings, as it opens and so before the frame it first draws in.
+     * [updateTextColors] walks whatever it is handed, and handing it the whole screen repainted two
+     * hundred views for the dozen showing - two thirds of the time this screen took to come up.
      */
     private fun paintSettings(card: SettingsCard) = updateTextColors(card.settings)
 

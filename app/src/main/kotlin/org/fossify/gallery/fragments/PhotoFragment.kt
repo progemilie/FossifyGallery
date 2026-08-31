@@ -98,7 +98,6 @@ import org.fossify.gallery.helpers.NORMAL_TILE_DPI
 import org.fossify.gallery.helpers.PicassoRegionDecoder
 import org.fossify.gallery.helpers.DisplayedMedia
 import org.fossify.gallery.helpers.SHOULD_INIT_FRAGMENT
-import org.fossify.gallery.helpers.ThumbnailSource
 import org.fossify.gallery.helpers.WEIRD_TILE_DPI
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.svg.SvgSoftwareLayerSetter
@@ -110,11 +109,6 @@ import kotlin.math.abs
 import kotlin.math.ceil
 
 class PhotoFragment : ViewPagerFragment() {
-    companion object {
-        // wide enough to read as the photo rather than as a smear, small enough that the decoder
-        // can subsample its way there in a fraction of the time the full one takes
-    }
-
     private val DEFAULT_DOUBLE_TAP_ZOOM = 2f
     private val ZOOMABLE_VIEW_LOAD_DELAY = 100L
     private val SAME_ASPECT_RATIO_THRESHOLD = 0.01

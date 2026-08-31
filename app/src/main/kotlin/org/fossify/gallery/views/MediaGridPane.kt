@@ -305,10 +305,8 @@ class MediaGridPane(
      * pane has none of its own to spare - a folder opened as a screen keeps no navigation pill, so
      * without this its last row would sit under the pill with nothing left to scroll.
      *
-     * The room goes into the base commons builds the grid's padding from, not on top of the padding
-     * itself: that padding is rebuilt as base plus the window insets every time the insets come
-     * round again, and anything merely added afterwards is dropped the next time they do. The
-     * padding is then set outright as well, the rebuild being whenever the window next says so.
+     * The room goes into the base commons rebuilds the padding from as well as into the padding
+     * itself: anything merely added on top is dropped the next time the window insets come round.
      */
     fun reserveBottomRoom(reserve: Boolean) {
         val room = if (reserve) resources.getDimensionPixelSize(R.dimen.nav_pill_reserved_height) else 0
@@ -1395,7 +1393,8 @@ class MediaGridPane(
         } else {
             mWasFullscreenViewOpen = true
             viewerReturn.opening(path)
-            beginContinuityFlight(path)
+            // grows the tapped tile into the fullscreen picture, see ViewerTransition
+            ViewerTransition.beginFlight(activity, getMediaAdapter(), mMedia, path)
             if (!path.isVideoFast()) {
                 openInViewPager(path)
                 return
@@ -1414,22 +1413,13 @@ class MediaGridPane(
     }
 
     /**
-     * Hands the tapped tile to whichever fullscreen screen is about to open, so the picture grows
-     * out of it rather than sliding in over it. See [ViewerTransition].
-     */
-    private fun beginContinuityFlight(path: String) {
-        val medium = mMedia.filterIsInstance<Medium>().firstOrNull { it.path == path } ?: return
-        ViewerTransition.beginFlight(activity, getMediaAdapter(), medium)
-    }
-
-    /**
      * Opens the peek viewer on [path]: a look at a picture too small to judge in the grid, without
      * having to leave the selection to take it. What it hands back is read in [onActivityResult].
      */
     private fun openPeekViewer(media: List<Medium>, selectedPaths: Set<String>, path: String) {
         PeekSession.open(media, selectedPaths, path)
         viewerReturn.opening(path)
-        beginContinuityFlight(path)
+        ViewerTransition.beginFlight(activity, getMediaAdapter(), mMedia, path)
         activity.startActivityForResult(Intent(activity, PeekViewerActivity::class.java), REQUEST_PEEK)
     }
 

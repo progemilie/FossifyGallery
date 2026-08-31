@@ -74,14 +74,13 @@ import org.fossify.gallery.extensions.getFormattedDuration
 import org.fossify.gallery.extensions.getFriendlyMessage
 import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.openPath
+import org.fossify.gallery.extensions.screenRect
 import org.fossify.gallery.extensions.shareMediumPath
 import org.fossify.gallery.extensions.showSystemUI
 import org.fossify.gallery.fragments.PlaybackSpeedFragment
-import org.fossify.gallery.helpers.DRAG_THRESHOLD
-import org.fossify.gallery.helpers.PATH
-import org.fossify.gallery.extensions.screenRect
-import org.fossify.gallery.helpers.DisplayedMedia
 import org.fossify.gallery.helpers.ContinuityTransition
+import org.fossify.gallery.helpers.DRAG_THRESHOLD
+import org.fossify.gallery.helpers.DisplayedMedia
 import org.fossify.gallery.helpers.EXOPLAYER_MAX_BUFFER_MS
 import org.fossify.gallery.helpers.EXOPLAYER_MIN_BUFFER_MS
 import org.fossify.gallery.helpers.FAST_FORWARD_VIDEO_MS
@@ -89,6 +88,7 @@ import org.fossify.gallery.helpers.GO_TO_NEXT_ITEM
 import org.fossify.gallery.helpers.GO_TO_PREV_ITEM
 import org.fossify.gallery.helpers.HIDE_SYSTEM_UI_DELAY
 import org.fossify.gallery.helpers.MAX_CLOSE_DOWN_GESTURE_DURATION
+import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.ROTATE_BY_ASPECT_RATIO
 import org.fossify.gallery.helpers.ROTATE_BY_DEVICE_ROTATION
 import org.fossify.gallery.helpers.ROTATE_BY_SYSTEM_SETTING
@@ -144,9 +144,6 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
 
     override val appBarLayout: AppBarLayout
         get() = binding.videoAppbar
-
-    /** Whether the shrink back into the grid has already run, see [finish]. */
-    private var isShrinking = false
 
     /** The tile this player grew out of, and the tile it shrinks back into. */
     private val continuity by lazy {
@@ -272,22 +269,10 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
         }
     }
 
-    override fun finish() {
-        // the shrink runs first where there is a tile to shrink into and comes back through here
-        // when it lands - super.finish() cannot be reached from inside the lambda that does it
-        if (isShrinking) {
-            super.finish()
-            return
-        }
+    override fun finish() = continuity.finishThrough(::finishNow)
 
-        isShrinking = continuity.close { finish() }
-        if (!isShrinking) {
-            super.finish()
-            // the theme's own close animation is nothing at all, since it would otherwise run over
-            // the shrink - so a close with no tile to shrink into names one of its own
-            overridePendingTransition(0, org.fossify.commons.R.anim.slide_down)
-        }
-    }
+    // super.finish() cannot be reached from inside the lambda the shrink lands in
+    private fun finishNow() = super.finish()
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
@@ -312,8 +297,9 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
         mUri = intent.data ?: return
         binding.videoToolbar.title = getFilenameFromUri(mUri!!)
         // the uri says nothing about which tile this came from; the path the grid sent does
-        continuity.onPathChanged(intent.getStringExtra(PATH).orEmpty())
-        continuity.enter(intent.getStringExtra(PATH).orEmpty())
+        val tilePath = intent.getStringExtra(PATH).orEmpty()
+        continuity.onPathChanged(tilePath)
+        continuity.enter(tilePath)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
 

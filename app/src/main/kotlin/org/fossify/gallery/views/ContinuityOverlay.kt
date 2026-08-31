@@ -21,10 +21,8 @@ import kotlin.math.min
  * [org.fossify.gallery.helpers.ViewerTransition].
  *
  * **Two things move at once, and both have to.** The rect travels from the tile to where the photo
- * comes to rest, and the picture inside it travels from filling that rect the way a cropped tile
- * does to fitting inside it the way the fullscreen photo does. A flight that moved only the rect
- * would be drawing a cropped square at one end or a letterboxed photo at the other - which is the
- * mismatch that leaves a cut at the end of the motion rather than one continuous grow.
+ * comes to rest, and the crop travels with it - a flight moving only the rect would draw a cropped
+ * square at one end or a letterboxed photo at the other, which is what leaves a cut at the end.
  *
  * Never GONE, only INVISIBLE: a flight is set up against this view's own position on screen, and a
  * GONE view is never laid out to have one.
@@ -86,12 +84,9 @@ class ContinuityOverlay @JvmOverloads constructor(
 
     /**
      * Moves where the flight is heading without disturbing where it has got to, and hands it the
-     * picture it should have been drawn with all along.
-     *
-     * A flight sets off before its picture has decoded whenever the tap beat the decode to it. The
-     * stand-in it uses until then is the tile's own bitmap, which where thumbnails are cropped has
-     * no edges left to unfold - so the unfolding is held at bay until the real picture arrives, and
-     * then run over whatever is left of the flight rather than jumped to where it would have been.
+     * picture it should have been drawn with all along - a flight that set off before its picture
+     * had decoded flies with the tile's own until then. The unfolding waits for the real picture
+     * and then runs over whatever is left of the flight, rather than jumping to where it would be.
      */
     fun handOver(image: Bitmap, toRect: RectF, cropAtEnd: Float) {
         this.image = image

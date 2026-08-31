@@ -18,13 +18,13 @@ import org.fossify.gallery.asynctasks.GetMediaAsynctask
 import org.fossify.gallery.databinding.ActivitySearchBinding
 import org.fossify.gallery.extensions.*
 import org.fossify.gallery.helpers.GridSpacingItemDecoration
-import org.fossify.gallery.helpers.ViewerTransition
 import org.fossify.gallery.helpers.MediaFetcher
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.VIDEO_PLAYER_APP
 import org.fossify.gallery.helpers.VIDEO_PLAYER_SYSTEM
 import org.fossify.gallery.helpers.ViewerReturn
+import org.fossify.gallery.helpers.ViewerTransition
 import org.fossify.gallery.interfaces.MediaOperationsListener
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
@@ -175,9 +175,7 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
     private fun itemClicked(path: String) {
         viewerReturn.opening(path)
         // grows the tapped tile into the fullscreen picture, see ViewerTransition
-        mAllMedia.filterIsInstance<Medium>().firstOrNull { it.path == path }?.let {
-            ViewerTransition.beginFlight(this, getMediaAdapter(), it)
-        }
+        ViewerTransition.beginFlight(this, getMediaAdapter(), mAllMedia, path)
         if (!path.isVideoFast()) {
             openInViewPager(path)
             return

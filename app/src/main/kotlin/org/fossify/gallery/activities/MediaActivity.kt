@@ -19,10 +19,10 @@ import org.fossify.gallery.helpers.GET_IMAGE_INTENT
 import org.fossify.gallery.helpers.GET_VIDEO_INTENT
 import org.fossify.gallery.helpers.GridChrome
 import org.fossify.gallery.helpers.OPEN_VIEWER_PATH
-import org.fossify.gallery.helpers.SelectionChrome
 import org.fossify.gallery.helpers.SET_WALLPAPER_INTENT
 import org.fossify.gallery.helpers.SHOW_TEMP_HIDDEN_DURATION
 import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
+import org.fossify.gallery.helpers.SelectionChrome
 import org.fossify.gallery.helpers.TAB_SCROLL_OFFSET
 import org.fossify.gallery.helpers.TAB_SCROLL_PATH
 import org.fossify.gallery.helpers.TabSwitcher
@@ -31,7 +31,6 @@ import org.fossify.gallery.models.TabScreen
 import org.fossify.gallery.models.ThumbnailItem
 import org.fossify.gallery.views.MediaGridPane
 import org.fossify.gallery.views.PickRequest
-import org.fossify.gallery.views.SelectionPills
 
 /**
  * The window a [MediaGridPane] is shown in when it is a screen of its own - a folder tapped into,
@@ -54,22 +53,15 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
     private lateinit var pane: MediaGridPane
     private lateinit var chrome: GridChrome
 
-    /**
-     * The pills a selection is made through, in place of the platform's contextual action bar:
-     * AppCompat offers this before building a bar of its own, and answering it means never getting
-     * one. See [SelectionChrome].
-     */
+    // answered before AppCompat builds a contextual action bar, so it never builds one
     override fun onWindowStartingSupportActionMode(callback: ActionMode.Callback) =
         selectionChrome.start(callback)
 
+    /** The pills a selection is made through, in place of that bar. See [SelectionChrome]. */
     private val selectionChrome by lazy {
-        SelectionChrome(
-            context = this,
-            pills = SelectionPills(
-                binding.selectionTopPill, binding.selectionBottomPill, binding.contentHolder
-            ),
-            contentBehind = binding.contentHolder,
-        ).apply { onActiveChanged = { onPaneStateChanged() } }
+        SelectionChrome.over(
+            binding.selectionTopPill, binding.selectionBottomPill, binding.contentHolder
+        ) { onPaneStateChanged() }
     }
 
     override val topBar: MySearchMenu get() = binding.mediaMenu

@@ -11,6 +11,8 @@ import androidx.appcompat.view.ActionMode
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.children
 import org.fossify.gallery.R
+import org.fossify.gallery.databinding.SelectionBottomPillBinding
+import org.fossify.gallery.databinding.SelectionTopPillBinding
 import org.fossify.gallery.views.GlassMenu
 import org.fossify.gallery.views.SelectionPills
 
@@ -27,7 +29,7 @@ import org.fossify.gallery.views.SelectionPills
  * menu into [Mode]'s, hides the items that do not apply in `prepareActionMode`, and invalidates on
  * every change to the selection, which is what fills the pills in again.
  */
-class SelectionChrome(
+class SelectionChrome private constructor(
     private val context: Context,
     private val pills: SelectionPills,
     contentBehind: ViewGroup,
@@ -179,7 +181,22 @@ class SelectionChrome(
         }
     }
 
-    private companion object {
+    companion object {
+        /**
+         * The pills a browsing screen puts up, ready to answer AppCompat with. [onActiveChanged]
+         * is told whenever a selection starts or ends, for chrome that has to get out of its way.
+         */
+        fun over(
+            top: SelectionTopPillBinding,
+            bottom: SelectionBottomPillBinding,
+            contentBehind: ViewGroup,
+            onActiveChanged: (Boolean) -> Unit,
+        ) = SelectionChrome(
+            context = contentBehind.context,
+            pills = SelectionPills(top, bottom, contentBehind),
+            contentBehind = contentBehind,
+        ).also { it.onActiveChanged = onActiveChanged }
+
         /**
          * What the pill shows as buttons of its own, in the order it shows them; everything else the
          * selection can do goes behind the menu segment. Named rather than counted, so a button
@@ -190,7 +207,7 @@ class SelectionChrome(
          * somebody else's app waiting on a picture - and it is up nowhere else. Pinning is only
          * ever up on the folder grid, which has no share of its own for it to lengthen the row past.
          */
-        val PILL_ACTIONS = listOf(
+        private val PILL_ACTIONS = listOf(
             R.id.cab_confirm_selection,
             R.id.cab_delete,
             R.id.cab_share,

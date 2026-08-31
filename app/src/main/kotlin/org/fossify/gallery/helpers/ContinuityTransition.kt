@@ -17,24 +17,22 @@ import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import org.fossify.gallery.extensions.screenRect
 import org.fossify.gallery.views.ContinuityOverlay
+import org.fossify.commons.R as commonsR
 
 /** The picture the viewer is showing this instant, and where on screen it is showing it. */
 class DisplayedMedia(val rect: RectF, val image: Bitmap?)
 
 /**
  * A viewer's half of the continuity transition: the tile's picture growing into the fullscreen one
- * on the way in, and the fullscreen one shrinking back into a tile on the way out.
+ * on the way in, and the fullscreen one shrinking back into a tile on the way out. Worn by all
+ * three fullscreen screens, which differ only in what they hand in below.
  *
  * Everything it moves is drawn over a grid that is still there - the viewer's window is translucent
  * - so the two windows read as one surface. See [ViewerTransition] for the hand-off between them.
  *
- * **A flight is measured against the photo, never against the screen.** The photo is fitted inside
- * the screen and often covers little more than half of it, so a flight sized by the screen overruns
- * the photo and is yanked back to it. It knows where to aim because the picture it is drawn with is
- * the photo's own, uncropped, with the photo's proportions - fetched from the moment of the tap, so
- * the flight normally sets off already aimed at exactly where the photo comes to rest.
- *
- * Worn by all three fullscreen screens, which differ only in what they hand in below.
+ * **A flight is measured against the photo, never against the screen.** A photo fitted inside the
+ * screen often covers little more than half of it, so a flight sized by the screen overruns it and
+ * is yanked back - see [landing].
  */
 class ContinuityTransition(
     private val activity: Activity,
@@ -138,12 +136,9 @@ class ContinuityTransition(
     }
 
     /**
-     * Hands the screen back to the viewer once it has something to hand it to.
-     *
-     * They are the same picture at the same rect by then, so this is a swap of nothing at all.
-     * Where the photo is slow the flown picture simply holds the screen until it arrives, rather
-     * than the screen going empty - and where it lands somewhere the flight did not expect, that
-     * last correction is made as a move rather than as a jump.
+     * Hands the screen back to the viewer once it has something to hand it to - the same picture at
+     * the same rect by then, so the swap is nothing at all. A slow photo simply leaves the flown
+     * picture holding the screen, and one that lands unexpectedly is moved onto rather than cut to.
      */
     private fun settle() {
         if (isClosing) {
@@ -206,15 +201,20 @@ class ContinuityTransition(
         }
     }
 
-    /** Whether there is a tile to shrink into, which is the whole of what makes the shrink worth doing. */
-    fun canShrink() = ViewerTransition.isSupported && exitTile != null && !isClosing
-
     /**
-     * Shrinks the media into its tile and finishes the screen when it lands. Answers false when
-     * there is nothing to shrink - no tile, the item having been deleted or filtered out from under
-     * the grid, or nothing drawn to shrink with - so the caller closes the screen the ordinary way.
+     * Shrinks the media back into its tile and runs [finishNow] once it lands. Where there is
+     * nothing to shrink - no tile, the item deleted or filtered out from under the grid, nothing
+     * drawn to shrink with - the screen closes at once, naming the slide the theme leaves out: its
+     * own close animation is nothing at all, so that a shrink can be drawn over the grid.
      */
-    fun close(onFinish: () -> Unit): Boolean {
+    fun finishThrough(finishNow: () -> Unit) {
+        if (!close(finishNow)) {
+            finishNow()
+            activity.overridePendingTransition(0, commonsR.anim.slide_down)
+        }
+    }
+
+    private fun close(onFinish: () -> Unit): Boolean {
         if (isClosing) {
             return true
         }
@@ -239,18 +239,10 @@ class ContinuityTransition(
             scrim.chromeAlpha = chromeFrom * (1f - ramp(t, 0f, CONTINUITY_CHROME_IN))
         }.doOnEnd {
             ViewerTransition.shrank()
-            // the theme's own close animation is nothing at all, see res/anim/viewer_hold.xml
             onFinish()
         }
 
         return true
-    }
-
-    /** Shrinks into the tile where there is one, and simply runs [onFinish] where there is not. */
-    fun closeOrFinish(onFinish: () -> Unit) {
-        if (!close(onFinish)) {
-            onFinish()
-        }
     }
 
     private fun animate(

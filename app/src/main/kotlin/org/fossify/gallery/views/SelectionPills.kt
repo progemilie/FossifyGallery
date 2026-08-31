@@ -35,6 +35,7 @@ class SelectionPills(
 ) {
     private val context = top.root.context
     private val resources = context.resources
+    private val panels = listOf(top.selectionTopPanel, bottom.selectionBottomPanel)
 
     /** What the drop-down carrying the rest of the actions hangs off. */
     val menuButton: View get() = bottom.selectionMore
@@ -49,7 +50,7 @@ class SelectionPills(
     private var shownIds = emptyList<Int>()
 
     init {
-        listOf(top.selectionTopPanel, bottom.selectionBottomPanel).forEach { panel ->
+        panels.forEach { panel ->
             panel.blurRadius = Glass.DEFAULT_RADIUS
             // both are covered in icons and text, which have to read over whatever is scrolling past
             panel.overlayAlpha = Glass.TEXT_TINT_ALPHA
@@ -71,7 +72,7 @@ class SelectionPills(
         }
 
         shownIds = emptyList()
-        listOf(top.selectionTopPanel, bottom.selectionBottomPanel).forEach { it.frost(contentBehind) }
+        panels.forEach { it.frost(contentBehind) }
         updateColors()
         top.root.showPanel(pivot = PanelPivot.TOP)
         bottom.root.showPanel(pivot = PanelPivot.BOTTOM)
@@ -112,14 +113,13 @@ class SelectionPills(
     /** Repainted whenever the pills are shown: the theme can change while they are away. */
     fun updateColors() {
         val content = Glass.contentColor(context)
-        top.selectionTopPanel.updateColors()
-        bottom.selectionBottomPanel.updateColors()
-        top.selectionBack.paintWash(content, isCurrent = false)
-        top.selectionBackIcon.applyColorFilter(content)
+        panels.forEach { it.updateColors() }
         top.selectionCount.setTextColor(content)
-        bottom.selectionMore.paintWash(content, isCurrent = false)
-        bottom.selectionMoreIcon.applyColorFilter(content)
-        bottom.selectionActions.children.forEach { paintAction(it, content) }
+        paintSegment(top.selectionBack, top.selectionBackIcon, content)
+        paintSegment(bottom.selectionMore, bottom.selectionMoreIcon, content)
+        bottom.selectionActions.children.filterIsInstance<NavPillSegment>().forEach {
+            paintSegment(it, it.getChildAt(0) as? ImageView, content)
+        }
     }
 
     private fun actionButton(item: MenuItem, onPick: (MenuItem) -> Unit): View {
@@ -149,8 +149,8 @@ class SelectionPills(
         return segment
     }
 
-    private fun paintAction(view: View, content: Int) {
-        (view as? NavPillSegment)?.paintWash(content, isCurrent = false)
-        ((view as? ViewGroup)?.getChildAt(0) as? ImageView)?.applyColorFilter(content)
+    private fun paintSegment(segment: NavPillSegment, icon: ImageView?, content: Int) {
+        segment.paintWash(content, isCurrent = false)
+        icon?.applyColorFilter(content)
     }
 }

@@ -232,9 +232,6 @@ class ViewPagerActivity :
 
     private var mPagerScrollState = ViewPager.SCROLL_STATE_IDLE
 
-    /** Whether the shrink back into the grid has already run, see [finish]. */
-    private var mIsShrinking = false
-
     /** Whether the gesture in progress began while the pager was still moving; see [dispatchTouchEvent]. */
     private var mPagerTookGesture = false
 
@@ -567,21 +564,11 @@ class ViewPagerActivity :
             setResult(RESULT_OK, Intent().putExtra(PATH, getCurrentPath()))
         }
 
-        // the shrink runs first where there is a tile to shrink into and comes back through here
-        // when it lands - super.finish() cannot be reached from inside the lambda that does it
-        if (mIsShrinking) {
-            super.finish()
-            return
-        }
-
-        mIsShrinking = continuity.close { finish() }
-        if (!mIsShrinking) {
-            super.finish()
-            // the theme's own close animation is nothing at all, since it would otherwise run over
-            // the shrink - so a close with no tile to shrink into names one of its own
-            overridePendingTransition(0, org.fossify.commons.R.anim.slide_down)
-        }
+        continuity.finishThrough(::finishNow)
     }
+
+    // super.finish() cannot be reached from inside the lambda the shrink lands in
+    private fun finishNow() = super.finish()
 
     private fun initViewPager(savedPath: String) {
         val uri = intent.data

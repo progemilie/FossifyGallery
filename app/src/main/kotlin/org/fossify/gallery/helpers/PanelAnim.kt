@@ -149,11 +149,8 @@ private const val CHOICE_MS = 120L
  * list, the tabs - so all three swell over the same time and off the same pair of numbers.
  *
  * Called on the label or the icon and never on the plate behind it: a highlight drawn bigger than
- * the row it belongs to is a highlight whose rounded corners have been clipped off.
- *
- * A scale is a draw and not a layout, so nothing beside it moves to make room. Rows already where
- * they belong are left alone rather than re-animated, these being repainted in full every time the
- * finger crosses from one to the next.
+ * the row it belongs to is a highlight whose rounded corners have been clipped off. Rows already
+ * where they belong are left alone, these being repainted in full on every crossing.
  */
 fun View.markChosen(chosen: Boolean, swell: Float = CHOICE_SWELL) {
     val target = if (chosen) swell else 1f
@@ -182,7 +179,7 @@ private fun View.applyPivot(pivot: PanelPivot) {
     pivotY = height * pivot.y
 }
 
-private fun View.enterCurve(): Interpolator =
+internal fun View.enterCurve(): Interpolator =
     AnimationUtils.loadInterpolator(context, android.R.interpolator.fast_out_slow_in)
 
 private fun View.exitCurve(): Interpolator =
