@@ -3,14 +3,21 @@ package org.fossify.gallery.adapters
 import android.animation.Animator
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.view.View
 import android.view.animation.DecelerateInterpolator
+import android.widget.ImageView
 import androidx.core.animation.doOnEnd
+import androidx.core.graphics.drawable.toBitmap
 import androidx.core.view.children
 import androidx.recyclerview.widget.RecyclerView
 import org.fossify.commons.views.MyGridLayoutManager
+import org.fossify.gallery.R
+import org.fossify.gallery.extensions.screenRect
 import org.fossify.gallery.helpers.REVEAL_DURATION_MS
 import org.fossify.gallery.helpers.REVEAL_START_SCALE
+import org.fossify.gallery.helpers.ViewerTransition
 import org.fossify.gallery.models.Medium
 
 /**
@@ -39,6 +46,13 @@ class MediaGridNavigator(private val adapter: MediaAdapter) {
             return false
         }
 
+        // the photo flew into this very tile a moment ago and the grid was scrolled onto it to be
+        // aimed at, so there is nothing left to point out - a swell here would read as a bounce on
+        // the end of one continuous motion
+        if (ViewerTransition.takeDidShrink()) {
+            return true
+        }
+
         // scroll on the next pass so the grid is laid out, wait a further one only if it did scroll
         recyclerView.post {
             if (scrollIntoView(position)) {
@@ -49,6 +63,36 @@ class MediaGridNavigator(private val adapter: MediaAdapter) {
         }
 
         return true
+    }
+
+    /**
+     * Where the tile for [path] is and how it is drawing, for [ViewerTransition] to fly a photo out
+     * of or back into. Answers null where the grid has no such item any more: deleted, filtered
+     * out, or searched past.
+     *
+     * [scroll] puts the grid onto the item first, which the viewer asks for on the way out - the
+     * grid is paused behind it, so the scrolling is never seen - and which makes the answer a frame
+     * late. The tap on the way in does not: it is asking what it just touched, so the answer comes
+     * back before this returns.
+     */
+    fun locateTile(
+        path: String,
+        isCropped: Boolean,
+        scroll: Boolean,
+        onLocated: (ViewerTransition.Tile?) -> Unit
+    ) {
+        val position = adapter.getItemKeyPosition(path.hashCode())
+        if (position == -1) {
+            onLocated(null)
+            return
+        }
+
+        if (scroll && scrollIntoView(position)) {
+            // nothing is laid out at the new offset until the pass after the scroll
+            recyclerView.post { onLocated(recyclerView.tileAt(position, isCropped)) }
+        } else {
+            onLocated(recyclerView.tileAt(position, isCropped))
+        }
     }
 
     /** Centres the item at [position] unless it is already fully on screen. Returns whether it scrolled. */
@@ -154,3 +198,40 @@ class MediaGridNavigator(private val adapter: MediaAdapter) {
             }
     }
 }
+
+/**
+ * Reads a bound grid item as the viewer needs to see it. The simplified grid's item is the
+ * thumbnail itself rather than a holder around one, which findViewById covers either way.
+ *
+ * The bitmap is only a stand-in - the picture the eye is already on, for the frame or two before
+ * the photo's own uncropped copy arrives - so it is whatever the tile has this instant, placeholder
+ * included. Taken as a copy: the tile's own is Glide's to hand back to its pool the moment the grid
+ * rebinds that row, and a flight outlives the scrolling that does it.
+ */
+private fun tileOf(itemView: View, isCropped: Boolean): ViewerTransition.Tile? {
+    val thumbnail = itemView.findViewById<ImageView>(R.id.medium_thumbnail) ?: return null
+
+    // a tile whose file would not load shows a small warning icon centred in it rather than the
+    // picture, and CENTER is how MediaAdapter marks that. There is nothing there worth flying, and
+    // measuring it as though it were the picture would stretch the icon across the screen
+    if (thumbnail.scaleType == ImageView.ScaleType.CENTER) {
+        return null
+    }
+
+    val image = thumbnail.drawable?.let { drawable ->
+        runCatching {
+            val shown = (drawable as? BitmapDrawable)?.bitmap
+            // toBitmap() already draws into one of its own; only a BitmapDrawable's is shared
+            shown?.copy(shown.config ?: Bitmap.Config.ARGB_8888, false) ?: drawable.toBitmap()
+        }.getOrNull()
+    }
+
+    return ViewerTransition.Tile(
+        frame = thumbnail.screenRect(),
+        image = image,
+        isCropped = isCropped
+    )
+}
+
+private fun RecyclerView.tileAt(position: Int, isCropped: Boolean) =
+    findViewHolderForAdapterPosition(position)?.itemView?.let { tileOf(it, isCropped) }

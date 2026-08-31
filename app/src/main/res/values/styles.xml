@@ -23,4 +23,24 @@
     </style>
 
     <style name="FullScreenTheme" parent="FullScreenTheme.Base" />
+    <!--
+        The fullscreen viewers. Opaque here and see-through in values-v28, where the continuity
+        transition draws a photo growing out of the grid still drawn behind it.
+
+        The window animation is nothing at all on purpose: naming one in ActivityOptions instead is
+        what the system takes as licence to drop the grid's window from the frame, leaving the photo
+        growing out of black. See ViewerTransition.
+    -->
+    <style name="ViewerTheme.Base" parent="TranslucentTheme">
+        <item name="android:windowAnimationStyle">@style/ViewerWindowAnimation</item>
+    </style>
+
+    <style name="ViewerTheme" parent="ViewerTheme.Base" />
+
+    <style name="ViewerWindowAnimation" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/viewer_hold</item>
+        <item name="android:activityOpenExitAnimation">@anim/viewer_hold</item>
+        <item name="android:activityCloseEnterAnimation">@anim/viewer_hold</item>
+        <item name="android:activityCloseExitAnimation">@anim/viewer_hold</item>
+    </style>
 </resources>

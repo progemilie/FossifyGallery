@@ -362,6 +362,21 @@ const val FOLDER_FLY_IN_SCALE = 0.15f
 const val FOLDER_FLASH_DURATION_MS = 90L
 const val FOLDER_FLASH_BLINKS = 3
 
+// the continuity transition between a grid tile and the fullscreen viewer, see ViewerTransition
+const val CONTINUITY_DURATION_MS = 300L
+
+/** How much of a flight has run before the viewer's chrome starts fading in behind it. */
+const val CONTINUITY_CHROME_IN = 0.35f
+
+/** How long a flight waits for the viewer to paint something before handing the screen over anyway. */
+const val CONTINUITY_SETTLE_WAIT_MS = 900L
+
+/** How long the last correction onto a photo that landed somewhere unexpected is given. */
+const val CONTINUITY_SETTLE_MS = 120L
+
+/** The small first pass at a fullscreen photo, which is also the picture a flight is drawn with. */
+const val LOW_RES_IMAGE_SIZE = 320
+
 fun getPermissionToRequest() = if (isTiramisuPlus()) PERMISSION_READ_MEDIA_IMAGES else PERMISSION_WRITE_STORAGE
 
 fun getPermissionsToRequest(): Collection<Int> {

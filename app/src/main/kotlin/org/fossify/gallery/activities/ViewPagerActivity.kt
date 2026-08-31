@@ -159,6 +159,7 @@ import org.fossify.gallery.helpers.BOTTOM_ACTION_TABS
 import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_FAVORITE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_VISIBILITY
 import org.fossify.gallery.helpers.ColorModeHelper
+import org.fossify.gallery.helpers.ContinuityTransition
 import org.fossify.gallery.helpers.DefaultPageTransformer
 import org.fossify.gallery.helpers.TabSwitcher
 import org.fossify.gallery.helpers.applyBottomActionsOrder
@@ -231,6 +232,9 @@ class ViewPagerActivity :
 
     private var mPagerScrollState = ViewPager.SCROLL_STATE_IDLE
 
+    /** Whether the shrink back into the grid has already run, see [finish]. */
+    private var mIsShrinking = false
+
     /** Whether the gesture in progress began while the pager was still moving; see [dispatchTouchEvent]. */
     private var mPagerTookGesture = false
 
@@ -262,6 +266,33 @@ class ViewPagerActivity :
 
     private val metadataSheet: MetadataSheet
         get() = binding.metadataSheetHolder.metadataSheet
+
+    /**
+     * The tile this screen grew out of, and the tile it shrinks back into. Everything it fades is
+     * named here because only this screen knows what it has painted over the grid.
+     */
+    private val continuity by lazy {
+        ContinuityTransition(
+            activity = this,
+            overlay = ContinuityTransition.overlayOver(this),
+            stage = binding.viewPager,
+            backdrops = {
+                listOfNotNull(
+                    window.decorView.background,
+                    binding.fragmentHolder.background,
+                    binding.viewPager.background
+                )
+            },
+            chrome = {
+                listOf(
+                    binding.topShadow,
+                    binding.mediumViewerAppbar,
+                    binding.bottomChrome
+                )
+            },
+            displayed = { getCurrentFragment()?.displayedMedia() }
+        )
+    }
 
     override val contentHolder: View
         get() = binding.fragmentHolder
@@ -322,6 +353,9 @@ class ViewPagerActivity :
 
         window.decorView.setBackgroundColor(getProperBackgroundColor())
         (MediaActivity.mMedia.clone() as ArrayList<ThumbnailItem>).filterIsInstanceTo(mMediaFiles, Medium::class.java)
+
+        // after the backdrop is in place, since the flight fades that in from nothing
+        continuity.enter(intent.getStringExtra(PATH).orEmpty())
 
         requestMediaPermissions {
             initViewPager(
@@ -533,7 +567,20 @@ class ViewPagerActivity :
             setResult(RESULT_OK, Intent().putExtra(PATH, getCurrentPath()))
         }
 
-        super.finish()
+        // the shrink runs first where there is a tile to shrink into and comes back through here
+        // when it lands - super.finish() cannot be reached from inside the lambda that does it
+        if (mIsShrinking) {
+            super.finish()
+            return
+        }
+
+        mIsShrinking = continuity.close { finish() }
+        if (!mIsShrinking) {
+            super.finish()
+            // the theme's own close animation is nothing at all, since it would otherwise run over
+            // the shrink - so a close with no tile to shrink into names one of its own
+            overridePendingTransition(0, org.fossify.commons.R.anim.slide_down)
+        }
     }
 
     private fun initViewPager(savedPath: String) {
@@ -715,6 +762,8 @@ class ViewPagerActivity :
             }
 
             binding.viewerThumbnailStrip.setMedia(media, mPos)
+            // onPageSelected does not fire for the page the pager opens on
+            continuity.onPathChanged(getCurrentPath())
         }
     }
 
@@ -1998,6 +2047,7 @@ class ViewPagerActivity :
             refreshMenuItems()
             binding.viewerThumbnailStrip.setSelectedPosition(position)
             scheduleSwipe()
+            continuity.onPathChanged(getCurrentPath())
             // showing everything at once means the folder swiped to may not be the one swiped from,
             // and the chooser must not offer the file's own folder
             refreshQuickChooserFolders()

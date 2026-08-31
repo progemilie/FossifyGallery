@@ -107,6 +107,7 @@ import org.fossify.gallery.helpers.IS_IN_RECYCLE_BIN
 import org.fossify.gallery.helpers.MEDIA_GRID_MENU
 import org.fossify.gallery.helpers.MediaFetcher
 import org.fossify.gallery.helpers.PATH
+import org.fossify.gallery.helpers.ViewerTransition
 import org.fossify.gallery.helpers.PICKED_PATHS
 import org.fossify.gallery.helpers.PeekSession
 import org.fossify.gallery.helpers.RECYCLE_BIN
@@ -1394,6 +1395,7 @@ class MediaGridPane(
         } else {
             mWasFullscreenViewOpen = true
             viewerReturn.opening(path)
+            beginContinuityFlight(path)
             if (!path.isVideoFast()) {
                 openInViewPager(path)
                 return
@@ -1412,12 +1414,22 @@ class MediaGridPane(
     }
 
     /**
+     * Hands the tapped tile to whichever fullscreen screen is about to open, so the picture grows
+     * out of it rather than sliding in over it. See [ViewerTransition].
+     */
+    private fun beginContinuityFlight(path: String) {
+        val medium = mMedia.filterIsInstance<Medium>().firstOrNull { it.path == path } ?: return
+        ViewerTransition.beginFlight(activity, getMediaAdapter(), medium)
+    }
+
+    /**
      * Opens the peek viewer on [path]: a look at a picture too small to judge in the grid, without
      * having to leave the selection to take it. What it hands back is read in [onActivityResult].
      */
     private fun openPeekViewer(media: List<Medium>, selectedPaths: Set<String>, path: String) {
         PeekSession.open(media, selectedPaths, path)
         viewerReturn.opening(path)
+        beginContinuityFlight(path)
         activity.startActivityForResult(Intent(activity, PeekViewerActivity::class.java), REQUEST_PEEK)
     }
 

@@ -83,6 +83,9 @@ import org.fossify.gallery.activities.ViewPagerActivity
 import org.fossify.gallery.adapters.PortraitPhotosAdapter
 import org.fossify.gallery.databinding.PagerPhotoItemBinding
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.extensions.screenRect
+import org.fossify.gallery.extensions.lowResPhotoRequest
+import org.fossify.gallery.extensions.displayedImageRect
 import org.fossify.gallery.extensions.getBottomActionsHeight
 import org.fossify.gallery.extensions.sendFakeClick
 import org.fossify.gallery.helpers.ColorModeHelper
@@ -93,6 +96,7 @@ import org.fossify.gallery.helpers.MEDIUM
 import org.fossify.gallery.helpers.MyGlideImageDecoder
 import org.fossify.gallery.helpers.NORMAL_TILE_DPI
 import org.fossify.gallery.helpers.PicassoRegionDecoder
+import org.fossify.gallery.helpers.DisplayedMedia
 import org.fossify.gallery.helpers.SHOULD_INIT_FRAGMENT
 import org.fossify.gallery.helpers.ThumbnailSource
 import org.fossify.gallery.helpers.WEIRD_TILE_DPI
@@ -109,7 +113,6 @@ class PhotoFragment : ViewPagerFragment() {
     companion object {
         // wide enough to read as the photo rather than as a smear, small enough that the decoder
         // can subsample its way there in a fraction of the time the full one takes
-        private const val LOW_RES_IMAGE_SIZE = 320
     }
 
     private val DEFAULT_DOUBLE_TAP_ZOOM = 2f
@@ -367,6 +370,26 @@ class PhotoFragment : ViewPagerFragment() {
         }
     }
 
+    /**
+     * The gestures view is the one that is always there - the subsampling view is laid over it a
+     * beat later for zoomable photos, drawing the same picture at the same place, and the GIF view
+     * is a frame of its own. Whichever is up, the picture handed back is the gestures view's, which
+     * is the only one holding a bitmap anything can fly with.
+     */
+    override fun displayedMedia(): DisplayedMedia? {
+        if (!isAdded) {
+            return null
+        }
+
+        val shown = if (binding.gifViewFrame.isVisible()) binding.gifViewFrame else binding.gesturesView
+        val rect = binding.gesturesView.displayedImageRect()
+            ?: shown.screenRect().takeIf { !it.isEmpty }
+            ?: return null
+
+        val image = (binding.gesturesView.drawable as? BitmapDrawable)?.bitmap
+        return DisplayedMedia(rect, image)
+    }
+
     private fun storeStateVariables() {
         requireContext().config.apply {
             mStoredAllowDeepZoomableImages = allowZoomingImages
@@ -544,7 +567,7 @@ class PhotoFragment : ViewPagerFragment() {
         Glide.with(requireContext())
             .load(path)
             .apply(options)
-            .thumbnail(buildLowResRequest(path, options))
+            .thumbnail(buildLowResRequest(path, bypassCache))
             .listener(object : RequestListener<Drawable> {
                 override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean {
                     resetColorModeIfVisible()
@@ -581,17 +604,16 @@ class PhotoFragment : ViewPagerFragment() {
      * It carries no listener of its own on purpose: the zoomable view and the colour mode are the
      * full image's business, and it is only standing in for it.
      */
-    private fun buildLowResRequest(path: String, options: RequestOptions): RequestBuilder<Drawable> {
-        return Glide.with(requireContext())
-            // the copy stored inside the photo stands in for this whenever it is big enough, which
-            // is the difference between the first paint costing a whole decode and next to nothing
-            .load(ThumbnailSource(path))
-            .apply(
-                options.clone()
-                    .override(LOW_RES_IMAGE_SIZE)
-                    .format(DecodeFormat.PREFER_RGB_565)
-                    .priority(Priority.IMMEDIATE)
-            )
+    private fun buildLowResRequest(path: String, bypassCache: Boolean): RequestBuilder<Drawable> {
+        // shared with the flight that grows this photo out of its grid tile, which is drawn with
+        // this very picture - described apart, the two would decode it twice over and the hand-off
+        // at the end of the flight would be a change of picture rather than none at all
+        return requireContext().lowResPhotoRequest(
+            path = path,
+            signature = mMedium.getKey(),
+            rotationDegrees = mCurrentRotationDegrees,
+            bypassCache = bypassCache
+        )
     }
 
     private fun tryLoadingWithPicasso(addZoomableView: Boolean) {

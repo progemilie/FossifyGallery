@@ -28,6 +28,7 @@ import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.showSystemUI
 import org.fossify.gallery.fragments.ViewPagerFragment
 import org.fossify.gallery.helpers.Glass
+import org.fossify.gallery.helpers.ContinuityTransition
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.PeekSession
 import org.fossify.gallery.models.Medium
@@ -62,6 +63,27 @@ class PeekViewerActivity :
     override val appBarLayout: AppBarLayout
         get() = binding.peekAppbar
 
+    /** Whether the shrink back into the grid has already run, see [finish]. */
+    private var isShrinking = false
+
+    /** The tile this peek grew out of, and the tile it shrinks back into. */
+    private val continuity by lazy {
+        ContinuityTransition(
+            activity = this,
+            overlay = ContinuityTransition.overlayOver(this),
+            stage = binding.viewPager,
+            backdrops = {
+                listOfNotNull(
+                    window.decorView.background,
+                    binding.peekHolder.background,
+                    binding.viewPager.background
+                )
+            },
+            chrome = { listOf(binding.peekAppbar, binding.viewerThumbnailStrip) },
+            displayed = { currentFragment()?.displayedMedia() }
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
@@ -84,6 +106,8 @@ class PeekViewerActivity :
         setupThumbnailStrip()
         setupViewPager()
         showSystemUI()
+        // after the backdrop is in place, since the flight fades that in from nothing
+        continuity.enter(PeekSession.startPath)
     }
 
     override fun onResume() {
@@ -94,8 +118,25 @@ class PeekViewerActivity :
     /** The grid takes the selection off [PeekSession]; the path is what it scrolls back to. */
     override fun finish() {
         setResult(RESULT_OK, Intent().putExtra(PATH, currentMedium()?.path.orEmpty()))
-        super.finish()
+
+        // the shrink runs first where there is a tile to shrink into and comes back through here
+        // when it lands - super.finish() cannot be reached from inside the lambda that does it
+        if (isShrinking) {
+            super.finish()
+            return
+        }
+
+        isShrinking = continuity.close { finish() }
+        if (!isShrinking) {
+            super.finish()
+            // the theme's own close animation is nothing at all, since it would otherwise run over
+            // the shrink - so a close with no tile to shrink into names one of its own
+            overridePendingTransition(0, org.fossify.commons.R.anim.slide_down)
+        }
     }
+
+    private fun currentFragment() = (binding.viewPager.adapter as? MyPagerAdapter)
+        ?.getCurrentFragment(binding.viewPager.currentItem)
 
     private fun setupViewPager() {
         val position = media.indexOfFirst { it.path == PeekSession.startPath }.coerceAtLeast(0)
@@ -110,6 +151,8 @@ class PeekViewerActivity :
         binding.viewerThumbnailStrip.setMedia(media, position)
         binding.viewerThumbnailStrip.setSelection(PeekSession.selectedPaths)
         updatePill()
+        // onPageSelected does not fire for the page the pager opens on
+        continuity.onPathChanged(currentMedium()?.path.orEmpty())
     }
 
     private fun setupThumbnailStrip() {
@@ -221,6 +264,7 @@ class PeekViewerActivity :
     override fun onPageSelected(position: Int) {
         binding.viewerThumbnailStrip.setSelectedPosition(position)
         updatePill()
+        continuity.onPathChanged(media.getOrNull(position)?.path.orEmpty())
     }
 
     override fun onPageScrollStateChanged(state: Int) {}

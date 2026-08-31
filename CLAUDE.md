@@ -259,6 +259,33 @@ part company when the whole Exif goes: the location cannot survive it (hence Exi
 locking Location in the dialog), while the orientation is read off the source and **written back**
 unless it was asked for by name — a stripped photo should not come out sideways.
 
+### Growing a tile into the viewer
+
+Tapping a photo grows that tile into the fullscreen one, and closing shrinks it back into whichever
+tile was swiped to. `helpers/ViewerTransition.kt` is the hand-off between the two activities - the
+tile's rect, and the grid left registered as the `Anchor` that answers where to fly back to;
+`helpers/ContinuityTransition.kt` is the viewer's half, worn by all three fullscreen screens.
+
+**A flight is drawn with the photo's own picture, never the tile's.** With crop thumbnails on - the
+default - a tile's bitmap has been through a `CenterCrop` and has no edges left to unfold, so a
+flight drawn with it can only fill the screen and cut to the real photo at the end. The tap starts
+`lowResPhotoRequest()` instead: the copy stored inside the file, uncropped, and *the same request
+the viewer paints first* - so the flight sets off already knowing the photo's proportions, and the
+hand-over at the end is nothing happening at all. `views/ContinuityOverlay.kt` moves the rect and
+the crop together; either one alone leaves a cut at one end or the other.
+
+It only reads as one surface while the grid is still drawn underneath, which takes three more
+things, each of which silently leaves the photo growing out of a black screen if it is missed:
+
+- **A translucent theme** (`ViewerTheme`, only translucent in `values-v28`: before API 28 such an
+  activity may not ask for an orientation, which the viewer does) **and** `Window.setFormat`
+  `TRANSLUCENT` at runtime. The theme alone composites nothing.
+- **No custom animation in `ActivityOptions`.** The system takes one as licence to drop the grid's
+  window from the frame. The no-motion window animation lives in the theme instead - `viewer_hold`,
+  which is also why a close with no tile to shrink into has to name a slide of its own.
+- **The exit tile looked up on every page change**: the grid has to scroll and lay out to answer,
+  and a finger already lifted cannot wait a frame for it.
+
 ### Chrome that floats over the content
 
 The three browsing screens draw content edge to edge with the chrome over it. No immersive mode is

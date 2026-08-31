@@ -18,6 +18,7 @@ import org.fossify.gallery.asynctasks.GetMediaAsynctask
 import org.fossify.gallery.databinding.ActivitySearchBinding
 import org.fossify.gallery.extensions.*
 import org.fossify.gallery.helpers.GridSpacingItemDecoration
+import org.fossify.gallery.helpers.ViewerTransition
 import org.fossify.gallery.helpers.MediaFetcher
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.SHOW_ALL
@@ -173,6 +174,10 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
 
     private fun itemClicked(path: String) {
         viewerReturn.opening(path)
+        // grows the tapped tile into the fullscreen picture, see ViewerTransition
+        mAllMedia.filterIsInstance<Medium>().firstOrNull { it.path == path }?.let {
+            ViewerTransition.beginFlight(this, getMediaAdapter(), it)
+        }
         if (!path.isVideoFast()) {
             openInViewPager(path)
             return

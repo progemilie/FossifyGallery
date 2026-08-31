@@ -1,0 +1,15 @@
+<resources>
+
+    <!--
+        The viewer's window is genuinely see-through here, so the grid behind it goes on being
+        composited and the photo can be drawn growing out of its tile. See ViewerTransition.
+
+        Only from API 28: below it a translucent activity may not ask for an orientation, which
+        every one of these screens does.
+    -->
+    <style name="ViewerTheme" parent="ViewerTheme.Base">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
+</resources>
