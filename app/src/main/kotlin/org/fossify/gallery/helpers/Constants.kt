@@ -363,7 +363,7 @@ const val FOLDER_FLASH_DURATION_MS = 90L
 const val FOLDER_FLASH_BLINKS = 3
 
 // the continuity transition between a grid tile and the fullscreen viewer, see ViewerTransition
-const val CONTINUITY_DURATION_MS = 300L
+const val CONTINUITY_DURATION_MS = 220L
 
 /** How much of a flight has run before the viewer's chrome starts fading in behind it. */
 const val CONTINUITY_CHROME_IN = 0.35f
