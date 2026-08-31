@@ -15,6 +15,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
 import org.fossify.commons.extensions.beVisibleIf
+import org.fossify.commons.extensions.isVisible
 import org.fossify.gallery.R
 import org.fossify.gallery.databinding.GlassMenuBinding
 import org.fossify.gallery.helpers.Glass
@@ -102,7 +103,7 @@ class GlassMenu private constructor(
     var isOnToolbar = true
         set(value) {
             field = value
-            boundOverflow?.beVisibleIf(value)
+            boundOverflow?.let { showOverflow(it) }
         }
 
     private val gap = resources.getDimensionPixelSize(R.dimen.glass_menu_drop_gap)
@@ -169,7 +170,16 @@ class GlassMenu private constructor(
         }
 
         // reapplied rather than set once: the toolbar builds its dots back on every menu change
+        showOverflow(overflow)
+    }
+
+    private fun showOverflow(overflow: View) {
+        if (overflow.isVisible() == isOnToolbar) {
+            return
+        }
+
         overflow.beVisibleIf(isOnToolbar)
+        overflow.parent?.requestLayout()
     }
 
     private fun show(anchor: View, dropUp: Boolean) {
