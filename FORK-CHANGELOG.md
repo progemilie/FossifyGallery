@@ -2,19 +2,6 @@
 
 Fork-only changes, newest first. Internal fixes are left out.
 
-## [v1.20.0] - 2026.08.31 — one motion into the photo
-
-- **A photo grows out of its thumbnail.** Tapping one in the grid grows that tile into the
-  fullscreen picture instead of sliding a new screen in over it, with the grid still visible
-  underneath the whole way.
-- A square thumbnail unfolds into the photo's own shape as it grows, rather than filling the screen
-  and cutting to the real thing at the end.
-- **Closing shrinks the photo back into its thumbnail** - whichever one you swiped to, not the one
-  you opened. The back arrow, the back gesture and the swipe down all do it.
-- The photo starts loading the instant the tile is tapped, and the picture the grow is drawn with is
-  the same one the viewer paints first, so there is nothing to see when the two change places.
-- Videos and the peek viewer grow and shrink the same way.
-
 ## [v1.19.0] - 2026.08.29 — one UI
 
 - **A group can be taken in from its header.** While selecting, every date header carries a tick;
@@ -28,6 +15,16 @@ Fork-only changes, newest first. Internal fixes are left out.
   smaller switches - and the screen opens in a third of the time it did.
 - The search bar names the folder you are in rather than offering to search in it.
 - The search pill steps aside while a folder is being arranged by hand.
+- **A photo grows out of its thumbnail.** Tapping one in the grid grows that tile into the
+  fullscreen picture instead of sliding a new screen in over it, with the grid still visible
+  underneath the whole way.
+- A square thumbnail unfolds into the photo's own shape as it grows, rather than filling the screen
+  and cutting to the real thing at the end.
+- **Closing shrinks the photo back into its thumbnail** - whichever one you swiped to, not the one
+  you opened. The back arrow, the back gesture and the swipe down all do it.
+- The photo starts loading the instant the tile is tapped, and the picture the grow is drawn with is
+  the same one the viewer paints first, so there is nothing to see when the two change places.
+- Videos and the peek viewer grow and shrink the same way.
 
 ## [v1.18.0] - 2026.08.28 — tabs
 
