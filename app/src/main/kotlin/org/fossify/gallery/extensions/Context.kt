@@ -93,6 +93,7 @@ import org.fossify.gallery.helpers.LOCATION_OTG
 import org.fossify.gallery.helpers.LOCATION_SD
 import org.fossify.gallery.helpers.MediaFetcher
 import org.fossify.gallery.helpers.MyWidgetProvider
+import org.fossify.gallery.helpers.Perf
 import org.fossify.gallery.helpers.PicassoRoundedCornersTransformation
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_NONE
@@ -667,6 +668,7 @@ fun Context.preloadImage(
     overrideSize: Int,
     animateGifs: Boolean,
 ): Target<Drawable>? {
+    Perf.count("thumb.preload")
     if (type == TYPE_SVGS) {
         return null
     }
@@ -762,6 +764,7 @@ fun Context.loadImageBase(
     decodeFormat: DecodeFormat = DecodeFormat.PREFER_ARGB_8888,
     onError: (() -> Unit)? = null
 ) {
+    Perf.count("thumb.load")
     thumbnailRequest(
         path = path,
         cropThumbnails = cropThumbnails,

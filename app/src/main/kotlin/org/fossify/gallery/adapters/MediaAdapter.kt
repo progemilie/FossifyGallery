@@ -101,6 +101,7 @@ import org.fossify.gallery.helpers.hidePanel
 import org.fossify.gallery.helpers.PANEL_ENTER_MS
 import org.fossify.gallery.helpers.PANEL_EXIT_MS
 import org.fossify.gallery.helpers.PATH
+import org.fossify.gallery.helpers.Perf
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_NONE
@@ -1100,6 +1101,7 @@ class MediaAdapter(
     }
 
     private fun setupThumbnail(view: View, medium: Medium) {
+        Perf.count("grid.bind")
         val isSelected = isItemSelected(medium)
         bindItem(view, medium).apply {
             val padding = if (config.thumbnailSpacing <= 1) {

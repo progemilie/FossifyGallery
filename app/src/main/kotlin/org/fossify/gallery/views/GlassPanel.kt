@@ -15,6 +15,7 @@ import android.view.ViewOutlineProvider
 import eightbitlab.com.blurview.BlurView
 import eightbitlab.com.blurview.BlurViewFacade
 import org.fossify.gallery.helpers.Glass
+import org.fossify.gallery.helpers.Perf
 
 /**
  * A panel of the app's frosted glass ([Glass]): rounded, and filled with a blurred copy of whatever
@@ -153,6 +154,7 @@ open class GlassPanel @JvmOverloads constructor(
      */
     override fun draw(canvas: Canvas) {
         if (isFrosted && canvas.isHardwareAccelerated) {
+            Perf.count("glass.draw")
             canvas.drawColor(flatFill)
         }
 

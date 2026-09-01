@@ -103,7 +103,9 @@ class ThumbnailPrefetcher(
         cancelOutstanding()
     }
 
-    private fun prefetch() {
+    private fun prefetch() = Perf.section("grid.prefetchPass") { prefetchPass() }
+
+    private fun prefetchPass() {
         val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
         val first = layoutManager.findFirstVisibleItemPosition()
         val last = layoutManager.findLastVisibleItemPosition()

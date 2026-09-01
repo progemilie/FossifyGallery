@@ -93,12 +93,14 @@ private class ExifThumbnailFetcher(
     private var embedded: InputStream? = null
 
     override fun loadData(priority: Priority, callback: DataFetcher.DataCallback<in InputStream>) {
-        val thumbnail = readUsableThumbnail()
+        val thumbnail = Perf.section("thumb.lookInside") { readUsableThumbnail() }
         if (thumbnail == null) {
+            Perf.count("thumb.decodeWholeFile")
             wholeFile.loadData(priority, callback)
             return
         }
 
+        Perf.count("thumb.useEmbedded")
         embedded = ByteArrayInputStream(thumbnail).also(callback::onDataReady)
     }
 

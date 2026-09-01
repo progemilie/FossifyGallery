@@ -69,8 +69,10 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            buildConfigField("boolean", "PERF_COUNTERS", "true")
         }
         release {
+            buildConfigField("boolean", "PERF_COUNTERS", "false")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -91,6 +93,7 @@ android {
 
     sourceSets {
         getByName("main").java.directories.add("src/main/kotlin")
+        getByName("debug").java.directories.add("src/debug/kotlin")
     }
 
     compileOptions {
