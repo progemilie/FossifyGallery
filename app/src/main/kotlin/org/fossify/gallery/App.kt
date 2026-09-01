@@ -1,6 +1,7 @@
 package org.fossify.gallery
 
 import android.os.StrictMode
+import org.fossify.gallery.helpers.Config
 import com.github.ajalt.reprint.core.Reprint
 import com.squareup.picasso.Downloader
 import com.squareup.picasso.Picasso
@@ -12,6 +13,13 @@ class App : FossifyApp() {
 
     override val isAppLockFeatureAvailable = true
 
+    /**
+     * The one Config the app uses. Building one opens SharedPreferences - which stats the
+     * filesystem, on whatever thread asked - and allocates six Flows, and it was measured doing
+     * that 16 times per fling of the media grid. It lives here rather than in a static field so
+     * that holding a Context is not a leak. See [org.fossify.gallery.extensions.config].
+     */
+    val config: Config by lazy { Config.newInstance(this) }
 
     override fun onCreate() {
         super.onCreate()

@@ -78,6 +78,7 @@ import org.fossify.commons.helpers.SORT_USE_NUMERIC_VALUE
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.sumByLong
 import org.fossify.commons.views.MySquareImageView
+import org.fossify.gallery.App
 import org.fossify.gallery.R
 import org.fossify.gallery.asynctasks.GetMediaAsynctask
 import org.fossify.gallery.databases.GalleryDatabase
@@ -134,7 +135,13 @@ fun Context.getHumanizedFilename(path: String): String {
     return humanized.substring(humanized.lastIndexOf("/") + 1)
 }
 
-val Context.config: Config get() = Config.newInstance(applicationContext)
+/**
+ * One instance rather than one per access, kept on the Application - see [App.config] for why.
+ * Nothing goes stale for being kept: BaseConfig holds only the context, the prefs and its Flows,
+ * and every Config property reads prefs live.
+ */
+val Context.config: Config
+    get() = (applicationContext as? App)?.config ?: Config.newInstance(applicationContext)
 
 val Context.widgetsDB: WidgetsDao
     get() = GalleryDatabase.getInstance(applicationContext).WidgetsDao()
