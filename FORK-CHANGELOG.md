@@ -2,29 +2,19 @@
 
 Fork-only changes, newest first. Internal fixes are left out.
 
-## [v1.19.0] - 2026.08.29 — one UI
+## [v1.19.0] - 2026.09.01 — UI
 
-- **A group can be taken in from its header.** While selecting, every date header carries a tick;
-  tapping it takes that whole day in, and tapping it again lets it go.
-- **Settings is thirteen cards.** Each is shut down to its title and a line saying what is inside
-  until it is tapped, only one is open at a time, and a card that opens below the fold brings itself
-  back into view.
-- The rating, copy/move and tab choosers now open and close with the same short grow-and-fade the
-  three dots' drop-down always had, and swell whatever letting go would pick.
-- Settings cards carry an icon, a hairline between one setting and the next, a smaller arrow and
-  smaller switches - and the screen opens in a third of the time it did.
-- The search bar names the folder you are in rather than offering to search in it.
+- **Opening and closing a photo** grows and shrinks out of the thumbnail.
+- **Selection view is redesigned** to follow the style of the app.
+- Select whole group with one tap by tapping the header.
+- **Settings is redesigned as cards**, one per section. Each is collapsed to its title and a summary line along with an icon.
+- The rating, copy/move and tab choosers open and close with the same grow-and-fade as the three
+  dots' drop-down, and swell whatever letting go would pick.
 - The search pill steps aside while a folder is being arranged by hand.
-- **A photo grows out of its thumbnail.** Tapping one in the grid grows that tile into the
-  fullscreen picture instead of sliding a new screen in over it, with the grid still visible
-  underneath the whole way.
-- A square thumbnail unfolds into the photo's own shape as it grows, rather than filling the screen
-  and cutting to the real thing at the end.
-- **Closing shrinks the photo back into its thumbnail** - whichever one you swiped to, not the one
-  you opened. The back arrow, the back gesture and the swipe down all do it.
-- The photo starts loading the instant the tile is tapped, and the picture the grow is drawn with is
-  the same one the viewer paints first, so there is nothing to see when the two change places.
-- Videos and the peek viewer grow and shrink the same way.
+- The search pill shows the three dots only on screens where no other pill opens the menu.
+- An (i) beside the Tabs setting says what tabs are.
+- Glass panels all come and go the one way.
+- The pills no longer hang mid-pan when a scroll turns around.
 
 ## [v1.18.0] - 2026.08.28 — tabs
 
