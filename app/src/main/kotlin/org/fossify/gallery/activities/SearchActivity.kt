@@ -24,6 +24,7 @@ import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.VIDEO_PLAYER_APP
 import org.fossify.gallery.helpers.VIDEO_PLAYER_SYSTEM
 import org.fossify.gallery.helpers.ViewerReturn
+import org.fossify.gallery.helpers.ViewerTransition
 import org.fossify.gallery.interfaces.MediaOperationsListener
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
@@ -173,6 +174,8 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
 
     private fun itemClicked(path: String) {
         viewerReturn.opening(path)
+        // grows the tapped tile into the fullscreen picture, see ViewerTransition
+        ViewerTransition.beginFlight(this, getMediaAdapter(), mAllMedia, path)
         if (!path.isVideoFast()) {
             openInViewPager(path)
             return

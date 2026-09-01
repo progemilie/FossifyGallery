@@ -2,6 +2,13 @@
 
     <style name="AppTheme" parent="AppTheme.Base" />
 
+    <!-- one section of the settings screen; see org.fossify.gallery.views.SettingsCard -->
+    <style name="SettingsCardStyle">
+        <item name="android:layout_marginStart">@dimen/settings_card_margin</item>
+        <item name="android:layout_marginTop">@dimen/settings_card_gap</item>
+        <item name="android:layout_marginEnd">@dimen/settings_card_margin</item>
+    </style>
+
     <style name="CustomBottomSheetDialogTheme" parent="Theme.Design.Light.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/CustomBottomSheetStyle</item>
     </style>
@@ -16,4 +23,24 @@
     </style>
 
     <style name="FullScreenTheme" parent="FullScreenTheme.Base" />
+    <!--
+        The fullscreen viewers. Opaque here and see-through in values-v28, where the tile flight
+        draws a photo growing out of the grid still drawn behind it.
+
+        The window animation is nothing at all on purpose: naming one in ActivityOptions instead is
+        what the system takes as licence to drop the grid's window from the frame, leaving the photo
+        growing out of black. See ViewerTransition.
+    -->
+    <style name="ViewerTheme.Base" parent="TranslucentTheme">
+        <item name="android:windowAnimationStyle">@style/ViewerWindowAnimation</item>
+    </style>
+
+    <style name="ViewerTheme" parent="ViewerTheme.Base" />
+
+    <style name="ViewerWindowAnimation" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/viewer_hold</item>
+        <item name="android:activityOpenExitAnimation">@anim/viewer_hold</item>
+        <item name="android:activityCloseEnterAnimation">@anim/viewer_hold</item>
+        <item name="android:activityCloseExitAnimation">@anim/viewer_hold</item>
+    </style>
 </resources>

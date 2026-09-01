@@ -74,10 +74,13 @@ import org.fossify.gallery.extensions.getFormattedDuration
 import org.fossify.gallery.extensions.getFriendlyMessage
 import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.openPath
+import org.fossify.gallery.extensions.screenRect
 import org.fossify.gallery.extensions.shareMediumPath
 import org.fossify.gallery.extensions.showSystemUI
 import org.fossify.gallery.fragments.PlaybackSpeedFragment
+import org.fossify.gallery.helpers.TileFlight
 import org.fossify.gallery.helpers.DRAG_THRESHOLD
+import org.fossify.gallery.helpers.DisplayedMedia
 import org.fossify.gallery.helpers.EXOPLAYER_MAX_BUFFER_MS
 import org.fossify.gallery.helpers.EXOPLAYER_MIN_BUFFER_MS
 import org.fossify.gallery.helpers.FAST_FORWARD_VIDEO_MS
@@ -85,6 +88,7 @@ import org.fossify.gallery.helpers.GO_TO_NEXT_ITEM
 import org.fossify.gallery.helpers.GO_TO_PREV_ITEM
 import org.fossify.gallery.helpers.HIDE_SYSTEM_UI_DELAY
 import org.fossify.gallery.helpers.MAX_CLOSE_DOWN_GESTURE_DURATION
+import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.ROTATE_BY_ASPECT_RATIO
 import org.fossify.gallery.helpers.ROTATE_BY_DEVICE_ROTATION
 import org.fossify.gallery.helpers.ROTATE_BY_SYSTEM_SETTING
@@ -140,6 +144,38 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
 
     override val appBarLayout: AppBarLayout
         get() = binding.videoAppbar
+
+    /** The tile this player grew out of, and the tile it shrinks back into. */
+    private val flight by lazy {
+        TileFlight(
+            activity = this,
+            overlay = TileFlight.overlayOver(this),
+            stage = binding.videoSurfaceFrame,
+            backdrops = {
+                listOfNotNull(window.decorView.background, binding.videoPlayerHolder.background)
+            },
+            chrome = {
+                listOf(
+                    binding.topShadow,
+                    binding.videoAppbar,
+                    binding.videoBottomGradient,
+                    binding.bottomVideoTimeHolder.root
+                )
+            },
+            // the surface is laid out at the video's own size, so its bounds are the picture's
+            displayed = {
+                val surface = binding.videoSurface
+                if (surface.width == 0 || surface.height == 0) {
+                    null
+                } else {
+                    DisplayedMedia(
+                        surface.screenRect(),
+                        runCatching { surface.bitmap }.getOrNull()
+                    )
+                }
+            }
+        )
+    }
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -233,6 +269,11 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
         }
     }
 
+    override fun finish() = flight.finishThrough(::finishNow)
+
+    // super.finish() cannot be reached from inside the lambda the shrink lands in
+    private fun finishNow() = super.finish()
+
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         setVideoSize()
@@ -255,6 +296,10 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
     private fun initPlayer() {
         mUri = intent.data ?: return
         binding.videoToolbar.title = getFilenameFromUri(mUri!!)
+        // the uri says nothing about which tile this came from; the path the grid sent does
+        val tilePath = intent.getStringExtra(PATH).orEmpty()
+        flight.onPathChanged(tilePath)
+        flight.enter(tilePath)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
 

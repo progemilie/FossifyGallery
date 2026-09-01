@@ -110,6 +110,8 @@ class TabChooser @JvmOverloads constructor(
         }
 
         rows.orientation = LinearLayout.VERTICAL
+        // the row the finger is over is drawn a little bigger than its own bounds
+        rows.clipChildren = false
         addView(rows, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
     }
 

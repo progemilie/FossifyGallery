@@ -16,6 +16,7 @@ import org.fossify.commons.extensions.getProperBackgroundColor
 import org.fossify.commons.extensions.updateMarginWithBase
 import org.fossify.commons.extensions.updatePaddingWithBase
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.helpers.holdWindowStill
 
 abstract class BaseViewerActivity : SimpleActivity() {
     private companion object {
@@ -29,6 +30,8 @@ abstract class BaseViewerActivity : SimpleActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // the tile growing into the photo is the only motion there should be here
+        holdWindowStill()
         val contentRoot = findViewById<View>(android.R.id.content)
         ViewCompat.setOnApplyWindowInsetsListener(contentRoot) { _, insets ->
             setupEdgeToEdge(insets)

@@ -39,6 +39,7 @@ findings. `.editorconfig` enforces LF, 4-space indent, 160-char max line length.
 `adb` is on PATH for testing in the emulator: emulator-5554, a Pixel_10, API 37, 1080x2424 at
 420dpi, with many folders of pictures under /Pictures.
 `emulator` is added to PATH pointing to Android sdk emulator.
+`python` is added to PATH, version 3.13.1.
 
 ## Architecture
 
@@ -213,6 +214,8 @@ the filesystem, far too slow to run when the hold fires.
 all three browsing screens. It builds itself from the toolbar's own `Menu` every time it opens and
 picks through `performIdentifierAction`, so each screen's `refreshMenuItems()` and click listener
 carry over untouched; whatever the toolbar is already showing as a button of its own is left out.
+Where the items come from is the caller's to say, so `openedBy()` serves the selection pill's menu
+button off an action mode's menu with the same panel.
 
 `helpers/MenuSections.kt` holds one `MenuSpec` per screen: the sections, drawn with a dotted rule
 between them, and which items are drawn as a row of icons rather than a row each. **A spec only
@@ -256,6 +259,33 @@ part company when the whole Exif goes: the location cannot survive it (hence Exi
 locking Location in the dialog), while the orientation is read off the source and **written back**
 unless it was asked for by name — a stripped photo should not come out sideways.
 
+### Growing a tile into the viewer
+
+Tapping a photo grows that tile into the fullscreen one, and closing shrinks it back into whichever
+tile was swiped to. `helpers/ViewerTransition.kt` is the hand-off between the two activities - the
+tile's rect, and the grid left registered as the `Anchor` that answers where to fly back to;
+`helpers/ContinuityTransition.kt` is the viewer's half, worn by all three fullscreen screens.
+
+**A flight is drawn with the photo's own picture, never the tile's.** With crop thumbnails on - the
+default - a tile's bitmap has been through a `CenterCrop` and has no edges left to unfold, so a
+flight drawn with it can only fill the screen and cut to the real photo at the end. The tap starts
+`lowResPhotoRequest()` instead: the copy stored inside the file, uncropped, and *the same request
+the viewer paints first* - so the flight sets off already knowing the photo's proportions, and the
+hand-over at the end is nothing happening at all. `views/ContinuityOverlay.kt` moves the rect and
+the crop together; either one alone leaves a cut at one end or the other.
+
+It only reads as one surface while the grid is still drawn underneath, which takes three more
+things, each of which silently leaves the photo growing out of a black screen if it is missed:
+
+- **A translucent theme** (`ViewerTheme`, only translucent in `values-v28`: before API 28 such an
+  activity may not ask for an orientation, which the viewer does) **and** `Window.setFormat`
+  `TRANSLUCENT` at runtime. The theme alone composites nothing.
+- **No custom animation in `ActivityOptions`.** The system takes one as licence to drop the grid's
+  window from the frame. The no-motion window animation lives in the theme instead - `viewer_hold`,
+  which is also why a close with no tile to shrink into has to name a slide of its own.
+- **The exit tile looked up on every page change**: the grid has to scroll and lay out to answer,
+  and a finger already lifted cannot wait a frame for it.
+
 ### Chrome that floats over the content
 
 The three browsing screens draw content edge to edge with the chrome over it. No immersive mode is
@@ -268,9 +298,20 @@ paints an opaque band under its own bar.
 - **Grids** — `MySearchMenu` is the *last* child of the `CoordinatorLayout` (draw order puts it over
   the grid) and the grid gets no top inset of its own; `keepGridClearOfTopBar()` pads it by the bar's
   measured height, which already carries the status bar inset. Doing it in the layout double-counts.
+- **A selection** — the platform's contextual action bar is never built:
+  `onWindowStartingSupportActionMode` is AppCompat's offer to supply an action mode of a screen's
+  own, and `helpers/SelectionChrome.kt` takes it, so nothing covers the top of the grid.
+  `views/SelectionPills.kt` is what stands in its place — the count at the top, the actions along
+  the foot, built to the navigation pill's measurements and never panned away with the grid.
+  Everything upstream does through the action mode carries over: the adapter inflates its menu,
+  hides what does not apply in `prepareActionMode()` and invalidates on every change, which is what
+  fills the pills in again.
 - **Frosted glass** — `helpers/Glass.kt` holds every colour and radius, `views/GlassPanel.kt` is the
   `BlurView` that wears it. A panel is told what to copy with `frost(contentBehind)`, which need not
-  be an ancestor, and paints itself flat below Android 12.
+  be an ancestor, and paints itself flat below Android 12. **Every panel comes and goes through
+  `helpers/PanelAnim.kt`'s `showPanel`/`hidePanel`** — one `PanelMotion` named at the one call site,
+  matched to the platform drop-down animation `GlassMenu`'s popup still gets for free. Nothing there
+  touches translation: a panel places itself against its anchor with it.
 
 ## Style
 

@@ -2,6 +2,7 @@
 
 package org.fossify.gallery.fragments
 
+import android.graphics.drawable.BitmapDrawable
 import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.graphics.Color
@@ -72,6 +73,8 @@ import org.fossify.gallery.activities.BaseViewerActivity
 import org.fossify.gallery.activities.VideoActivity
 import org.fossify.gallery.databinding.PagerVideoItemBinding
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.extensions.screenRect
+import org.fossify.gallery.extensions.displayedImageRect
 import org.fossify.gallery.extensions.getActionBarHeight
 import org.fossify.gallery.extensions.getBottomActionsHeight
 import org.fossify.gallery.extensions.getFormattedDuration
@@ -79,6 +82,7 @@ import org.fossify.gallery.extensions.getFriendlyMessage
 import org.fossify.gallery.extensions.launchGesturePlayer
 import org.fossify.gallery.extensions.parseFileChannel
 import org.fossify.gallery.helpers.Config
+import org.fossify.gallery.helpers.DisplayedMedia
 import org.fossify.gallery.helpers.EXOPLAYER_MAX_BUFFER_MS
 import org.fossify.gallery.helpers.EXOPLAYER_MIN_BUFFER_MS
 import org.fossify.gallery.helpers.FAST_FORWARD_VIDEO_MS
@@ -616,6 +620,29 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
     private fun openPanorama() {
         TODO("Panorama is not yet implemented.")
+    }
+
+    /**
+     * The still stands in until playback starts and then gives way to the surface, so whichever of
+     * the two is up is what a flight lands on and what a shrink sets off from. A playing video is
+     * read frame and all - shrinking the first frame of something halfway through would be a cut.
+     */
+    override fun displayedMedia(): DisplayedMedia? {
+        if (!isAdded) {
+            return null
+        }
+
+        if (binding.videoPreview.isVisible()) {
+            val rect = binding.videoPreview.displayedImageRect() ?: return null
+            return DisplayedMedia(rect, (binding.videoPreview.drawable as? BitmapDrawable)?.bitmap)
+        }
+
+        if (!mTextureView.isVisible() || mTextureView.width == 0) {
+            return null
+        }
+
+        // the surface is laid out at the video's own size, so its bounds are the picture's
+        return DisplayedMedia(mTextureView.screenRect(), runCatching { mTextureView.bitmap }.getOrNull())
     }
 
     override fun fullscreenToggled(isFullscreen: Boolean) {

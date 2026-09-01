@@ -3,9 +3,15 @@ package org.fossify.gallery.activities
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.text.TextUtils
+import android.widget.RelativeLayout
+import android.widget.TextView
 import android.widget.Toast
+import androidx.core.view.children
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.fossify.commons.dialogs.*
@@ -18,6 +24,9 @@ import org.fossify.gallery.dialogs.*
 import org.fossify.gallery.extensions.*
 import org.fossify.gallery.helpers.*
 import org.fossify.gallery.models.AlbumCover
+import org.fossify.gallery.views.SettingsCard
+import org.fossify.gallery.views.explains
+import org.fossify.gallery.views.makeAccordion
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -44,13 +53,70 @@ class SettingsActivity : SimpleActivity() {
             padTopSystem = listOf(binding.settingsAppbar),
             padBottomSystem = listOf(binding.settingsNestedScrollview)
         )
-        setupMaterialScrollListener(binding.settingsNestedScrollview, binding.settingsAppbar)
+
+        // no setupMaterialScrollListener: what it does is fade a band of colour in under the bar
+        // once the content has scrolled, and this screen has nothing there for it to colour
+        binding.settingsAppbar.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (bottom - top != oldBottom - oldTop) {
+                keepCardsClearOfTopBar()
+            }
+        }
+
+        binding.settingsNestedScrollview.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+            updateTitleFade(scrollY)
+        }
     }
 
     override fun onResume() {
         super.onResume()
         setupTopAppBar(binding.settingsAppbar, NavigationIcon.Arrow)
+        // behind setupTopAppBar, which is what paints the bar back onto its band of colour
+        makeTopBarFloating()
+        updateEdgeFades()
         setupSettingItems()
+    }
+
+    /**
+     * Takes the bar off its band of colour and hands the cards the room it takes up, so they scroll
+     * under it rather than starting below it. The bar's height is the status bar inset plus its own,
+     * which only the running app knows - hence the layout listener above rather than a dimen.
+     */
+    private fun makeTopBarFloating() {
+        binding.settingsAppbar.setBackgroundColor(Color.TRANSPARENT)
+        binding.settingsAppbar.stateListAnimator = null
+        binding.settingsAppbar.elevation = 0f
+        binding.settingsToolbar.setBackgroundColor(Color.TRANSPARENT)
+        keepCardsClearOfTopBar()
+        updateTitleFade(binding.settingsNestedScrollview.scrollY)
+    }
+
+    private fun keepCardsClearOfTopBar() {
+        binding.settingsNestedScrollview.updatePadding(top = binding.settingsAppbar.height)
+    }
+
+    /**
+     * The heading goes as soon as the screen is scrolled - it names a screen the user is already
+     * looking at, and over the cards passing under it there is nothing for it to sit against. The
+     * arrow beside it stays: that is the way out.
+     */
+    private fun updateTitleFade(scrollY: Int) {
+        val distance = resources.getDimension(R.dimen.settings_title_fade_distance)
+        toolbarTitleView()?.alpha = 1f - (scrollY / distance).coerceIn(0f, 1f)
+    }
+
+    /**
+     * The toolbar makes its own title view and keeps it to itself, so it is picked out of the
+     * toolbar's children by the text it is showing.
+     */
+    private fun toolbarTitleView() = binding.settingsToolbar.children
+        .filterIsInstance<TextView>()
+        .firstOrNull { it.text == binding.settingsToolbar.title }
+
+    // repainted on every resume rather than set once: the fades are drawn in the theme's own
+    // background colour, and the theme can change while this screen is in the back stack
+    private fun updateEdgeFades() {
+        binding.settingsTopFade.applyEdgeFade(atTop = true)
+        binding.settingsBottomFade.applyEdgeFade(atTop = false)
     }
 
     private fun setupSettingItems() {
@@ -109,7 +175,6 @@ class SettingsActivity : SimpleActivity() {
         setupShowRecycleBin()
         setupShowRecycleBinLast()
         setupEmptyRecycleBin()
-        updateTextColors(binding.settingsHolder)
         setupClearCache()
         setupExportFavorites()
         setupImportFavorites()
@@ -118,22 +183,47 @@ class SettingsActivity : SimpleActivity() {
         setupExportSettings()
         setupImportSettings()
 
-        arrayOf(
-            binding.settingsColorCustomizationSectionLabel,
-            binding.settingsGeneralSettingsLabel,
-            binding.settingsVideosLabel,
-            binding.settingsThumbnailsLabel,
-            binding.settingsScrollingLabel,
-            binding.settingsFullscreenMediaLabel,
-            binding.settingsDeepZoomableImagesLabel,
-            binding.settingsExtendedDetailsLabel,
-            binding.settingsSecurityLabel,
-            binding.settingsFileOperationsLabel,
-            binding.settingsBottomActionsLabel,
-            binding.settingsRecycleBinLabel,
-            binding.settingsMigratingLabel
-        ).forEach {
-            it.setTextColor(getProperPrimaryColor())
+        setupCards()
+    }
+
+    /**
+     * The sections, each shut down to its title and a line saying what is inside, and only one of
+     * them open at a time. Found by walking the holder rather than named one by one: the layout is
+     * where the sections are decided, and a card added there wants nothing here to go with it.
+     */
+    private fun setupCards() {
+        val cards = binding.settingsHolder.children.filterIsInstance<SettingsCard>().toList()
+        cards.forEach {
+            it.updateColors()
+            it.onOpenSettled = ::revealCard
+        }
+
+        cards.makeAccordion(::paintSettings)
+        // the theme can have changed while the screen was away, so whatever is open is painted again
+        cards.firstOrNull { it.isOpen }?.let(::paintSettings)
+    }
+
+    /**
+     * Paints one card's settings, as it opens and so before the frame it first draws in.
+     * [updateTextColors] walks whatever it is handed, and handing it the whole screen repainted two
+     * hundred views for the dozen showing - two thirds of the time this screen took to come up.
+     */
+    private fun paintSettings(card: SettingsCard) = updateTextColors(card.settings)
+
+    /**
+     * Brings a card that has just grown past the foot of the screen back into view, by the least
+     * that will do it: a card already showing in full is not moved at all, and one too tall to fit
+     * is brought no further than its own title, which would otherwise be the first thing to go.
+     */
+    private fun revealCard(card: SettingsCard) {
+        val scroller = binding.settingsNestedScrollview
+        // the holder starts at the scroller's top padding, which is the room made for the bar
+        val hidden = scroller.paddingTop + card.bottom -
+                (scroller.scrollY + scroller.height - scroller.paddingBottom)
+        val roomAboveIt = card.top - scroller.scrollY
+        val scrollBy = minOf(hidden, roomAboveIt)
+        if (scrollBy > 0) {
+            scroller.smoothScrollBy(0, scrollBy)
         }
     }
 
@@ -271,6 +361,24 @@ class SettingsActivity : SimpleActivity() {
         binding.settingsTabsHolder.setOnClickListener {
             binding.settingsTabs.toggle()
             config.tabsEnabled = binding.settingsTabs.isChecked
+        }
+
+        binding.settingsTabsInfo.applyColorFilter(getProperTextColor())
+        binding.settingsTabsInfo.explains(getString(R.string.tabs_info))
+        placeTabsInfo()
+    }
+
+    /**
+     * The (i) sits just past the end of the switch's own label, whose width only the paint drawing
+     * it knows - so it is placed here rather than in the layout, where anchoring the switch to it
+     * would have pulled the switch off the line the rest of the rows keep. The icon's own padding
+     * is the gap.
+     */
+    private fun placeTabsInfo() {
+        val label = binding.settingsTabs
+        val textEnd = label.paddingStart + label.paint.measureText(label.text.toString())
+        binding.settingsTabsInfo.updateLayoutParams<RelativeLayout.LayoutParams> {
+            marginStart = textEnd.toInt()
         }
     }
 

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The short note the (i) beside a setting opens. Its surface, elevation and corner clipping are
+    put on at runtime by views/InfoPopup.kt, the same way the dropdown list's are.
+
+    The outer frame is room for the shadow and nothing else - see dropdown_list.xml, which is built
+    the same way and says why the padding alone would not do.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/info_popup_frame"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:padding="@dimen/dropdown_shadow_room">
+
+    <ScrollView
+        android:id="@+id/info_popup_panel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="none"
+        tools:ignore="UselessParent">
+
+        <org.fossify.commons.views.MyTextView
+            android:id="@+id/info_popup_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/info_popup_padding"
+            android:textSize="@dimen/normal_text_size"
+            tools:text="What this setting does." />
+    </ScrollView>
+</FrameLayout>

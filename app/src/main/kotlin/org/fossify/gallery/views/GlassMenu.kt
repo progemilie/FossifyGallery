@@ -14,6 +14,8 @@ import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
+import org.fossify.commons.extensions.beVisibleIf
+import org.fossify.commons.extensions.isVisible
 import org.fossify.gallery.R
 import org.fossify.gallery.databinding.GlassMenuBinding
 import org.fossify.gallery.helpers.Glass
@@ -25,13 +27,18 @@ import org.fossify.gallery.helpers.MenuSpec
  * overflow popup - the same pane of glass ([Glass]) the search pill and the bottom action choosers
  * are made of, with its items gathered into sections by a [MenuSpec].
  *
- * It is built from the toolbar's own [Menu] every time it opens and picked from through that same
- * menu, so everything a screen already does - hiding an item whose job a bottom action button has
- * taken, or one the current folder has no use for - carries over with nothing to wire up. Items the
- * toolbar is currently showing as buttons of its own are left out for the same reason.
+ * It is built from a live [Menu] every time it opens and picked from through that same menu, so
+ * everything a screen already does - hiding an item whose job a bottom action button has taken, or
+ * one the current folder has no use for - carries over with nothing to wire up. Whatever is already
+ * showing as a button of its own is left out for the same reason.
+ *
+ * Where those items come from is [items]' business, so one drop-down serves a toolbar's overflow
+ * and the selection pill's menu button alike.
  */
 class GlassMenu private constructor(
-    private val toolbar: Toolbar,
+    private val host: View,
+    private val items: () -> LinkedHashMap<Int, MenuItem>,
+    private val onPick: (MenuItem) -> Unit,
     private val spec: () -> MenuSpec,
     private val contentBehind: ViewGroup,
 ) {
@@ -48,13 +55,31 @@ class GlassMenu private constructor(
             spec: () -> MenuSpec,
             contentBehind: ViewGroup,
             alsoOpenedBy: View? = null,
+        ) = GlassMenu(
+            host = toolbar,
+            items = toolbar::overflowItems,
+            onPick = { toolbar.menu.performIdentifierAction(it.itemId, 0) },
+            spec = spec,
+            contentBehind = contentBehind,
+        ).also { it.attachToToolbar(toolbar, alsoOpenedBy) }
+
+        /**
+         * The same drop-down opened upward out of one [button], over a menu that is nobody's
+         * toolbar - the selection pill's, whose items belong to an action mode.
+         */
+        fun openedBy(
+            button: View,
+            items: () -> LinkedHashMap<Int, MenuItem>,
+            onPick: (MenuItem) -> Unit,
+            spec: () -> MenuSpec,
+            contentBehind: ViewGroup,
         ) {
-            GlassMenu(toolbar, spec, contentBehind).attach(alsoOpenedBy)
+            GlassMenu(button, items, onPick, spec, contentBehind).attach(button)
         }
     }
 
-    private val resources = toolbar.resources
-    private val inflater = LayoutInflater.from(toolbar.context)
+    private val resources = host.resources
+    private val inflater = LayoutInflater.from(host.context)
     private val binding = GlassMenuBinding.inflate(inflater)
     private val column = binding.glassMenuColumn
 
@@ -70,6 +95,16 @@ class GlassMenu private constructor(
     // the toolbar builds its three dots lazily and rebuilds them when the menu changes, so which
     // view they are is worth looking at again rather than resolving once
     private var boundOverflow: View? = null
+
+    /**
+     * Whether the three dots are on the bar at all. A screen already wearing a pill that opens this
+     * same menu has no use for them: two doors onto one drop-down is one too many.
+     */
+    var isOnToolbar = true
+        set(value) {
+            field = value
+            boundOverflow?.let { showOverflow(it) }
+        }
 
     private val gap = resources.getDimensionPixelSize(R.dimen.glass_menu_drop_gap)
     private val room = resources.getDimensionPixelSize(R.dimen.glass_menu_shadow_room)
@@ -91,7 +126,7 @@ class GlassMenu private constructor(
     // how much of the screen was left the way it opens, when it last opened
     private var roomForPanel = 0
 
-    private fun attach(alsoOpenedBy: View?) {
+    private fun attach(openedBy: View?) {
         binding.glassMenuPanel.apply {
             cornerRadius = resources.getDimension(R.dimen.glass_menu_corner_radius)
             blurRadius = Glass.DEFAULT_RADIUS
@@ -104,8 +139,7 @@ class GlassMenu private constructor(
         // a tap on the room left for the shadow is a tap outside the panel as far as anyone can tell
         binding.glassMenuFrame.setOnClickListener { popup.dismiss() }
 
-        toolbar.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> bindOverflow() }
-        toolbar.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+        host.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(view: View) = Unit
 
             // a popup outlives the screen that put it up, and takes the window down with it
@@ -113,25 +147,39 @@ class GlassMenu private constructor(
         })
 
         // a pill at the foot of the screen has nothing but the screen above it to open into
-        alsoOpenedBy?.setOnClickListener { show(it, dropUp = true) }
+        openedBy?.setOnClickListener { show(it, dropUp = true) }
+    }
 
-        bindOverflow()
+    private fun attachToToolbar(toolbar: Toolbar, alsoOpenedBy: View?) {
+        attach(alsoOpenedBy)
+        toolbar.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> bindOverflow(toolbar) }
+        bindOverflow(toolbar)
     }
 
     /**
      * Points the three dots at this menu instead. They are the only [ImageView] the toolbar's action
      * menu holds - every item shown as a button of its own is a text view wearing its icon.
      */
-    private fun bindOverflow() {
+    private fun bindOverflow(toolbar: Toolbar) {
         val overflow = toolbar.actionMenu()?.children?.firstOrNull { it is ImageView } ?: return
-        if (overflow === boundOverflow) {
+        if (overflow !== boundOverflow) {
+            boundOverflow = overflow
+            // the platform puts its own popup up from both of these
+            overflow.setOnTouchListener(null)
+            overflow.setOnClickListener { show(overflow, dropUp = false) }
+        }
+
+        // reapplied rather than set once: the toolbar builds its dots back on every menu change
+        showOverflow(overflow)
+    }
+
+    private fun showOverflow(overflow: View) {
+        if (overflow.isVisible() == isOnToolbar) {
             return
         }
 
-        boundOverflow = overflow
-        // the platform puts its own popup up from both of these
-        overflow.setOnTouchListener(null)
-        overflow.setOnClickListener { show(overflow, dropUp = false) }
+        overflow.beVisibleIf(isOnToolbar)
+        overflow.parent?.requestLayout()
     }
 
     private fun show(anchor: View, dropUp: Boolean) {
@@ -177,7 +225,7 @@ class GlassMenu private constructor(
     /** Fills the panel with the top level of the menu, in the sections the spec asks for. */
     private fun fill() {
         // taken out of as they are placed, so what is left over is what the spec forgot
-        val available = toolbar.overflowItems()
+        val available = items()
         val spec = spec()
 
         // the kept-back section is built first, so that what is left for the shown sections is what
@@ -271,6 +319,6 @@ class GlassMenu private constructor(
      */
     private fun select(item: MenuItem) {
         popup.dismiss()
-        toolbar.menu.performIdentifierAction(item.itemId, 0)
+        onPick(item)
     }
 }

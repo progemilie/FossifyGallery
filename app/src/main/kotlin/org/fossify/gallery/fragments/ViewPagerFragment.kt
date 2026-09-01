@@ -66,6 +66,13 @@ abstract class ViewPagerFragment : Fragment() {
     open fun isFlickEligible() = true
 
     /**
+     * What this fragment is drawing and where on screen it is drawing it, which is where a
+     * flight lands and where the shrink back into the grid sets off from. Null while
+     * there is nothing on screen yet. See [org.fossify.gallery.helpers.TileFlight].
+     */
+    open fun displayedMedia(): DisplayedMedia? = null
+
+    /**
      * Runs the flick detection over an event the fragment's own views did not get to see, which the
      * viewer feeds in from [android.app.Activity.dispatchTouchEvent].
      *
@@ -118,10 +125,11 @@ abstract class ViewPagerFragment : Fragment() {
                         // of the viewer - the thing that came in last is the thing that goes first
                         flickedDown && metadataVisible -> listener?.hideMetadata()
 
-                        flickedDown && context?.config?.allowDownGesture == true -> {
+                        // how the screen leaves is the screen's own business: the viewers shrink
+                        // the photo back into its grid tile from here, and fall back to sliding it
+                        // away where there is no tile to shrink into
+                        flickedDown && context?.config?.allowDownGesture == true ->
                             activity?.finish()
-                            activity?.overridePendingTransition(0, org.fossify.commons.R.anim.slide_down)
-                        }
 
                         // not tied to the down gesture setting: that one is about closing the
                         // viewer by accident, which pulling up a panel cannot do

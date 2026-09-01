@@ -35,12 +35,17 @@ class GridChrome(
      */
     fun attach(pane: GridPane) {
         topBar.setupMenu()
-        GlassMenu.replaceOverflow(
+        val menu = GlassMenu.replaceOverflow(
             toolbar = topBar.requireToolbar(),
             spec = { this.pane?.menuSpec ?: pane.menuSpec },
             contentBehind = contentBehind,
             alsoOpenedBy = navPill?.menuButton
         )
+
+        // the pill opens that same drop-down, so the bar wears the three dots only where there is
+        // no pill to open it from - a folder, a group stepped into, an open search
+        menu.isOnToolbar = navPill?.isAvailable != true
+        navPill?.onAvailabilityChanged = { menu.isOnToolbar = !it }
 
         topBar.onSearchOpenListener = { this.pane?.onSearchToggled(true) }
         topBar.onSearchClosedListener = { this.pane?.onSearchToggled(false) }

@@ -45,6 +45,7 @@ import org.fossify.gallery.dialogs.PickDirectoryDialog
 import org.fossify.gallery.dialogs.ResizeMultipleImagesDialog
 import org.fossify.gallery.dialogs.ResizeWithPathDialog
 import org.fossify.gallery.helpers.DIRECTORY
+import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.TEMP_FOLDER_NAME
 import org.fossify.gallery.helpers.TransformedMedia
@@ -90,6 +91,9 @@ fun Activity.launchGesturePlayer(path: String, extras: HashMap<String, Boolean> 
         runOnUiThread {
             Intent(applicationContext, VideoPlayerActivity::class.java).apply {
                 setDataAndType(newUri, mimeType)
+                // the uri says nothing about which grid tile this came from, and the shrink back
+                // into that tile is looked up by path
+                putExtra(PATH, path)
                 for ((key, value) in extras) putExtra(key, value)
                 startActivity(this)
             }

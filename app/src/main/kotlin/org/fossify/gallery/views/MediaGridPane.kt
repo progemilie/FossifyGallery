@@ -30,6 +30,7 @@ import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.deleteFiles
+import org.fossify.commons.extensions.ensureBasePadding
 import org.fossify.commons.extensions.getDoesFilePathExist
 import org.fossify.commons.extensions.getFilenameFromPath
 import org.fossify.commons.extensions.getIsPathDirectory
@@ -106,6 +107,7 @@ import org.fossify.gallery.helpers.IS_IN_RECYCLE_BIN
 import org.fossify.gallery.helpers.MEDIA_GRID_MENU
 import org.fossify.gallery.helpers.MediaFetcher
 import org.fossify.gallery.helpers.PATH
+import org.fossify.gallery.helpers.ViewerTransition
 import org.fossify.gallery.helpers.PICKED_PATHS
 import org.fossify.gallery.helpers.PeekSession
 import org.fossify.gallery.helpers.RECYCLE_BIN
@@ -135,6 +137,10 @@ data class PickRequest(
     /** Whether the grid is up for another app to pick something out of rather than to be browsed. */
     val isPicking get() = image || video || any || wallpaper
 }
+
+/** How commons keeps a view's own padding, before the window insets are added to it. */
+private const val BASE_PADDING_SIDES = 4
+private const val BASE_PADDING_BOTTOM = 3
 
 private const val LAST_MEDIA_CHECK_PERIOD = 3000L
 
@@ -290,6 +296,33 @@ class MediaGridPane(
 
     /** Whether a selection is on, which the pill must not be able to navigate away from. */
     val isSelecting get() = mIsSelecting
+
+    /** How much room the grid is currently keeping at its foot for a pill floating over it. */
+    private var mBottomRoom = 0
+
+    /**
+     * Makes room at the foot of the grid for the selection's pill, where the screen showing this
+     * pane has none of its own to spare - a folder opened as a screen keeps no navigation pill, so
+     * without this its last row would sit under the pill with nothing left to scroll.
+     *
+     * The room goes into the base commons rebuilds the padding from as well as into the padding
+     * itself: anything merely added on top is dropped the next time the window insets come round.
+     */
+    fun reserveBottomRoom(reserve: Boolean) {
+        val room = if (reserve) resources.getDimensionPixelSize(R.dimen.nav_pill_reserved_height) else 0
+        if (room == mBottomRoom) {
+            return
+        }
+
+        binding.mediaGrid.ensureBasePadding().let { base ->
+            if (base.size == BASE_PADDING_SIDES) {
+                base[BASE_PADDING_BOTTOM] = room
+            }
+        }
+
+        binding.mediaGrid.updatePadding(bottom = binding.mediaGrid.paddingBottom - mBottomRoom + room)
+        mBottomRoom = room
+    }
 
     init {
         binding.mediaRefreshLayout.setOnRefreshListener { getMedia() }
@@ -482,12 +515,10 @@ class MediaGridPane(
             else -> activity.getHumanizedFilename(mPath)
         }
 
+        // the folder's own name rather than "Search in <folder>": the bar is where you are as much
+        // as it is a search box, and the open folder group's name reads the same way on the pill
         topBar.updateHintText(
-            if (mShowAll) {
-                activity.getString(org.fossify.commons.R.string.search_files)
-            } else {
-                activity.getString(org.fossify.commons.R.string.search_in_placeholder, dirName)
-            }
+            if (mShowAll) activity.getString(org.fossify.commons.R.string.search_files) else dirName
         )
 
         topBar.toggleForceArrowBackIcon(!mShowAll)
@@ -1362,6 +1393,8 @@ class MediaGridPane(
         } else {
             mWasFullscreenViewOpen = true
             viewerReturn.opening(path)
+            // grows the tapped tile into the fullscreen picture, see ViewerTransition
+            ViewerTransition.beginFlight(activity, getMediaAdapter(), mMedia, path)
             if (!path.isVideoFast()) {
                 openInViewPager(path)
                 return
@@ -1386,6 +1419,7 @@ class MediaGridPane(
     private fun openPeekViewer(media: List<Medium>, selectedPaths: Set<String>, path: String) {
         PeekSession.open(media, selectedPaths, path)
         viewerReturn.opening(path)
+        ViewerTransition.beginFlight(activity, getMediaAdapter(), mMedia, path)
         activity.startActivityForResult(Intent(activity, PeekViewerActivity::class.java), REQUEST_PEEK)
     }
 

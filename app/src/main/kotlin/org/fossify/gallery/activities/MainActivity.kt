@@ -16,6 +16,7 @@ import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import android.widget.RelativeLayout
 import android.widget.Toast
+import androidx.appcompat.view.ActionMode
 import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -160,6 +161,7 @@ import org.fossify.gallery.helpers.SET_WALLPAPER_INTENT
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_TEMP_HIDDEN_DURATION
 import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
+import org.fossify.gallery.helpers.SelectionChrome
 import org.fossify.gallery.helpers.TAB_SCROLL_OFFSET
 import org.fossify.gallery.helpers.TAB_SCROLL_PATH
 import org.fossify.gallery.helpers.TYPE_GIFS
@@ -268,6 +270,17 @@ class MainActivity :
     private val binding by viewBinding(ActivityMainBinding::inflate)
     private val navPill by lazy { NavPill(binding.navPill) }
     private lateinit var chrome: GridChrome
+
+    // answered before AppCompat builds a contextual action bar, so it never builds one
+    override fun onWindowStartingSupportActionMode(callback: ActionMode.Callback) =
+        selectionChrome.start(callback)
+
+    /** The pills a selection is made through, in place of that bar. See [SelectionChrome]. */
+    private val selectionChrome by lazy {
+        SelectionChrome.over(
+            binding.selectionTopPill, binding.selectionBottomPill, binding.contentHolder
+        ) { onPaneStateChanged() }
+    }
 
     /**
      * The all media grid, built the first time it is wanted and kept from then on. The swap is only
@@ -413,6 +426,7 @@ class MainActivity :
     override fun onResume() {
         super.onResume()
         chrome.updateColors()
+        selectionChrome.updateColors()
         onPaneStateChanged()
         config.isThirdPartyIntent = false
         mDateFormat = config.dateFormat
@@ -784,6 +798,10 @@ class MainActivity :
         val media = mMediaPane
         chrome.floatingTopBar.isPanningEnabled =
             !config.scrollHorizontally && media?.isReordering != true
+        // an arrangement has its own bar at the foot and nothing to search, so the pill goes
+        chrome.floatingTopBar.isAvailable = media?.isReordering != true
+        // the selection's own pill stands where the bar does, so the bar goes but its room stays
+        chrome.floatingTopBar.isCovered = selectionChrome.isActive
         if (mIsThirdPartyIntent) {
             return
         }
@@ -859,12 +877,13 @@ class MainActivity :
             // whole height of the bar, which already carries this inset
             padTopSystem = listOf(
                 binding.mainMenu,
+                binding.selectionTopPill.root,
                 binding.directoryPane.directoriesSwitchSearching,
                 binding.directoryPane.directoriesEmptyPlaceholder,
                 binding.mediaPane.mediaEmptyTextPlaceholder
             ),
             padBottomImeAndSystem = clearOfTheBottom,
-            padBottomSystem = listOf(binding.navPill.root)
+            padBottomSystem = listOf(binding.navPill.root, binding.selectionBottomPill.root)
         )
     }
 

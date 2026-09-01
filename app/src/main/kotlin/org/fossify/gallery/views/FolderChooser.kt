@@ -1,19 +1,13 @@
 package org.fossify.gallery.views
 
 import android.content.Context
-import android.text.TextUtils
 import android.util.AttributeSet
-import android.util.TypedValue
-import android.view.Gravity
 import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import android.widget.TextView
 import androidx.core.view.isVisible
 import org.fossify.commons.extensions.applyColorFilter
-import org.fossify.commons.extensions.getContrastColor
-import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.Glass
 import org.fossify.gallery.helpers.MAX_VISIBLE_QUICK_CHOOSER_FOLDERS
@@ -58,7 +52,7 @@ class FolderChooser @JvmOverloads constructor(
         set(value) {
             if (field != value) {
                 field = value
-                updateRowHighlights()
+                rows.paintFolderRows(value)
             }
         }
 
@@ -77,6 +71,8 @@ class FolderChooser @JvmOverloads constructor(
         column.addView(scrollUp)
 
         rows.orientation = LinearLayout.VERTICAL
+        // the row the finger is over is drawn a little bigger than its own bounds
+        rows.clipChildren = false
         scroller.apply {
             isVerticalScrollBarEnabled = false
             overScrollMode = OVER_SCROLL_NEVER
@@ -112,7 +108,7 @@ class FolderChooser @JvmOverloads constructor(
         this.folders = folders
         selectedIndex = NO_SELECTION
         rows.removeAllViews()
-        folders.forEach { rows.addView(buildRow(it)) }
+        folders.forEach { rows.addFolderRow(it, rowHeight, rowPadding, textSize) }
 
         scrollUp.applyColorFilter(Glass.contentColor(context))
         scrollDown.applyColorFilter(Glass.contentColor(context))
@@ -136,19 +132,6 @@ class FolderChooser @JvmOverloads constructor(
             scroller.scrollTo(0, autoScroller.maxScroll())
             updateScrollIndicators()
         }
-    }
-
-    private fun buildRow(folder: QuickFolder) = TextView(context).apply {
-        layoutParams = LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, rowHeight)
-        text = folder.name
-        gravity = Gravity.CENTER_VERTICAL
-        isSingleLine = true
-        ellipsize = TextUtils.TruncateAt.MIDDLE
-        minWidth = resources.getDimensionPixelSize(R.dimen.folder_chooser_min_row_width)
-        maxWidth = resources.getDimensionPixelSize(R.dimen.folder_chooser_max_row_width)
-        setTextColor(Glass.contentColor(context))
-        setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize)
-        setPadding(rowPadding, 0, rowPadding, 0)
     }
 
     /** Re-reads what the finger at [rawX], [rawY] is over, starting or stopping the edge scroll to match. */
@@ -191,17 +174,6 @@ class FolderChooser @JvmOverloads constructor(
 
         scrollUp.alpha = if (autoScroller.canScrollUp()) 1f else DIMMED_ALPHA
         scrollDown.alpha = if (autoScroller.canScrollDown()) 1f else DIMMED_ALPHA
-    }
-
-    private fun updateRowHighlights() {
-        val highlight = context.getProperPrimaryColor()
-        repeat(rows.childCount) { index ->
-            val row = rows.getChildAt(index) as TextView
-            val isSelected = index == selectedIndex
-            row.setBackgroundResource(if (isSelected) R.drawable.chooser_row_selected else 0)
-            row.background?.setTint(highlight)
-            row.setTextColor(if (isSelected) highlight.getContrastColor() else Glass.contentColor(context))
-        }
     }
 
     private fun locationOnScreen(view: View): FloatArray {

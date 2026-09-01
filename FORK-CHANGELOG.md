@@ -2,6 +2,20 @@
 
 Fork-only changes, newest first. Internal fixes are left out.
 
+## [v1.19.0] - 2026.09.01 — UI
+
+- **Opening and closing a photo** grows and shrinks out of the thumbnail.
+- **Selection view is redesigned** to follow the style of the app.
+- Select whole group with one tap by tapping the header.
+- **Settings is redesigned as cards**, one per section. Each is collapsed to its title and a summary line along with an icon.
+- The rating, copy/move and tab choosers open and close with the same grow-and-fade as the three
+  dots' drop-down, and swell whatever letting go would pick.
+- The search pill steps aside while a folder is being arranged by hand.
+- The search pill shows the three dots only on screens where no other pill opens the menu.
+- An (i) beside the Tabs setting says what tabs are.
+- Glass panels all come and go the one way.
+- The pills no longer hang mid-pan when a scroll turns around.
+
 ## [v1.18.0] - 2026.08.28 — tabs
 
 - **The app can hold up to three places at once.** A tab remembers a screen, a folder or a photo you had open, and switching to one puts you straight back there.
@@ -145,6 +159,7 @@ Initial fork work, landed over 2026.08.06–08.09 before fork versions were trac
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
 
+[v1.19.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.19.0
 [v1.18.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.18.0
 [v1.17.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.17.0
 [v1.16.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.16.0

@@ -27,6 +27,7 @@ import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.showSystemUI
 import org.fossify.gallery.fragments.ViewPagerFragment
+import org.fossify.gallery.helpers.TileFlight
 import org.fossify.gallery.helpers.Glass
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.PeekSession
@@ -62,6 +63,24 @@ class PeekViewerActivity :
     override val appBarLayout: AppBarLayout
         get() = binding.peekAppbar
 
+    /** The tile this peek grew out of, and the tile it shrinks back into. */
+    private val flight by lazy {
+        TileFlight(
+            activity = this,
+            overlay = TileFlight.overlayOver(this),
+            stage = binding.viewPager,
+            backdrops = {
+                listOfNotNull(
+                    window.decorView.background,
+                    binding.peekHolder.background,
+                    binding.viewPager.background
+                )
+            },
+            chrome = { listOf(binding.peekAppbar, binding.viewerThumbnailStrip) },
+            displayed = { currentFragment()?.displayedMedia() }
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
@@ -82,8 +101,11 @@ class PeekViewerActivity :
 
         setupPill()
         setupThumbnailStrip()
-        setupViewPager()
+        dressChrome()
         showSystemUI()
+        // after the backdrop is in place, since the flight fades that in from nothing. The pager
+        // is built inside it rather than beside it - see TileFlight.enter()
+        flight.enter(PeekSession.startPath) { setupViewPager() }
     }
 
     override fun onResume() {
@@ -94,11 +116,30 @@ class PeekViewerActivity :
     /** The grid takes the selection off [PeekSession]; the path is what it scrolls back to. */
     override fun finish() {
         setResult(RESULT_OK, Intent().putExtra(PATH, currentMedium()?.path.orEmpty()))
-        super.finish()
+        flight.finishThrough(::finishNow)
     }
 
+    // super.finish() cannot be reached from inside the lambda the shrink lands in
+    private fun finishNow() = super.finish()
+
+    private fun currentFragment() = (binding.viewPager.adapter as? MyPagerAdapter)
+        ?.getCurrentFragment(binding.viewPager.currentItem)
+
+    /**
+     * Fills the strip and the pill from the media already handed over, before the flight that fades
+     * them in - see [org.fossify.gallery.helpers.TileFlight.enter]. Only the pager itself waits for
+     * the flight to land, that being the one part of this too slow to be built underneath it.
+     */
+    private fun dressChrome() {
+        binding.viewerThumbnailStrip.setMedia(media, openingPosition())
+        binding.viewerThumbnailStrip.setSelection(PeekSession.selectedPaths)
+        updatePill()
+    }
+
+    private fun openingPosition() = media.indexOfFirst { it.path == PeekSession.startPath }.coerceAtLeast(0)
+
     private fun setupViewPager() {
-        val position = media.indexOfFirst { it.path == PeekSession.startPath }.coerceAtLeast(0)
+        val position = openingPosition()
         val pagerAdapter = MyPagerAdapter(this, supportFragmentManager, media.toMutableList())
         binding.viewPager.apply {
             adapter = pagerAdapter
@@ -107,9 +148,8 @@ class PeekViewerActivity :
             currentItem = position
         }
 
-        binding.viewerThumbnailStrip.setMedia(media, position)
-        binding.viewerThumbnailStrip.setSelection(PeekSession.selectedPaths)
-        updatePill()
+        // onPageSelected does not fire for the page the pager opens on
+        flight.onPathChanged(currentMedium()?.path.orEmpty())
     }
 
     private fun setupThumbnailStrip() {
@@ -178,7 +218,11 @@ class PeekViewerActivity :
         binding.peekCount.text = PeekSession.selectedPaths.size.toString()
     }
 
-    private fun currentMedium() = media.getOrNull(binding.viewPager.currentItem)
+    // the pager is built once the flight has landed, and until it is there is no current item to
+    // read - the peek is showing the path it opened on, which is what dressed the chrome
+    private fun currentMedium() = media.getOrNull(
+        if (binding.viewPager.adapter == null) openingPosition() else binding.viewPager.currentItem
+    )
 
     override fun fragmentClicked() {
         isFullScreen = !isFullScreen
@@ -221,6 +265,7 @@ class PeekViewerActivity :
     override fun onPageSelected(position: Int) {
         binding.viewerThumbnailStrip.setSelectedPosition(position)
         updatePill()
+        flight.onPathChanged(media.getOrNull(position)?.path.orEmpty())
     }
 
     override fun onPageScrollStateChanged(state: Int) {}

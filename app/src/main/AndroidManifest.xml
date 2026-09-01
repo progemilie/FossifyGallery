@@ -107,14 +107,14 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:exported="false"
             android:parentActivityName=".activities.MediaActivity"
-            android:theme="@style/TranslucentTheme" />
+            android:theme="@style/ViewerTheme" />
 
         <activity
             android:name=".activities.ViewPagerActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:exported="true"
             android:parentActivityName=".activities.MediaActivity"
-            android:theme="@style/TranslucentTheme">
+            android:theme="@style/ViewerTheme">
 
             <intent-filter>
                 <action android:name="com.android.camera.action.REVIEW" />
@@ -175,7 +175,7 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:exported="false"
             android:parentActivityName=".activities.MediaActivity"
-            android:theme="@style/TranslucentTheme" />
+            android:theme="@style/ViewerTheme" />
 
         <activity
             android:name=".activities.IncludedFoldersActivity"

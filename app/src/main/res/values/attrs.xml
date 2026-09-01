@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="SettingsCard">
+        <!-- the section's name, which is all the card shows of itself when it is shut -->
+        <attr name="cardTitle" format="reference|string" />
+        <!-- the line under it saying what is inside, which the settings replace once it opens -->
+        <attr name="cardDescription" format="reference|string" />
+        <!-- the glyph beside the name, there to be recognised before the name is read -->
+        <attr name="cardIcon" format="reference" />
+    </declare-styleable>
+</resources>

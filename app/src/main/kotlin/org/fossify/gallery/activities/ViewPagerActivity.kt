@@ -159,6 +159,7 @@ import org.fossify.gallery.helpers.BOTTOM_ACTION_TABS
 import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_FAVORITE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_VISIBILITY
 import org.fossify.gallery.helpers.ColorModeHelper
+import org.fossify.gallery.helpers.TileFlight
 import org.fossify.gallery.helpers.DefaultPageTransformer
 import org.fossify.gallery.helpers.TabSwitcher
 import org.fossify.gallery.helpers.applyBottomActionsOrder
@@ -263,6 +264,33 @@ class ViewPagerActivity :
     private val metadataSheet: MetadataSheet
         get() = binding.metadataSheetHolder.metadataSheet
 
+    /**
+     * The tile this screen grew out of, and the tile it shrinks back into. Everything it fades is
+     * named here because only this screen knows what it has painted over the grid.
+     */
+    private val flight by lazy {
+        TileFlight(
+            activity = this,
+            overlay = TileFlight.overlayOver(this),
+            stage = binding.viewPager,
+            backdrops = {
+                listOfNotNull(
+                    window.decorView.background,
+                    binding.fragmentHolder.background,
+                    binding.viewPager.background
+                )
+            },
+            chrome = {
+                listOf(
+                    binding.topShadow,
+                    binding.mediumViewerAppbar,
+                    binding.bottomChrome
+                )
+            },
+            displayed = { getCurrentFragment()?.displayedMedia() }
+        )
+    }
+
     override val contentHolder: View
         get() = binding.fragmentHolder
 
@@ -321,15 +349,47 @@ class ViewPagerActivity :
         refreshMenuItems()
 
         window.decorView.setBackgroundColor(getProperBackgroundColor())
-        (MediaActivity.mMedia.clone() as ArrayList<ThumbnailItem>).filterIsInstanceTo(mMediaFiles, Medium::class.java)
-
-        requestMediaPermissions {
-            initViewPager(
-                savedPath = savedInstanceState?.getString(SAVED_PATH).orEmpty()
-            )
+        // every layer the flight fades in has to be in place before it starts: one hung until the
+        // pager is built is not faded but dropped on, black over a backdrop half way in from white
+        if (config.blackBackground) {
+            binding.fragmentHolder.background = Color.BLACK.toDrawable()
+            binding.viewPager.background = Color.BLACK.toDrawable()
         }
 
+        (MediaActivity.mMedia.clone() as ArrayList<ThumbnailItem>).filterIsInstanceTo(mMediaFiles, Medium::class.java)
+        aimAtOpeningMedium()
         initFavorites()
+
+        // after the backdrop is in place, since the flight fades that in from nothing. The pager is
+        // built inside the flight rather than beside it - see TileFlight.enter()
+        flight.enter(intent.getStringExtra(PATH).orEmpty()) {
+            requestMediaPermissions {
+                initViewPager(
+                    savedPath = savedInstanceState?.getString(SAVED_PATH).orEmpty()
+                )
+            }
+        }
+    }
+
+    /**
+     * Says which medium the screen is opening on before the pager is built to say it.
+     *
+     * The chrome is dressed from the medium on screen - the bottom bar hides what does not apply to
+     * it, the header names it, the strip centres on it - and the flight fades the chrome in as it
+     * comes. Asked of the pager, all three would be answered with nothing until the pager exists,
+     * and the bar would fade in half filled and then swap its own buttons out from under the eye.
+     *
+     * Only ever the grid's own list, which is the only case that flies: an intent from outside
+     * names a path no grid handed over, finds nothing, and leaves the pager to settle it as before.
+     */
+    private fun aimAtOpeningMedium() {
+        val path = intent.getStringExtra(PATH).orEmpty()
+        val position = mMediaFiles.indexOfFirst { it.path == path }
+        if (position != -1) {
+            mPath = path
+            mPos = position
+            binding.viewerThumbnailStrip.setMedia(mMediaFiles, position)
+        }
     }
 
     override fun onResume() {
@@ -533,8 +593,11 @@ class ViewPagerActivity :
             setResult(RESULT_OK, Intent().putExtra(PATH, getCurrentPath()))
         }
 
-        super.finish()
+        flight.finishThrough(::finishNow)
     }
+
+    // super.finish() cannot be reached from inside the lambda the shrink lands in
+    private fun finishNow() = super.finish()
 
     private fun initViewPager(savedPath: String) {
         val uri = intent.data
@@ -636,11 +699,6 @@ class ViewPagerActivity :
         refreshViewPager(true)
         binding.viewPager.offscreenPageLimit = 2
 
-        if (config.blackBackground) {
-            binding.fragmentHolder.background = Color.BLACK.toDrawable()
-            binding.viewPager.background = Color.BLACK.toDrawable()
-        }
-
         if (config.hideSystemUI) {
             binding.viewPager.onGlobalLayout {
                 Handler().postDelayed({
@@ -715,6 +773,8 @@ class ViewPagerActivity :
             }
 
             binding.viewerThumbnailStrip.setMedia(media, mPos)
+            // onPageSelected does not fire for the page the pager opens on
+            flight.onPathChanged(getCurrentPath())
         }
     }
 
@@ -1998,6 +2058,7 @@ class ViewPagerActivity :
             refreshMenuItems()
             binding.viewerThumbnailStrip.setSelectedPosition(position)
             scheduleSwipe()
+            flight.onPathChanged(getCurrentPath())
             // showing everything at once means the folder swiped to may not be the one swiped from,
             // and the chooser must not offer the file's own folder
             refreshQuickChooserFolders()
