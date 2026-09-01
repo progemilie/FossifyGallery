@@ -49,6 +49,10 @@ class TileFlight(
     private val stage: View,
     /** Everything painting over the grid, faded together so the grid comes back through. */
     backdrops: () -> List<Drawable>,
+    /**
+     * The bar, the strip and the buttons, faded in over the back half of a flight. Whatever a
+     * screen names here has to be dressed before [enter] is called, or it fades in half filled.
+     */
     chrome: () -> List<View>,
     /** What the viewer is drawing and where, once it is drawing anything. */
     private val displayed: () -> DisplayedMedia?
@@ -128,6 +132,7 @@ class TileFlight(
                 overlay.progress = t
                 overlay.retarget(landing())
                 scrim.backdrop = t
+                scrim.chromeAlpha = ramp(t, FLIGHT_CHROME_IN, 1f)
             }.doOnEnd {
                 buildContentNow()
                 settle()
@@ -180,6 +185,7 @@ class TileFlight(
         }
 
         scrim.backdrop = 1f
+        scrim.chromeAlpha = 1f
         if (settleStartedAt == 0L) {
             settleStartedAt = SystemClock.uptimeMillis()
         }
@@ -209,20 +215,10 @@ class TileFlight(
         }.doOnEnd { revealStage() }
     }
 
-    /**
-     * Hands the screen over to the viewer, and brings the chrome up behind it.
-     *
-     * The chrome cannot ride the flight in the way the backdrop does. A bottom bar is dressed from
-     * the medium the pager is showing, which is nothing at all until the pager is built, so a bar
-     * shown any earlier is shown half filled and swaps its own buttons out from under the eye. Held
-     * down until there is something to show, the fade is the only thing seen of it.
-     */
     private fun revealStage() {
         stage.alpha = 1f
         overlay.clear()
         activity.letGridShowThrough(false)
-        scrim.chromeAlpha = 0f
-        animate(from = 0f, to = 1f, duration = FLIGHT_CHROME_MS) { scrim.chromeAlpha = it }
     }
 
     /**

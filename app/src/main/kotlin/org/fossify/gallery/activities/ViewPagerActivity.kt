@@ -357,6 +357,8 @@ class ViewPagerActivity :
         }
 
         (MediaActivity.mMedia.clone() as ArrayList<ThumbnailItem>).filterIsInstanceTo(mMediaFiles, Medium::class.java)
+        aimAtOpeningMedium()
+        initFavorites()
 
         // after the backdrop is in place, since the flight fades that in from nothing. The pager is
         // built inside the flight rather than beside it - see TileFlight.enter()
@@ -366,8 +368,27 @@ class ViewPagerActivity :
                     savedPath = savedInstanceState?.getString(SAVED_PATH).orEmpty()
                 )
             }
+        }
+    }
 
-            initFavorites()
+    /**
+     * Says which medium the screen is opening on before the pager is built to say it.
+     *
+     * The chrome is dressed from the medium on screen - the bottom bar hides what does not apply to
+     * it, the header names it, the strip centres on it - and the flight fades the chrome in as it
+     * comes. Asked of the pager, all three would be answered with nothing until the pager exists,
+     * and the bar would fade in half filled and then swap its own buttons out from under the eye.
+     *
+     * Only ever the grid's own list, which is the only case that flies: an intent from outside
+     * names a path no grid handed over, finds nothing, and leaves the pager to settle it as before.
+     */
+    private fun aimAtOpeningMedium() {
+        val path = intent.getStringExtra(PATH).orEmpty()
+        val position = mMediaFiles.indexOfFirst { it.path == path }
+        if (position != -1) {
+            mPath = path
+            mPos = position
+            binding.viewerThumbnailStrip.setMedia(mMediaFiles, position)
         }
     }
 

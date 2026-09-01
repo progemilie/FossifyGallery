@@ -371,16 +371,16 @@ const val FLIGHT_DURATION_MS = 220L
  * Longer because the two are not given the same frames. A shrink runs on a viewer that has been up
  * for a while and is drawn every 16ms; a grow is drawn while its window is still being brought up,
  * where the frames come 40 to 60ms apart. Measured over the same flight, 220ms of that is five or
- * six frames and steps as much as 0.7 of the way across in one of them; 300ms is eight or more and
- * steps a quarter at worst.
+ * six frames and steps as much as 0.7 of the way across in one of them, against a quarter at worst
+ * once there is enough of it for eight.
  */
-const val FLIGHT_GROW_MS = 300L
+const val FLIGHT_GROW_MS = 250L
 
-/** How much of a shrink has run before the viewer's chrome has finished fading out of it. */
+/**
+ * How much of a flight has run before the chrome starts fading in behind it, and all of a shrink
+ * has run before the chrome has finished fading out of it.
+ */
 const val FLIGHT_CHROME_IN = 0.35f
-
-/** How long the chrome takes to fade in behind a photo the flight has landed. */
-const val FLIGHT_CHROME_MS = 200L
 
 /** How long a flight waits for the viewer to paint something before handing the screen over anyway. */
 const val FLIGHT_SETTLE_WAIT_MS = 900L
