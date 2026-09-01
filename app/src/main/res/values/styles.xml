@@ -24,8 +24,8 @@
 
     <style name="FullScreenTheme" parent="FullScreenTheme.Base" />
     <!--
-        The fullscreen viewers. Opaque here and see-through in values-v28, where the continuity
-        transition draws a photo growing out of the grid still drawn behind it.
+        The fullscreen viewers. Opaque here and see-through in values-v28, where the tile flight
+        draws a photo growing out of the grid still drawn behind it.
 
         The window animation is nothing at all on purpose: naming one in ActivityOptions instead is
         what the system takes as licence to drop the grid's window from the frame, leaving the photo

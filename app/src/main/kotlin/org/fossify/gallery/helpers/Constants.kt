@@ -362,17 +362,31 @@ const val FOLDER_FLY_IN_SCALE = 0.15f
 const val FOLDER_FLASH_DURATION_MS = 90L
 const val FOLDER_FLASH_BLINKS = 3
 
-// the continuity transition between a grid tile and the fullscreen viewer, see ViewerTransition
-const val CONTINUITY_DURATION_MS = 220L
+// the flight between a grid tile and the fullscreen viewer, see TileFlight and ViewerTransition
+const val FLIGHT_DURATION_MS = 220L
 
-/** How much of a flight has run before the viewer's chrome starts fading in behind it. */
-const val CONTINUITY_CHROME_IN = 0.35f
+/**
+ * How long a tile takes to grow into the photo, against [FLIGHT_DURATION_MS] for the shrink back.
+ *
+ * Longer because the two are not given the same frames. A shrink runs on a viewer that has been up
+ * for a while and is drawn every 16ms; a grow is drawn while its window is still being brought up,
+ * where the frames come 40 to 60ms apart. Measured over the same flight, 220ms of that is five or
+ * six frames and steps as much as 0.7 of the way across in one of them; 300ms is eight or more and
+ * steps a quarter at worst.
+ */
+const val FLIGHT_GROW_MS = 300L
+
+/** How much of a shrink has run before the viewer's chrome has finished fading out of it. */
+const val FLIGHT_CHROME_IN = 0.35f
+
+/** How long the chrome takes to fade in behind a photo the flight has landed. */
+const val FLIGHT_CHROME_MS = 200L
 
 /** How long a flight waits for the viewer to paint something before handing the screen over anyway. */
-const val CONTINUITY_SETTLE_WAIT_MS = 900L
+const val FLIGHT_SETTLE_WAIT_MS = 900L
 
 /** How long the last correction onto a photo that landed somewhere unexpected is given. */
-const val CONTINUITY_SETTLE_MS = 120L
+const val FLIGHT_SETTLE_MS = 120L
 
 /** The small first pass at a fullscreen photo, which is also the picture a flight is drawn with. */
 const val LOW_RES_IMAGE_SIZE = 320

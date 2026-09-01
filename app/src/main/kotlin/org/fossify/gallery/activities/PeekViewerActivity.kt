@@ -27,7 +27,7 @@ import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.showSystemUI
 import org.fossify.gallery.fragments.ViewPagerFragment
-import org.fossify.gallery.helpers.ContinuityTransition
+import org.fossify.gallery.helpers.TileFlight
 import org.fossify.gallery.helpers.Glass
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.PeekSession
@@ -64,10 +64,10 @@ class PeekViewerActivity :
         get() = binding.peekAppbar
 
     /** The tile this peek grew out of, and the tile it shrinks back into. */
-    private val continuity by lazy {
-        ContinuityTransition(
+    private val flight by lazy {
+        TileFlight(
             activity = this,
-            overlay = ContinuityTransition.overlayOver(this),
+            overlay = TileFlight.overlayOver(this),
             stage = binding.viewPager,
             backdrops = {
                 listOfNotNull(
@@ -101,10 +101,10 @@ class PeekViewerActivity :
 
         setupPill()
         setupThumbnailStrip()
-        setupViewPager()
         showSystemUI()
-        // after the backdrop is in place, since the flight fades that in from nothing
-        continuity.enter(PeekSession.startPath)
+        // after the backdrop is in place, since the flight fades that in from nothing. The pager
+        // is built inside it rather than beside it - see TileFlight.enter()
+        flight.enter(PeekSession.startPath) { setupViewPager() }
     }
 
     override fun onResume() {
@@ -115,7 +115,7 @@ class PeekViewerActivity :
     /** The grid takes the selection off [PeekSession]; the path is what it scrolls back to. */
     override fun finish() {
         setResult(RESULT_OK, Intent().putExtra(PATH, currentMedium()?.path.orEmpty()))
-        continuity.finishThrough(::finishNow)
+        flight.finishThrough(::finishNow)
     }
 
     // super.finish() cannot be reached from inside the lambda the shrink lands in
@@ -138,7 +138,7 @@ class PeekViewerActivity :
         binding.viewerThumbnailStrip.setSelection(PeekSession.selectedPaths)
         updatePill()
         // onPageSelected does not fire for the page the pager opens on
-        continuity.onPathChanged(currentMedium()?.path.orEmpty())
+        flight.onPathChanged(currentMedium()?.path.orEmpty())
     }
 
     private fun setupThumbnailStrip() {
@@ -250,7 +250,7 @@ class PeekViewerActivity :
     override fun onPageSelected(position: Int) {
         binding.viewerThumbnailStrip.setSelectedPosition(position)
         updatePill()
-        continuity.onPathChanged(media.getOrNull(position)?.path.orEmpty())
+        flight.onPathChanged(media.getOrNull(position)?.path.orEmpty())
     }
 
     override fun onPageScrollStateChanged(state: Int) {}

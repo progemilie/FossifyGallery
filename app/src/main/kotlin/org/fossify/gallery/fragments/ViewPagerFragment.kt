@@ -67,8 +67,8 @@ abstract class ViewPagerFragment : Fragment() {
 
     /**
      * What this fragment is drawing and where on screen it is drawing it, which is where a
-     * continuity flight lands and where the shrink back into the grid sets off from. Null while
-     * there is nothing on screen yet. See [org.fossify.gallery.helpers.ContinuityTransition].
+     * flight lands and where the shrink back into the grid sets off from. Null while
+     * there is nothing on screen yet. See [org.fossify.gallery.helpers.TileFlight].
      */
     open fun displayedMedia(): DisplayedMedia? = null
 

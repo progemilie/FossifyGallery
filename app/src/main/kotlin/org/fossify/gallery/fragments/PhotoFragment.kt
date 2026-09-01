@@ -367,17 +367,20 @@ class PhotoFragment : ViewPagerFragment() {
     /**
      * The gestures view is the one that is always there - the subsampling view is laid over it a
      * beat later for zoomable photos, drawing the same picture at the same place, and the GIF view
-     * is a frame of its own. Whichever is up, the picture handed back is the gestures view's, which
-     * is the only one holding a bitmap anything can fly with.
+     * is a frame of its own, laid out at the picture's size. Whichever is up, the picture handed
+     * back is the gestures view's, which is the only one holding a bitmap anything can fly with.
+     *
+     * Nothing drawn yet is null rather than the view's own bounds: the gestures view fills the
+     * screen whether or not it has a picture in it, and a flight told that is where the photo is
+     * stretches to the whole screen and is cut back the moment the photo turns up.
      */
     override fun displayedMedia(): DisplayedMedia? {
         if (!isAdded) {
             return null
         }
 
-        val shown = if (binding.gifViewFrame.isVisible()) binding.gifViewFrame else binding.gesturesView
         val rect = binding.gesturesView.displayedImageRect()
-            ?: shown.screenRect().takeIf { !it.isEmpty }
+            ?: binding.gifViewFrame.takeIf { it.isVisible() }?.screenRect()?.takeIf { !it.isEmpty }
             ?: return null
 
         val image = (binding.gesturesView.drawable as? BitmapDrawable)?.bitmap

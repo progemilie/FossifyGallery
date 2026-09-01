@@ -35,7 +35,7 @@ fun View.screenLocation(): Pair<Float, Float> {
 
 /**
  * This view's bounds on the display - the one space a grid's window and the viewer's have in
- * common, and so what a continuity flight is measured in. See
+ * common, and so what a flight is measured in. See
  * [org.fossify.gallery.helpers.ViewerTransition].
  */
 fun View.screenRect(): RectF {

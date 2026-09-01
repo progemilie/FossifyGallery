@@ -1,5 +1,6 @@
 package org.fossify.gallery.helpers
 
+import android.animation.TimeInterpolator
 import android.animation.ValueAnimator
 import android.app.Activity
 import android.graphics.Bitmap
@@ -11,22 +12,24 @@ import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import androidx.core.animation.doOnEnd
 import androidx.core.view.doOnLayout
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import org.fossify.gallery.extensions.screenRect
-import org.fossify.gallery.views.ContinuityOverlay
+import org.fossify.gallery.views.FlightOverlay
 import org.fossify.commons.R as commonsR
 
 /** The picture the viewer is showing this instant, and where on screen it is showing it. */
 class DisplayedMedia(val rect: RectF, val image: Bitmap?)
 
 /**
- * A viewer's half of the continuity transition: the tile's picture growing into the fullscreen one
- * on the way in, and the fullscreen one shrinking back into a tile on the way out. Worn by all
- * three fullscreen screens, which differ only in what they hand in below.
+ * A viewer's half of the flight between a grid tile and the fullscreen photo: the tile's picture
+ * growing into the fullscreen one on the way in, and the fullscreen one shrinking back into a tile
+ * on the way out. Worn by all three fullscreen screens, which differ only in what they hand in
+ * below.
  *
  * Everything it moves is drawn over a grid that is still there - the viewer's window is translucent
  * - so the two windows read as one surface. See [ViewerTransition] for the hand-off between them.
@@ -34,10 +37,14 @@ class DisplayedMedia(val rect: RectF, val image: Bitmap?)
  * **A flight is measured against the photo, never against the screen.** A photo fitted inside the
  * screen often covers little more than half of it, so a flight sized by the screen overruns it and
  * is yanked back - see [landing].
+ *
+ * The two directions are not the same job. A shrink runs on a viewer that has been up for a while
+ * and has the main thread to itself, so it is drawn every frame; a grow is started from `onCreate`
+ * and would otherwise race the screen being built - see [enter].
  */
-class ContinuityTransition(
+class TileFlight(
     private val activity: Activity,
-    private val overlay: ContinuityOverlay,
+    private val overlay: FlightOverlay,
     /** Where the fullscreen picture sits, and so the bounds a flight is measured inside. */
     private val stage: View,
     /** Everything painting over the grid, faded together so the grid comes back through. */
@@ -66,20 +73,34 @@ class ContinuityTransition(
     /** When the wait for the viewer to paint something began, so it cannot go on for ever. */
     private var settleStartedAt = 0L
 
+    /** The screen's own setup, held back until the flight has landed - see [enter]. */
+    private var pendingContent: (() -> Unit)? = null
+
     /**
-     * Grows the tapped tile into the photo. Does nothing at all where there is nothing to grow
-     * from - an external intent, a restored screen, or a platform too old to draw a window over a
-     * live one - leaving the screen exactly as it was.
+     * Grows the tapped tile into the photo, and runs [buildContent] - the screen's own setup, the
+     * pager and the media it loads - once it has landed. Does nothing at all where there is nothing
+     * to grow from - an external intent, a restored screen, or a platform too old to draw a window
+     * over a live one - leaving the screen exactly as it was and building it there and then.
+     *
+     * **The flight has to be given the main thread, or it is not drawn.** Inflating a pager and
+     * starting a photo decoding costs a good third of a second of dropped frames, and a flight
+     * started alongside them is stepped three times: still on the tile, most of the way across, and
+     * done. Held back instead, the setup costs nothing that can be seen - the flight is already
+     * drawing the picture the viewer is about to draw, at the rect it will draw it at, so a screen
+     * built behind it arrives to find its own work done.
      */
-    fun enter(path: String) {
+    fun enter(path: String, buildContent: () -> Unit = {}) {
         val tile = ViewerTransition.takeOpening()?.takeIf { ViewerTransition.isSupported }
         val picture = tile?.let { ViewerTransition.takeFlightPicture(path) }
         val flying = picture ?: tile?.image
         if (tile == null || flying == null) {
             // the window is see-through by theme, and nothing is going to be drawn through it
             activity.letGridShowThrough(false)
+            buildContent()
             return
         }
+
+        pendingContent = buildContent
 
         activity.letGridShowThrough(true)
         scrim.backdrop = 0f
@@ -91,6 +112,7 @@ class ContinuityTransition(
         // the overlay maps screen coordinates through its own, so it has to be placed first
         overlay.doOnLayout {
             if (isClosing) {
+                buildContentNow()
                 return@doOnLayout
             }
 
@@ -101,13 +123,24 @@ class ContinuityTransition(
             val endCrop = if (awaitingPicture) tileCrop else 0f
             overlay.fly(flying, tile.frame, landing(), tileCrop, endCrop)
 
-            animate(from = 0f, to = 1f) { t ->
+            animate(from = 0f, to = 1f, duration = FLIGHT_GROW_MS, interpolator = GROW) { t ->
                 pickUpPicture(path)
                 overlay.progress = t
                 overlay.retarget(landing())
                 scrim.backdrop = t
-                scrim.chromeAlpha = ramp(t, CONTINUITY_CHROME_IN, 1f)
-            }.doOnEnd { settle() }
+            }.doOnEnd {
+                buildContentNow()
+                settle()
+            }
+        }
+    }
+
+    /** Builds the screen the flight was flown over, once and once only. */
+    private fun buildContentNow() {
+        val build = pendingContent ?: return
+        pendingContent = null
+        if (!activity.isFinishing && !activity.isDestroyed) {
+            build()
         }
     }
 
@@ -147,13 +180,12 @@ class ContinuityTransition(
         }
 
         scrim.backdrop = 1f
-        scrim.chromeAlpha = 1f
         if (settleStartedAt == 0L) {
             settleStartedAt = SystemClock.uptimeMillis()
         }
 
         val shown = displayed()
-        val gaveUp = SystemClock.uptimeMillis() - settleStartedAt > CONTINUITY_SETTLE_WAIT_MS
+        val gaveUp = SystemClock.uptimeMillis() - settleStartedAt > FLIGHT_SETTLE_WAIT_MS
         if (shown == null) {
             if (gaveUp) {
                 revealStage()
@@ -172,15 +204,25 @@ class ContinuityTransition(
             return
         }
 
-        animate(from = 0f, to = 1f, duration = CONTINUITY_SETTLE_MS) { t ->
+        animate(from = 0f, to = 1f, duration = FLIGHT_SETTLE_MS) { t ->
             overlay.retarget(lerp(from, shown.rect, t))
         }.doOnEnd { revealStage() }
     }
 
+    /**
+     * Hands the screen over to the viewer, and brings the chrome up behind it.
+     *
+     * The chrome cannot ride the flight in the way the backdrop does. A bottom bar is dressed from
+     * the medium the pager is showing, which is nothing at all until the pager is built, so a bar
+     * shown any earlier is shown half filled and swaps its own buttons out from under the eye. Held
+     * down until there is something to show, the fade is the only thing seen of it.
+     */
     private fun revealStage() {
         stage.alpha = 1f
         overlay.clear()
         activity.letGridShowThrough(false)
+        scrim.chromeAlpha = 0f
+        animate(from = 0f, to = 1f, duration = FLIGHT_CHROME_MS) { scrim.chromeAlpha = it }
     }
 
     /**
@@ -236,7 +278,7 @@ class ContinuityTransition(
         animate(from = 0f, to = 1f) { t ->
             overlay.progress = t
             scrim.backdrop = backdropFrom * (1f - t)
-            scrim.chromeAlpha = chromeFrom * (1f - ramp(t, 0f, CONTINUITY_CHROME_IN))
+            scrim.chromeAlpha = chromeFrom * (1f - ramp(t, 0f, FLIGHT_CHROME_IN))
         }.doOnEnd {
             ViewerTransition.shrank()
             onFinish()
@@ -248,12 +290,13 @@ class ContinuityTransition(
     private fun animate(
         from: Float,
         to: Float,
-        duration: Long = CONTINUITY_DURATION_MS,
+        duration: Long = FLIGHT_DURATION_MS,
+        interpolator: TimeInterpolator = DecelerateInterpolator(),
         onFrame: (Float) -> Unit
     ): ValueAnimator {
         return ValueAnimator.ofFloat(from, to).apply {
             this.duration = duration
-            interpolator = DecelerateInterpolator()
+            this.interpolator = interpolator
             addUpdateListener { onFrame(it.animatedValue as Float) }
             doOnEnd { if (animator === this) animator = null }
             animator = this
@@ -289,8 +332,8 @@ class ContinuityTransition(
          * Puts an overlay over the whole window, clear of the cutout padding the screens apply to
          * their own content - a flight starts at a tile that may well be under the notch.
          */
-        fun overlayOver(activity: Activity): ContinuityOverlay {
-            return ContinuityOverlay(activity).apply {
+        fun overlayOver(activity: Activity): FlightOverlay {
+            return FlightOverlay(activity).apply {
                 isInvisible = true
                 activity.findViewById<ViewGroup>(android.R.id.content).addView(
                     this,
@@ -300,6 +343,20 @@ class ContinuityTransition(
         }
 
         private const val OPAQUE = 255
+
+        /**
+         * The curve a grow is drawn on, against the shrink's decelerate.
+         *
+         * A shrink is watched at the end, where it settles onto a tile, and setting off at speed is
+         * never noticed. A grow is watched at the start, at the tile still under the finger - and a
+         * decelerate is a quarter of the way across a frame in, which is not a tile growing but a
+         * tile replaced. This one sets off from rest and comes to rest.
+         *
+         * It is also the most evenly paced curve of the ones that do, which is what a flight drawn
+         * over a window still coming up wants: the picture moves the same distance every frame, so
+         * a frame dropped somewhere in the middle costs it a step rather than a leap.
+         */
+        private val GROW = AccelerateDecelerateInterpolator()
 
         private fun ramp(value: Float, start: Float, end: Float) =
             ((value - start) / (end - start)).coerceIn(0f, 1f)

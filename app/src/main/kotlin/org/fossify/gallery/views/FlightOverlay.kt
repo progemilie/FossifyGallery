@@ -16,9 +16,9 @@ import kotlin.math.min
 
 /**
  * The picture in flight between a grid tile and the fullscreen photo - the one thing on screen
- * during a continuity transition, drawn over the viewer while the grid is still visible behind it.
- * It draws a bitmap into a rect rather than being one, so a flight costs no layout at all. See
- * [org.fossify.gallery.helpers.ViewerTransition].
+ * while a flight is running, drawn over the viewer with the grid still visible behind it. It draws
+ * a bitmap into a rect rather than being one, so a flight costs no layout at all. See
+ * [org.fossify.gallery.helpers.TileFlight].
  *
  * **Two things move at once, and both have to.** The rect travels from the tile to where the photo
  * comes to rest, and the crop travels with it - a flight moving only the rect would draw a cropped
@@ -27,7 +27,7 @@ import kotlin.math.min
  * Never GONE, only INVISIBLE: a flight is set up against this view's own position on screen, and a
  * GONE view is never laid out to have one.
  */
-class ContinuityOverlay @JvmOverloads constructor(
+class FlightOverlay @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0

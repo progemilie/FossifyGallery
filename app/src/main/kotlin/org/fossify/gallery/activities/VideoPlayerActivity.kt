@@ -78,7 +78,7 @@ import org.fossify.gallery.extensions.screenRect
 import org.fossify.gallery.extensions.shareMediumPath
 import org.fossify.gallery.extensions.showSystemUI
 import org.fossify.gallery.fragments.PlaybackSpeedFragment
-import org.fossify.gallery.helpers.ContinuityTransition
+import org.fossify.gallery.helpers.TileFlight
 import org.fossify.gallery.helpers.DRAG_THRESHOLD
 import org.fossify.gallery.helpers.DisplayedMedia
 import org.fossify.gallery.helpers.EXOPLAYER_MAX_BUFFER_MS
@@ -146,10 +146,10 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
         get() = binding.videoAppbar
 
     /** The tile this player grew out of, and the tile it shrinks back into. */
-    private val continuity by lazy {
-        ContinuityTransition(
+    private val flight by lazy {
+        TileFlight(
             activity = this,
-            overlay = ContinuityTransition.overlayOver(this),
+            overlay = TileFlight.overlayOver(this),
             stage = binding.videoSurfaceFrame,
             backdrops = {
                 listOfNotNull(window.decorView.background, binding.videoPlayerHolder.background)
@@ -269,7 +269,7 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
         }
     }
 
-    override fun finish() = continuity.finishThrough(::finishNow)
+    override fun finish() = flight.finishThrough(::finishNow)
 
     // super.finish() cannot be reached from inside the lambda the shrink lands in
     private fun finishNow() = super.finish()
@@ -298,8 +298,8 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
         binding.videoToolbar.title = getFilenameFromUri(mUri!!)
         // the uri says nothing about which tile this came from; the path the grid sent does
         val tilePath = intent.getStringExtra(PATH).orEmpty()
-        continuity.onPathChanged(tilePath)
-        continuity.enter(tilePath)
+        flight.onPathChanged(tilePath)
+        flight.enter(tilePath)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
 

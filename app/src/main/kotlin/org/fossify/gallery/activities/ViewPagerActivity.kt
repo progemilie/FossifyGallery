@@ -159,7 +159,7 @@ import org.fossify.gallery.helpers.BOTTOM_ACTION_TABS
 import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_FAVORITE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_VISIBILITY
 import org.fossify.gallery.helpers.ColorModeHelper
-import org.fossify.gallery.helpers.ContinuityTransition
+import org.fossify.gallery.helpers.TileFlight
 import org.fossify.gallery.helpers.DefaultPageTransformer
 import org.fossify.gallery.helpers.TabSwitcher
 import org.fossify.gallery.helpers.applyBottomActionsOrder
@@ -268,10 +268,10 @@ class ViewPagerActivity :
      * The tile this screen grew out of, and the tile it shrinks back into. Everything it fades is
      * named here because only this screen knows what it has painted over the grid.
      */
-    private val continuity by lazy {
-        ContinuityTransition(
+    private val flight by lazy {
+        TileFlight(
             activity = this,
-            overlay = ContinuityTransition.overlayOver(this),
+            overlay = TileFlight.overlayOver(this),
             stage = binding.viewPager,
             backdrops = {
                 listOfNotNull(
@@ -349,18 +349,26 @@ class ViewPagerActivity :
         refreshMenuItems()
 
         window.decorView.setBackgroundColor(getProperBackgroundColor())
-        (MediaActivity.mMedia.clone() as ArrayList<ThumbnailItem>).filterIsInstanceTo(mMediaFiles, Medium::class.java)
-
-        // after the backdrop is in place, since the flight fades that in from nothing
-        continuity.enter(intent.getStringExtra(PATH).orEmpty())
-
-        requestMediaPermissions {
-            initViewPager(
-                savedPath = savedInstanceState?.getString(SAVED_PATH).orEmpty()
-            )
+        // every layer the flight fades in has to be in place before it starts: one hung until the
+        // pager is built is not faded but dropped on, black over a backdrop half way in from white
+        if (config.blackBackground) {
+            binding.fragmentHolder.background = Color.BLACK.toDrawable()
+            binding.viewPager.background = Color.BLACK.toDrawable()
         }
 
-        initFavorites()
+        (MediaActivity.mMedia.clone() as ArrayList<ThumbnailItem>).filterIsInstanceTo(mMediaFiles, Medium::class.java)
+
+        // after the backdrop is in place, since the flight fades that in from nothing. The pager is
+        // built inside the flight rather than beside it - see TileFlight.enter()
+        flight.enter(intent.getStringExtra(PATH).orEmpty()) {
+            requestMediaPermissions {
+                initViewPager(
+                    savedPath = savedInstanceState?.getString(SAVED_PATH).orEmpty()
+                )
+            }
+
+            initFavorites()
+        }
     }
 
     override fun onResume() {
@@ -564,7 +572,7 @@ class ViewPagerActivity :
             setResult(RESULT_OK, Intent().putExtra(PATH, getCurrentPath()))
         }
 
-        continuity.finishThrough(::finishNow)
+        flight.finishThrough(::finishNow)
     }
 
     // super.finish() cannot be reached from inside the lambda the shrink lands in
@@ -670,11 +678,6 @@ class ViewPagerActivity :
         refreshViewPager(true)
         binding.viewPager.offscreenPageLimit = 2
 
-        if (config.blackBackground) {
-            binding.fragmentHolder.background = Color.BLACK.toDrawable()
-            binding.viewPager.background = Color.BLACK.toDrawable()
-        }
-
         if (config.hideSystemUI) {
             binding.viewPager.onGlobalLayout {
                 Handler().postDelayed({
@@ -750,7 +753,7 @@ class ViewPagerActivity :
 
             binding.viewerThumbnailStrip.setMedia(media, mPos)
             // onPageSelected does not fire for the page the pager opens on
-            continuity.onPathChanged(getCurrentPath())
+            flight.onPathChanged(getCurrentPath())
         }
     }
 
@@ -2034,7 +2037,7 @@ class ViewPagerActivity :
             refreshMenuItems()
             binding.viewerThumbnailStrip.setSelectedPosition(position)
             scheduleSwipe()
-            continuity.onPathChanged(getCurrentPath())
+            flight.onPathChanged(getCurrentPath())
             // showing everything at once means the folder swiped to may not be the one swiped from,
             // and the chooser must not offer the file's own folder
             refreshQuickChooserFolders()
