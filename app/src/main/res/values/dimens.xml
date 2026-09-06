@@ -6,6 +6,8 @@
     <dimen name="play_outline_icon_size">22dp</dimen>
     <dimen name="favorite_list_icon_size">17dp</dimen>
     <dimen name="selection_check_size">26dp</dimen>
+    <!-- a hint of an edge on the selection tick, not an outline around it -->
+    <dimen name="selection_check_border">1dp</dimen>
 
     <!--
         Material draws its switch from these three, so overriding them here is what takes every

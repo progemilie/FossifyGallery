@@ -89,6 +89,9 @@ class FolderGroupThumbnail @JvmOverloads constructor(
         return cells.take(shownCells)
     }
 
+    /** The cells actually drawing a member, for anything that has to paint the cover as a whole. */
+    fun shownCells(): List<ImageView> = cells.take(shownCells)
+
     /** Hands every cell to [clear] so a recycled tile drops the image requests it had going. */
     fun clearCells(clear: (ImageView) -> Unit) {
         cells.forEach(clear)

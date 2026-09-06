@@ -2,6 +2,12 @@
 
 Fork-only changes, newest first. Internal fixes are left out.
 
+## [v1.19.1] - 2026.09.06 — selection
+
+- **A picked photo is left darker** for as long as it is picked, rather than flashing once and going back to how it looked.
+- The tick grows into the corner and shrinks back out of it, over a circle with a hairline rim in the theme's own contrast — dark on a light theme, light on a dark one.
+- Albums are picked the same way as pictures, folder groups included.
+
 ## [v1.19.0] - 2026.09.01 — UI
 
 - **Opening and closing a photo** grows and shrinks out of the thumbnail.
@@ -159,6 +165,7 @@ Initial fork work, landed over 2026.08.06–08.09 before fork versions were trac
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
 
+[v1.19.1]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.19.1
 [v1.19.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.19.0
 [v1.18.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.18.0
 [v1.17.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.17.0

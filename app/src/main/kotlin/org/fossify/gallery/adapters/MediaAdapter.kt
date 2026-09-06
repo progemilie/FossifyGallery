@@ -109,6 +109,7 @@ import org.fossify.gallery.helpers.ROUNDED_CORNERS_SMALL
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_FAVORITES
 import org.fossify.gallery.helpers.SHOW_RECYCLE_BIN
+import org.fossify.gallery.helpers.SelectionMark
 import org.fossify.gallery.helpers.showPanel
 import org.fossify.gallery.helpers.SimpleThumbnailLoader
 import org.fossify.gallery.helpers.ThumbnailPrefetcher
@@ -215,6 +216,7 @@ class MediaAdapter(
 
     init {
         setupDragListener(true)
+        SelectionMark.settleChangeAnimations(recyclerView)
     }
 
     override fun getActionMenuId() = R.menu.cab_media
@@ -864,7 +866,7 @@ class MediaAdapter(
 
     /** Repaints an item's check without rebinding it, which would restart its image request. */
     internal fun repaintSelection(itemView: View, medium: Medium) {
-        bindItem(itemView, medium).markSelected(isItemSelected(medium))
+        bindItem(itemView, medium).markSelected(medium, isItemSelected(medium))
     }
 
     // a view let go of mid drag would come back to another item still lifted, one recycled mid
@@ -979,15 +981,21 @@ class MediaAdapter(
         }
 
     /**
-     * A ticked item wears the same check while reordering as it does in the action mode - it means
-     * the same thing, the item is one of several the next command applies to.
+     * A ticked item wears the same mark while reordering as it does in the action mode - it means
+     * the same thing, the item is one of several the next command applies to. The list view keeps
+     * the tick but not the wash: its row is already picked out by a background of its own, and a
+     * darkened strip of thumbnail beside a lit row would read as two different states.
      */
-    private fun MediaItemBinding.markSelected(isSelected: Boolean) {
-        mediumCheck.beVisibleIf(isSelected)
-        if (isSelected) {
-            mediumCheck.background?.applyColorFilter(properPrimaryColor)
-            mediumCheck.applyColorFilter(contrastColor)
-        }
+    private fun MediaItemBinding.markSelected(medium: Medium, isSelected: Boolean) {
+        SelectionMark.bind(
+            itemView = mediaItemHolder,
+            check = mediumCheck,
+            pictures = if (isListViewType) emptyList() else listOf(mediumThumbnail),
+            itemKey = medium.path,
+            isSelected = isSelected,
+            fillColor = properPrimaryColor,
+            tickColor = contrastColor
+        )
 
         if (isListViewType) {
             mediaItemHolder.isSelected = isSelected
@@ -1166,7 +1174,7 @@ class MediaAdapter(
                 videoDuration?.setTextColor(textColor)
             }
 
-            markSelected(isSelected)
+            markSelected(medium, isSelected)
             bindPeekButton(medium)
 
             var path = medium.path
@@ -1357,9 +1365,8 @@ class MediaAdapter(
 
     private fun paintSectionCheck(check: ImageView, selected: Boolean) {
         if (selected) {
-            check.setBackgroundResource(R.drawable.circle_background)
+            check.background = SelectionMark.circleBackground(activity, properPrimaryColor)
             check.setImageResource(org.fossify.commons.R.drawable.ic_check_vector)
-            check.background?.applyColorFilter(properPrimaryColor)
             check.applyColorFilter(contrastColor)
         } else {
             check.setBackgroundResource(R.drawable.circle_outline)

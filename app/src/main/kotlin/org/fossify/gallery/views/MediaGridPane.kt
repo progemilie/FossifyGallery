@@ -115,6 +115,7 @@ import org.fossify.gallery.helpers.ReorderBar
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_FAVORITES
 import org.fossify.gallery.helpers.SHOW_RECYCLE_BIN
+import org.fossify.gallery.helpers.SelectionMark
 import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
 import org.fossify.gallery.helpers.SLIDESHOW_START_ON_ENTER
 import org.fossify.gallery.helpers.VIDEO_PLAYER_APP
@@ -333,6 +334,9 @@ class MediaGridPane(
         mPinchZoom.isEnabled = isGridViewType()
         setupZoomInOnTap()
         mDefaultItemAnimator = binding.mediaGrid.itemAnimator
+        // here as well as in the adapter: a grid simplified at startup hands the adapter no animator
+        // to settle, and this one is due back the moment it is pinched in again
+        SelectionMark.settleChangeAnimations(binding.mediaGrid)
         binding.mediaEmptyTextPlaceholder2.setOnClickListener {
             showFilterMediaDialog()
         }
