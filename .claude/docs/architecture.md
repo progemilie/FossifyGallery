@@ -214,6 +214,14 @@ paints an opaque band under its own bar.
   Everything upstream does through the action mode carries over: the adapter inflates its menu,
   hides what does not apply in `prepareActionMode()` and invalidates on every change, which is what
   fills the pills in again.
+
+  What a marked item *looks* like is `helpers/SelectionMark.kt`, one place for the media grid, the
+  folder grid and the reorder mode: the tick in the corner grows in over a hairline-rimmed circle,
+  and the picture under it settles a quarter of the way to black. **The grids keep their change
+  animation off** (`settleChangeAnimations`) - ticking an item rebinds it, and the cross-fade a
+  rebind is answered with draws the tile twice, which is a second, contrary animation over the same
+  picture. An item that was already on screen in the other state animates; a fresh bind snaps, told
+  apart by the state each tile keeps in a tag.
 - **Frosted glass** — `helpers/Glass.kt` holds every colour and radius, `views/GlassPanel.kt` is the
   `BlurView` that wears it. A panel is told what to copy with `frost(contentBehind)`, which need not
   be an ancestor, and paints itself flat below Android 12. **Every panel comes and goes through

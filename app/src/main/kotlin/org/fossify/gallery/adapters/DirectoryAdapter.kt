@@ -104,6 +104,7 @@ import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_NONE
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_SMALL
+import org.fossify.gallery.helpers.SelectionMark
 import org.fossify.gallery.helpers.ThumbnailSizes
 import org.fossify.gallery.helpers.TransformedMedia
 import org.fossify.gallery.helpers.TYPE_GIFS
@@ -185,6 +186,7 @@ class DirectoryAdapter(
         // it answers with
         setupDragListener(false)
         fillLockedFolders()
+        SelectionMark.settleChangeAnimations(recyclerView)
     }
 
     override fun getActionMenuId() = R.menu.cab_directories
@@ -992,12 +994,6 @@ class DirectoryAdapter(
                 else -> TYPE_IMAGES
             }
 
-            dirCheck.beVisibleIf(isSelected)
-            if (isSelected) {
-                dirCheck.background?.applyColorFilter(properPrimaryColor)
-                dirCheck.applyColorFilter(contrastColor)
-            }
-
             if (isListViewType) {
                 dirHolder.isSelected = isSelected
             }
@@ -1021,6 +1017,7 @@ class DirectoryAdapter(
             }
 
             bindThumbnail(this, directory, thumbnailType, isGroup, isSelected)
+            markSelected(directory, isGroup, isSelected)
 
             dirPin.beVisibleIf(pinnedFolders.contains(directory.path))
             dirLocation.beVisibleIf(directory.location != LOCATION_INTERNAL)
@@ -1087,6 +1084,29 @@ class DirectoryAdapter(
             }
         }
     }
+
+    /**
+     * A tile's mark, drawn after its cover: a group's collage only has cells once it has been
+     * prepared, and they are what the wash goes on. The list view keeps the tick but not the wash -
+     * its row is already picked out by a background of its own.
+     */
+    private fun DirectoryItemBinding.markSelected(
+        directory: Directory,
+        isGroup: Boolean,
+        isSelected: Boolean
+    ) = SelectionMark.bind(
+        itemView = dirHolder,
+        check = dirCheck,
+        pictures = when {
+            isListViewType -> emptyList()
+            isGroup -> dirGroupThumbnail.shownCells()
+            else -> listOf(dirThumbnail)
+        },
+        itemKey = directory.path,
+        isSelected = isSelected,
+        fillColor = properPrimaryColor,
+        tickColor = contrastColor
+    )
 
     /** Draws the tile's cover: a locked folder's padlock, a group's collage, or a folder's own. */
     private fun bindThumbnail(

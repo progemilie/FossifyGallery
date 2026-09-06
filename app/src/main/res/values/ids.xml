@@ -10,4 +10,16 @@
     <item
         name="open_camera"
         type="id" />
+
+    <!--
+        Where a tile remembers how its selection mark was last drawn, so a rebind can tell a tick
+        being turned on from a view recycled onto another file. See helpers/SelectionMark.kt.
+    -->
+    <item
+        name="selection_mark_state"
+        type="id" />
+
+    <item
+        name="selection_mark_animator"
+        type="id" />
 </resources>

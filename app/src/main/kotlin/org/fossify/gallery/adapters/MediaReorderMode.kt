@@ -11,7 +11,6 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import org.fossify.commons.adapters.MyRecyclerViewAdapter
-import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.getContrastColor
@@ -22,6 +21,7 @@ import org.fossify.gallery.extensions.config
 import org.fossify.gallery.helpers.DRAG_BORDER_WIDTH_FRACTION
 import org.fossify.gallery.helpers.DRAG_LIFT_SCALE
 import org.fossify.gallery.helpers.PaddedGridMoveCallback
+import org.fossify.gallery.helpers.SelectionMark
 import org.fossify.gallery.helpers.animateDragLift
 import org.fossify.gallery.helpers.dragAccentRing
 import org.fossify.gallery.helpers.dragPictureOutline
@@ -315,7 +315,7 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
 
         findCountBadge()?.apply {
             text = count.toString()
-            background?.applyColorFilter(activity.getProperPrimaryColor())
+            background = SelectionMark.circleBackground(activity, activity.getProperPrimaryColor())
             setTextColor(activity.getProperPrimaryColor().getContrastColor())
             beVisible()
         }
