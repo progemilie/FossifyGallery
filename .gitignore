@@ -1,6 +1,7 @@
 *.iml
 *.aab
 .gradle
+.vs
 /local.properties
 /.idea/
 .DS_Store
