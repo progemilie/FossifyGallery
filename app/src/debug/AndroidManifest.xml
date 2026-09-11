@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+
+        <!-- exported so `adb shell am broadcast`, which runs as shell, can reach it: that is
+             the whole point of it, and this source set never reaches a release build -->
+        <receiver
+            android:name=".PerfReceiver"
+            android:exported="true"
+            tools:ignore="ExportedReceiver">
+            <intent-filter>
+                <action android:name="${applicationId}.PERF_DUMP" />
+                <action android:name="${applicationId}.PERF_RESET" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>

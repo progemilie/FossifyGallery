@@ -1,6 +1,7 @@
 *.iml
 *.aab
 .gradle
+.vs
 /local.properties
 /.idea/
 .DS_Store
@@ -13,3 +14,4 @@ keystore.properties
 fastlane/fastlane.json
 fastlane/report.xml
 .kotlin/
+__pycache__/

@@ -63,6 +63,23 @@ list arguments, so device paths never pass through Git Bash and need no `MSYS_NO
 - `install [--build]` assembles and installs, printing only the `e:` lines when a build fails.
   Also `swipe --dir`, `key`, `text`, `push --scan`, `rotate`, `devices`.
 
+### Measuring it
+
+`python .claude/tools/perf.py <cmd>` says what costs time and what fires too often, measuring an
+interaction given as `--swipes N`, `--seconds N`, or a command after `--`. `methods` prints per
+method call counts (exact) and times (a ranking only — recording costs ~10x the runtime); `jank`
+frame-time percentiles; `mem` memory with deltas, `--dump` for an hprof; `trace` a Perfetto trace;
+`counters` the app's own `helpers/Perf.kt`, which costs nanoseconds and so leaves an interaction
+behaving like itself. Studio opens every file it writes.
+
+Three traps it already avoids, all of which fail silently: **`am profile start` given a pid returns
+success and records nothing**, so profile by process name; `--clock-type dual` writes an empty file;
+and back-to-back sessions come back either empty or, worse, missing every thread that was already
+running. So `methods` checks the trace actually contains the main thread and repeats the interaction
+when it does not - never start twice to force a non-empty file, which is what produces the quietly
+partial one. Its 8 MB buffer holds about one fling. `Perf.count`/`section` are inline and gated on a build-type literal so calls fold
+away in release — the class itself survives R8 only because proguard keeps all `org.fossify.**`.
+
 Two facts the script already knows, worth knowing anyway: the launcher entry is a per-theme
 `activity-alias` (`SplashActivity.Pink`, `.Red`, …), so **`am start -n …/SplashActivity` silently
 does nothing** — a launch goes through the launcher category; and the APK filename carries

@@ -196,6 +196,7 @@ class TileFlight(
             if (gaveUp) {
                 revealStage()
             } else {
+                Perf.count("viewer.flightSettleFrame")
                 stage.postOnAnimation { settle() }
             }
 

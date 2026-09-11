@@ -71,7 +71,12 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(HIDE_FOLDER_TOOLTIP_SHOWN, false)
         set(wasShown) = prefs.edit().putBoolean(HIDE_FOLDER_TOOLTIP_SHOWN, wasShown).apply()
 
-    var shouldShowHidden = showHiddenMedia || temporarilyShowHidden
+    /**
+     * Computed on read, not stored. It was an initialiser, which gave the right answer only
+     * because a Config used to be built afresh on every access - anything that held on to one
+     * saw the value it had at construction, and temporarily showing hidden files never took.
+     */
+    val shouldShowHidden: Boolean get() = showHiddenMedia || temporarilyShowHidden
 
     var showHiddenMedia: Boolean
         get() = prefs.getBoolean(SHOW_HIDDEN_MEDIA, false)

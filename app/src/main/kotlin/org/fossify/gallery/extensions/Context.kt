@@ -78,6 +78,7 @@ import org.fossify.commons.helpers.SORT_USE_NUMERIC_VALUE
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.sumByLong
 import org.fossify.commons.views.MySquareImageView
+import org.fossify.gallery.App
 import org.fossify.gallery.R
 import org.fossify.gallery.asynctasks.GetMediaAsynctask
 import org.fossify.gallery.databases.GalleryDatabase
@@ -93,6 +94,7 @@ import org.fossify.gallery.helpers.LOCATION_OTG
 import org.fossify.gallery.helpers.LOCATION_SD
 import org.fossify.gallery.helpers.MediaFetcher
 import org.fossify.gallery.helpers.MyWidgetProvider
+import org.fossify.gallery.helpers.Perf
 import org.fossify.gallery.helpers.PicassoRoundedCornersTransformation
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_NONE
@@ -133,7 +135,13 @@ fun Context.getHumanizedFilename(path: String): String {
     return humanized.substring(humanized.lastIndexOf("/") + 1)
 }
 
-val Context.config: Config get() = Config.newInstance(applicationContext)
+/**
+ * One instance rather than one per access, kept on the Application - see [App.config] for why.
+ * Nothing goes stale for being kept: BaseConfig holds only the context, the prefs and its Flows,
+ * and every Config property reads prefs live.
+ */
+val Context.config: Config
+    get() = (applicationContext as? App)?.config ?: Config.newInstance(applicationContext)
 
 val Context.widgetsDB: WidgetsDao
     get() = GalleryDatabase.getInstance(applicationContext).WidgetsDao()
@@ -667,6 +675,7 @@ fun Context.preloadImage(
     overrideSize: Int,
     animateGifs: Boolean,
 ): Target<Drawable>? {
+    Perf.count("thumb.preload")
     if (type == TYPE_SVGS) {
         return null
     }
@@ -762,6 +771,7 @@ fun Context.loadImageBase(
     decodeFormat: DecodeFormat = DecodeFormat.PREFER_ARGB_8888,
     onError: (() -> Unit)? = null
 ) {
+    Perf.count("thumb.load")
     thumbnailRequest(
         path = path,
         cropThumbnails = cropThumbnails,
