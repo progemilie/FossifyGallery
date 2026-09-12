@@ -15,6 +15,7 @@ import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.transition.DrawableCrossFadeFactory
 import com.bumptech.glide.request.transition.TransitionFactory
 import com.bumptech.glide.signature.ObjectKey
+import org.fossify.commons.extensions.realScreenSize
 import org.fossify.gallery.helpers.LOW_RES_IMAGE_SIZE
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_NONE
 import org.fossify.gallery.helpers.ThumbnailSource
@@ -80,4 +81,40 @@ fun Context.lowResPhotoRequest(
         }
 
     return Glide.with(this).load(ThumbnailSource(path)).apply(options)
+}
+
+/**
+ * The fullscreen photo itself, shared for the same reason [lowResPhotoRequest] is: the tap starts
+ * this decode half a second before the pager exists to ask for it, and the viewer only finds that
+ * work done if it asks in exactly the same terms.
+ *
+ * Sized off the screen rather than off the view it lands in - the same rectangle, and the one part
+ * of the request a preload has no view to read. Priority is not part of the key, so a prefetch and
+ * a photo the viewer is waiting on may ask at different urgencies for the one decode.
+ */
+fun Context.fullPhotoRequest(
+    path: String,
+    signature: ObjectKey,
+    rotationDegrees: Int = 0,
+    bypassCache: Boolean = false,
+    priority: Priority = Priority.IMMEDIATE
+): RequestBuilder<Drawable> {
+    val screen = realScreenSize
+    val options = RequestOptions()
+        .signature(signature)
+        .override(screen.x, screen.y)
+        .format(DecodeFormat.PREFER_ARGB_8888)
+        .priority(priority)
+        .fitCenter()
+        .run {
+            when {
+                bypassCache -> diskCacheStrategy(DiskCacheStrategy.NONE).skipMemoryCache(true)
+                rotationDegrees != 0 -> transform(Rotate(rotationDegrees))
+                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+
+                else -> diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+            }
+        }
+
+    return Glide.with(this).load(path).apply(options)
 }
