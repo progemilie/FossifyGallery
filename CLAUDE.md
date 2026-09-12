@@ -9,7 +9,7 @@ Gradle module). This repo is a fork.
 
 - Single app module `:app` (see settings.gradle.kts, `rootProject.name = "Gallery"`).
 - **Fork version:** `FORK_VERSION_NAME` in gradle.properties tracks this fork independently of
-  upstream's `VERSION_NAME`/`VERSION_CODE` (inherited, never touched) — see *Shipping a change*.
+  upstream's `VERSION_NAME`/`VERSION_CODE` (inherited, never touched).
 - Kotlin 2.3.10, AGP 9.2.0, Gradle wrapper 9.4.1, KSP 2.3.7, Java/Kotlin target 17.
 - compileSdk/targetSdk 36, minSdk 26 (see gradle/libs.versions.toml).
 - One flavor dimension, `licensing`: `foss` (F-Droid/IzzyOnDroid) and `gplay` (Google Play). No
