@@ -60,7 +60,10 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
     /** The pills a selection is made through, in place of that bar. See [SelectionChrome]. */
     private val selectionChrome by lazy {
         SelectionChrome.over(
-            binding.selectionTopPill, binding.selectionBottomPill, binding.contentHolder
+            top = binding.selectionTopPill,
+            bottom = binding.selectionBottomPill,
+            contentBehind = binding.contentHolder,
+            spec = { pane.selectionMenuSpec },
         ) { onPaneStateChanged() }
     }
 

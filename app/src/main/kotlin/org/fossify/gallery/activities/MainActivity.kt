@@ -278,7 +278,12 @@ class MainActivity :
     /** The pills a selection is made through, in place of that bar. See [SelectionChrome]. */
     private val selectionChrome by lazy {
         SelectionChrome.over(
-            binding.selectionTopPill, binding.selectionBottomPill, binding.contentHolder
+            top = binding.selectionTopPill,
+            bottom = binding.selectionBottomPill,
+            contentBehind = binding.contentHolder,
+            // both grids are selected in through this one set of pills, so the drop-down is
+            // arranged for whichever pane the selection was made in
+            spec = { activePane.selectionMenuSpec },
         ) { onPaneStateChanged() }
     }
 

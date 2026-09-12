@@ -6,6 +6,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.commons.views.MySearchMenu
 import org.fossify.gallery.helpers.MenuSpec
+import org.fossify.gallery.helpers.SELECTION_MENU
 
 /**
  * One of the grids a browsing screen can be showing.
@@ -25,6 +26,9 @@ interface GridPane {
     /** What this pane fills the toolbar with, and how the drop-down arranges it. */
     val menuRes: Int
     val menuSpec: MenuSpec
+
+    /** How the same drop-down arranges a selection made in this pane. */
+    val selectionMenuSpec: MenuSpec get() = SELECTION_MENU
 
     /** The hint, the back arrow, and whatever else the bar wears while this pane is up. */
     fun dressTopBar(topBar: MySearchMenu)

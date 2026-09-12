@@ -105,6 +105,7 @@ import org.fossify.gallery.helpers.GridSpacingItemDecoration
 import org.fossify.gallery.helpers.GridZoom
 import org.fossify.gallery.helpers.IS_IN_RECYCLE_BIN
 import org.fossify.gallery.helpers.MEDIA_GRID_MENU
+import org.fossify.gallery.helpers.SELECTION_MEDIA_MENU
 import org.fossify.gallery.helpers.MediaFetcher
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.ViewerTransition
@@ -267,6 +268,8 @@ class MediaGridPane(
     override val refreshLayout get() = binding.mediaRefreshLayout
     override val menuRes = R.menu.menu_media
     override val menuSpec = MEDIA_GRID_MENU
+
+    override val selectionMenuSpec = SELECTION_MEDIA_MENU
 
     /** Whether an arrangement is being made, which takes the bottom of the screen over. */
     val isReordering get() = mIsReordering
