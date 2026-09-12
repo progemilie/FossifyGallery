@@ -35,7 +35,7 @@ object SelectionMark {
      * How far a ticked picture is carried towards black: enough to pick it out of a grid of its
      * neighbours at a glance, not so far that a dark photo goes black.
      */
-    private const val TINT_ALPHA = 0.25f
+    private const val TINT_ALPHA = 0.35f
     private const val TINT_IN_MS = 160L
     private const val TINT_OUT_MS = 140L
 
