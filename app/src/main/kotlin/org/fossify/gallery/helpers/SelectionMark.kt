@@ -87,8 +87,10 @@ object SelectionMark {
      * in the list view.
      *
      * Only a tile that was already on screen in the other state moves; a fresh bind snaps, or
-     * scrolling past a selection would set every tick on it animating.
+     * scrolling past a selection would set every tick on it animating. [mayAnimate] says no even
+     * to that, for a tile arriving from the recycler rather than answering a tap.
      */
+    @Suppress("LongParameterList") // one call, and every part of it is what a mark is made of
     fun bind(
         itemView: View,
         check: ImageView,
@@ -96,10 +98,12 @@ object SelectionMark {
         itemKey: Any?,
         isSelected: Boolean,
         fillColor: Int,
-        tickColor: Int
+        tickColor: Int,
+        mayAnimate: Boolean = true
     ) {
         val previous = itemView.getTag(R.id.selection_mark_state) as? MarkState
-        val animate = previous != null &&
+        val animate = mayAnimate &&
+            previous != null &&
             previous.key == itemKey &&
             previous.isSelected != isSelected
 
