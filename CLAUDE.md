@@ -9,8 +9,7 @@ Gradle module). This repo is a fork.
 
 - Single app module `:app` (see settings.gradle.kts, `rootProject.name = "Gallery"`).
 - **Fork version:** `FORK_VERSION_NAME` in gradle.properties tracks this fork independently of
-  upstream's `VERSION_NAME`/`VERSION_CODE` (which stay as inherited from upstream).
-  **Only a release commit on `dev` writes it** — never a working branch. See *Shipping a change*.
+  upstream's `VERSION_NAME`/`VERSION_CODE` (inherited, never touched) — see *Shipping a change*.
 - Kotlin 2.3.10, AGP 9.2.0, Gradle wrapper 9.4.1, KSP 2.3.7, Java/Kotlin target 17.
 - compileSdk/targetSdk 36, minSdk 26 (see gradle/libs.versions.toml).
 - One flavor dimension, `licensing`: `foss` (F-Droid/IzzyOnDroid) and `gplay` (Google Play). No
@@ -100,11 +99,15 @@ and then lowercase prose.
 
 A version is a range of commits on `dev`, shared by however many branches landed in it — so **a
 working branch never touches `gradle.properties`**; it adds its user-facing lines to
-`FORK-CHANGELOG.md`'s `## [Unreleased]` instead. `/ship` derives the bump from the commits since the
-last tag (any `feat:` → minor, else patch), stamps that section with version and date, and commits
-both files as `chore(release): fork vX.Y.Z` on a throwaway `release/vX.Y.Z` branch PR'd into `dev`.
-**The tag is pushed after that PR merges**, onto `dev`'s tip — a squash rewrites the sha, so tagging
-first leaves it on a deleted branch. Tags before v1.20.0 sit mid-cycle on a bump instead.
+`FORK-CHANGELOG.md`'s `## [Unreleased]`, under `### Added`, `### Changed` or `### Fixed`. **Those
+headings decide the version**: an `### Added` entry makes the next release a minor one and anything
+else a patch, so a line filed under the wrong heading ships the wrong number. `/ship` names the
+release; `.claude/tools/release.py` does everything else, and is the only thing that writes a
+version — branch `release/vX.Y.Z`, both files stamped, committed as `chore(release): fork vX.Y.Z`
+and PR'd into `dev`. **Nothing is tagged by hand.** `fork-release.yml` sees the version change on
+`dev` after that merge, re-checks the changelog with `release.py verify`, then pushes the tag and
+the GitHub release — a squash rewrites the sha any earlier tag would have named. Tags before
+v1.20.0 sit mid-cycle on a bump instead of on the release.
 
 ## Architecture
 

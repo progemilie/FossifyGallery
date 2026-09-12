@@ -1,14 +1,20 @@
 # Changelog
 
-Fork-only changes, newest first. Internal fixes are left out. Changes collect under `[Unreleased]`
-as they are made; `/ship` stamps that section with a version when a release is cut.
+Fork-only changes, newest first. Internal fixes are left out.
+
+Changes collect under `## [Unreleased]` as they are made, each under `### Added`, `### Changed` or
+`### Fixed` — a heading with nothing under it is left out. Those sections are what decides the next
+version: an `### Added` entry makes it a minor release, anything else a patch. `/ship` stamps the
+section with that version when a release is cut. Entries below predate this format.
 
 ## [Unreleased]
-
-- **A selection's menu is laid out like the viewer's.**
+### Added
 - **Zooming into a photo takes the chrome away**, and letting it back out brings it back.
+### Changed
+- **A selection's menu is laid out like the viewer's.**
 - Updated the style and opening animation of the copy and move chooser.
 - The rating chooser is smaller, and opens in the middle of the screen.
+### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.
 - Fixed peek buttons and group ticks staying on a tile after a selection had ended.
