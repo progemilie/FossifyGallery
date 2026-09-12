@@ -2,11 +2,6 @@
 
 Fork-only changes, newest first. Internal fixes are left out.
 
-Changes collect under `## [Unreleased]` as they are made, each under `### Added`, `### Changed` or
-`### Fixed` — a heading with nothing under it is left out. Those sections are what decides the next
-version: an `### Added` entry makes it a minor release, anything else a patch. `/ship` stamps the
-section with that version when a release is cut. Entries below predate this format.
-
 ## [Unreleased]
 ### Added
 - **Zooming into a photo takes the chrome away**, and letting it back out brings it back.
