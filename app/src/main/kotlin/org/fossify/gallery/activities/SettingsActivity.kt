@@ -69,7 +69,9 @@ class SettingsActivity : SimpleActivity() {
 
     override fun onResume() {
         super.onResume()
-        setupTopAppBar(binding.settingsAppbar, NavigationIcon.Arrow)
+        // the status bar icons are picked against the colour named here, and left to itself commons
+        // names the accent - white icons, invisible over a light theme's background
+        setupTopAppBar(binding.settingsAppbar, NavigationIcon.Arrow, getProperBackgroundColor())
         // behind setupTopAppBar, which is what paints the bar back onto its band of colour
         makeTopBarFloating()
         updateEdgeFades()
