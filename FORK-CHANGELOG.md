@@ -1,8 +1,9 @@
 # Changelog
 
-Fork-only changes, newest first. Internal fixes are left out.
+Fork-only changes, newest first. Internal fixes are left out. Changes collect under `[Unreleased]`
+as they are made; `/ship` stamps that section with a version when a release is cut.
 
-## [v1.19.1] - 2026.09.12 — UI
+## [Unreleased]
 
 - **A selection's menu is laid out like the viewer's.**
 - **Zooming into a photo takes the chrome away**, and letting it back out brings it back.
@@ -170,7 +171,6 @@ Initial fork work, landed over 2026.08.06–08.09 before fork versions were trac
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
 
-[v1.19.1]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.19.1
 [v1.19.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.19.0
 [v1.18.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.18.0
 [v1.17.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.17.0

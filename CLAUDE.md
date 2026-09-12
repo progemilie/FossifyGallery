@@ -10,8 +10,7 @@ Gradle module). This repo is a fork.
 - Single app module `:app` (see settings.gradle.kts, `rootProject.name = "Gallery"`).
 - **Fork version:** `FORK_VERSION_NAME` in gradle.properties tracks this fork independently of
   upstream's `VERSION_NAME`/`VERSION_CODE` (which stay as inherited from upstream).
-  **Bump it in the same commit as every feature (minor) and every fix (patch), but only on a per branch basis (maximum one bump per working branch)**.
-  Changes that cannot affect the build — docs, CI config, comments — need neither a bump nor a tag.
+  **Only a release commit on `dev` writes it** — never a working branch. See *Shipping a change*.
 - Kotlin 2.3.10, AGP 9.2.0, Gradle wrapper 9.4.1, KSP 2.3.7, Java/Kotlin target 17.
 - compileSdk/targetSdk 36, minSdk 26 (see gradle/libs.versions.toml).
 - One flavor dimension, `licensing`: `foss` (F-Droid/IzzyOnDroid) and `gplay` (Google Play). No
@@ -94,11 +93,18 @@ it when nothing is attached.
 
 ### Shipping a change
 
-Commit subjects are `feat:`/`fix:`/`tweak:`/`refactor:`/`docs:` and then lowercase prose. A commit
-that bumps `FORK_VERSION_NAME` is tagged `v<version>`, and PRs go to **`dev`**, not `main`.
-`FORK-CHANGELOG.md` takes a `## [v1.19.0] - YYYY.MM.DD — two or three words` heading plus a link
-definition at the foot pointing at that tag's release; it is written as the last commit before a
-PR. `/ship` walks all of that in order.
+Three branches: **`main`** only syncs from upstream and carries no fork work; **`dev`** is the trunk
+and the only place a version is written; work happens on `feat/`, `fix/`, `tweak/` branches off
+`dev`, **squash-merged** back by PR. Subjects are `feat:`/`fix:`/`tweak:`/`refactor:`/`chore:`/`docs:`
+and then lowercase prose.
+
+A version is a range of commits on `dev`, shared by however many branches landed in it — so **a
+working branch never touches `gradle.properties`**; it adds its user-facing lines to
+`FORK-CHANGELOG.md`'s `## [Unreleased]` instead. `/ship` derives the bump from the commits since the
+last tag (any `feat:` → minor, else patch), stamps that section with version and date, and commits
+both files as `chore(release): fork vX.Y.Z` on a throwaway `release/vX.Y.Z` branch PR'd into `dev`.
+**The tag is pushed after that PR merges**, onto `dev`'s tip — a squash rewrites the sha, so tagging
+first leaves it on a deleted branch. Tags before v1.20.0 sit mid-cycle on a bump instead.
 
 ## Architecture
 
@@ -205,5 +211,5 @@ warranted when it is not immediatelly evident what the purpose of something is.
 DO NOT make insignificant updates to CLAUDE.md file. Only for large features that change core functionality.
 A UI feature does not need a large block of text in the CLAUDE.md file. Try to keep the file less than 200 lines.
 
-`FORK-CHANGELOG.md` records user-facing changes after a version bump — fixes only when major.
-See *Shipping a change* above for how a version, a tag and a PR go out together.
+`FORK-CHANGELOG.md` records user-facing changes as they are made, under `## [Unreleased]` — internal
+fixes only when major. See *Shipping a change* above for how a version, a tag and a PR go out.
