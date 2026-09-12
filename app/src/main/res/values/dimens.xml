@@ -96,6 +96,7 @@
     <dimen name="rating_badge_corner_radius">8dp</dimen>
 
     <!-- the folder list that pops up above the copy and move buttons while one is held -->
+    <dimen name="folder_chooser_fade_height">32dp</dimen>
     <dimen name="folder_chooser_row_height">44dp</dimen>
     <dimen name="folder_chooser_row_padding">16dp</dimen>
     <dimen name="folder_chooser_row_corner_radius">12dp</dimen>

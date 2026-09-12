@@ -11,6 +11,8 @@ import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.Glass
 import org.fossify.gallery.helpers.MAX_VISIBLE_QUICK_CHOOSER_FOLDERS
+import org.fossify.gallery.helpers.PANEL_ENTER_MS
+import org.fossify.gallery.helpers.enterCurve
 import org.fossify.commons.R as commonsR
 
 /** A folder the quick chooser can copy or move to. */
@@ -76,6 +78,9 @@ class FolderChooser @JvmOverloads constructor(
         scroller.apply {
             isVerticalScrollBarEnabled = false
             overScrollMode = OVER_SCROLL_NEVER
+            // whichever end there is more list past is softened rather than cut off square
+            isVerticalFadingEdgeEnabled = true
+            setFadingEdgeLength(resources.getDimensionPixelSize(R.dimen.folder_chooser_fade_height))
             // the gesture driving this lives on the button it pops up from, so the list itself must
             // not react to anything that reaches it
             isEnabled = false
@@ -123,6 +128,21 @@ class FolderChooser @JvmOverloads constructor(
         scrollUp.isVisible = isScrollable
         scrollDown.isVisible = isScrollable
         pendingScrollToEnd = true
+    }
+
+    /**
+     * The folders come up into the card as it opens, clipped by the list's own viewport so they
+     * arrive from under its bottom edge rather than from off the screen. The card itself is already
+     * growing under them, which is what the two together read as - one thing opening.
+     */
+    override fun onGlassShown() {
+        rows.animate().cancel()
+        rows.translationY = scroller.height * SLIDE_IN_FRACTION
+        rows.animate()
+            .translationY(0f)
+            .setDuration(PANEL_ENTER_MS)
+            .setInterpolator(enterCurve())
+            .start()
     }
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
@@ -185,5 +205,8 @@ class FolderChooser @JvmOverloads constructor(
     private companion object {
         const val DIMMED_ALPHA = 0.3f
         const val NO_SELECTION = -1
+
+        /** How far down the list starts, as a fraction of the room it has to slide up through. */
+        const val SLIDE_IN_FRACTION = 0.35f
     }
 }
