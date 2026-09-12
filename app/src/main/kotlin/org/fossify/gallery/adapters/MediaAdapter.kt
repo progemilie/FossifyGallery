@@ -375,6 +375,34 @@ class MediaAdapter(
     }
 
     /**
+     * Settles everything a selection draws on a tile, for a tile the recycler is *re-attaching*.
+     * Those come back from its cache without being rebound, still wearing whatever the last
+     * selection left on them - a peek button after the selection ended, a tick over a file no
+     * longer picked - and the two calls above reach only what was attached at the time.
+     *
+     * Snapped rather than animated: a tile arriving is not a tile answering a tap. Nothing here
+     * touches the picture, so a tile that was just bound simply has its own state written back.
+     */
+    override fun onViewAttachedToWindow(holder: ViewHolder) {
+        super.onViewAttachedToWindow(holder)
+        val itemView = holder.itemView
+        // a simplified tile is its own thumbnail and carries none of this
+        if (itemView.id == R.id.medium_thumbnail) {
+            return
+        }
+
+        when (val item = media.getOrNull(holder.bindingAdapterPosition)) {
+            is Medium -> {
+                itemView.dressPeekButton(isPeekButtonUp())
+                repaintSelection(itemView, item, mayAnimate = false)
+            }
+
+            is ThumbnailSection -> settleSectionCheck(itemView)
+            else -> Unit
+        }
+    }
+
+    /**
      * Puts the peek buttons up or away on the items already on screen. Written straight onto the
      * views rather than gone about through notifyDataSetChanged(), which would restart every
      * thumbnail's decode for the sake of one icon appearing. Items bound after this get it from
@@ -386,14 +414,18 @@ class MediaAdapter(
     private fun updatePeekButtons(selecting: Boolean) {
         val visible = selecting && tileFitsPeekButton()
         for (i in 0 until recyclerView.childCount) {
-            val child = recyclerView.getChildAt(i) ?: continue
-            val peek = child.findViewById<View>(R.id.medium_peek) ?: continue
-            peek.beVisibleIf(visible)
-            // the duration shares that corner and gives way to it; see setupThumbnail. Only the
-            // video layouts carry one, so a photo on screen finds nothing here to change
-            child.findViewById<TextView>(R.id.video_duration)
-                ?.beVisibleIf(!visible && config.showThumbnailVideoDuration)
+            recyclerView.getChildAt(i)?.dressPeekButton(visible)
         }
+    }
+
+    /** Puts one tile's peek button up or away, and the duration that shares its corner with it. */
+    private fun View.dressPeekButton(visible: Boolean) {
+        val peek = findViewById<View>(R.id.medium_peek) ?: return
+        peek.beVisibleIf(visible)
+        // the duration shares that corner and gives way to it; see setupThumbnail. Only the video
+        // layouts carry one, so a photo finds nothing here to change
+        findViewById<TextView>(R.id.video_duration)
+            ?.beVisibleIf(!visible && config.showThumbnailVideoDuration)
     }
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
@@ -864,9 +896,9 @@ class MediaAdapter(
         prefetcher?.reset()
     }
 
-    /** Repaints an item's check without rebinding it, which would restart its image request. */
-    internal fun repaintSelection(itemView: View, medium: Medium) {
-        bindItem(itemView, medium).markSelected(medium, isItemSelected(medium))
+    /** Repaints an item's mark without rebinding it, which would restart its image request. */
+    internal fun repaintSelection(itemView: View, medium: Medium, mayAnimate: Boolean = true) {
+        bindItem(itemView, medium).markSelected(medium, isItemSelected(medium), mayAnimate)
     }
 
     // a view let go of mid drag would come back to another item still lifted, one recycled mid
@@ -986,7 +1018,7 @@ class MediaAdapter(
      * the tick but not the wash: its row is already picked out by a background of its own, and a
      * darkened strip of thumbnail beside a lit row would read as two different states.
      */
-    private fun MediaItemBinding.markSelected(medium: Medium, isSelected: Boolean) {
+    private fun MediaItemBinding.markSelected(medium: Medium, isSelected: Boolean, mayAnimate: Boolean = true) {
         SelectionMark.bind(
             itemView = mediaItemHolder,
             check = mediumCheck,
@@ -994,7 +1026,8 @@ class MediaAdapter(
             itemKey = medium.path,
             isSelected = isSelected,
             fillColor = properPrimaryColor,
-            tickColor = contrastColor
+            tickColor = contrastColor,
+            mayAnimate = mayAnimate
         )
 
         if (isListViewType) {
@@ -1281,16 +1314,29 @@ class MediaAdapter(
         ThumbnailSectionBinding.bind(view).apply {
             thumbnailSection.text = section.title
             thumbnailSection.setTextColor(textColor)
-            // a header recycled out of a shifted one, or out of a tick caught mid fade
-            thumbnailSection.translationX = 0f
-            thumbnailSectionCheck.clearPanelMotion()
+        }
 
-            val selecting = isSelecting()
-            thumbnailSectionCheck.beVisibleIf(selecting)
-            thumbnailSectionCheck.isClickable = selecting
-            if (selecting) {
-                thumbnailSectionCheck.armForGroup(view)
-            }
+        settleSectionCheck(view)
+    }
+
+    /**
+     * Puts one header's tick where the selection says it belongs, with no movement - a header
+     * recycled out of a shifted one, or out of a tick caught mid fade.
+     */
+    private fun settleSectionCheck(header: View) {
+        val check = header.findViewById<ImageView>(R.id.thumbnail_section_check) ?: return
+        val selecting = isSelecting()
+        header.findViewById<View>(R.id.thumbnail_section)?.apply {
+            animate().cancel()
+            translationX = 0f
+        }
+
+        check.animate().cancel()
+        check.clearPanelMotion()
+        check.beVisibleIf(selecting)
+        check.isClickable = selecting
+        if (selecting) {
+            check.armForGroup(header)
         }
     }
 
