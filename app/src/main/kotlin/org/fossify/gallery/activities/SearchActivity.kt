@@ -23,6 +23,7 @@ import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.VIDEO_PLAYER_APP
 import org.fossify.gallery.helpers.VIDEO_PLAYER_SYSTEM
+import org.fossify.gallery.helpers.ViewerLaunchGuard
 import org.fossify.gallery.helpers.ViewerReturn
 import org.fossify.gallery.helpers.ViewerTransition
 import org.fossify.gallery.interfaces.MediaOperationsListener
@@ -36,6 +37,7 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
     private var mLastSearchedText = ""
 
     private val viewerReturn = ViewerReturn()
+    private val viewerLaunch = ViewerLaunchGuard(this)
 
     private var mCurrAsyncTask: GetMediaAsynctask? = null
     private var mAllMedia = ArrayList<ThumbnailItem>()
@@ -173,6 +175,10 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
     }
 
     private fun itemClicked(path: String) {
+        if (!viewerLaunch.tryClaim()) {
+            return
+        }
+
         viewerReturn.opening(path)
         // grows the tapped tile into the fullscreen picture, see ViewerTransition
         ViewerTransition.beginFlight(this, getMediaAdapter(), mAllMedia, path)

@@ -15,6 +15,7 @@ Fork-only changes, newest first. Internal fixes are left out.
   a thumbnail of it, so it is sharp the moment the viewer arrives.
 - Fixed peek buttons and group ticks staying on a tile after a selection had ended.
 - Fixed holding and dragging to select more pictures not working when the hold started on a peek button.
+- Fixed two photos opening on top of each other when two thumbnails were tapped at once.
 - Fixed the Settings title, back arrow, status bar icons and last card's shadow on a light theme.
 
 ## [v1.19.0] - 2026.09.01 — UI
