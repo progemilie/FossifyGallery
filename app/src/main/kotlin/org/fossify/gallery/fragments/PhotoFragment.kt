@@ -40,12 +40,8 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.Priority
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.load.DataSource
-import com.bumptech.glide.load.DecodeFormat
-import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.engine.GlideException
-import com.bumptech.glide.load.resource.bitmap.Rotate
 import com.bumptech.glide.request.RequestListener
-import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
 import com.davemorrissey.labs.subscaleview.DecoderFactory
 import com.davemorrissey.labs.subscaleview.ImageDecoder
@@ -86,6 +82,7 @@ import org.fossify.gallery.adapters.PortraitPhotosAdapter
 import org.fossify.gallery.databinding.PagerPhotoItemBinding
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.screenRect
+import org.fossify.gallery.extensions.fullPhotoRequest
 import org.fossify.gallery.extensions.lowResPhotoRequest
 import org.fossify.gallery.extensions.displayedImageRect
 import org.fossify.gallery.extensions.getBottomActionsHeight
@@ -575,34 +572,17 @@ class PhotoFragment : ViewPagerFragment() {
     }
 
     private fun loadWithGlide(path: String, addZoomableView: Boolean) {
-        val priority = if (mIsFragmentVisible) Priority.IMMEDIATE else Priority.NORMAL
         val bypassCache = mBypassImageCache
         mBypassImageCache = false
-        val options = RequestOptions()
-            .signature(mMedium.getKey())
-            .format(DecodeFormat.PREFER_ARGB_8888)
-            .priority(priority)
-            .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
-            .fitCenter()
-            .run {
-                if (mCurrentRotationDegrees != 0) {
-                    transform(Rotate(mCurrentRotationDegrees))
-                        .diskCacheStrategy(DiskCacheStrategy.NONE)
-                } else {
-                    this
-                }
-            }
-            .run {
-                if (bypassCache) {
-                    diskCacheStrategy(DiskCacheStrategy.NONE).skipMemoryCache(true)
-                } else {
-                    this
-                }
-            }
 
-        Glide.with(requireContext())
-            .load(path)
-            .apply(options)
+        // the shared request, so the decode the tap on the tile started is the one found waiting
+        requireContext().fullPhotoRequest(
+            path = path,
+            signature = mMedium.getKey(),
+            rotationDegrees = mCurrentRotationDegrees,
+            bypassCache = bypassCache,
+            priority = if (mIsFragmentVisible) Priority.IMMEDIATE else Priority.NORMAL
+        )
             .thumbnail(buildLowResRequest(path, bypassCache))
             .listener(object : RequestListener<Drawable> {
                 override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean {

@@ -10,10 +10,15 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.bumptech.glide.Glide
+import com.bumptech.glide.Priority
+import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
+import org.fossify.commons.extensions.isWebP
+import org.fossify.commons.extensions.realScreenSize
 import org.fossify.gallery.adapters.MediaAdapter
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.extensions.fullPhotoRequest
 import org.fossify.gallery.extensions.lowResPhotoRequest
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
@@ -66,12 +71,15 @@ object ViewerTransition {
     private var anchor: Anchor? = null
 
     /**
-     * The uncropped picture the tapped photo is flown with, fetched from the moment of the tap so
-     * that it is usually already in hand by the time the viewer is laid out and the flight begins.
+     * The best picture of the tapped photo in hand so far, fetched from the moment of the tap: the
+     * small copy stored inside the file first, the photo itself behind it. A flight reads this
+     * every frame and takes up whichever it finds, so it is drawn sharp within a frame or two of
+     * setting off rather than at a thumbnail's resolution the whole way across.
      */
     private var flightPicture: Bitmap? = null
     private var flightPath = ""
-    private var flightTarget: CustomTarget<Drawable>? = null
+    private var hasFullPicture = false
+    private val flightTargets = mutableListOf<CustomTarget<Drawable>>()
 
     /**
      * Whether the viewer flew back into a tile. The grid points out where it landed otherwise, and
@@ -89,7 +97,7 @@ object ViewerTransition {
     /** The tile tapped, taken by the viewer as it comes up. */
     fun takeOpening(): Tile? = pending.also { pending = null }
 
-    /** The uncropped picture for [path], if the fetch begun at the tap has finished. */
+    /** The best uncropped picture for [path] the fetch begun at the tap has produced so far. */
     fun takeFlightPicture(path: String): Bitmap? =
         flightPicture.takeIf { flightPath == path }
 
@@ -100,7 +108,8 @@ object ViewerTransition {
             pending = null
             flightPicture = null
             flightPath = ""
-            flightTarget = null
+            hasFullPicture = false
+            flightTargets.clear()
         }
     }
 
@@ -138,43 +147,52 @@ object ViewerTransition {
         pending = tile
         didShrink = false
         setAnchor(flightAnchor)
-        fetchFlightPicture(context, medium)
+        fetchFlightPictures(context, medium)
         dropWhenDestroyed(context, flightAnchor)
         return true
     }
 
     /**
-     * Starts the uncropped picture decoding now rather than when the flight wants it. The viewer is
-     * a good hundred milliseconds off being laid out, which is time enough for this to land first
-     * and for the flight to set off already knowing the photo's proportions - and so already aimed
-     * at exactly where the photo will come to rest.
+     * Starts both pictures a flight is drawn with decoding at the tap rather than when the
+     * flight wants them. The viewer is a good hundred milliseconds off being laid out, time
+     * enough for the small copy to land first and the flight to set off already aimed at where
+     * the photo comes to rest; the photo itself follows it, usually while the flight is still in
+     * the air. It is also what the viewer binds a moment later, and so already decoded by then.
      */
-    private fun fetchFlightPicture(context: Context, medium: Medium) {
+    private fun fetchFlightPictures(context: Context, medium: Medium) {
         flightPicture = null
+        hasFullPicture = false
         flightPath = medium.path
-        flightTarget?.let { Glide.with(context).clear(it) }
+        flightTargets.forEach { Glide.with(context).clear(it) }
+        flightTargets.clear()
 
-        // loaded through the shared request so the viewer finds it in memory under the same key.
-        // The pixels are copied out all the same: Glide hands its own back to the pool as soon as
-        // the grid is cleared, which a flight outlives
-        val target = object : CustomTarget<Drawable>() {
-            override fun onResourceReady(resource: Drawable, transition: Transition<in Drawable>?) {
-                if (flightPath != medium.path) {
-                    return
+        // the pixels are copied out: Glide hands its own back to the pool as soon as the grid
+        // is cleared, which a flight outlives
+        fun keep(request: RequestBuilder<Drawable>, isFull: Boolean) {
+            val target = object : CustomTarget<Drawable>() {
+                override fun onResourceReady(resource: Drawable, transition: Transition<in Drawable>?) {
+                    if (flightPath != medium.path || (hasFullPicture && !isFull)) {
+                        return
+                    }
+
+                    val copy = resource.copyPixels() ?: return
+                    flightPicture = copy
+                    hasFullPicture = hasFullPicture || isFull
                 }
 
-                flightPicture = runCatching {
-                    val shown = (resource as? BitmapDrawable)?.bitmap
-                    shown?.copy(shown.config ?: Bitmap.Config.RGB_565, false)
-                        ?: resource.toBitmap()
-                }.getOrNull()
+                override fun onLoadCleared(placeholder: Drawable?) = Unit
             }
 
-            override fun onLoadCleared(placeholder: Drawable?) = Unit
+            flightTargets += target
+            request.into(target)
         }
 
-        flightTarget = target
-        context.lowResPhotoRequest(medium.path, medium.getKey()).into(target)
+        keep(context.lowResPhotoRequest(medium.path, medium.getKey()), isFull = false)
+        // only what the viewer draws through Glide: a video, a GIF, an SVG or a WebP is decoded by
+        // something else, and this would be a whole picture decoded for nothing
+        if (medium.isImage() && !medium.path.isWebP()) {
+            keep(context.fullPhotoRequest(medium.path, medium.getKey(), priority = Priority.HIGH), isFull = true)
+        }
     }
 
     /**
@@ -212,3 +230,9 @@ object ViewerTransition {
         )
     }
 }
+
+/** A copy of what this drawable draws, which outlives Glide handing the original back to its pool. */
+private fun Drawable.copyPixels(): Bitmap? = runCatching {
+    val shown = (this as? BitmapDrawable)?.bitmap
+    shown?.copy(shown.config ?: Bitmap.Config.RGB_565, false) ?: toBitmap()
+}.getOrNull()

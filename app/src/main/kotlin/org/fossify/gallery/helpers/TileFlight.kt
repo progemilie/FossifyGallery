@@ -74,6 +74,9 @@ class TileFlight(
     /** Whether the flight is still drawn with the tile's own picture rather than the photo's. */
     private var awaitingPicture = false
 
+    /** What the flight is currently drawn with, so a better picture of it can be taken up. */
+    private var flownPicture: Bitmap? = null
+
     /** When the wait for the viewer to paint something began, so it cannot go on for ever. */
     private var settleStartedAt = 0L
 
@@ -111,6 +114,7 @@ class TileFlight(
         scrim.chromeAlpha = 0f
         stage.alpha = 0f
         awaitingPicture = picture == null
+        flownPicture = picture
         flightAspect = flying.aspect()
 
         // the overlay maps screen coordinates through its own, so it has to be placed first
@@ -158,17 +162,18 @@ class TileFlight(
         ?: ViewerTransition.restingRect(flightAspect, stage.screenRect())
 
     /**
-     * Trades the tile's picture for the photo's the moment the fetch begun at the tap finishes.
-     *
-     * They are the same picture, so nothing about this is visible: the flight simply stops being
-     * held at the tile's crop and starts unfolding, and gains proportions to aim by.
+     * Takes up whatever better picture the fetch begun at the tap has produced since the last
+     * frame: the small copy stored inside the file, then the photo itself. Each is the same
+     * picture as the last, so neither is seen as a change of subject - the first gives the flight
+     * proportions to aim by, the second is the one the viewer is about to draw.
      */
     private fun pickUpPicture(path: String) {
-        if (!awaitingPicture) {
+        val picture = ViewerTransition.takeFlightPicture(path) ?: return
+        if (picture === flownPicture) {
             return
         }
 
-        val picture = ViewerTransition.takeFlightPicture(path) ?: return
+        flownPicture = picture
         awaitingPicture = false
         flightAspect = picture.aspect()
         overlay.handOver(picture, landing(), cropAtEnd = 0f)
