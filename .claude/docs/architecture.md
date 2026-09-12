@@ -177,10 +177,18 @@ tile's rect, and the grid left registered as the `Anchor` that answers where to 
 **A flight is drawn with the photo's own picture, never the tile's.** With crop thumbnails on - the
 default - a tile's bitmap has been through a `CenterCrop` and has no edges left to unfold, so a
 flight drawn with it can only fill the screen and cut to the real photo at the end. The tap starts
-`lowResPhotoRequest()` instead: the copy stored inside the file, uncropped, and *the same request
-the viewer paints first* - so the flight sets off already knowing the photo's proportions, and the
-hand-over at the end is nothing happening at all. `views/FlightOverlay.kt` moves the rect and
-the crop together; either one alone leaves a cut at one end or the other.
+two decodes instead, both through the requests the viewer itself paints with: `lowResPhotoRequest()`
+- the copy stored inside the file, uncropped, which lands within a few milliseconds - and
+`fullPhotoRequest()`, the photo proper behind it. `takeFlightPicture()` hands back the better of the
+two in hand, and `TileFlight.pickUpPicture()` reads it every frame, so a flight sets off already
+knowing the photo's proportions and is drawn with the real photo within a frame or two. Held back
+until after the flight, that decode used to leave the viewer soft for about half a second.
+
+**Both are the requests the viewer binds**, every part of which is cache key, so the work the tap
+started is the work the pager finds done rather than a second decode of the same picture. The full
+one is sized off the screen rather than off the view it lands in, a preload having no view to read.
+`views/FlightOverlay.kt` moves the rect and the crop together; either one alone leaves a cut at one
+end or the other.
 
 It only reads as one surface while the grid is still drawn underneath, which takes three more
 things, each of which silently leaves the photo growing out of a black screen if it is missed:
@@ -217,7 +225,10 @@ paints an opaque band under its own bar.
 
   What a marked item *looks* like is `helpers/SelectionMark.kt`, one place for the media grid, the
   folder grid and the reorder mode: the tick in the corner grows in over a hairline-rimmed circle,
-  and the picture under it settles a quarter of the way to black. **The grids keep their change
+  and the picture under it settles a third of the way to black. **Everything a selection draws
+  on a tile is settled as the tile is attached as well as when it is bound** - a tile the recycler
+  kept detached just off screen is put back without being rebound, and would otherwise come back
+  wearing whatever the last selection left on it. **The grids keep their change
   animation off** (`settleChangeAnimations`) - ticking an item rebinds it, and the cross-fade a
   rebind is answered with draws the tile twice, which is a second, contrary animation over the same
   picture. An item that was already on screen in the other state animates; a fresh bind snaps, told
