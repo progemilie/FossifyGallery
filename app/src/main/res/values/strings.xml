@@ -388,6 +388,7 @@
     <string name="tabs_info">Keeps several places in the library open at once. Tap the button on the search bar to switch to the next tab, or hold it to add, pick or close one. Each tab remembers the folder it was left in and where it had scrolled to.</string>
     <!-- Settings -->
     <string name="setting_info">What this setting does</string>
+    <string name="clear_cache_confirmation">Clear the cache? Thumbnails will be made again as you browse, so the grids may load more slowly for a while.</string>
     <!-- Folder groups -->
     <string name="folder_group">Folder group</string>
     <string name="group_folders">Group folders</string>

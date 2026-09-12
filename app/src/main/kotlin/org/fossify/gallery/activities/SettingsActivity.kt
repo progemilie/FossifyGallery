@@ -995,10 +995,18 @@ class SettingsActivity : SimpleActivity() {
         }
 
         binding.settingsClearCacheHolder.setOnClickListener {
-            ensureBackgroundThread {
-                cacheDir.deleteRecursively()
-                runOnUiThread {
-                    binding.settingsClearCacheSize.text = cacheDir.getProperSize(true).formatSize()
+            ConfirmationDialog(
+                this,
+                "",
+                R.string.clear_cache_confirmation,
+                org.fossify.commons.R.string.yes,
+                org.fossify.commons.R.string.no
+            ) {
+                ensureBackgroundThread {
+                    cacheDir.deleteRecursively()
+                    runOnUiThread {
+                        binding.settingsClearCacheSize.text = cacheDir.getProperSize(true).formatSize()
+                    }
                 }
             }
         }
