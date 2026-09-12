@@ -2,11 +2,13 @@ package org.fossify.gallery.views
 
 import android.content.Context
 import android.util.AttributeSet
+import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.applyColorFilter
+import org.fossify.commons.extensions.realScreenSize
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.Glass
 import org.fossify.gallery.helpers.markChosen
@@ -45,10 +47,10 @@ class RatingChooser @JvmOverloads constructor(
         }
 
     init {
-        cornerRadius = resources.getDimension(R.dimen.chooser_corner_radius)
+        cornerRadius = resources.getDimension(R.dimen.rating_chooser_corner_radius)
         blurRadius = Glass.CHOOSER_RADIUS
         elevation = resources.getDimension(R.dimen.chooser_elevation)
-        resources.getDimensionPixelSize(R.dimen.chooser_padding).let {
+        resources.getDimensionPixelSize(R.dimen.rating_chooser_padding).let {
             setPadding(it, it, it, it)
         }
 
@@ -84,6 +86,13 @@ class RatingChooser @JvmOverloads constructor(
     }
 
     override fun onGlassShown() = updateIcons()
+
+    /**
+     * Centred on the screen rather than over the button it came off. The row is short enough to sit
+     * anywhere, and the middle is where the eye already is - the button's own place would put it
+     * off to one side under a finger that is about to sweep the whole width of it.
+     */
+    override fun position(button: View) = placeLeftEdgeAt((context.realScreenSize.x - width) / 2f)
 
     override fun updateSelectionFor(rawX: Float, rawY: Float) {
         rating = ratingForPosition(rawX)
