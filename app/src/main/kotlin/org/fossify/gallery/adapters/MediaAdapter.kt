@@ -157,7 +157,7 @@ class MediaAdapter(
     private var currentTransformGeneration = TransformedMedia.generation
     private val hasOTGConnected = activity.hasOTGConnected()
 
-    /** Where the grid is looking - scrolling, revealing and remembering a place. */
+    /** Where the grid is looking - scrolling to an item and remembering a place. */
     val gridNavigator = MediaGridNavigator(this)
 
     /** Drag-to-arrange, which takes over the grid's gestures while it is on. */
@@ -901,11 +901,9 @@ class MediaAdapter(
         bindItem(itemView, medium).markSelected(medium, isItemSelected(medium), mayAnimate)
     }
 
-    // a view let go of mid drag would come back to another item still lifted, one recycled mid
-    // reveal still growing
+    // a view let go of mid drag would come back to another item still lifted
     private fun resetTransientItemState(itemView: View) {
         itemView.animate().cancel()
-        gridNavigator.cancelReveal()
         reorderMode.resetItemState(itemView)
     }
 

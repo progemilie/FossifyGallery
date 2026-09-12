@@ -301,10 +301,7 @@ class TileFlight(
             overlay.progress = t
             scrim.backdrop = backdropFrom * (1f - t)
             scrim.chromeAlpha = chromeFrom * (1f - ramp(t, 0f, FLIGHT_CHROME_IN))
-        }.doOnEnd {
-            ViewerTransition.shrank()
-            onFinish()
-        }
+        }.doOnEnd { onFinish() }
 
         return true
     }

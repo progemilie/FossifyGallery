@@ -4,8 +4,8 @@ import android.content.Intent
 import org.fossify.gallery.adapters.MediaGridNavigator
 
 /**
- * Points out the thumbnail the fullscreen viewer was just left from, which is easy to lose track of
- * after swiping through a folder. The viewer hands back the path it ended up on; until it does, the
+ * Puts the grid back onto the thumbnail the fullscreen viewer was just left from, which may be far
+ * from the one tapped after swiping through a folder. The viewer hands back the path it ended up on; until it does, the
  * thumbnail that was tapped stands.
  *
  * Kept apart from the grid screens so both of them - and any later one that opens the viewer - come
@@ -41,7 +41,7 @@ class ViewerReturn {
     }
 
     /**
-     * Points the item out if the grid has it. The request stays pending otherwise - a refresh still
+     * Scrolls to the item if the grid has it. The request stays pending otherwise - a refresh still
      * on its way may yet bring the item in.
      */
     fun reveal(gridNavigator: MediaGridNavigator?) {

@@ -10,6 +10,7 @@ Fork-only changes, newest first. Internal fixes are left out.
 - Updated the style and opening animation of the copy and move chooser.
 - The rating chooser is smaller, and opens in the middle of the screen.
 - Clearing the cache asks first.
+- The thumbnail you come back to from a photo no longer pops in.
 ### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.

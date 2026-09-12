@@ -1,28 +1,21 @@
 package org.fossify.gallery.adapters
 
-import android.animation.Animator
-import android.animation.AnimatorSet
-import android.animation.ObjectAnimator
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.view.View
-import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
-import androidx.core.animation.doOnEnd
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.view.children
 import androidx.recyclerview.widget.RecyclerView
 import org.fossify.commons.views.MyGridLayoutManager
 import org.fossify.gallery.R
 import org.fossify.gallery.extensions.screenRect
-import org.fossify.gallery.helpers.REVEAL_DURATION_MS
-import org.fossify.gallery.helpers.REVEAL_START_SCALE
 import org.fossify.gallery.helpers.ViewerTransition
 import org.fossify.gallery.models.Medium
 
 /**
- * Where a media grid is looking: scrolling an item into view, growing the one the viewer was just
- * left from, and carrying a place across the reload that replaces the adapter holding it.
+ * Where a media grid is looking: scrolling an item into view, and carrying a place across the reload
+ * that replaces the adapter holding it.
  *
  * Kept out of [MediaAdapter], whose job is binding items rather than driving the view they are
  * bound into.
@@ -30,15 +23,13 @@ import org.fossify.gallery.models.Medium
 class MediaGridNavigator(private val adapter: MediaAdapter) {
     private val recyclerView get() = adapter.recyclerView
 
-    private var revealAnimator: Animator? = null
-
     /** A place in the grid, as [currentPosition] takes it and [restore] puts it back. */
     data class GridPosition(val path: String, val offset: Int)
 
     /**
-     * Scrolls the item at [path] into view if needed and lets it grow into place, so it is obvious
-     * which thumbnail the fullscreen viewer was just left from. Returns false if the item is not in
-     * the grid (deleted, filtered out), letting the caller retry after a refresh.
+     * Scrolls the item at [path] into view if needed, so the thumbnail the fullscreen viewer was just
+     * left from is on screen. Returns false if the item is not in the grid (deleted, filtered out),
+     * letting the caller retry after a refresh.
      */
     fun revealItem(path: String): Boolean {
         val position = adapter.getItemKeyPosition(path.hashCode())
@@ -46,22 +37,9 @@ class MediaGridNavigator(private val adapter: MediaAdapter) {
             return false
         }
 
-        // the photo flew into this very tile a moment ago and the grid was scrolled onto it to be
-        // aimed at, so there is nothing left to point out - a swell here would read as a bounce on
-        // the end of one continuous motion
-        if (ViewerTransition.takeDidShrink()) {
-            return true
-        }
-
-        // scroll on the next pass so the grid is laid out, wait a further one only if it did scroll
-        recyclerView.post {
-            if (scrollIntoView(position)) {
-                recyclerView.post { scaleItemIn(position) }
-            } else {
-                scaleItemIn(position)
-            }
-        }
-
+        // on the next pass, so the grid is laid out. A photo that shrank back into its tile already
+        // put the grid onto it, which leaves this nothing to do
+        recyclerView.post { scrollIntoView(position) }
         return true
     }
 
@@ -152,32 +130,6 @@ class MediaGridNavigator(private val adapter: MediaAdapter) {
         val position = adapter.getItemKeyPosition(gridPosition.path.hashCode())
         if (position != -1) {
             layoutManager.scrollToPositionWithOffset(position, gridPosition.offset)
-        }
-    }
-
-    /** A view recycled mid reveal would go back into the grid still part grown. */
-    fun cancelReveal() = revealAnimator?.cancel()
-
-    /** The whole item, not just its thumbnail, so the badges over the photo come up with it. */
-    private fun scaleItemIn(position: Int) {
-        val itemView = recyclerView.findViewHolderForAdapterPosition(position)?.itemView ?: return
-
-        revealAnimator?.cancel()
-        revealAnimator = AnimatorSet().apply {
-            playTogether(
-                ObjectAnimator.ofFloat(itemView, View.SCALE_X, REVEAL_START_SCALE, 1f),
-                ObjectAnimator.ofFloat(itemView, View.SCALE_Y, REVEAL_START_SCALE, 1f)
-            )
-            duration = REVEAL_DURATION_MS
-            interpolator = DecelerateInterpolator()
-            // runs on a cancel too, so a reveal cut short cannot leave the item part grown
-            doOnEnd {
-                itemView.scaleX = 1f
-                itemView.scaleY = 1f
-                revealAnimator = null
-            }
-
-            start()
         }
     }
 
