@@ -86,6 +86,12 @@ class SettingsActivity : SimpleActivity() {
         binding.settingsAppbar.stateListAnimator = null
         binding.settingsAppbar.elevation = 0f
         binding.settingsToolbar.setBackgroundColor(Color.TRANSPARENT)
+        // commons dresses the bar for the band of colour it used to stand on, which leaves the
+        // title and the arrow in the colour that reads against the accent - white, and so invisible
+        // over a light theme's background once the band is gone
+        val onBackground = getProperTextColor()
+        binding.settingsToolbar.setTitleTextColor(onBackground)
+        binding.settingsToolbar.navigationIcon?.mutate()?.applyColorFilter(onBackground)
         keepCardsClearOfTopBar()
         updateTitleFade(binding.settingsNestedScrollview.scrollY)
     }
