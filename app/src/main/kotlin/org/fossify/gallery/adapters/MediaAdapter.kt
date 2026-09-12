@@ -1052,6 +1052,11 @@ class MediaAdapter(
         peek.setOnClickListener {
             onPeekRequested?.invoke(media.filterIsInstance<Medium>(), getSelectedPaths().toSet(), medium.path)
         }
+
+        // a hold is how a drag selection starts, and the button would keep one landing on it to
+        // itself. The tile gives the buzz, so the button does not give a second
+        peek.isHapticFeedbackEnabled = false
+        peek.setOnLongClickListener { root.performLongClick() }
     }
 
     /** Whether the action mode owns the grid; reordering borrows the same gestures for itself. */
