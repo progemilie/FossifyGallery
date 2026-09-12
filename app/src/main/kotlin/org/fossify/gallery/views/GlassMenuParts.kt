@@ -1,8 +1,10 @@
 package org.fossify.gallery.views
 
 import android.content.Context
+import android.graphics.Rect
 import android.view.LayoutInflater
 import android.view.MenuItem
+import android.view.TouchDelegate
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -10,6 +12,7 @@ import androidx.appcompat.widget.ActionMenuView
 import androidx.appcompat.widget.Toolbar
 import androidx.appcompat.widget.TooltipCompat
 import androidx.core.view.children
+import androidx.core.view.doOnLayout
 import androidx.core.view.forEach
 import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.applyColorFilter
@@ -145,10 +148,14 @@ internal fun ViewGroup.menuHeightAt(width: Int, limit: Int): Int {
  * Puts the arrow that reveals a menu's kept-back section on [this] row, answering [onToggle]. False
  * from anything that is not a labelled row, which has nowhere to put one.
  *
- * The arrow takes its own touches, so the row it shares keeps working as the item it always was. It
- * is turned rather than swapped for a second drawable, which is what makes the flip animatable at
- * all: the row is built afresh on every toggle, so the new arrow starts at the old one's angle and
- * turns from there.
+ * The arrow takes its own touches, so the row it shares keeps working as the item it always was -
+ * and it takes them across the whole end of the row, from the rule outwards, which is the boundary
+ * the rule is drawn to announce. Its own bounds are only as wide as the glyph needs, and a finger
+ * landing beside them used to pick the row instead.
+ *
+ * It is turned rather than swapped for a second drawable, which is what makes the flip animatable
+ * at all: the row is built afresh on every toggle, so the new arrow starts at the old one's angle
+ * and turns from there.
  */
 internal fun View.attachMenuExpander(expanded: Boolean, turning: Boolean, onToggle: () -> Unit): Boolean {
     val arrow = findViewById<ImageView>(R.id.glass_menu_row_expand) ?: return false
@@ -173,7 +180,16 @@ internal fun View.attachMenuExpander(expanded: Boolean, turning: Boolean, onTogg
     }
 
     arrow.setOnClickListener { onToggle() }
+    arrow.claimRowEndFrom(rule)
     return true
+}
+
+/** Hands the row's end, from [rule] outwards, to this arrow rather than to the row behind it. */
+private fun View.claimRowEndFrom(rule: View) {
+    val row = parent as? ViewGroup ?: return
+    row.doOnLayout {
+        row.touchDelegate = TouchDelegate(Rect(rule.left, 0, it.width, it.height), this)
+    }
 }
 
 /** The dotted rule between two sections. */

@@ -33,6 +33,7 @@ class SelectionChrome private constructor(
     private val context: Context,
     private val pills: SelectionPills,
     contentBehind: ViewGroup,
+    spec: () -> MenuSpec,
 ) {
     private var mode: Mode? = null
 
@@ -52,7 +53,7 @@ class SelectionChrome private constructor(
             button = pills.menuButton,
             items = { LinkedHashMap(overflow) },
             onPick = { item -> mode?.pick(item) },
-            spec = { SELECTION_MENU },
+            spec = spec,
             contentBehind = contentBehind,
         )
     }
@@ -183,18 +184,22 @@ class SelectionChrome private constructor(
 
     companion object {
         /**
-         * The pills a browsing screen puts up, ready to answer AppCompat with. [onActiveChanged]
-         * is told whenever a selection starts or ends, for chrome that has to get out of its way.
+         * The pills a browsing screen puts up, ready to answer AppCompat with. [spec] is asked
+         * again every time the drop-down opens, so a screen holding two grids arranges the menu for
+         * whichever one the selection was made in. [onActiveChanged] is told whenever a selection
+         * starts or ends, for chrome that has to get out of its way.
          */
         fun over(
             top: SelectionTopPillBinding,
             bottom: SelectionBottomPillBinding,
             contentBehind: ViewGroup,
+            spec: () -> MenuSpec,
             onActiveChanged: (Boolean) -> Unit,
         ) = SelectionChrome(
             context = contentBehind.context,
             pills = SelectionPills(top, bottom, contentBehind),
             contentBehind = contentBehind,
+            spec = spec,
         ).also { it.onActiveChanged = onActiveChanged }
 
         /**

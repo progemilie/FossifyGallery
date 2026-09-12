@@ -21,23 +21,22 @@
         android:showAsAction="always"
         android:title="@string/share"
         app:showAsAction="always" />
+    <!-- the three turns stand on their own rather than behind a Rotate submenu, so the quarter
+         turns can be drawn as icons the way the viewer's menu draws its own two -->
     <item
-        android:id="@+id/cab_rotate"
+        android:id="@+id/cab_rotate_left"
+        android:icon="@drawable/ic_rotate_left_vector"
+        android:title="@string/rotate_left"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/cab_rotate_right"
         android:icon="@drawable/ic_rotate_right_vector"
-        android:title="@string/rotate"
-        app:showAsAction="ifRoom">
-        <menu>
-            <item
-                android:id="@+id/cab_rotate_right"
-                android:title="@string/rotate_right" />
-            <item
-                android:id="@+id/cab_rotate_left"
-                android:title="@string/rotate_left" />
-            <item
-                android:id="@+id/cab_rotate_one_eighty"
-                android:title="@string/rotate_one_eighty" />
-        </menu>
-    </item>
+        android:title="@string/rotate_right"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/cab_rotate_one_eighty"
+        android:title="@string/rotate_one_eighty"
+        app:showAsAction="never" />
     <item
         android:id="@+id/cab_mirror"
         android:icon="@drawable/ic_flip_horizontally_vector"

@@ -156,3 +156,51 @@ val VIEWER_MENU = MenuSpec(
  * these apply changes with what is selected, so any grouping fixed here would keep coming apart.
  */
 val SELECTION_MENU = MenuSpec(listOf(emptyList()))
+
+/**
+ * A selection of pictures, laid out the way the viewer's own menu is: what changes the files, then
+ * what is done with them, and behind the arrow the handful a selection is rarely made to reach.
+ *
+ * Picking one picture puts several more items up than picking many - open with, set as, a shortcut
+ * - and those go where they fit rather than piling up at the foot, so the menu grows in place
+ * instead of changing shape. Several of the icons below are only ever up one of a pair at a time,
+ * and the ones the pill has taken as buttons of its own draw nothing at all here.
+ */
+val SELECTION_MEDIA_MENU = MenuSpec(
+    listOf(
+        listOf(
+            icons(
+                MenuIcon(R.id.cab_rotate_left, R.drawable.ic_rotate_left_vector),
+                MenuIcon(R.id.cab_rotate_right, R.drawable.ic_rotate_right_vector),
+                MenuIcon(R.id.cab_mirror, R.drawable.ic_flip_horizontally_vector),
+                MenuIcon(R.id.cab_resize, R.drawable.ic_minimize_vector),
+                MenuIcon(R.id.cab_edit, commonsR.drawable.ic_edit_vector),
+            ),
+            // the one turn with no icon of its own, under the two that have
+            row(R.id.cab_rotate_one_eighty),
+            row(R.id.cab_rename),
+        ),
+        listOf(
+            icons(
+                MenuIcon(R.id.cab_add_to_favorites, R.drawable.ic_heart_outline_vector),
+                MenuIcon(R.id.cab_remove_from_favorites, commonsR.drawable.ic_heart_vector),
+                MenuIcon(R.id.cab_rate, commonsR.drawable.ic_star_outline_vector),
+                MenuIcon(R.id.cab_hide, commonsR.drawable.ic_hide_vector),
+                MenuIcon(R.id.cab_unhide, commonsR.drawable.ic_unhide_vector),
+                MenuIcon(R.id.cab_share, commonsR.drawable.ic_share_vector),
+                MenuIcon(R.id.cab_delete, commonsR.drawable.ic_delete_vector),
+            ),
+            row(R.id.cab_copy_to),
+            row(R.id.cab_move_to),
+            row(R.id.cab_properties),
+            row(R.id.cab_restore_recycle_bin_files),
+        ),
+    ),
+    hidden = listOf(
+        row(R.id.cab_fix_date_taken),
+        row(R.id.cab_create_shortcut),
+        row(R.id.cab_set_as),
+        row(R.id.cab_open_with),
+        row(R.id.cab_select_all),
+    )
+)
