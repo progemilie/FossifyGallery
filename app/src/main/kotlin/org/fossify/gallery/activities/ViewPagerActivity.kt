@@ -1937,7 +1937,17 @@ class ViewPagerActivity :
             return
         }
 
-        mIsFullScreen = !mIsFullScreen
+        setFullScreen(!mIsFullScreen)
+    }
+
+    override fun zoomChanged(isZoomedIn: Boolean) = setFullScreen(isZoomedIn)
+
+    private fun setFullScreen(fullScreen: Boolean) {
+        if (mIsFullScreen == fullScreen) {
+            return
+        }
+
+        mIsFullScreen = fullScreen
         checkSystemUI()
         fullscreenToggled()
     }
