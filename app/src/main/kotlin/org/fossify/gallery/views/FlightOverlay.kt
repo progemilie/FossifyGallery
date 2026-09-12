@@ -115,6 +115,24 @@ class FlightOverlay @JvmOverloads constructor(
         return RectF(current).apply { offset(screenLeft, screenTop) }
     }
 
+    /**
+     * Sends the picture back from wherever it has got to, into [toRect] wearing [cropAtEnd]. False
+     * where nothing has been flown yet, so there is nowhere to turn round from.
+     */
+    fun turnBack(toRect: RectF, cropAtEnd: Float): Boolean {
+        if (image == null || current.isEmpty) {
+            return false
+        }
+
+        from.set(current)
+        to.set(toRect.inThisView())
+        cropStart = crop
+        cropEnd = cropAtEnd
+        cropPickedUpAt = 0f
+        progress = 0f
+        return true
+    }
+
     fun clear() {
         isInvisible = true
         image = null

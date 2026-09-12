@@ -188,7 +188,8 @@ until after the flight, that decode used to leave the viewer soft for about half
 started is the work the pager finds done rather than a second decode of the same picture. The full
 one is sized off the screen rather than off the view it lands in, a preload having no view to read.
 `views/FlightOverlay.kt` moves the rect and the crop together; either one alone leaves a cut at one
-end or the other.
+end or the other. A close that comes before the viewer has taken over from a flight - the tile still
+growing, or its photo still awaited - turns the overlay's picture round from wherever it has got to.
 
 It only reads as one surface while the grid is still drawn underneath, which takes three more
 things, each of which silently leaves the photo growing out of a black screen if it is missed:

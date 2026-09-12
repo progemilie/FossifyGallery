@@ -83,6 +83,9 @@ class TileFlight(
     /** The screen's own setup, held back until the flight has landed - see [enter]. */
     private var pendingContent: (() -> Unit)? = null
 
+    /** The tile a grow set off from, until the viewer has taken the screen over from the flight. */
+    private var growTile: ViewerTransition.Tile? = null
+
     /**
      * Grows the tapped tile into the photo, and runs [buildContent] - the screen's own setup, the
      * pager and the media it loads - once it has landed. Does nothing at all where there is nothing
@@ -108,6 +111,7 @@ class TileFlight(
         }
 
         pendingContent = buildContent
+        growTile = tile
 
         activity.letGridShowThrough(true)
         scrim.backdrop = 0f
@@ -119,15 +123,15 @@ class TileFlight(
 
         // the overlay maps screen coordinates through its own, so it has to be placed first
         overlay.doOnLayout {
+            // closed before there was anything to fly - see close()
             if (isClosing) {
-                buildContentNow()
                 return@doOnLayout
             }
 
             // a tile drawn cropped has to start cropped and unfold as it flies; one that has not
             // been handed the photo's own picture yet has nothing to unfold, so it holds its crop
             // until the picture turns up and unfolds over whatever is left of the flight
-            val tileCrop = if (tile.isCropped) 1f else 0f
+            val tileCrop = tile.crop()
             val endCrop = if (awaitingPicture) tileCrop else 0f
             overlay.fly(flying, tile.frame, landing(), tileCrop, endCrop)
 
@@ -222,6 +226,7 @@ class TileFlight(
     }
 
     private fun revealStage() {
+        growTile = null
         stage.alpha = 1f
         overlay.clear()
         activity.letGridShowThrough(false)
@@ -263,17 +268,32 @@ class TileFlight(
             return true
         }
 
-        val tile = exitTile?.takeIf { ViewerTransition.isSupported } ?: return false
-        val shown = displayed() ?: return false
-        val picture = shown.image ?: return false
+        // until the viewer takes the screen over from a flight in, the picture is still the overlay's,
+        // so it turns round from wherever it has got to rather than being taken over from the stage
+        val isTurningBack = growTile != null
+        val tile = (exitTile ?: growTile)?.takeIf { ViewerTransition.isSupported }
+        val shown = displayed()?.takeUnless { isTurningBack }
+        val picture = shown?.image
+        if (tile == null || (!isTurningBack && picture == null)) {
+            return false
+        }
 
         isClosing = true
-        animator?.cancel()
-        activity.letGridShowThrough(true)
-        // the overlay takes over drawing the very picture the stage was drawing, at the very rect
-        // it was drawing it at, so trading one for the other changes nothing on screen
-        overlay.fly(picture, shown.rect, tile.frame, 0f, if (tile.isCropped) 1f else 0f)
-        stage.alpha = 0f
+        // nothing is built behind a flight that has turned round
+        pendingContent = null
+        animator?.dropWithoutLanding()
+        animator = null
+        if (shown != null && picture != null) {
+            activity.letGridShowThrough(true)
+            // the overlay takes over drawing the very picture the stage was drawing, at the very rect
+            // it was drawing it at, so trading one for the other changes nothing on screen
+            overlay.fly(picture, shown.rect, tile.frame, 0f, tile.crop())
+            stage.alpha = 0f
+        } else if (!overlay.turnBack(tile.frame, tile.crop())) {
+            // closed before anything was flown, so the window going is all there is to see
+            onFinish()
+            return true
+        }
 
         val backdropFrom = scrim.backdrop
         val chromeFrom = scrim.chromeAlpha
@@ -366,6 +386,18 @@ class TileFlight(
 }
 
 private fun Bitmap.aspect() = if (height == 0) 1f else width.toFloat() / height
+
+/** How a tile fills its frame, in the terms a [FlightOverlay] crop is given in. */
+private fun ViewerTransition.Tile.crop() = if (isCropped) 1f else 0f
+
+/**
+ * Stops an animation without what it does on landing: a grow cut short would build the screen, and a
+ * settle hand the screen over to the viewer.
+ */
+private fun ValueAnimator.dropWithoutLanding() {
+    removeAllListeners()
+    cancel()
+}
 
 /**
  * Asks for no window animation at all, in whichever terms the platform actually reads.
