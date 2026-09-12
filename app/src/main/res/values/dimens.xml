@@ -84,10 +84,13 @@
     <dimen name="chooser_corner_radius">24dp</dimen>
     <dimen name="chooser_elevation">8dp</dimen>
 
-    <!-- the star row that pops up above the rating button while it is held -->
-    <dimen name="rating_chooser_star_size">32dp</dimen>
-    <dimen name="rating_chooser_star_margin">4dp</dimen>
-    <dimen name="rating_chooser_clear_gap">12dp</dimen>
+    <!-- the star row that pops up above the rating button while it is held. Held apart from the
+         shared chooser sizes above so the whole row scales together -->
+    <dimen name="rating_chooser_star_size">26dp</dimen>
+    <dimen name="rating_chooser_star_margin">3dp</dimen>
+    <dimen name="rating_chooser_clear_gap">9dp</dimen>
+    <dimen name="rating_chooser_padding">6dp</dimen>
+    <dimen name="rating_chooser_corner_radius">19dp</dimen>
     <dimen name="rating_dialog_star_size">44dp</dimen>
     <dimen name="rating_badge_star_size">12dp</dimen>
     <dimen name="rating_badge_corner_radius">8dp</dimen>
