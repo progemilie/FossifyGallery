@@ -90,25 +90,6 @@ Anything worth doing twice belongs in the script. The device is emulator-5554, a
 1080x2424 at 420dpi, with many folders of pictures under /Pictures; `emulator -avd Pixel_10` boots
 it when nothing is attached.
 
-### Shipping a change
-
-Three branches: **`main`** only syncs from upstream and carries no fork work; **`dev`** is the trunk
-and the only place a version is written; work happens on `feat/`, `fix/`, `tweak/` branches off
-`dev`, **squash-merged** back by PR. Subjects are `feat:`/`fix:`/`tweak:`/`refactor:`/`chore:`/`docs:`
-and then lowercase prose.
-
-A version is a range of commits on `dev`, shared by however many branches landed in it — so **a
-working branch never touches `gradle.properties`**; it adds its user-facing lines to
-`FORK-CHANGELOG.md`'s `## [Unreleased]`, under `### Added`, `### Changed` or `### Fixed`. **Those
-headings decide the version**: an `### Added` entry makes the next release a minor one and anything
-else a patch, so a line filed under the wrong heading ships the wrong number. `/ship` names the
-release; `.claude/tools/release.py` does everything else, and is the only thing that writes a
-version — branch `release/vX.Y.Z`, both files stamped, committed as `chore(release): fork vX.Y.Z`
-and PR'd into `dev`. **Nothing is tagged by hand.** `fork-release.yml` sees the version change on
-`dev` after that merge, re-checks the changelog with `release.py verify`, then pushes the tag and
-the GitHub release — a squash rewrites the sha any earlier tag would have named. Tags before
-v1.20.0 sit mid-cycle on a bump instead of on the release.
-
 ## Architecture
 
 Feature-level detail lives in `.claude/docs/architecture.md`; what is kept here is the shape of
@@ -205,14 +186,32 @@ What is listed here is only what breaks *silently* when it is missed.
   measured height, which already carries the status bar inset; doing it in the layout double-counts.
   Every glass panel comes and goes through `PanelAnim`'s `showPanel`/`hidePanel`.
 
-## Style
+## Code style
 
-Keep code comments CONCISE and NOT TOO LONG. Comments dont need to explain small UI details.
-Comment things that are not obvious and might raise questions otherwise. Longer comments are
-warranted when it is not immediatelly evident what the purpose of something is.
+Keep code comments CONCISE and NOT TOO LONG. Comments dont need to explain small UI details. Comment
+things that are not obvious and might raise questions otherwise. Avoid comments that restate obvious code
 
-DO NOT make insignificant updates to CLAUDE.md file. Only for large features that change core functionality.
-A UI feature does not need a large block of text in the CLAUDE.md file. Try to keep the file less than 200 lines.
+## Version control and GitHub
 
-`FORK-CHANGELOG.md` records user-facing changes as they are made, under `## [Unreleased]` — internal
-fixes only when major. See *Shipping a change* above for how a version, a tag and a PR go out.
+Branches:
+- **`main`** only syncs from upstream and carries no fork work, do not change
+- **`dev`** is the trunk and the only place a version is written
+- work happens on branches off `dev`, squash-merged back by PR. Work branch names use the same types as commits.
+
+### Commiting & Pull Requests
+
+Commit and PR titles must follow a format of `type: summary`
+- Allowed types: `feat`, `tweak`, `fix`, `chore`, `docs`, `refactor`, `perf`, `test`, `build`, `ci`
+
+`FORK-CHANGELOG.md` records user-facing changes as they are made, under `## [Unreleased]` — include internal fixes only when major. When adding to the log add them to the correct section `### Added`, `### Changed`, `### Fixed`. Keep the entries simple and short, this is meant for the user to read.
+
+Never change `gradle.properties` on a work branch, version is changed by a tool activated separately
+when version is ready.
+
+### Releasing
+
+Releases are driven by `/release`. The version is decided by the headings in `FORK-CHANGELOG.md`.
+`### Added` makes it a minor release, otherwise it is a patch. This is the only tool that writes a version.
+The version is tagged automatically by a GitHub workflow `fork-release.yml`.
+
+Do not update `CLAUDE.md` unless asked to.
