@@ -19,10 +19,12 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.view.WindowManager
 import androidx.core.graphics.drawable.toBitmapOrNull
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat.Type
+import androidx.core.view.doOnAttach
 import androidx.core.view.updateLayoutParams
 import androidx.exifinterface.media.ExifInterface.ORIENTATION_FLIP_HORIZONTAL
 import androidx.exifinterface.media.ExifInterface.ORIENTATION_FLIP_VERTICAL
@@ -140,6 +142,10 @@ class PhotoFragment : ViewPagerFragment() {
     /** Stops [mInitialZoom] following the image once the zoom can be the viewer's own doing. */
     private var mWasGesturesViewTouched = false
 
+    /** Whether the photo was last seen zoomed into, so only a change is reported. See [watchZoom]. */
+    private var mWasZoomedIn = false
+    private var mZoomWatcher: ViewTreeObserver.OnPreDrawListener? = null
+
     private var mStoredAllowDeepZoomableImages = false
     private var mStoredShowHighestQuality = false
 
@@ -214,6 +220,7 @@ class PhotoFragment : ViewPagerFragment() {
 
         checkScreenDimensions()
         storeStateVariables()
+        watchZoom()
         if (!mIsFragmentVisible && activity is PhotoActivity) {
             mIsFragmentVisible = true
         }
@@ -309,8 +316,40 @@ class PhotoFragment : ViewPagerFragment() {
         storeStateVariables()
     }
 
+    /**
+     * Tells the screen when the photo is zoomed into and when it is let back out, so the chrome
+     * goes the way a tap takes it.
+     *
+     * Read per frame rather than through a listener because there is no one thing to listen to:
+     * only one of the three views showing the photo offers a zoom callback, and a double tap zooms
+     * with no touch left to hang anything off. A frame that changed nothing costs three comparisons.
+     */
+    private fun watchZoom() {
+        val watcher = ViewTreeObserver.OnPreDrawListener {
+            val zoomedIn = mIsFragmentVisible && !isFlickEligible()
+            if (zoomedIn != mWasZoomedIn) {
+                mWasZoomedIn = zoomedIn
+                listener?.zoomChanged(zoomedIn)
+            }
+
+            true
+        }
+
+        mZoomWatcher = watcher
+        // hung on once the view is on a window: until then the observer it would go on is a
+        // temporary one the view keeps to itself, and nothing ever draws through it
+        binding.root.doOnAttach { it.viewTreeObserver.addOnPreDrawListener(watcher) }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
+        mZoomWatcher?.let {
+            val observer = binding.root.viewTreeObserver
+            if (observer.isAlive) {
+                observer.removeOnPreDrawListener(it)
+            }
+        }
+        mZoomWatcher = null
         if (activity?.isDestroyed == false) {
             binding.subsamplingView.recycle()
 

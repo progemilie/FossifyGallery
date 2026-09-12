@@ -22,6 +22,8 @@ abstract class ViewPagerFragment : Fragment() {
 
     abstract fun fullscreenToggled(isFullscreen: Boolean)
 
+    // a screen's whole contract with the media it is showing, a line apiece
+    @Suppress("TooManyFunctions")
     interface FragmentListener {
         fun fragmentClicked()
 
@@ -36,6 +38,12 @@ abstract class ViewPagerFragment : Fragment() {
         fun isSlideShowActive(): Boolean
 
         fun isFullScreen(): Boolean
+
+        /**
+         * The media was zoomed into, or let back out to the size it rests at. The chrome goes the
+         * same way a tap takes it: a photo being looked at closely is not one being chosen between.
+         */
+        fun zoomChanged(isZoomedIn: Boolean) {}
 
         /**
          * A swipe up over the media, which pulls the file's metadata in from the bottom - or, with
