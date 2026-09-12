@@ -1,0 +1,91 @@
+name: Fork release
+
+# Tags the release commit once it lands on dev, and publishes the GitHub release.
+# The tag has to name the commit that ends up on dev, and a squash merge gives it a
+# new sha, so this runs after the merge rather than before it.
+#
+# Both jobs are one job on purpose: a push made with GITHUB_TOKEN does not trigger
+# further workflows, so a separate build-on-tag workflow would never fire.
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - gradle.properties
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fork-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Tag and release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags, so an already-released version is recognised
+
+      - name: Read FORK_VERSION_NAME
+        id: version
+        run: |
+          version=$(sed -n 's/^FORK_VERSION_NAME=//p' gradle.properties | tr -d '[:space:]')
+          if [ -z "$version" ]; then
+            echo "::error::no FORK_VERSION_NAME in gradle.properties"
+            exit 1
+          fi
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::FORK_VERSION_NAME is not X.Y.Z: $version"
+            exit 1
+          fi
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Has this version already been released?
+        id: fresh
+        run: |
+          tag='${{ steps.version.outputs.tag }}'
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            # The ordinary no-op: gradle.properties moved for some other reason —
+            # an upstream sync bumping VERSION_NAME, a jvmargs change — so the
+            # fork version is unchanged and its tag already exists.
+            echo "$tag already exists; nothing to release." >> "$GITHUB_STEP_SUMMARY"
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Same parser that cut the release approves it: the changelog must carry a
+      # matching section with a link definition, and [Unreleased] must be empty.
+      - name: Verify the changelog agrees
+        if: steps.fresh.outputs.new == 'true'
+        run: python3 .claude/tools/release.py verify '${{ steps.version.outputs.tag }}'
+
+      - name: Warn if this is not a release commit
+        if: steps.fresh.outputs.new == 'true'
+        run: |
+          subject=$(git log -1 --format=%s)
+          case "$subject" in
+            "chore(release): fork ${{ steps.version.outputs.tag }}"*) ;;
+            *) echo "::warning::expected 'chore(release): fork ${{ steps.version.outputs.tag }}', got '$subject'" ;;
+          esac
+
+      - name: Tag and publish
+        if: steps.fresh.outputs.new == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag='${{ steps.version.outputs.tag }}'
+          python3 .claude/tools/release.py notes "$tag" > /tmp/notes.md
+          title=$(python3 .claude/tools/release.py title "$tag")
+
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a "$tag" -m "$title" '${{ github.sha }}'
+          git push origin "refs/tags/$tag"
+
+          gh release create "$tag" --title "$title" --notes-file /tmp/notes.md
+          echo "Released [$title](${{ github.server_url }}/${{ github.repository }}/releases/tag/$tag) at \`${{ github.sha }}\`." >> "$GITHUB_STEP_SUMMARY"

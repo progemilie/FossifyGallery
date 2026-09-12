@@ -9,9 +9,7 @@ Gradle module). This repo is a fork.
 
 - Single app module `:app` (see settings.gradle.kts, `rootProject.name = "Gallery"`).
 - **Fork version:** `FORK_VERSION_NAME` in gradle.properties tracks this fork independently of
-  upstream's `VERSION_NAME`/`VERSION_CODE` (which stay as inherited from upstream).
-  **Bump it in the same commit as every feature (minor) and every fix (patch), but only on a per branch basis (maximum one bump per working branch)**.
-  Changes that cannot affect the build — docs, CI config, comments — need neither a bump nor a tag.
+  upstream's `VERSION_NAME`/`VERSION_CODE` (inherited, never touched).
 - Kotlin 2.3.10, AGP 9.2.0, Gradle wrapper 9.4.1, KSP 2.3.7, Java/Kotlin target 17.
 - compileSdk/targetSdk 36, minSdk 26 (see gradle/libs.versions.toml).
 - One flavor dimension, `licensing`: `foss` (F-Droid/IzzyOnDroid) and `gplay` (Google Play). No
@@ -91,14 +89,6 @@ a device path wants `MSYS_NO_PATHCONV=1` under Git Bash, which is the trap `emu.
 Anything worth doing twice belongs in the script. The device is emulator-5554, a Pixel_10, API 37,
 1080x2424 at 420dpi, with many folders of pictures under /Pictures; `emulator -avd Pixel_10` boots
 it when nothing is attached.
-
-### Shipping a change
-
-Commit subjects are `feat:`/`fix:`/`tweak:`/`refactor:`/`docs:` and then lowercase prose. A commit
-that bumps `FORK_VERSION_NAME` is tagged `v<version>`, and PRs go to **`dev`**, not `main`.
-`FORK-CHANGELOG.md` takes a `## [v1.19.0] - YYYY.MM.DD — two or three words` heading plus a link
-definition at the foot pointing at that tag's release; it is written as the last commit before a
-PR. `/ship` walks all of that in order.
 
 ## Architecture
 
@@ -196,14 +186,32 @@ What is listed here is only what breaks *silently* when it is missed.
   measured height, which already carries the status bar inset; doing it in the layout double-counts.
   Every glass panel comes and goes through `PanelAnim`'s `showPanel`/`hidePanel`.
 
-## Style
+## Code style
 
-Keep code comments CONCISE and NOT TOO LONG. Comments dont need to explain small UI details.
-Comment things that are not obvious and might raise questions otherwise. Longer comments are
-warranted when it is not immediatelly evident what the purpose of something is.
+Keep code comments CONCISE and NOT TOO LONG. Comments dont need to explain small UI details. Comment
+things that are not obvious and might raise questions otherwise. Avoid comments that restate obvious code
 
-DO NOT make insignificant updates to CLAUDE.md file. Only for large features that change core functionality.
-A UI feature does not need a large block of text in the CLAUDE.md file. Try to keep the file less than 200 lines.
+## Version control and GitHub
 
-`FORK-CHANGELOG.md` records user-facing changes after a version bump — fixes only when major.
-See *Shipping a change* above for how a version, a tag and a PR go out together.
+Branches:
+- **`main`** only syncs from upstream and carries no fork work, do not change
+- **`dev`** is the trunk and the only place a version is written
+- work happens on branches off `dev`, squash-merged back by PR. Work branch names use the same types as commits.
+
+### Commiting & Pull Requests
+
+Commit and PR titles must follow a format of `type: summary`
+- Allowed types: `feat`, `tweak`, `fix`, `chore`, `docs`, `refactor`, `perf`, `test`, `build`, `ci`
+
+`FORK-CHANGELOG.md` records user-facing changes as they are made, under `## [Unreleased]` — include internal fixes only when major. When adding to the log add them to the correct section `### Added`, `### Changed`, `### Fixed`. Keep the entries simple and short, this is meant for the user to read.
+
+Never change `gradle.properties` on a work branch, version is changed by a tool activated separately
+when version is ready.
+
+### Releasing
+
+Releases are driven by `/release`. The version is decided by the headings in `FORK-CHANGELOG.md`.
+`### Added` makes it a minor release, otherwise it is a patch. This is the only tool that writes a version.
+The version is tagged automatically by a GitHub workflow `fork-release.yml`.
+
+Do not update `CLAUDE.md` unless asked to.

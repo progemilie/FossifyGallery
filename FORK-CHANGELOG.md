@@ -2,12 +2,14 @@
 
 Fork-only changes, newest first. Internal fixes are left out.
 
-## [v1.19.1] - 2026.09.12 — UI
-
-- **A selection's menu is laid out like the viewer's.**
+## [Unreleased]
+### Added
 - **Zooming into a photo takes the chrome away**, and letting it back out brings it back.
+### Changed
+- **A selection's menu is laid out like the viewer's.**
 - Updated the style and opening animation of the copy and move chooser.
 - The rating chooser is smaller, and opens in the middle of the screen.
+### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.
 - Fixed peek buttons and group ticks staying on a tile after a selection had ended.
@@ -170,7 +172,6 @@ Initial fork work, landed over 2026.08.06–08.09 before fork versions were trac
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
 
-[v1.19.1]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.19.1
 [v1.19.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.19.0
 [v1.18.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.18.0
 [v1.17.0]: https://github.com/progemilie/FossifyGallery/releases/tag/v1.17.0
