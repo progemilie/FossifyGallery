@@ -2,11 +2,16 @@
 
 Fork-only changes, newest first. Internal fixes are left out.
 
-## [v1.19.1] - 2026.09.06 — selection
+## [v1.19.1] - 2026.09.12 — UI
 
-- **A picked photo is left darker** for as long as it is picked, rather than flashing once and going back to how it looked.
-- The tick grows into the corner and shrinks back out of it, over a circle with a hairline rim in the theme's own contrast — dark on a light theme, light on a dark one.
-- Albums are picked the same way as pictures, folder groups included.
+- **A selection's menu is laid out like the viewer's.**
+- **Zooming into a photo takes the chrome away**, and letting it back out brings it back.
+- Updated the style and opening animation of the copy and move chooser.
+- The rating chooser is smaller, and opens in the middle of the screen.
+- Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
+  a thumbnail of it, so it is sharp the moment the viewer arrives.
+- Fixed peek buttons and group ticks staying on a tile after a selection had ended.
+- Fixed the Settings title, back arrow and last card's shadow on a light theme.
 
 ## [v1.19.0] - 2026.09.01 — UI
 
