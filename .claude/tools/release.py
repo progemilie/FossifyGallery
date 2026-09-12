@@ -346,14 +346,11 @@ def cmd_cut(args):
         git("branch", "--quiet", "-D", release_branch, check=False)
         raise
 
-    print("{} -> {}  ({}: {})".format(current, version, bump, why))
-    print("branch {}, commit {}".format(release_branch, git("rev-parse", "--short", "HEAD").stdout.strip()))
-    print()
-    print("next:")
-    print("  git push -u origin {}".format(release_branch))
+    print("{} -> {} ({}: {})".format(current, version, bump, why))
     print(
-        '  python .claude/tools/release.py notes {} > notes.md && '
-        'gh pr create --base dev --title "chore(release): fork {}" --body-file notes.md'.format(tag, tag)
+        "{} on {}".format(
+            git("rev-parse", "--short", "HEAD").stdout.strip(), release_branch
+        )
     )
 
 
