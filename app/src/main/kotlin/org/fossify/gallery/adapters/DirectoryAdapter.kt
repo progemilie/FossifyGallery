@@ -66,8 +66,6 @@ import org.fossify.commons.models.FileDirItem
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.gallery.R
 import org.fossify.gallery.activities.MediaActivity
-import org.fossify.gallery.databinding.DirectoryItemGridRoundedCornersBinding
-import org.fossify.gallery.databinding.DirectoryItemGridSquareBinding
 import org.fossify.gallery.databinding.DirectoryItemListBinding
 import org.fossify.gallery.dialogs.ConfirmDeleteFolderDialog
 import org.fossify.gallery.dialogs.ExcludeFolderDialog
@@ -93,8 +91,8 @@ import org.fossify.gallery.extensions.tryCopyMoveFilesTo
 import org.fossify.gallery.helpers.DIRECTORY
 import org.fossify.gallery.helpers.FOLDER_MEDIA_CNT_BRACKETS
 import org.fossify.gallery.helpers.FOLDER_MEDIA_CNT_LINE
-import org.fossify.gallery.helpers.FOLDER_STYLE_ROUNDED_CORNERS
-import org.fossify.gallery.helpers.FOLDER_STYLE_SQUARE
+import org.fossify.gallery.helpers.FolderCoverStyle
+import org.fossify.gallery.helpers.FolderLabelPlacement
 import org.fossify.gallery.helpers.LOCATION_INTERNAL
 import org.fossify.gallery.helpers.LOCATION_SD
 import org.fossify.gallery.helpers.MAX_FOLDER_GROUP_COVERS
@@ -102,9 +100,10 @@ import org.fossify.gallery.helpers.PaddedGridMoveCallback
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
-import org.fossify.gallery.helpers.ROUNDED_CORNERS_NONE
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_SMALL
+import org.fossify.gallery.helpers.ROUNDED_CORNERS_SQUIRCLE
 import org.fossify.gallery.helpers.SelectionMark
+import org.fossify.gallery.helpers.Squircle
 import org.fossify.gallery.helpers.ThumbnailSizes
 import org.fossify.gallery.helpers.TransformedMedia
 import org.fossify.gallery.helpers.TYPE_GIFS
@@ -112,11 +111,13 @@ import org.fossify.gallery.helpers.TYPE_IMAGES
 import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.TYPE_VIDEOS
+import org.fossify.gallery.helpers.folderDetailsLine
 import org.fossify.gallery.interfaces.DirectoryOperationsListener
 import org.fossify.gallery.models.AlbumCover
 import org.fossify.gallery.models.Directory
 import java.io.File
 import java.util.Collections
+import kotlin.math.roundToInt
 
 class DirectoryAdapter(
     activity: BaseSimpleActivity,
@@ -133,11 +134,6 @@ class DirectoryAdapter(
 ) :
     MyRecyclerViewAdapter(activity, recyclerView, itemClick), ItemTouchHelperContract,
     RecyclerViewFastScroller.OnPopupTextUpdate {
-
-    private companion object {
-        /** The hairline of padding directory_item_grid_square.xml keeps around its cover. */
-        const val SQUARE_COVER_INSET_PX = 2
-    }
 
     private val config = activity.config
     private val isListViewType = config.viewTypeFolders == VIEW_TYPE_LIST
@@ -174,8 +170,16 @@ class DirectoryAdapter(
         }
 
     private var showMediaCount = config.showFolderMediaCount
-    private var folderStyle = config.folderStyle
+    private val coverStyle = FolderCoverStyle.from(config.folderStyle)
+    private val showFolderSize = config.showFolderSize
+    private val showFolderDate = config.showFolderDate
     private var limitFolderTitle = config.limitFolderTitle
+
+    // what every squircle cover's placeholder is copied from, so the shape is only traced once
+    private val squirclePlaceholder by lazy {
+        Squircle.placeholder(activity.getColor(org.fossify.commons.R.color.md_grey_black))
+    }
+
     var directorySorting = config.directorySorting
     var dateFormat = config.dateFormat
     var timeFormat = activity.getTimeFormat()
@@ -192,13 +196,13 @@ class DirectoryAdapter(
     override fun getActionMenuId() = R.menu.cab_directories
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val binding = when {
-            isListViewType -> DirectoryItemListBinding.inflate(layoutInflater, parent, false)
-            folderStyle == FOLDER_STYLE_SQUARE -> DirectoryItemGridSquareBinding.inflate(layoutInflater, parent, false)
-            else -> DirectoryItemGridRoundedCornersBinding.inflate(layoutInflater, parent, false)
+        val view = if (isListViewType) {
+            DirectoryItemListBinding.inflate(layoutInflater, parent, false).root
+        } else {
+            layoutInflater.inflate(coverStyle.layout, parent, false)
         }
 
-        return createViewHolder(binding.root)
+        return createViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: MyRecyclerViewAdapter.ViewHolder, position: Int) {
@@ -998,14 +1002,14 @@ class DirectoryAdapter(
                 dirHolder.isSelected = isSelected
             }
 
-            if (scrollHorizontally && !isListViewType && folderStyle == FOLDER_STYLE_ROUNDED_CORNERS) {
+            if (scrollHorizontally && !isListViewType && coverStyle.label != FolderLabelPlacement.ON_COVER) {
                 (dirThumbnail.layoutParams as RelativeLayout.LayoutParams).addRule(RelativeLayout.ABOVE, dirName.id)
 
                 val photoCntParams = (photoCnt.layoutParams as RelativeLayout.LayoutParams)
                 val nameParams = (dirName.layoutParams as RelativeLayout.LayoutParams)
                 nameParams.removeRule(RelativeLayout.BELOW)
 
-                if (config.showFolderMediaCount == FOLDER_MEDIA_CNT_LINE) {
+                if (hasDetailsLine) {
                     nameParams.addRule(RelativeLayout.ABOVE, photoCnt.id)
                     nameParams.removeRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
 
@@ -1028,19 +1032,31 @@ class DirectoryAdapter(
             // how many folders stand under a group tile, which the collage stops saying past four.
             // it goes on the count line and never into the name: a tile is barely one word wide,
             // and a name pushed onto a second line leaves the whole row of tiles ragged
-            photoCnt.text = if (isGroup) {
-                val folders = resources.getQuantityString(
-                    R.plurals.folders_in_group,
-                    directory.groupMembers.size,
-                    directory.groupMembers.size
-                )
+            val count = when {
+                showMediaCount != FOLDER_MEDIA_CNT_LINE -> null
+                isGroup -> {
+                    val folders = resources.getQuantityString(
+                        R.plurals.folders_in_group,
+                        directory.groupMembers.size,
+                        directory.groupMembers.size
+                    )
 
-                "$folders · ${directory.subfoldersMediaCount}"
-            } else {
-                directory.subfoldersMediaCount.toString()
+                    "$folders · ${directory.subfoldersMediaCount}"
+                }
+
+                else -> directory.subfoldersMediaCount.toString()
             }
 
-            photoCnt.beVisibleIf(showMediaCount == FOLDER_MEDIA_CNT_LINE)
+            photoCnt.text = activity.folderDetailsLine(
+                count = count,
+                size = directory.size,
+                date = directory.taken.takeIf { it > 0 } ?: directory.modified,
+                showSize = showFolderSize,
+                showDate = showFolderDate
+            )
+
+            // on every tile or none, so a row keeps one height
+            photoCnt.beVisibleIf(hasDetailsLine)
 
             if (limitFolderTitle) {
                 dirName.setSingleLine()
@@ -1058,10 +1074,12 @@ class DirectoryAdapter(
 
             dirName.text = nameCount
 
-            if (isListViewType || folderStyle == FOLDER_STYLE_ROUNDED_CORNERS) {
+            if (isListViewType) {
                 photoCnt.setTextColor(textColor)
                 dirName.setTextColor(textColor)
                 dirLocation.applyColorFilter(textColor)
+            } else {
+                dressFor(coverStyle, textColor)
             }
 
             if (isListViewType) {
@@ -1143,11 +1161,17 @@ class DirectoryAdapter(
             return@apply
         }
 
-        dirThumbnail.setBackgroundResource(placeholder)
+        if (roundedCorners == ROUNDED_CORNERS_SQUIRCLE) {
+            dirThumbnail.background = squirclePlaceholder.constantState?.newDrawable()
+        } else {
+            dirThumbnail.setBackgroundResource(placeholder)
+        }
+
         // a folder whose cover failed to load left its warning icon centred here, and the view
         // outlives the folder it failed for - without this every later cover bound to it is drawn at
         // its own size in the middle of the tile instead of filling it
         dirThumbnail.scaleType = ImageView.ScaleType.FIT_CENTER
+        val coverSize = coverDecodeSize()
         activity.loadImage(
             type = thumbnailType,
             path = directory.tmb,
@@ -1157,7 +1181,8 @@ class DirectoryAdapter(
             cropThumbnails = cropThumbnails,
             roundCorners = roundedCorners,
             signature = directory.getKey(),
-            overrideSize = thumbnailSize(),
+            overrideSize = coverSize?.first,
+            overrideHeight = coverSize?.second,
             onError = {
                 dirThumbnail.scaleType = ImageView.ScaleType.CENTER
                 dirThumbnail.setImageDrawable(AppCompatResources.getDrawable(activity, R.drawable.ic_vector_warning_colored))
@@ -1177,6 +1202,7 @@ class DirectoryAdapter(
         val members = directory.groupMembers.take(MAX_FOLDER_GROUP_COVERS)
         binding.dirGroupThumbnail.apply {
             setCornerRadius(thumbnailCornerRadius)
+            setSquircle(!isListViewType && coverStyle == FolderCoverStyle.SQUIRCLE)
             setBorderColor(properPrimaryColor)
             // a rebind can drop cells the last one had going, and a request left in flight would
             // land in a cell this group never asked to fill
@@ -1212,11 +1238,10 @@ class DirectoryAdapter(
 
     override fun onChange(position: Int) = dirs.getOrNull(position)?.getBubbleText(directorySorting, activity, dateFormat, timeFormat) ?: ""
 
-    private fun getRoundedCorners() = when {
-        isListViewType -> ROUNDED_CORNERS_SMALL
-        folderStyle == FOLDER_STYLE_SQUARE -> ROUNDED_CORNERS_NONE
-        else -> ROUNDED_CORNERS_BIG
-    }
+    private fun getRoundedCorners() = if (isListViewType) ROUNDED_CORNERS_SMALL else coverStyle.bitmapCorners
+
+    // whether tiles carry a line under the name at all, which the sideways layout has to know up front
+    private val hasDetailsLine get() = showMediaCount == FOLDER_MEDIA_CNT_LINE || showFolderSize || showFolderDate
 
     /**
      * The size a cover is decoded to: the column count's nominal share of the grid, rounded to a
@@ -1236,11 +1261,11 @@ class DirectoryAdapter(
             return null
         }
 
-        // scrolled sideways, the rounded style hangs the cover above the folder's name rather than
-        // filling the tile, so it is left with whatever height the name does not want - a shape, not
-        // a square, and one that changes with the count. There is no single number to ask for, and
-        // the view's own size is still the right answer. See the tile layout in bindItem.
-        if (scrollHorizontally && folderStyle == FOLDER_STYLE_ROUNDED_CORNERS) {
+        // scrolled sideways, a style naming the folder under its cover hangs the cover above the name
+        // rather than filling the tile, so it is left with whatever height the name does not want - a
+        // shape, not a square, and one that changes with the count. There is no single number to ask
+        // for, and the view's own size is still the right answer. See the tile layout in setupView.
+        if (scrollHorizontally && coverStyle.label != FolderLabelPlacement.ON_COVER) {
             return null
         }
 
@@ -1257,34 +1282,38 @@ class DirectoryAdapter(
             return null
         }
 
-        // a cover does not fill its span: the square style insets it by a hairline either side, the
-        // rounded one by the margin its tile is laid out with
-        val inset = if (folderStyle == FOLDER_STYLE_SQUARE) {
-            SQUARE_COVER_INSET_PX
-        } else {
-            2 * resources.getDimensionPixelSize(org.fossify.commons.R.dimen.medium_margin)
-        }
-
+        // a cover does not fill its span, see FolderCoverStyle.coverInset
+        val inset = coverStyle.coverInset(resources)
         return ThumbnailSizes.snap((across / layoutManager.spanCount - inset).coerceAtLeast(1))
+    }
+
+    /**
+     * The width and height a cover is decoded to: [thumbnailSize] across the grid, and the style's
+     * proportions along it.
+     */
+    private fun coverDecodeSize(): Pair<Int, Int>? {
+        val across = thumbnailSize() ?: return null
+        val ratio = coverStyle.aspectRatio
+        return if (scrollHorizontally) {
+            (across / ratio).roundToInt() to across
+        } else {
+            across to (across * ratio).roundToInt()
+        }
     }
 
     /** How round a tile's cover is drawn, for anything that has to trace one - see [FolderDragMode]. */
     internal val thumbnailCornerRadius: Float
-        get() {
-            val radiusId = when (getRoundedCorners()) {
-                ROUNDED_CORNERS_SMALL -> org.fossify.commons.R.dimen.rounded_corner_radius_small
-                ROUNDED_CORNERS_BIG -> org.fossify.commons.R.dimen.rounded_corner_radius_big
-                else -> return 0f
-            }
-
-            return resources.getDimension(radiusId)
+        get() = if (isListViewType) {
+            resources.getDimension(org.fossify.commons.R.dimen.rounded_corner_radius_small)
+        } else {
+            coverStyle.shapeRadius(resources, thumbnailSize() ?: 0)
         }
 
     private fun bindItem(view: View): DirectoryItemBinding {
-        return when {
-            isListViewType -> DirectoryItemListBinding.bind(view).toItemBinding()
-            folderStyle == FOLDER_STYLE_SQUARE -> DirectoryItemGridSquareBinding.bind(view).toItemBinding()
-            else -> DirectoryItemGridRoundedCornersBinding.bind(view).toItemBinding()
+        return if (isListViewType) {
+            DirectoryItemListBinding.bind(view).toItemBinding()
+        } else {
+            GridDirectoryItemBinding(view as ViewGroup)
         }
     }
 }

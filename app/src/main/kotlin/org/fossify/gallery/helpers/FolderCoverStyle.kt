@@ -1,0 +1,136 @@
+package org.fossify.gallery.helpers
+
+import android.content.Context
+import android.content.res.Resources
+import android.text.format.DateUtils
+import androidx.annotation.LayoutRes
+import androidx.annotation.StringRes
+import org.fossify.commons.extensions.formatSize
+import org.fossify.gallery.R
+import java.util.Calendar
+
+/** Where a style writes a folder's name and details: over the cover, under it, or in a frame. */
+enum class FolderLabelPlacement { ON_COVER, BELOW, IN_FRAME }
+
+private const val CARD_ASPECT_RATIO = 4f / 3f
+
+// the hairline of padding directory_item_grid_square.xml keeps around its cover
+private const val SQUARE_COVER_INSET_PX = 2
+
+private const val FOLDER_DETAILS_SEPARATOR = " · "
+
+/**
+ * The looks a folder tile can take, and everything about one the code has to know. The grid and the
+ * style dialog's preview both read this, so a style is described in one place - its layout carries
+ * the same ids as every other, see GridDirectoryItemBinding.
+ */
+enum class FolderCoverStyle(
+    val id: Int,
+    @StringRes val title: Int,
+    @LayoutRes val layout: Int,
+    /** How the cover's bitmap itself is cut, as one of the ROUNDED_CORNERS_ constants. */
+    val bitmapCorners: Int,
+    val label: FolderLabelPlacement
+) {
+    SQUARE(
+        id = FOLDER_STYLE_SQUARE,
+        title = R.string.square,
+        layout = R.layout.directory_item_grid_square,
+        bitmapCorners = ROUNDED_CORNERS_NONE,
+        label = FolderLabelPlacement.ON_COVER
+    ),
+
+    ROUNDED(
+        id = FOLDER_STYLE_ROUNDED_CORNERS,
+        title = R.string.rounded_corners,
+        layout = R.layout.directory_item_grid_rounded_corners,
+        bitmapCorners = ROUNDED_CORNERS_BIG,
+        label = FolderLabelPlacement.BELOW
+    ),
+
+    // rounded by the cover view's outline rather than in the bitmap: the frosted band is a blur of the
+    // bitmap, and a transparent corner would bleed into it
+    CARD(
+        id = FOLDER_STYLE_CARD,
+        title = R.string.folder_style_card,
+        layout = R.layout.directory_item_grid_card,
+        bitmapCorners = ROUNDED_CORNERS_NONE,
+        label = FolderLabelPlacement.ON_COVER
+    ),
+
+    STACK(
+        id = FOLDER_STYLE_STACK,
+        title = R.string.folder_style_stack,
+        layout = R.layout.directory_item_grid_stack,
+        bitmapCorners = ROUNDED_CORNERS_BIG,
+        label = FolderLabelPlacement.BELOW
+    ),
+
+    PRINT(
+        id = FOLDER_STYLE_PRINT,
+        title = R.string.folder_style_print,
+        layout = R.layout.directory_item_grid_print,
+        bitmapCorners = ROUNDED_CORNERS_NONE,
+        label = FolderLabelPlacement.IN_FRAME
+    ),
+
+    SQUIRCLE(
+        id = FOLDER_STYLE_SQUIRCLE,
+        title = R.string.folder_style_squircle,
+        layout = R.layout.directory_item_grid_squircle,
+        bitmapCorners = ROUNDED_CORNERS_SQUIRCLE,
+        label = FolderLabelPlacement.BELOW
+    );
+
+    /** The cover's height over its width. Has to agree with coverAspectRatio in the layout. */
+    val aspectRatio get() = if (this == CARD) CARD_ASPECT_RATIO else 1f
+
+    /** How round the cover's corners are drawn, for anything that has to trace one. */
+    fun shapeRadius(resources: Resources, coverWidth: Int): Float = when (this) {
+        SQUARE, PRINT -> 0f
+        SQUIRCLE -> coverWidth * Squircle.EQUIVALENT_RADIUS
+        ROUNDED, CARD, STACK -> resources.getDimension(org.fossify.commons.R.dimen.rounded_corner_radius_big)
+    }
+
+    /** How much narrower a cover is than the column it stands in. */
+    fun coverInset(resources: Resources): Int {
+        val margin = resources.getDimensionPixelSize(org.fossify.commons.R.dimen.medium_margin)
+        return when (this) {
+            SQUARE -> SQUARE_COVER_INSET_PX
+            PRINT -> 2 * (margin + resources.getDimensionPixelSize(R.dimen.folder_print_frame))
+            ROUNDED, CARD, STACK, SQUIRCLE -> 2 * margin
+        }
+    }
+
+    companion object {
+        fun from(id: Int) = entries.firstOrNull { it.id == id } ?: SQUARE
+    }
+}
+
+/**
+ * The line under a folder's name: whichever of its file count, size and newest date are asked for, in
+ * that order. [count] is null where the count is not to go on this line.
+ */
+fun Context.folderDetailsLine(count: String?, size: Long, date: Long, showSize: Boolean, showDate: Boolean): String {
+    val parts = listOfNotNull(
+        count,
+        // nothing on a folder weighs nothing: 0 is a size that has not been summed yet, see getProperFileSize
+        if (showSize && size > 0) size.formatSize() else null,
+        if (showDate && date > 0) shortFolderDate(date) else null
+    )
+
+    return parts.joinToString(FOLDER_DETAILS_SEPARATOR)
+}
+
+// the day and month within this year, the month and year before it: a tile is barely a word wide
+private fun Context.shortFolderDate(millis: Long): String {
+    val thisYear = Calendar.getInstance().get(Calendar.YEAR)
+    val year = Calendar.getInstance().apply { timeInMillis = millis }.get(Calendar.YEAR)
+    val flags = if (year == thisYear) {
+        DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_NO_YEAR or DateUtils.FORMAT_ABBREV_MONTH
+    } else {
+        DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_NO_MONTH_DAY or DateUtils.FORMAT_ABBREV_MONTH
+    }
+
+    return DateUtils.formatDateTime(this, millis, flags)
+}

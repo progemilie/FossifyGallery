@@ -4,8 +4,10 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Outline
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.RectF
+import android.os.Build
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
@@ -13,6 +15,7 @@ import android.view.ViewOutlineProvider
 import android.widget.ImageView
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.MAX_FOLDER_GROUP_COVERS
+import org.fossify.gallery.helpers.Squircle
 
 // how many members each layout draws, named so the cell arithmetic below reads as a shape
 private const val ONE_FULL = 1
@@ -52,13 +55,20 @@ class FolderGroupThumbnail @JvmOverloads constructor(
 
     private var shownCells = 0
     private var cornerRadius = 0f
+    private var isSquircle = false
+    private val squirclePath = Path()
 
     init {
         cells.forEach { addView(it) }
         clipToOutline = true
         outlineProvider = object : ViewOutlineProvider() {
             override fun getOutline(view: View, outline: Outline) {
-                outline.setRoundRect(0, 0, view.width, view.height, cornerRadius)
+                // an outline clips to a path only from Android 13; a rounded rect stands in before it
+                if (isSquircle && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    outline.setPath(Squircle.path(view.width.toFloat(), view.height.toFloat(), squirclePath))
+                } else {
+                    outline.setRoundRect(0, 0, view.width, view.height, outlineRadius)
+                }
             }
         }
     }
@@ -105,6 +115,17 @@ class FolderGroupThumbnail @JvmOverloads constructor(
         }
     }
 
+    /** Cuts the tile to a [Squircle] rather than a rounded rect. */
+    fun setSquircle(squircle: Boolean) {
+        if (isSquircle != squircle) {
+            isSquircle = squircle
+            invalidateOutline()
+            invalidate()
+        }
+    }
+
+    private val outlineRadius get() = if (isSquircle) width * Squircle.EQUIVALENT_RADIUS else cornerRadius
+
     fun setBorderColor(color: Int) {
         if (borderPaint.color != color) {
             borderPaint.color = color
@@ -150,8 +171,15 @@ class FolderGroupThumbnail @JvmOverloads constructor(
         // inset by half the stroke so the whole of it lands inside the clip rather than half of it
         // being cut away with the corners
         val inset = borderWidth / 2
-        borderRect.set(inset, inset, width - inset, height - inset)
-        canvas.drawRoundRect(borderRect, cornerRadius, cornerRadius, borderPaint)
+        // traced the way the outline clips, so the border never runs outside the cut
+        if (isSquircle && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Squircle.path(width - borderWidth, height - borderWidth, squirclePath).offset(inset, inset)
+            canvas.drawPath(squirclePath, borderPaint)
+        } else {
+            val radius = outlineRadius
+            borderRect.set(inset, inset, width - inset, height - inset)
+            canvas.drawRoundRect(borderRect, radius, radius, borderPaint)
+        }
     }
 
     private fun layOutCells(width: Int, height: Int) {

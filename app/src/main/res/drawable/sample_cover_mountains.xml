@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- a made up photo for the folder style preview: opaque, so it reads the same on any theme -->
+<vector xmlns:aapt="http://schemas.android.com/aapt"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="300dp"
+    android:height="400dp"
+    android:viewportWidth="300"
+    android:viewportHeight="400">
+
+    <path android:pathData="M0,0h300v400h-300z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerColor="#FFE0708A"
+                android:endColor="#FFFFC37A"
+                android:endX="0"
+                android:endY="260"
+                android:startColor="#FF3B4A8C"
+                android:startX="0"
+                android:startY="0"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+
+    <path
+        android:fillColor="#FFFFE7B0"
+        android:pathData="M108,215a42,42 0,1 0,84 0a42,42 0,1 0,-84 0z" />
+
+    <path
+        android:fillColor="#FF8E5A8C"
+        android:pathData="M0,250L60,190L105,225L165,160L225,215L265,185L300,210L300,400L0,400Z" />
+
+    <path
+        android:fillColor="#FF4E3565"
+        android:pathData="M0,285L55,240L110,275L175,215L240,270L300,245L300,400L0,400Z" />
+
+    <path android:pathData="M0,315h300v85h-300z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endColor="#FF2A2345"
+                android:endX="0"
+                android:endY="400"
+                android:startColor="#FFB86A86"
+                android:startX="0"
+                android:startY="315"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+
+    <path
+        android:fillColor="#40FFE7B0"
+        android:pathData="M110,330h80v3h-80zM125,345h50v3h-50zM138,360h24v2h-24z" />
+</vector>

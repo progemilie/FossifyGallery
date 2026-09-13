@@ -659,6 +659,14 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(LIMIT_FOLDER_TITLE, false)
         set(limitFolderTitle) = prefs.edit().putBoolean(LIMIT_FOLDER_TITLE, limitFolderTitle).apply()
 
+    var showFolderSize: Boolean
+        get() = prefs.getBoolean(FOLDER_SHOW_SIZE, false)
+        set(showFolderSize) = prefs.edit().putBoolean(FOLDER_SHOW_SIZE, showFolderSize).apply()
+
+    var showFolderDate: Boolean
+        get() = prefs.getBoolean(FOLDER_SHOW_DATE, false)
+        set(showFolderDate) = prefs.edit().putBoolean(FOLDER_SHOW_DATE, showFolderDate).apply()
+
     var thumbnailSpacing: Int
         get() = prefs.getInt(THUMBNAIL_SPACING, 1)
         set(thumbnailSpacing) = prefs.edit().putInt(THUMBNAIL_SPACING, thumbnailSpacing).apply()
