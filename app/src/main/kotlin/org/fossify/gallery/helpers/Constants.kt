@@ -335,10 +335,6 @@ const val FOLDER_STYLE_ROUNDED_CORNERS = 2
 // animations
 const val THUMBNAIL_FADE_DURATION_MS = 150
 
-// the thumbnail the user just came back from grows into place
-const val REVEAL_START_SCALE = 0.3f
-const val REVEAL_DURATION_MS = 400L
-
 // the lift a thumbnail gets while it is being held for a hand made order. it shrinks rather than
 // grows - a bigger one would be cut off by the grid edge in the outer columns, taking its ring
 // with it, and the gap the smaller one leaves is what lets the shadow under it show

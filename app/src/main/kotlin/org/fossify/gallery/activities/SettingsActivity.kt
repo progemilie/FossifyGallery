@@ -69,7 +69,9 @@ class SettingsActivity : SimpleActivity() {
 
     override fun onResume() {
         super.onResume()
-        setupTopAppBar(binding.settingsAppbar, NavigationIcon.Arrow)
+        // the status bar icons are picked against the colour named here, and left to itself commons
+        // names the accent - white icons, invisible over a light theme's background
+        setupTopAppBar(binding.settingsAppbar, NavigationIcon.Arrow, getProperBackgroundColor())
         // behind setupTopAppBar, which is what paints the bar back onto its band of colour
         makeTopBarFloating()
         updateEdgeFades()
@@ -993,10 +995,18 @@ class SettingsActivity : SimpleActivity() {
         }
 
         binding.settingsClearCacheHolder.setOnClickListener {
-            ensureBackgroundThread {
-                cacheDir.deleteRecursively()
-                runOnUiThread {
-                    binding.settingsClearCacheSize.text = cacheDir.getProperSize(true).formatSize()
+            ConfirmationDialog(
+                this,
+                "",
+                R.string.clear_cache_confirmation,
+                org.fossify.commons.R.string.yes,
+                org.fossify.commons.R.string.no
+            ) {
+                ensureBackgroundThread {
+                    cacheDir.deleteRecursively()
+                    runOnUiThread {
+                        binding.settingsClearCacheSize.text = cacheDir.getProperSize(true).formatSize()
+                    }
                 }
             }
         }

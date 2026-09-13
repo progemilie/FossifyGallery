@@ -157,7 +157,7 @@ class MediaAdapter(
     private var currentTransformGeneration = TransformedMedia.generation
     private val hasOTGConnected = activity.hasOTGConnected()
 
-    /** Where the grid is looking - scrolling, revealing and remembering a place. */
+    /** Where the grid is looking - scrolling to an item and remembering a place. */
     val gridNavigator = MediaGridNavigator(this)
 
     /** Drag-to-arrange, which takes over the grid's gestures while it is on. */
@@ -268,9 +268,62 @@ class MediaAdapter(
         // above, so the two gestures are free to mean something else
         if (isReordering && tmbItem is Medium) {
             reorderMode.bindItemGestures(holder, tmbItem)
+        } else if (allowLongPress) {
+            holder.itemView.setOnLongClickListener {
+                onItemHeld(holder)
+                true
+            }
         }
 
         bindViewHolder(holder)
+    }
+
+    /**
+     * A hold on an item already picked while a selection is on unpicks it, and the drag that follows
+     * unpicks what it passes over. Any other hold is upstream's: picking, and dragging to pick.
+     */
+    private fun onItemHeld(holder: ViewHolder) {
+        val position = holder.bindingAdapterPosition - positionOffset
+        val key = getItemSelectionKey(position)
+        if (!isSelecting() || key == null || !selectedKeys.contains(key)) {
+            // the grid holds one drag listener at a time, and an unpicking drag leaves its own behind
+            setupDragListener(true)
+            holder.viewLongClicked()
+            return
+        }
+
+        recyclerView.setupDragListener(UnpickingDrag(selectedKeys.toSet()))
+        toggleItemSelection(false, position, true)
+        // unpicking the only picked item ends the selection, which leaves a drag nothing to do
+        if (isSelecting()) {
+            recyclerView.setDragSelectActive(position)
+        }
+    }
+
+    /**
+     * The drag after a hold on a picked item. It unpicks everything between where it began and the
+     * finger, and puts any item it passed over and has since left back the way the hold found it.
+     * Positions are read the way upstream's own drag reads them.
+     */
+    private inner class UnpickingDrag(private val pickedAtHold: Set<Int>) : MyRecyclerView.MyDragListener {
+        override fun selectItem(position: Int) = toggleItemSelection(false, position, true)
+
+        override fun selectRange(initialSelection: Int, lastDraggedIndex: Int, minReached: Int, maxReached: Int) {
+            // unpicking the last item ended the selection under the finger
+            if (!isSelecting()) {
+                return
+            }
+
+            val last = lastDraggedIndex - positionOffset
+            val unpicked = minOf(initialSelection, last)..maxOf(initialSelection, last)
+            val first = minOf(minReached - positionOffset, initialSelection).coerceAtLeast(0)
+            val reached = first..maxOf(maxReached - positionOffset, initialSelection)
+            val (inside, outside) = reached.partition { it in unpicked }
+            // put back before taking away, or the selection could be empty for a moment and end
+            outside.filter { getItemSelectionKey(it)?.let(pickedAtHold::contains) == true }
+                .forEach { toggleItemSelection(true, it, true) }
+            inside.forEach { toggleItemSelection(false, it, true) }
+        }
     }
 
     override fun getItemCount() = media.size
@@ -901,11 +954,9 @@ class MediaAdapter(
         bindItem(itemView, medium).markSelected(medium, isItemSelected(medium), mayAnimate)
     }
 
-    // a view let go of mid drag would come back to another item still lifted, one recycled mid
-    // reveal still growing
+    // a view let go of mid drag would come back to another item still lifted
     private fun resetTransientItemState(itemView: View) {
         itemView.animate().cancel()
-        gridNavigator.cancelReveal()
         reorderMode.resetItemState(itemView)
     }
 
@@ -1052,6 +1103,11 @@ class MediaAdapter(
         peek.setOnClickListener {
             onPeekRequested?.invoke(media.filterIsInstance<Medium>(), getSelectedPaths().toSet(), medium.path)
         }
+
+        // a hold is how a drag selection starts, and the button would keep one landing on it to
+        // itself. The tile gives the buzz, so the button does not give a second
+        peek.isHapticFeedbackEnabled = false
+        peek.setOnLongClickListener { root.performLongClick() }
     }
 
     /** Whether the action mode owns the grid; reordering borrows the same gestures for itself. */

@@ -5,15 +5,22 @@ Fork-only changes, newest first. Internal fixes are left out.
 ## [Unreleased]
 ### Added
 - **Zooming into a photo takes the chrome away**, and letting it back out brings it back.
+- Holding a picked picture and dragging unpicks the pictures the finger passes over.
 ### Changed
 - **A selection's menu is laid out like the viewer's.**
 - Updated the style and opening animation of the copy and move chooser.
 - The rating chooser is smaller, and opens in the middle of the screen.
+- Clearing the cache asks first.
+- The thumbnail you come back to from a photo no longer pops in.
 ### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.
 - Fixed peek buttons and group ticks staying on a tile after a selection had ended.
-- Fixed the Settings title, back arrow and last card's shadow on a light theme.
+- Fixed holding and dragging to select more pictures not working when the hold started on a peek button.
+- Fixed two photos opening on top of each other when two thumbnails were tapped at once.
+- Fixed a photo closed while it was still opening dropping off the bottom of the screen, rather than
+  shrinking back into its thumbnail.
+- Fixed the Settings title, back arrow, status bar icons and last card's shadow on a light theme.
 
 ## [v1.19.0] - 2026.09.01 — UI
 

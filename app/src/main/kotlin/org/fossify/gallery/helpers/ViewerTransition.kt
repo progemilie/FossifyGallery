@@ -81,19 +81,6 @@ object ViewerTransition {
     private var hasFullPicture = false
     private val flightTargets = mutableListOf<CustomTarget<Drawable>>()
 
-    /**
-     * Whether the viewer flew back into a tile. The grid points out where it landed otherwise, and
-     * doing both would be a bounce on the end of an otherwise continuous motion.
-     */
-    private var didShrink = false
-
-    /** Said by the viewer as it lands, and read once by the grid it landed in. */
-    fun shrank() {
-        didShrink = true
-    }
-
-    fun takeDidShrink(): Boolean = didShrink.also { didShrink = false }
-
     /** The tile tapped, taken by the viewer as it comes up. */
     fun takeOpening(): Tile? = pending.also { pending = null }
 
@@ -145,7 +132,6 @@ object ViewerTransition {
         }
 
         pending = tile
-        didShrink = false
         setAnchor(flightAnchor)
         fetchFlightPictures(context, medium)
         dropWhenDestroyed(context, flightAnchor)

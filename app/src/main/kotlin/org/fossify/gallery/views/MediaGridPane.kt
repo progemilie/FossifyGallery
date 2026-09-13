@@ -121,6 +121,7 @@ import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
 import org.fossify.gallery.helpers.SLIDESHOW_START_ON_ENTER
 import org.fossify.gallery.helpers.VIDEO_PLAYER_APP
 import org.fossify.gallery.helpers.VIDEO_PLAYER_SYSTEM
+import org.fossify.gallery.helpers.ViewerLaunchGuard
 import org.fossify.gallery.helpers.ViewerReturn
 import org.fossify.gallery.interfaces.GridPane
 import org.fossify.gallery.interfaces.MediaOperationsListener
@@ -262,6 +263,7 @@ class MediaGridPane(
     private var mIsSelecting = false
     private val reorderBar by lazy { ReorderBar(binding.mediaReorderBar) }
     private val viewerReturn = ViewerReturn()
+    private val viewerLaunch = ViewerLaunchGuard(activity)
 
     override val root: View get() = binding.root
     override val grid get() = binding.mediaGrid
@@ -1397,7 +1399,7 @@ class MediaGridPane(
                 activity.setResult(RESULT_OK, this)
             }
             activity.finish()
-        } else {
+        } else if (viewerLaunch.tryClaim()) {
             mWasFullscreenViewOpen = true
             viewerReturn.opening(path)
             // grows the tapped tile into the fullscreen picture, see ViewerTransition
@@ -1424,6 +1426,10 @@ class MediaGridPane(
      * having to leave the selection to take it. What it hands back is read in [onActivityResult].
      */
     private fun openPeekViewer(media: List<Medium>, selectedPaths: Set<String>, path: String) {
+        if (!viewerLaunch.tryClaim()) {
+            return
+        }
+
         PeekSession.open(media, selectedPaths, path)
         viewerReturn.opening(path)
         ViewerTransition.beginFlight(activity, getMediaAdapter(), mMedia, path)
