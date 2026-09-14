@@ -272,8 +272,9 @@
     <!-- folder cover styles, see FolderCoverStyle -->
     <dimen name="folder_cover_border_width">1dp</dimen>
     <dimen name="folder_card_frost_radius">14dp</dimen>
-    <!-- how far above the label the frost fades in over -->
-    <dimen name="folder_card_frost_feather">22dp</dimen>
+    <!-- how far above the label the frost starts, and the distance it fades in over from there -->
+    <dimen name="folder_card_frost_rise">10dp</dimen>
+    <dimen name="folder_card_frost_feather">36dp</dimen>
     <dimen name="folder_card_label_padding">8dp</dimen>
     <dimen name="folder_card_name_text_size">13sp</dimen>
     <dimen name="folder_card_details_text_size">11sp</dimen>

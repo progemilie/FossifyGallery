@@ -24,9 +24,10 @@ import kotlin.math.roundToInt
  * A folder cover that can be taller than it is wide, rounded by its own outline, and frosted where a
  * label is laid over it - the sibling frostBehind names, followed as it is laid out.
  *
- * The frost is the cover's own drawing replayed through a blur, so it costs no second image request,
- * and it fades in over a short feather above the label rather than starting at an edge. Below
- * Android 12 there is no cheap blur, and the label is left to the scrim laid under it.
+ * The frost is the cover's own drawing replayed through a blur, so it costs no second image request.
+ * It starts a little above the label and fades in over a feather reaching down into it, rather than
+ * starting at an edge. Below Android 12 there is no cheap blur, and the label is left to the scrim
+ * laid under it.
  */
 class FolderCoverView : MySquareImageView {
     private var aspectRatio = 1f
@@ -73,6 +74,7 @@ class FolderCoverView : MySquareImageView {
         if (frostAnchorId != NO_ID && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             frost = FrostPainter(
                 blurRadius = resources.getDimension(R.dimen.folder_card_frost_radius),
+                rise = resources.getDimension(R.dimen.folder_card_frost_rise),
                 featherHeight = resources.getDimension(R.dimen.folder_card_frost_feather)
             )
         }
@@ -118,16 +120,19 @@ class FolderCoverView : MySquareImageView {
             return
         }
 
-        val bandTop = (anchor.top - top - painter.featherHeight).roundToInt().coerceAtLeast(0)
+        val bandTop = (anchor.top - top - painter.rise).roundToInt().coerceAtLeast(0)
         if (bandTop < height) {
             painter.draw(canvas, bandTop, width, height) { super.onDraw(it) }
         }
     }
 }
 
-/** The frosted band of a [FolderCoverView]: its picture blurred, and faded in from the band's top. */
+/**
+ * The frosted band of a [FolderCoverView]: its picture blurred, starting [rise] above the label and
+ * faded in over [featherHeight] from there.
+ */
 @RequiresApi(Build.VERSION_CODES.S)
-private class FrostPainter(blurRadius: Float, val featherHeight: Float) {
+private class FrostPainter(blurRadius: Float, val rise: Float, featherHeight: Float) {
     private val picture = RenderNode("folderCoverPicture").apply {
         setRenderEffect(RenderEffect.createBlurEffect(blurRadius, blurRadius, Shader.TileMode.CLAMP))
     }
