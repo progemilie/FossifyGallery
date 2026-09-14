@@ -73,22 +73,6 @@
                     android:paddingBottom="@dimen/medium_margin"
                     android:text="@string/folder_style_stack" />
 
-                <org.fossify.commons.views.MyCompatRadioButton
-                    android:id="@+id/dialog_radio_folder_print"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:paddingTop="@dimen/medium_margin"
-                    android:paddingBottom="@dimen/medium_margin"
-                    android:text="@string/folder_style_print" />
-
-                <org.fossify.commons.views.MyCompatRadioButton
-                    android:id="@+id/dialog_radio_folder_squircle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:paddingTop="@dimen/medium_margin"
-                    android:paddingBottom="@dimen/medium_margin"
-                    android:text="@string/folder_style_squircle" />
-
             </RadioGroup>
 
             <include layout="@layout/divider" />

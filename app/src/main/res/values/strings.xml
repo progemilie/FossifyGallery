@@ -294,8 +294,6 @@
     <string name="rounded_corners">Rounded corners</string>
     <string name="folder_style_card">Tall card</string>
     <string name="folder_style_stack">Stack</string>
-    <string name="folder_style_print">Photo print</string>
-    <string name="folder_style_squircle">Squircle</string>
     <string name="show_folder_size">Show folder size</string>
     <string name="show_folder_date">Show the date of the newest file</string>
     <string name="export_favorite_paths">Export favorites</string>

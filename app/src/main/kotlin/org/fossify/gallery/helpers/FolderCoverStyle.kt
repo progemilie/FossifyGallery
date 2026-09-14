@@ -9,10 +9,10 @@ import org.fossify.commons.extensions.formatSize
 import org.fossify.gallery.R
 import java.util.Calendar
 
-/** Where a style writes a folder's name and details: over the cover, under it, or in a frame. */
-enum class FolderLabelPlacement { ON_COVER, BELOW, IN_FRAME }
+/** Where a style writes a folder's name and details: over the cover or under it. */
+enum class FolderLabelPlacement { ON_COVER, BELOW }
 
-private const val CARD_ASPECT_RATIO = 4f / 3f
+private const val CARD_ASPECT_RATIO = 5f / 4f
 
 // the hairline of padding directory_item_grid_square.xml keeps around its cover
 private const val SQUARE_COVER_INSET_PX = 2
@@ -64,42 +64,22 @@ enum class FolderCoverStyle(
         layout = R.layout.directory_item_grid_stack,
         bitmapCorners = ROUNDED_CORNERS_BIG,
         label = FolderLabelPlacement.BELOW
-    ),
-
-    PRINT(
-        id = FOLDER_STYLE_PRINT,
-        title = R.string.folder_style_print,
-        layout = R.layout.directory_item_grid_print,
-        bitmapCorners = ROUNDED_CORNERS_NONE,
-        label = FolderLabelPlacement.IN_FRAME
-    ),
-
-    SQUIRCLE(
-        id = FOLDER_STYLE_SQUIRCLE,
-        title = R.string.folder_style_squircle,
-        layout = R.layout.directory_item_grid_squircle,
-        bitmapCorners = ROUNDED_CORNERS_SQUIRCLE,
-        label = FolderLabelPlacement.BELOW
     );
 
     /** The cover's height over its width. Has to agree with coverAspectRatio in the layout. */
     val aspectRatio get() = if (this == CARD) CARD_ASPECT_RATIO else 1f
 
     /** How round the cover's corners are drawn, for anything that has to trace one. */
-    fun shapeRadius(resources: Resources, coverWidth: Int): Float = when (this) {
-        SQUARE, PRINT -> 0f
-        SQUIRCLE -> coverWidth * Squircle.EQUIVALENT_RADIUS
+    fun shapeRadius(resources: Resources): Float = when (this) {
+        SQUARE -> 0f
         ROUNDED, CARD, STACK -> resources.getDimension(org.fossify.commons.R.dimen.rounded_corner_radius_big)
     }
 
     /** How much narrower a cover is than the column it stands in. */
-    fun coverInset(resources: Resources): Int {
-        val margin = resources.getDimensionPixelSize(org.fossify.commons.R.dimen.medium_margin)
-        return when (this) {
-            SQUARE -> SQUARE_COVER_INSET_PX
-            PRINT -> 2 * (margin + resources.getDimensionPixelSize(R.dimen.folder_print_frame))
-            ROUNDED, CARD, STACK, SQUIRCLE -> 2 * margin
-        }
+    fun coverInset(resources: Resources): Int = when (this) {
+        SQUARE -> SQUARE_COVER_INSET_PX
+        // the margin the tile is laid out with, either side
+        ROUNDED, CARD, STACK -> 2 * resources.getDimensionPixelSize(org.fossify.commons.R.dimen.medium_margin)
     }
 
     companion object {

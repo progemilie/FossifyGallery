@@ -101,9 +101,7 @@ import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_SMALL
-import org.fossify.gallery.helpers.ROUNDED_CORNERS_SQUIRCLE
 import org.fossify.gallery.helpers.SelectionMark
-import org.fossify.gallery.helpers.Squircle
 import org.fossify.gallery.helpers.ThumbnailSizes
 import org.fossify.gallery.helpers.TransformedMedia
 import org.fossify.gallery.helpers.TYPE_GIFS
@@ -174,12 +172,6 @@ class DirectoryAdapter(
     private val showFolderSize = config.showFolderSize
     private val showFolderDate = config.showFolderDate
     private var limitFolderTitle = config.limitFolderTitle
-
-    // what every squircle cover's placeholder is copied from, so the shape is only traced once
-    private val squirclePlaceholder by lazy {
-        Squircle.placeholder(activity.getColor(org.fossify.commons.R.color.md_grey_black))
-    }
-
     var directorySorting = config.directorySorting
     var dateFormat = config.dateFormat
     var timeFormat = activity.getTimeFormat()
@@ -1137,6 +1129,8 @@ class DirectoryAdapter(
         // the badge and the selection check share the corner, and the check has to win it
         dirGroupBadge.beVisibleIf(isGroup && !isSelected)
         dirGroupThumbnail.beVisibleIf(isGroup)
+        // a group's collage is edged in the accent colour already
+        dirCoverBorder?.beVisibleIf(!isGroup)
         // the collage draws in the thumbnail's place, so the thumbnail itself has to give up both
         // its image and the placeholder behind it or they show through the cell gaps
         dirThumbnail.beInvisibleIf(isGroup)
@@ -1161,12 +1155,7 @@ class DirectoryAdapter(
             return@apply
         }
 
-        if (roundedCorners == ROUNDED_CORNERS_SQUIRCLE) {
-            dirThumbnail.background = squirclePlaceholder.constantState?.newDrawable()
-        } else {
-            dirThumbnail.setBackgroundResource(placeholder)
-        }
-
+        dirThumbnail.setBackgroundResource(placeholder)
         // a folder whose cover failed to load left its warning icon centred here, and the view
         // outlives the folder it failed for - without this every later cover bound to it is drawn at
         // its own size in the middle of the tile instead of filling it
@@ -1202,7 +1191,6 @@ class DirectoryAdapter(
         val members = directory.groupMembers.take(MAX_FOLDER_GROUP_COVERS)
         binding.dirGroupThumbnail.apply {
             setCornerRadius(thumbnailCornerRadius)
-            setSquircle(!isListViewType && coverStyle == FolderCoverStyle.SQUIRCLE)
             setBorderColor(properPrimaryColor)
             // a rebind can drop cells the last one had going, and a request left in flight would
             // land in a cell this group never asked to fill
@@ -1306,7 +1294,7 @@ class DirectoryAdapter(
         get() = if (isListViewType) {
             resources.getDimension(org.fossify.commons.R.dimen.rounded_corner_radius_small)
         } else {
-            coverStyle.shapeRadius(resources, thumbnailSize() ?: 0)
+            coverStyle.shapeRadius(resources)
         }
 
     private fun bindItem(view: View): DirectoryItemBinding {

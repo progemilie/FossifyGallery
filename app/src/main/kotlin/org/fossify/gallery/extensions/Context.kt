@@ -29,7 +29,6 @@ import com.bumptech.glide.load.DecodeFormat
 import com.bumptech.glide.load.MultiTransformation
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.engine.GlideException
-import com.bumptech.glide.load.resource.bitmap.BitmapTransformation
 import com.bumptech.glide.load.resource.bitmap.CenterCrop
 import com.bumptech.glide.load.resource.bitmap.FitCenter
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
@@ -102,9 +101,7 @@ import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_NONE
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_SMALL
-import org.fossify.gallery.helpers.ROUNDED_CORNERS_SQUIRCLE
 import org.fossify.gallery.helpers.SHOW_ALL
-import org.fossify.gallery.helpers.SquircleMask
 import org.fossify.gallery.helpers.THUMBNAIL_FADE_DURATION_MS
 import org.fossify.gallery.helpers.ThumbnailPrefetcher
 import org.fossify.gallery.helpers.ThumbnailSource
@@ -716,11 +713,10 @@ private fun thumbnailDecodeFormat(roundCorners: Int) = if (roundCorners == ROUND
 }
 
 /** What cuts a thumbnail's corners for [roundCorners], or null where it keeps them square. */
-fun Context.coverCornersTransformation(roundCorners: Int): BitmapTransformation? {
+fun Context.coverCornersTransformation(roundCorners: Int): RoundedCorners? {
     val radius = when (roundCorners) {
         ROUNDED_CORNERS_SMALL -> org.fossify.commons.R.dimen.rounded_corner_radius_small
         ROUNDED_CORNERS_BIG -> org.fossify.commons.R.dimen.rounded_corner_radius_big
-        ROUNDED_CORNERS_SQUIRCLE -> return SquircleMask()
         else -> return null
     }
 

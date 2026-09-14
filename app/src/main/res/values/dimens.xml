@@ -270,19 +270,18 @@
     <dimen name="settings_info_padding">10dp</dimen>
 
     <!-- folder cover styles, see FolderCoverStyle -->
-    <dimen name="folder_card_frost_radius">16dp</dimen>
+    <dimen name="folder_cover_border_width">1dp</dimen>
+    <dimen name="folder_card_frost_radius">14dp</dimen>
     <!-- how far above the label the frost fades in over -->
-    <dimen name="folder_card_frost_feather">28dp</dimen>
-    <dimen name="folder_card_label_padding">10dp</dimen>
+    <dimen name="folder_card_frost_feather">22dp</dimen>
+    <dimen name="folder_card_label_padding">8dp</dimen>
+    <dimen name="folder_card_name_text_size">13sp</dimen>
+    <dimen name="folder_card_details_text_size">11sp</dimen>
     <dimen name="folder_stack_peek">5dp</dimen>
     <dimen name="folder_stack_cover_top">10dp</dimen>
     <dimen name="folder_stack_card_height">24dp</dimen>
     <dimen name="folder_stack_middle_inset">8dp</dimen>
     <dimen name="folder_stack_back_inset">16dp</dimen>
-    <dimen name="folder_print_frame">6dp</dimen>
-    <dimen name="folder_print_corner">2dp</dimen>
-    <dimen name="folder_print_elevation">2dp</dimen>
-    <dimen name="folder_squircle_badge_margin">12dp</dimen>
     <dimen name="folder_style_sample_width">136dp</dimen>
     <dimen name="folder_style_sample_min_height">216dp</dimen>
 </resources>

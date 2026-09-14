@@ -30,6 +30,7 @@ interface DirectoryItemBinding {
     val dirLocation: ImageView
     val dirDragHandle: ImageView
     val dirDragHandleWrapper: ViewGroup?
+    val dirCoverBorder: View?
 }
 
 class ListDirectoryItemBinding(val binding: DirectoryItemListBinding) : DirectoryItemBinding {
@@ -47,6 +48,7 @@ class ListDirectoryItemBinding(val binding: DirectoryItemListBinding) : Director
     override val dirLocation: ImageView = binding.dirLocation
     override val dirDragHandle: ImageView = binding.dirDragHandle
     override val dirDragHandleWrapper: ViewGroup? = null
+    override val dirCoverBorder: View? = null
 }
 
 fun DirectoryItemListBinding.toItemBinding() = ListDirectoryItemBinding(this)
@@ -69,19 +71,26 @@ class GridDirectoryItemBinding(override val root: ViewGroup) : DirectoryItemBind
     override val dirLocation: ImageView = root.findViewById(R.id.dir_location)
     override val dirDragHandle: ImageView = root.findViewById(R.id.dir_drag_handle)
     override val dirDragHandleWrapper: ViewGroup = root.findViewById(R.id.dir_drag_handle_wrapper)
+    override val dirCoverBorder: View? = root.findViewById(R.id.dir_cover_border)
 }
 
 // how far the stack's cards are carried from the background towards the text colour
 private const val STACK_MIDDLE_CARD_SHADE = 0.3f
 private const val STACK_BACK_CARD_SHADE = 0.15f
 
-/** Colours what a tile's style leaves to the theme. Text on a cover and on a print keeps its own. */
+// the text colour always stands out from the theme's background, so a faint wash of it edges a cover
+private const val COVER_BORDER_ALPHA = 0x40
+
+/** Colours what a tile's style leaves to the theme. Text on a cover keeps its own. */
 fun DirectoryItemBinding.dressFor(style: FolderCoverStyle, textColor: Int) {
     if (style.label == FolderLabelPlacement.BELOW) {
         dirName.setTextColor(textColor)
         photoCnt.setTextColor(textColor)
         dirLocation.applyColorFilter(textColor)
     }
+
+    dirCoverBorder?.backgroundTintList =
+        ColorStateList.valueOf(ColorUtils.setAlphaComponent(textColor, COVER_BORDER_ALPHA))
 
     if (style == FolderCoverStyle.STACK) {
         // opaque rather than see-through, or the back card would show through the middle one

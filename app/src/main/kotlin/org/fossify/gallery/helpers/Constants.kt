@@ -327,9 +327,6 @@ const val ROUNDED_CORNERS_NONE = 1
 const val ROUNDED_CORNERS_SMALL = 2
 const val ROUNDED_CORNERS_BIG = 3
 
-// cut out of the bitmap like the others, but to a superellipse - see SquircleMask
-const val ROUNDED_CORNERS_SQUIRCLE = 4
-
 const val FOLDER_MEDIA_CNT_LINE = 1
 const val FOLDER_MEDIA_CNT_BRACKETS = 2
 const val FOLDER_MEDIA_CNT_NONE = 3
@@ -338,8 +335,6 @@ const val FOLDER_STYLE_SQUARE = 1
 const val FOLDER_STYLE_ROUNDED_CORNERS = 2
 const val FOLDER_STYLE_CARD = 3
 const val FOLDER_STYLE_STACK = 4
-const val FOLDER_STYLE_PRINT = 5
-const val FOLDER_STYLE_SQUIRCLE = 6
 
 // animations
 const val THUMBNAIL_FADE_DURATION_MS = 150

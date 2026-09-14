@@ -43,9 +43,7 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
             FolderCoverStyle.SQUARE to dialogRadioFolderSquare,
             FolderCoverStyle.ROUNDED to dialogRadioFolderRoundedCorners,
             FolderCoverStyle.CARD to dialogRadioFolderCard,
-            FolderCoverStyle.STACK to dialogRadioFolderStack,
-            FolderCoverStyle.PRINT to dialogRadioFolderPrint,
-            FolderCoverStyle.SQUIRCLE to dialogRadioFolderSquircle
+            FolderCoverStyle.STACK to dialogRadioFolderStack
         )
     }
 

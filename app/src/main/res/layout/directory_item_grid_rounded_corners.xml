@@ -55,6 +55,17 @@
         android:src="@drawable/ic_lock_vector"
         android:visibility="gone" />
 
+    <!-- over the padlock as well, so a locked tile is edged like the rest -->
+    <View
+        android:id="@+id/dir_cover_border"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignStart="@+id/dir_thumbnail"
+        android:layout_alignTop="@+id/dir_thumbnail"
+        android:layout_alignEnd="@+id/dir_thumbnail"
+        android:layout_alignBottom="@+id/dir_thumbnail"
+        android:background="@drawable/folder_cover_border" />
+
     <ImageView
         android:id="@+id/dir_check"
         android:layout_width="@dimen/selection_check_size"
