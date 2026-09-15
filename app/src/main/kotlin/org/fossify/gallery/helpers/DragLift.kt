@@ -13,8 +13,19 @@ import org.fossify.gallery.R
 
 /**
  * What a picked up item looks like while it travels, shared by the two grids that let one be
- * dragged - media in `MediaReorderMode`, folder tiles in `FolderDragMode`.
+ * dragged - media in `MediaReorderMode`, folder tiles in `FolderDragMode` - so an item is picked up
+ * the same way whichever grid it is on.
  */
+
+/**
+ * Holds a picked up item off the grid at [scale]: shrunk, faded a touch and casting a shadow into the
+ * gap that opens around it.
+ */
+fun View.animatePickUp(scale: Float = DRAG_LIFT_SCALE): Animator = animateDragLift(
+    scale = scale,
+    elevation = resources.getDimension(R.dimen.drag_lift_elevation),
+    alpha = DRAG_LIFT_ALPHA
+)
 
 /**
  * Animators of our own rather than the view's animate() builder: the grid's item animator uses that
@@ -37,16 +48,11 @@ fun View.animateDragLift(scale: Float, elevation: Float, alpha: Float = 1f): Ani
  * An accent ring following the picture's own corners, [fraction] of its width so it stays in
  * proportion whatever column count the grid is on.
  *
- * [GradientDrawable] draws the stroke inside the bounds it is given, so [insetCorners] pulls the
- * radius in by half of it - at the picture's own radius the ring would come out rounder than the
- * picture and leave its corners sticking out past it.
+ * [GradientDrawable] draws the stroke inside the bounds it is given, so the radius is pulled in by
+ * half of it - at the picture's own radius the ring would come out rounder than the picture and
+ * leave its corners sticking out past it.
  */
-fun Context.dragAccentRing(
-    pictureWidth: Int,
-    cornerRadius: Float,
-    fraction: Float,
-    insetCorners: Boolean = false
-): GradientDrawable {
+fun Context.dragAccentRing(pictureWidth: Int, cornerRadius: Float, fraction: Float): GradientDrawable {
     val strokeWidth = (pictureWidth * fraction).coerceIn(
         resources.getDimension(R.dimen.accent_border_min_width),
         resources.getDimension(R.dimen.accent_border_max_width)
@@ -54,12 +60,7 @@ fun Context.dragAccentRing(
 
     return GradientDrawable().apply {
         shape = GradientDrawable.RECTANGLE
-        this.cornerRadius = if (insetCorners) {
-            (cornerRadius - strokeWidth / 2).coerceAtLeast(0f)
-        } else {
-            cornerRadius
-        }
-
+        this.cornerRadius = (cornerRadius - strokeWidth / 2).coerceAtLeast(0f)
         setStroke(strokeWidth.toInt(), getProperPrimaryColor())
     }
 }

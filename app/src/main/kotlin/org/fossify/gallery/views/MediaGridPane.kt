@@ -11,7 +11,7 @@ import androidx.core.view.children
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
+import android.widget.RelativeLayout
 import androidx.core.net.toUri
 import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.GridLayoutManager
@@ -112,7 +112,6 @@ import org.fossify.gallery.helpers.ViewerTransition
 import org.fossify.gallery.helpers.PICKED_PATHS
 import org.fossify.gallery.helpers.PeekSession
 import org.fossify.gallery.helpers.RECYCLE_BIN
-import org.fossify.gallery.helpers.ReorderBar
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_FAVORITES
 import org.fossify.gallery.helpers.SHOW_RECYCLE_BIN
@@ -175,9 +174,6 @@ class MediaGridPane(
         /** The toolbar's entries follow what the grid is showing, so this asks for them again. */
         fun refreshMenu()
 
-        /** What keeps clear of the navigation bar changes as the reorder bar comes and goes. */
-        fun applyInsets()
-
         /** Arranging or selecting takes the screen over, and the chrome has to answer for it. */
         fun onPaneStateChanged()
 
@@ -215,7 +211,6 @@ class MediaGridPane(
     private var mWasFullscreenViewOpen = false
     private var mLastSearchedText = ""
     private var mIsReordering = false
-    private var mGridBottomPadding = 0
     private var mGridPositionToRestore: MediaGridNavigator.GridPosition? = null
     private var mLatestMediaId = 0L
     private var mLatestMediaDateId = 0L
@@ -261,7 +256,7 @@ class MediaGridPane(
 
     // the pill navigates away, so it has to go while a selection it would drop is on
     private var mIsSelecting = false
-    private val reorderBar by lazy { ReorderBar(binding.mediaReorderBar) }
+    private val reorderPills by lazy { ReorderPills(binding.mediaReorderPills, contentBehind = binding.root) }
     private val viewerReturn = ViewerReturn()
     private val viewerLaunch = ViewerLaunchGuard(activity)
 
@@ -273,7 +268,7 @@ class MediaGridPane(
 
     override val selectionMenuSpec = SELECTION_MEDIA_MENU
 
-    /** Whether an arrangement is being made, which takes the bottom of the screen over. */
+    /** Whether an arrangement is being made, which puts pills of its own up in place of the chrome. */
     val isReordering get() = mIsReordering
 
     /**
@@ -332,7 +327,7 @@ class MediaGridPane(
 
     init {
         binding.mediaRefreshLayout.setOnRefreshListener { getMedia() }
-        setupReorderBar()
+        setupReorderPills()
         storeStateVariables()
         // registering the pinch (which the lazy does) before the tap gives it first refusal on the
         // grid's touches - item touch listeners are asked in the order they were added
@@ -404,7 +399,7 @@ class MediaGridPane(
         }
 
         binding.loadingIndicator.setIndicatorColor(activity.getProperPrimaryColor())
-        reorderBar.updateColors()
+        reorderPills.updateColors()
         binding.mediaEmptyTextPlaceholder.setTextColor(activity.getProperTextColor())
         binding.mediaEmptyTextPlaceholder2.setTextColor(activity.getProperPrimaryColor())
         binding.mediaEmptyTextPlaceholder2.bringToFront()
@@ -444,7 +439,10 @@ class MediaGridPane(
 
     override fun handleBack(): Boolean {
         return if (mIsReordering) {
-            cancelReordering()
+            // what is marked is let go of first, the way a selection is before the screen it is on
+            if (getMediaAdapter()?.reorderMode?.clearMarks() != true) {
+                cancelReordering()
+            }
             true
         } else if (host.topBar.isSearchOpen) {
             host.topBar.closeSearch()
@@ -608,10 +606,10 @@ class MediaGridPane(
      */
     private fun isAllMediaGrid() = getPathToUse() == SHOW_ALL
 
-    private fun setupReorderBar() {
-        reorderBar.onMoveToEdge = { toTop -> getMediaAdapter()?.reorderMode?.moveSelectionToEdge(toTop) }
-        reorderBar.onCancel = ::cancelReordering
-        reorderBar.onSave = ::saveReordering
+    private fun setupReorderPills() {
+        reorderPills.onMoveToEdge = { toTop -> getMediaAdapter()?.reorderMode?.moveSelectionToEdge(toTop) }
+        reorderPills.onCancel = ::cancelReordering
+        reorderPills.onSave = ::saveReordering
     }
 
     /**
@@ -642,15 +640,8 @@ class MediaGridPane(
 
         mIsReordering = true
         binding.mediaRefreshLayout.isEnabled = false
-        reorderBar.show()
-        // the bar brings its own solid background, so the darkening behind it would only muddy it
-        binding.mediaBottomFade.beGone()
+        reorderPills.show()
         host.onPaneStateChanged()
-        // hand the room the grid was keeping for the navigation bar over to the bar taking its place
-        mGridBottomPadding = binding.mediaGrid.paddingBottom
-        host.applyInsets()
-        binding.mediaGrid.updatePadding(bottom = 0)
-        getMediaAdapter()?.reorderMode?.onSelectionChanged = reorderBar::setMarkedCount
         getMediaAdapter()?.reorderMode?.setActive(true, flatMedia)
         handleGridSpacing(flatMedia)
         setupLayoutManager()
@@ -700,11 +691,8 @@ class MediaGridPane(
 
     private fun stopReordering() {
         mIsReordering = false
-        reorderBar.hide()
-        binding.mediaBottomFade.beVisible()
+        reorderPills.hide()
         host.onPaneStateChanged()
-        host.applyInsets()
-        binding.mediaGrid.updatePadding(bottom = mGridBottomPadding)
         binding.mediaRefreshLayout.isEnabled = config.enablePullToRefresh
         refreshMenuItems()
     }
@@ -1120,12 +1108,12 @@ class MediaGridPane(
         val layoutManager = binding.mediaGrid.layoutManager as MyGridLayoutManager
         if (config.scrollHorizontally) {
             layoutManager.orientation = RecyclerView.HORIZONTAL
-            binding.mediaRefreshLayout.layoutParams = fillRemainingHeightParams(
+            binding.mediaRefreshLayout.layoutParams = fullHeightParams(
                 width = ViewGroup.LayoutParams.WRAP_CONTENT
             )
         } else {
             layoutManager.orientation = RecyclerView.VERTICAL
-            binding.mediaRefreshLayout.layoutParams = fillRemainingHeightParams(
+            binding.mediaRefreshLayout.layoutParams = fullHeightParams(
                 width = ViewGroup.LayoutParams.MATCH_PARENT
             )
         }
@@ -1150,13 +1138,12 @@ class MediaGridPane(
         val layoutManager = binding.mediaGrid.layoutManager as MyGridLayoutManager
         layoutManager.spanCount = 1
         layoutManager.orientation = RecyclerView.VERTICAL
-        binding.mediaRefreshLayout.layoutParams = fillRemainingHeightParams(
+        binding.mediaRefreshLayout.layoutParams = fullHeightParams(
             width = ViewGroup.LayoutParams.MATCH_PARENT
         )
     }
 
-    // the grid shares a column with the reorder bar, so it takes the height that bar leaves over
-    private fun fillRemainingHeightParams(width: Int) = LinearLayout.LayoutParams(width, 0, 1f)
+    private fun fullHeightParams(width: Int) = RelativeLayout.LayoutParams(width, ViewGroup.LayoutParams.MATCH_PARENT)
 
     private fun handleGridSpacing(media: ArrayList<ThumbnailItem> = mediaForGrid()) {
         val viewType = config.getFolderViewType(if (mShowAll) SHOW_ALL else mPath)

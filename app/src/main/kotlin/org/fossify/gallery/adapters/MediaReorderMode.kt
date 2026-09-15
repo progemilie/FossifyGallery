@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewOutlineProvider
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.view.children
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
@@ -18,12 +19,11 @@ import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.interfaces.ItemTouchHelperContract
 import org.fossify.gallery.R
 import org.fossify.gallery.extensions.config
-import org.fossify.gallery.helpers.DRAG_BORDER_WIDTH_FRACTION
-import org.fossify.gallery.helpers.DRAG_LIFT_SCALE
+import org.fossify.gallery.helpers.Hairline
 import org.fossify.gallery.helpers.PaddedGridMoveCallback
 import org.fossify.gallery.helpers.SelectionMark
 import org.fossify.gallery.helpers.animateDragLift
-import org.fossify.gallery.helpers.dragAccentRing
+import org.fossify.gallery.helpers.animatePickUp
 import org.fossify.gallery.helpers.dragPictureOutline
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
@@ -63,9 +63,6 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
 
     private var dragLiftAnimator: Animator? = null
 
-    /** Tells how many items are marked, so the reorder bar can enable what acts on them. */
-    var onSelectionChanged: ((marked: Int) -> Unit)? = null
-
     /**
      * Swaps the grid over to [newMedia] - which the caller flattens, sections cannot take part in a
      * hand made order - and lets a long press start a drag rather than a selection. Leaving the
@@ -78,7 +75,6 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         carriedItems = emptyList()
         draggedPath = null
         markedPaths.clear()
-        notifySelection()
         if (reordering) {
             adapter.finishActMode()
             if (itemTouchHelper == null) {
@@ -95,6 +91,26 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
 
     /** Whether [medium] is one of the items the next drag will carry. */
     fun isMarked(medium: Medium) = markedPaths.contains(medium.path)
+
+    /**
+     * Unticks everything marked, and says whether there was anything to untick. Only the items on
+     * screen are repainted - one the grid kept aside off screen is settled again as it comes back.
+     */
+    fun clearMarks(): Boolean {
+        if (markedPaths.isEmpty()) {
+            return false
+        }
+
+        markedPaths.clear()
+        recyclerView.children.forEach { itemView ->
+            val medium = media.getOrNull(recyclerView.getChildAdapterPosition(itemView)) as? Medium
+            if (medium != null) {
+                adapter.repaintSelection(itemView, medium)
+            }
+        }
+
+        return true
+    }
 
     /**
      * Takes over the item's gestures for the length of the mode. Only called for a view the adapter
@@ -141,10 +157,11 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         return media.mapNotNull { (it as? Medium)?.path }
     }
 
-    /** A view let go of mid drag would come back to another item still lifted and still ringed. */
+    /** A view let go of mid drag would come back to another item still lifted and still edged. */
     fun resetItemState(itemView: View) {
         itemView.scaleX = 1f
         itemView.scaleY = 1f
+        itemView.alpha = 1f
         itemView.translationZ = 0f
         // the tick is put back on every bind, the count of a carried group is not
         itemView.findCountBadge()?.beGone()
@@ -174,7 +191,6 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         adapter.swipeRefreshLayout?.isEnabled = !isActive && activity.config.enablePullToRefresh
         myViewHolder?.itemView?.dropAfterDrag()
         dropCarriedItems()
-        notifySelection()
     }
 
     /**
@@ -187,7 +203,6 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         }
 
         adapter.repaintSelection(holder.itemView, medium)
-        notifySelection()
     }
 
     /**
@@ -209,7 +224,6 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         }
 
         carriedItems.filter { it.path != medium.path }.forEach { removeItem(it.path) }
-        notifySelection()
         itemTouchHelper?.startDrag(holder)
     }
 
@@ -269,38 +283,31 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
 
     private fun indexOfPath(path: String) = media.indexOfFirst { (it as? Medium)?.path == path }
 
-    private fun notifySelection() = onSelectionChanged?.invoke(markedPaths.size)
-
     /**
-     * Pulls the picked up thumbnail out of the grid - smaller, ringed in the accent color and
-     * casting a shadow into the gap that opens around it - so the moment the long press takes hold
-     * and the item is free to be moved is unmistakable. A tap of feedback goes with it, the finger
-     * is on the item and cannot see it.
+     * Pulls the picked up thumbnail out of the grid the way a folder tile is picked up, edged like a
+     * folder's cover for as long as it is held, so the moment the long press takes hold and the item
+     * is free to be moved is unmistakable. A tap of feedback goes with it, the finger is on the item
+     * and cannot see it.
      */
     private fun View.liftForDrag() {
         performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         // ItemTouchHelper owns the elevation of whatever it drags, translationZ is ours to lift with
         outlineProvider = thumbnailOutlineProvider
-        animateLift(DRAG_LIFT_SCALE, activity.resources.getDimension(R.dimen.drag_lift_elevation))
+        findThumbnail()?.foreground = Hairline.drawable(activity, adapter.thumbnailCornerRadius)
+        dragLiftAnimator?.cancel()
+        dragLiftAnimator = animatePickUp()
         showCarriedCount(carriedItems.size)
-
-        findThumbnail()?.apply {
-            foreground = activity.dragAccentRing(
-                pictureWidth = width,
-                cornerRadius = adapter.thumbnailCornerRadius,
-                fraction = DRAG_BORDER_WIDTH_FRACTION
-            )
-        }
     }
 
     private fun View.dropAfterDrag() {
-        // the ring and the shadow go at once rather than when the item has settled - carrying a
+        // the edge and the shadow go at once rather than when the item has settled - carrying a
         // group re-lays the grid out on the drop, and a reset waiting on an animation that a
-        // re-layout can cut short would leave the ring painted on the thumbnail for good
+        // re-layout can cut short would leave both on the thumbnail for good
         outlineProvider = ViewOutlineProvider.BACKGROUND
         findThumbnail()?.foreground = null
         hideCarriedCount()
-        animateLift(1f, 0f)
+        dragLiftAnimator?.cancel()
+        dragLiftAnimator = animateDragLift(1f, 0f)
     }
 
     /**
@@ -330,11 +337,6 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
             // only a marked item is ever carried in a group, so its tick is due back
             findCheck()?.beVisible()
         }
-    }
-
-    private fun View.animateLift(scale: Float, elevation: Float) {
-        dragLiftAnimator?.cancel()
-        dragLiftAnimator = animateDragLift(scale, elevation)
     }
 
     private val thumbnailOutlineProvider =

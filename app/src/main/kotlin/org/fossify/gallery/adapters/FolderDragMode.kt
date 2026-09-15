@@ -19,6 +19,7 @@ import org.fossify.commons.helpers.SORT_BY_CUSTOM
 import org.fossify.commons.interfaces.ItemTouchHelperContract
 import org.fossify.gallery.R
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.helpers.DRAG_LIFT_ALPHA
 import org.fossify.gallery.helpers.DRAG_LIFT_SCALE
 import org.fossify.gallery.helpers.FOLDER_DRAG_MOVE_THRESHOLD
 import org.fossify.gallery.helpers.FOLDER_DROP_BORDER_FRACTION
@@ -30,9 +31,9 @@ import org.fossify.gallery.helpers.FOLDER_FLASH_DURATION_MS
 import org.fossify.gallery.helpers.FOLDER_FLY_IN_DURATION_MS
 import org.fossify.gallery.helpers.FOLDER_FLY_IN_SCALE
 import org.fossify.gallery.helpers.FOLDER_HELD_OVER_SCALE
-import org.fossify.gallery.helpers.FOLDER_LIFT_ALPHA
 import org.fossify.gallery.helpers.PaddedGridMoveCallback
 import org.fossify.gallery.helpers.animateDragLift
+import org.fossify.gallery.helpers.animatePickUp
 import org.fossify.gallery.helpers.dragAccentRing
 import org.fossify.gallery.helpers.dragPictureOutline
 import org.fossify.gallery.models.Directory
@@ -357,8 +358,7 @@ class FolderDragMode(
                 foreground = activity.dragAccentRing(
                     pictureWidth = width,
                     cornerRadius = adapter.thumbnailCornerRadius,
-                    fraction = FOLDER_DROP_BORDER_FRACTION,
-                    insetCorners = true
+                    fraction = FOLDER_DROP_BORDER_FRACTION
                 )
             }
         }
@@ -417,7 +417,7 @@ class FolderDragMode(
                 val scale = startScale + (FOLDER_FLY_IN_SCALE - startScale) * flown
                 tile.scaleX = scale
                 tile.scaleY = scale
-                tile.alpha = FOLDER_LIFT_ALPHA * (1 - flown)
+                tile.alpha = DRAG_LIFT_ALPHA * (1 - flown)
                 tile.translationX = startX + (to.x - startX) * flown - (from.x * scale + scalesAboutX * (1 - scale))
                 tile.translationY = startY + (to.y - startY) * flown - (from.y * scale + scalesAboutY * (1 - scale))
             }
@@ -471,11 +471,7 @@ class FolderDragMode(
     private fun liftTo(scale: Float) {
         val lifted = liftedView ?: return
         liftAnimator?.cancel()
-        liftAnimator = lifted.animateDragLift(
-            scale = scale,
-            elevation = activity.resources.getDimension(R.dimen.drag_lift_elevation),
-            alpha = FOLDER_LIFT_ALPHA
-        )
+        liftAnimator = lifted.animatePickUp(scale)
     }
 
     private fun View.dropAfterDrag() {

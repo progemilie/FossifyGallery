@@ -91,11 +91,7 @@ class NavPill(private val binding: NavPillBinding) {
     /** Frosts the pill over [contentBehind]. [panWith] hangs it over a grid. */
     fun setup(contentBehind: ViewGroup, selected: NavDestination) {
         binding.navPillPanel.apply {
-            cornerRadius = resources.getDimension(R.dimen.nav_pill_radius)
-            blurRadius = Glass.DEFAULT_RADIUS
-            // it is covered in labels, which have to read over whatever photo is scrolling past
-            overlayAlpha = Glass.TEXT_TINT_ALPHA
-            elevation = resources.getDimension(R.dimen.floating_chrome_elevation)
+            dressAsFloatingPill(resources.getDimension(R.dimen.nav_pill_radius))
             frost(contentBehind)
         }
 
