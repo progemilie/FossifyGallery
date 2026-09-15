@@ -3,6 +3,7 @@ package org.fossify.gallery.views
 import android.content.Context
 import android.util.AttributeSet
 import androidx.appcompat.widget.AppCompatTextView
+import org.fossify.gallery.R
 
 /**
  * The extended details under the viewer's filename: the fields packed onto as few lines as they
@@ -38,12 +39,15 @@ class DetailsFlowText @JvmOverloads constructor(
         requestLayout()
     }
 
+    // a wide screen would otherwise string every field along one line across the top
+    private val maxLineWidth = resources.getDimensionPixelSize(R.dimen.viewer_details_max_line_width)
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val available = MeasureSpec.getSize(widthMeasureSpec) - compoundPaddingLeft - compoundPaddingRight
         if (available != packedFor) {
             packedFor = available
             // before super, so this same pass measures the height the packed lines need
-            text = packIntoLines(available)
+            text = packIntoLines(minOf(available, maxLineWidth))
         }
 
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
