@@ -205,8 +205,9 @@ Commit and PR titles must follow a format of `type: summary`
 
 `FORK-CHANGELOG.md` records user-facing changes as they are made, under `## [Unreleased]` — include internal fixes only when major. When adding to the log add them to the correct section `### Added`, `### Changed`, `### Fixed`. Keep the entries simple and short, this is meant for the user to read.
 
-Never change `gradle.properties` on a work branch, version is changed by a tool activated separately
-when version is ready.
+Never change `gradle.properties` on a work branch, version is changed by a tool activated separately when version is ready.
+
+Use the PR template `.github/PULL_REQUEST_TEMPLATE/pull_request_template.md` for pull requests.
 
 ### Releasing
 
