@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    What a folder is arranged by hand through, floating over the grid where a selection's pills would:
+    the way out in the top corner, the two send-to-an-end arrows in a pill of their own at the foot and
+    Save opposite them. See ReorderPills.
+
+    The holder only hangs the three pills and never takes a touch of its own - it is not a merge because
+    the pane it goes in is a RelativeLayout, which has no layout_gravity to place them with. Each frame
+    is shadow room and nothing else, as it is around every pill: a shadow is drawn outside the view
+    casting it.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    tools:ignore="MergeRootFrame">
+
+    <FrameLayout
+        android:id="@+id/reorder_cancel_frame"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:padding="@dimen/glass_menu_shadow_room"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <org.fossify.gallery.views.GlassPanel
+            android:id="@+id/reorder_cancel_panel"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/peek_pill_height">
+
+            <org.fossify.gallery.views.NavPillSegment
+                android:id="@+id/reorder_cancel"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/normal_margin"
+                android:paddingEnd="@dimen/activity_margin"
+                tools:ignore="UseCompoundDrawables">
+
+                <ImageView
+                    android:id="@+id/reorder_cancel_icon"
+                    android:layout_width="@dimen/nav_pill_icon_size"
+                    android:layout_height="@dimen/nav_pill_icon_size"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_cross_vector" />
+
+                <TextView
+                    android:id="@+id/reorder_cancel_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/medium_margin"
+                    android:fontFamily="sans-serif-medium"
+                    android:maxLines="1"
+                    android:text="@string/cancel"
+                    android:textSize="@dimen/normal_text_size" />
+            </org.fossify.gallery.views.NavPillSegment>
+        </org.fossify.gallery.views.GlassPanel>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/reorder_move_frame"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:padding="@dimen/glass_menu_shadow_room"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <org.fossify.gallery.views.GlassPanel
+            android:id="@+id/reorder_move_panel"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/nav_pill_height">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:padding="@dimen/nav_pill_row_padding">
+
+                <org.fossify.gallery.views.NavPillSegment
+                    android:id="@+id/reorder_move_to_top"
+                    android:layout_width="@dimen/selection_action_width"
+                    android:layout_height="match_parent"
+                    android:clickable="true"
+                    android:contentDescription="@string/reorder_move_to_top"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/reorder_move_to_top_icon"
+                        android:layout_width="@dimen/nav_pill_icon_size"
+                        android:layout_height="@dimen/nav_pill_icon_size"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_move_to_top_vector" />
+                </org.fossify.gallery.views.NavPillSegment>
+
+                <org.fossify.gallery.views.NavPillSegment
+                    android:id="@+id/reorder_move_to_bottom"
+                    android:layout_width="@dimen/selection_action_width"
+                    android:layout_height="match_parent"
+                    android:clickable="true"
+                    android:contentDescription="@string/reorder_move_to_bottom"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/reorder_move_to_bottom_icon"
+                        android:layout_width="@dimen/nav_pill_icon_size"
+                        android:layout_height="@dimen/nav_pill_icon_size"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_move_to_bottom_vector" />
+                </org.fossify.gallery.views.NavPillSegment>
+            </LinearLayout>
+        </org.fossify.gallery.views.GlassPanel>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/reorder_save_frame"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:padding="@dimen/glass_menu_shadow_room"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <org.fossify.gallery.views.GlassPanel
+            android:id="@+id/reorder_save_panel"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/nav_pill_height">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:padding="@dimen/nav_pill_row_padding">
+
+                <org.fossify.gallery.views.NavPillSegment
+                    android:id="@+id/reorder_save"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="@dimen/normal_margin"
+                    android:paddingEnd="@dimen/bigger_margin"
+                    tools:ignore="UseCompoundDrawables">
+
+                    <ImageView
+                        android:id="@+id/reorder_save_icon"
+                        android:layout_width="@dimen/nav_pill_icon_size"
+                        android:layout_height="@dimen/nav_pill_icon_size"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_check_vector" />
+
+                    <TextView
+                        android:id="@+id/reorder_save_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/medium_margin"
+                        android:fontFamily="sans-serif-medium"
+                        android:maxLines="1"
+                        android:text="@string/save"
+                        android:textSize="@dimen/normal_text_size" />
+                </org.fossify.gallery.views.NavPillSegment>
+            </LinearLayout>
+        </org.fossify.gallery.views.GlassPanel>
+    </FrameLayout>
+</FrameLayout>

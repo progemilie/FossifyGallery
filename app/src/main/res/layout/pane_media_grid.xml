@@ -38,41 +38,30 @@
         android:textSize="@dimen/bigger_text_size"
         android:visibility="gone" />
 
-    <LinearLayout
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/media_refresh_layout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="match_parent">
 
-        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-            android:id="@+id/media_refresh_layout"
+        <com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
+            android:id="@+id/media_fastscroller"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1">
+            android:layout_height="wrap_content"
+            app:supportSwipeToRefresh="true">
 
-            <com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
-                android:id="@+id/media_fastscroller"
+            <org.fossify.commons.views.MyRecyclerView
+                android:id="@+id/media_grid"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:supportSwipeToRefresh="true">
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:layoutAnimation="@anim/layout_animation"
+                android:paddingBottom="@dimen/nav_pill_reserved_height"
+                android:scrollbars="none"
+                app:layoutManager="org.fossify.commons.views.MyGridLayoutManager"
+                app:spanCount="@integer/media_columns_vertical_scroll" />
 
-                <org.fossify.commons.views.MyRecyclerView
-                    android:id="@+id/media_grid"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:clipToPadding="false"
-                    android:layoutAnimation="@anim/layout_animation"
-                    android:paddingBottom="@dimen/nav_pill_reserved_height"
-                    android:scrollbars="none"
-                    app:layoutManager="org.fossify.commons.views.MyGridLayoutManager"
-                    app:spanCount="@integer/media_columns_vertical_scroll" />
-
-            </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
-        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-
-        <include
-            android:id="@+id/media_reorder_bar"
-            layout="@layout/media_reorder_bar" />
-    </LinearLayout>
+        </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <!-- inside the pane rather than over it, so the blurred backdrops behind the search pill and
          the navigation pill pick them up along with the grid -->
@@ -99,5 +88,10 @@
         app:showAnimationBehavior="outward"
         app:showDelay="500"
         tools:visibility="visible" />
+
+    <!-- last, so the pills are drawn over the grid and both of its fades -->
+    <include
+        android:id="@+id/media_reorder_pills"
+        layout="@layout/media_reorder_pills" />
 
 </RelativeLayout>

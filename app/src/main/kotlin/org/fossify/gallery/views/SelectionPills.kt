@@ -50,15 +50,8 @@ class SelectionPills(
     private var shownIds = emptyList<Int>()
 
     init {
-        panels.forEach { panel ->
-            panel.blurRadius = Glass.DEFAULT_RADIUS
-            // both are covered in icons and text, which have to read over whatever is scrolling past
-            panel.overlayAlpha = Glass.TEXT_TINT_ALPHA
-            panel.elevation = resources.getDimension(R.dimen.floating_chrome_elevation)
-        }
-
-        top.selectionTopPanel.cornerRadius = resources.getDimension(R.dimen.peek_pill_radius)
-        bottom.selectionBottomPanel.cornerRadius = resources.getDimension(R.dimen.nav_pill_radius)
+        top.selectionTopPanel.dressAsFloatingPill(resources.getDimension(R.dimen.peek_pill_radius))
+        bottom.selectionBottomPanel.dressAsFloatingPill(resources.getDimension(R.dimen.nav_pill_radius))
 
         top.selectionBack.setOnClickListener { onBack?.invoke() }
         top.selectionCount.setOnClickListener { onCountTapped?.invoke() }

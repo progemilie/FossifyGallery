@@ -6,8 +6,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.widget.FrameLayout
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -50,41 +48,21 @@ class FloatingTopBar(
     }
 
     /**
-     * Whether the screen wants the bar at all. Gone rather than panned away - an arrangement being
-     * made is not something a scroll should bring the bar back from - and the grid keeps only the
-     * status bar's own room while it is, instead of the bar's.
-     */
-    var isAvailable = true
-        set(value) {
-            if (field != value) {
-                field = value
-                applyVisibility()
-                keepGridClear()
-            }
-        }
-
-    /**
-     * Whether something else is standing in the bar's place - the pill a selection puts up. The bar
-     * goes, but the room it takes up stays exactly where it was, so the grid under it does not jump
-     * the moment a long press lands on one of its items.
+     * Whether something else is standing in the bar's place - the pill a selection puts up, or the
+     * way out of an arrangement. The bar goes, but the room it takes up stays exactly where it was,
+     * so the grid under it does not jump the moment either of those starts.
      */
     var isCovered = false
         set(value) {
             if (field != value) {
                 field = value
-                applyVisibility()
+                topBar.beVisibleIf(!value)
+                glass?.isFrostPaused = value
+                if (!value) {
+                    show()
+                }
             }
         }
-
-    // both reasons for the bar to go answered in one place, so neither can put it back over the other
-    private fun applyVisibility() {
-        val isShown = isAvailable && !isCovered
-        topBar.beVisibleIf(isShown)
-        glass?.isFrostPaused = !isShown
-        if (isShown) {
-            show()
-        }
-    }
 
     /** Stops the bar from panning away and brings it back down if it had. */
     var isPanningEnabled: Boolean
@@ -196,9 +174,10 @@ class FloatingTopBar(
     /**
      * Hands the grid the room the bar takes up. Set here rather than in the layout because the
      * bar's height is the status bar inset plus its own, and only the running app knows the first.
+     * A covered bar is GONE but keeps the height it last had, which is the room its cover stands in.
      */
     fun keepGridClear() {
-        val barHeight = occupiedHeight
+        val barHeight = topBar.height
         grid?.updatePadding(top = if (gridNeedsRoom()) barHeight else 0)
 
         val travel = resources.getDimensionPixelSize(R.dimen.refresh_spinner_travel)
@@ -230,14 +209,4 @@ class FloatingTopBar(
             .withEndAction { if (isHidden) glass?.isFrostPaused = true }
             .start()
     }
-
-    /**
-     * What the bar takes off the top of the screen. With the bar away that is the status bar alone -
-     * a GONE view keeps the height it last had, so this cannot be read off the bar itself.
-     */
-    val occupiedHeight: Int
-        get() = if (isAvailable) topBar.height else systemTopInset()
-
-    private fun systemTopInset() = ViewCompat.getRootWindowInsets(topBar)
-        ?.getInsets(WindowInsetsCompat.Type.systemBars())?.top ?: 0
 }

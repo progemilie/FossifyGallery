@@ -17,6 +17,7 @@ import org.fossify.commons.extensions.getProperBackgroundColor
 import org.fossify.commons.extensions.getProperTextColor
 import org.fossify.commons.extensions.lightenColor
 import org.fossify.gallery.R
+import org.fossify.gallery.helpers.Hairline
 
 /**
  * The pieces [Dropdown] is put together out of - the surface a field and its list are drawn on, how
@@ -26,7 +27,6 @@ import org.fossify.gallery.R
 
 /** How far a dropdown's surface is carried off the theme's background. */
 private const val SURFACE_SHIFT = 6
-private const val STROKE_ALPHA = 0.2f
 private const val RIPPLE_ALPHA = 0.2f
 
 /** Above this a background is light enough to be raised by darkening rather than by lightening. */
@@ -49,10 +49,7 @@ internal fun Context.dropdownSurface(rippled: Boolean): Drawable {
     val surface = GradientDrawable().apply {
         cornerRadius = radius
         setColor(raised)
-        setStroke(
-            resources.getDimensionPixelSize(R.dimen.dropdown_stroke),
-            getProperTextColor().adjustAlpha(STROKE_ALPHA)
-        )
+        setStroke(Hairline.width(this@dropdownSurface), Hairline.color(this@dropdownSurface))
     }
 
     if (!rippled) {

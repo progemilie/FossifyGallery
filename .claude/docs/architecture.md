@@ -36,8 +36,9 @@ folders have an order, so `hasCustomMediaOrder()` can be answered on the main th
 would throw; the table is the authority. Access via `extensions/CustomMediaOrder.kt`, all blocking.
 
 Reordering lives in `adapters/MediaReorderMode.kt` and is put up by `MediaGridPane` through
-`helpers/ReorderBar.kt`: multi-select marks a group, dragging any marked item carries the whole
-group. The lift, ring and shadow it shares with the folder grid are in `helpers/DragLift.kt`.
+`views/ReorderPills.kt`, glass pills standing where a selection's would: multi-select marks a group,
+dragging any marked item carries the whole group, and Back unmarks before it leaves. A picked up
+item is lifted by `helpers/DragLift.kt`'s `animatePickUp()`, the same lift a folder tile gets.
 
 ### Two grids, one window
 
@@ -239,4 +240,8 @@ paints an opaque band under its own bar.
   be an ancestor, and paints itself flat below Android 12. **Every panel comes and goes through
   `helpers/PanelAnim.kt`'s `showPanel`/`hidePanel`** — one `PanelMotion` named at the one call site,
   matched to the platform drop-down animation `GlassMenu`'s popup still gets for free. Nothing there
-  touches translation: a panel places itself against its anchor with it.
+  touches translation: a panel places itself against its anchor with it. A pill floating over a grid
+  is dressed by `GlassPanel.dressAsFloatingPill()`.
+- **Outlines** — `helpers/Hairline.kt` is the one line anything is edged with: folder covers, stack
+  cards, dropdown surfaces, and a glass panel set `isEdged` (the reorder mode's Save). Its colour is
+  worked out there and its weight is `R.dimen.hairline_width`.

@@ -5,7 +5,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.core.graphics.ColorUtils
 import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.getProperBackgroundColor
 import org.fossify.commons.views.MySquareImageView
@@ -13,6 +12,7 @@ import org.fossify.gallery.R
 import org.fossify.gallery.databinding.DirectoryItemListBinding
 import org.fossify.gallery.helpers.FolderCoverStyle
 import org.fossify.gallery.helpers.FolderLabelPlacement
+import org.fossify.gallery.helpers.Hairline
 import org.fossify.gallery.views.FolderGroupThumbnail
 import org.fossify.gallery.views.FolderStackCards
 
@@ -78,9 +78,6 @@ class GridDirectoryItemBinding(override val root: ViewGroup) : DirectoryItemBind
     override val dirStackCards: FolderStackCards? = root.findViewById(R.id.dir_stack_cards)
 }
 
-// the text colour always stands out from the theme's background, so a faint wash of it edges a cover
-private const val COVER_BORDER_ALPHA = 0x40
-
 /** Colours what a tile's style leaves to the theme. Text on a cover keeps its own. */
 fun DirectoryItemBinding.dressFor(style: FolderCoverStyle, textColor: Int) {
     if (style.label == FolderLabelPlacement.BELOW) {
@@ -89,7 +86,7 @@ fun DirectoryItemBinding.dressFor(style: FolderCoverStyle, textColor: Int) {
         dirLocation.applyColorFilter(textColor)
     }
 
-    val edgeColor = ColorUtils.setAlphaComponent(textColor, COVER_BORDER_ALPHA)
+    val edgeColor = Hairline.color(textColor)
     dirCoverBorder?.backgroundTintList = ColorStateList.valueOf(edgeColor)
     dirStackCards?.setColors(page = root.context.getProperBackgroundColor(), text = textColor, edge = edgeColor)
 }

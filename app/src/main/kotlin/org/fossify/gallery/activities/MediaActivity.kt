@@ -209,21 +209,18 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
 
     override fun refreshMenu() = chrome.refreshMenuItems()
 
-    override fun applyInsets() = setupInsetPadding()
-
     override fun navigateUp() = performDefaultBack()
 
-    // sideways scrolling has no room to pan the bar out of, and while an arrangement is being made
-    // the bar is the way out of that mode
+    // sideways scrolling has no room to pan the bar out of
     override fun onPaneStateChanged() {
-        chrome.floatingTopBar.isPanningEnabled = !config.scrollHorizontally && !pane.isReordering
-        // an arrangement has its own bar at the foot and nothing to search, so the pill goes
-        chrome.floatingTopBar.isAvailable = !pane.isReordering
-        // the selection's own pill stands where the bar does, so the bar goes but its room stays
-        chrome.floatingTopBar.isCovered = selectionChrome.isActive
-        // that pill floats over the foot of a grid which, unlike the two top level ones, reserves
+        chrome.floatingTopBar.isPanningEnabled = !config.scrollHorizontally
+        // a selection and an arrangement both put pills up where the bar is, so the bar goes but
+        // its room stays
+        val hasPillsUp = selectionChrome.isActive || pane.isReordering
+        chrome.floatingTopBar.isCovered = hasPillsUp
+        // their pills float over the foot of a grid which, unlike the two top level ones, reserves
         // no room down there of its own - without this the last row could not be scrolled clear
-        pane.reserveBottomRoom(selectionChrome.isActive)
+        pane.reserveBottomRoom(hasPillsUp)
         // nothing here may navigate away from a search, a selection or an arrangement it would drop
         chrome.tabBar?.isAvailable = !chrome.isSearchOpen && !pane.isReordering && !pane.isSelecting
     }
@@ -256,28 +253,24 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
 
     // --------------------------------------------------------------- the screen ----
 
-    /**
-     * Keeps the grid clear of the navigation bar - except while the reorder bar is up, where the
-     * bar sits between the two and does that job itself, and asking for the room twice would only
-     * open an empty band above it. Insets are dispatched again whenever the bar comes or goes, so
-     * this has to be what the inset handling is told rather than padding set once behind its back.
-     */
+    /** Keeps the grid clear of the navigation bar, and the pills floating over it clear of both system bars. */
     private fun setupInsetPadding() {
-        val reorderBar = binding.mediaPane.mediaReorderBar.root
+        val reorderPills = binding.mediaPane.mediaReorderPills
         setupEdgeToEdge(
             // the grid gets no top inset of its own - keepGridClear() pads it by the whole height
             // of the bar, which already carries this inset
             padTopSystem = listOf(
                 binding.mediaMenu,
                 binding.selectionTopPill.root,
+                reorderPills.reorderCancelFrame,
                 binding.mediaPane.mediaEmptyTextPlaceholder
             ),
-            padBottomImeAndSystem = if (pane.isReordering) {
-                listOf(reorderBar)
-            } else {
-                listOf(binding.mediaPane.mediaGrid, reorderBar)
-            },
-            padBottomSystem = listOf(binding.selectionBottomPill.root)
+            padBottomImeAndSystem = listOf(binding.mediaPane.mediaGrid),
+            padBottomSystem = listOf(
+                binding.selectionBottomPill.root,
+                reorderPills.reorderMoveFrame,
+                reorderPills.reorderSaveFrame
+            )
         )
     }
 

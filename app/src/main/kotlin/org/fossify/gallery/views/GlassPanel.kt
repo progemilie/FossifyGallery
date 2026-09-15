@@ -14,7 +14,9 @@ import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import eightbitlab.com.blurview.BlurView
 import eightbitlab.com.blurview.BlurViewFacade
+import org.fossify.gallery.R
 import org.fossify.gallery.helpers.Glass
+import org.fossify.gallery.helpers.Hairline
 import org.fossify.gallery.helpers.Perf
 
 /**
@@ -64,6 +66,14 @@ open class GlassPanel @JvmOverloads constructor(
             field = value
             invalidateOutline()
             (background as? GradientDrawable)?.cornerRadius = value
+            updateEdge()
+        }
+
+    /** Edges the panel in the [Hairline], for one that has to stand apart from the panels beside it. */
+    var isEdged = false
+        set(value) {
+            field = value
+            if (value) updateEdge() else foreground = null
         }
 
     /** Stops the copying for a panel that is still on screen but not to be looked at. */
@@ -81,6 +91,17 @@ open class GlassPanel @JvmOverloads constructor(
         }
 
         clipToOutline = true
+    }
+
+    /**
+     * Dresses this as one of the pills floating over a grid: [radius] round, lifted off it, and washed
+     * thick enough for the labels it carries to read over whatever photo is scrolling past.
+     */
+    fun dressAsFloatingPill(radius: Float) {
+        cornerRadius = radius
+        blurRadius = Glass.DEFAULT_RADIUS
+        overlayAlpha = Glass.TEXT_TINT_ALPHA
+        elevation = resources.getDimension(R.dimen.floating_chrome_elevation)
     }
 
     /**
@@ -116,6 +137,7 @@ open class GlassPanel @JvmOverloads constructor(
     /** Re-reads the theme, which is the only place any of these colours come from. */
     fun updateColors() {
         flatFill = Glass.flatFill(context)
+        updateEdge()
 
         val backdrop = backdrop
         if (!isFrosted || backdrop == null) {
@@ -141,6 +163,13 @@ open class GlassPanel @JvmOverloads constructor(
             // lift rides on the tint instead - the panel parts company with the app behind it without
             // the frost parting company with the content it is a copy of
             .setOverlayColor(Glass.overlay(context, overlayAlpha))
+    }
+
+    // a foreground rather than a stroke of our own: it is drawn over the content, inside the clip
+    private fun updateEdge() {
+        if (isEdged) {
+            foreground = Hairline.drawable(context, cornerRadius)
+        }
     }
 
     /**

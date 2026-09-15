@@ -339,12 +339,12 @@ const val FOLDER_STYLE_STACK = 4
 // animations
 const val THUMBNAIL_FADE_DURATION_MS = 150
 
-// the lift a thumbnail gets while it is being held for a hand made order. it shrinks rather than
-// grows - a bigger one would be cut off by the grid edge in the outer columns, taking its ring
-// with it, and the gap the smaller one leaves is what lets the shadow under it show
+// the lift a thumbnail or folder tile gets while it is being held, see DragLift. it shrinks rather
+// than grows - a bigger one would be cut off by the grid edge in the outer columns - and the gap
+// the smaller one leaves is what lets the shadow under it show
 const val DRAG_LIFT_SCALE = 0.9f
+const val DRAG_LIFT_ALPHA = 0.8f
 const val DRAG_LIFT_DURATION_MS = 120L
-const val DRAG_BORDER_WIDTH_FRACTION = 0.04f
 
 // dragging a folder tile onto another one, see FolderDragMode. the drop zone is the middle of a
 // tile, leaving the outer band for arranging, and the threshold has to clear the drop zone or the
@@ -356,7 +356,6 @@ const val FOLDER_DROP_TARGET_SCALE = 1.06f
 const val FOLDER_DROP_BORDER_FRACTION = 0.015f
 // a lifted tile covers the one it is held over, so it shrinks out of the way of what lights up
 const val FOLDER_HELD_OVER_SCALE = 0.55f
-const val FOLDER_LIFT_ALPHA = 0.8f
 const val FOLDER_FLY_IN_DURATION_MS = 180L
 const val FOLDER_FLY_IN_SCALE = 0.15f
 const val FOLDER_FLASH_DURATION_MS = 90L

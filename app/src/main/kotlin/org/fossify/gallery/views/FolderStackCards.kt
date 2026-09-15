@@ -18,6 +18,7 @@ import androidx.annotation.RequiresApi
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.withSave
 import org.fossify.gallery.R
+import org.fossify.gallery.helpers.Hairline
 import kotlin.math.roundToInt
 
 // the cover's picture is recorded this many times smaller: the blur leaves no detail to lose, and the
@@ -86,7 +87,7 @@ class FolderStackCards(context: Context, attrs: AttributeSet?) : View(context, a
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val edgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = resources.getDimension(R.dimen.folder_cover_border_width)
+        strokeWidth = Hairline.width(context).toFloat()
     }
 
     private val bounds = Rect()
