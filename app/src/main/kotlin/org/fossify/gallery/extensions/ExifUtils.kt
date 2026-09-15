@@ -172,7 +172,12 @@ fun Int.mirroredOrientation(): Int {
     }
 }
 
-fun ExifInterface.getReadableOrientation(context: Context): String {
+/**
+ * How the file says it should be turned, as something to read - "Rotated 90°". Empty when it is
+ * not turned at all, which is the ordinary case and not worth a line of the viewer's header; the
+ * word "orientation" is left off for the same reason, the turn itself saying what it is.
+ */
+fun ExifInterface.getOrientationChange(context: Context): String {
     val orientation = getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
     val stringRes = when (orientation) {
         ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> org.fossify.gallery.R.string.orientation_mirrored_horizontal
@@ -182,9 +187,9 @@ fun ExifInterface.getReadableOrientation(context: Context): String {
         ExifInterface.ORIENTATION_ROTATE_270 -> org.fossify.gallery.R.string.orientation_rotated_270
         ExifInterface.ORIENTATION_TRANSPOSE -> org.fossify.gallery.R.string.orientation_mirrored_horizontal_rotated_270
         ExifInterface.ORIENTATION_TRANSVERSE -> org.fossify.gallery.R.string.orientation_mirrored_horizontal_rotated_90
-        else -> org.fossify.gallery.R.string.orientation_normal
+        else -> return ""
     }
-    return "${context.getString(org.fossify.gallery.R.string.orientation)}: ${context.getString(stringRes)}"
+    return context.getString(stringRes)
 }
 
 fun Context.writeExif(exif: ExifInterface?, uri: Uri?) {

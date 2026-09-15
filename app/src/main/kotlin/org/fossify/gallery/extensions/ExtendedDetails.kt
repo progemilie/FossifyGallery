@@ -1,22 +1,20 @@
 package org.fossify.gallery.extensions
 
 import android.content.Context
-import android.graphics.Point
 import android.provider.MediaStore
 import android.provider.MediaStore.Files
 import android.provider.MediaStore.Images
+import android.text.format.DateFormat
 import androidx.exifinterface.media.ExifInterface
 import com.awxkee.jxlcoder.JxlCoder
-import org.fossify.commons.extensions.formatAsResolution
-import org.fossify.commons.extensions.formatDate
 import org.fossify.commons.extensions.formatSize
 import org.fossify.commons.extensions.getDoesFilePathExist
 import org.fossify.commons.extensions.getExifCameraModel
-import org.fossify.commons.extensions.getExifDateTaken
 import org.fossify.commons.extensions.getExifProperties
 import org.fossify.commons.extensions.getLongValue
 import org.fossify.commons.extensions.getResolution
-import org.fossify.gallery.R
+import org.fossify.commons.extensions.getTimeFormat
+import org.fossify.commons.extensions.humanizePath
 import org.fossify.gallery.helpers.EXT_CAMERA_MODEL
 import org.fossify.gallery.helpers.EXT_DATE_TAKEN
 import org.fossify.gallery.helpers.EXT_DESCRIPTION
@@ -32,25 +30,25 @@ import org.fossify.gallery.helpers.EXT_SIZE
 import org.fossify.gallery.helpers.XmpRating
 import org.fossify.gallery.models.Medium
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
+import kotlin.math.roundToInt
 
-/**
- * What the extended details header shows between two fields. A middle dot rather than a newline:
- * the details sit under the filename in the viewer's top bar now, where a line per field would
- * take over the screen.
- */
-const val EXTENDED_DETAILS_SEPARATOR = "  ·  "
+private const val EXIF_DATE_PATTERN = "yyyy:MM:dd HH:mm:ss"
+private const val PIXELS_PER_MEGAPIXEL = 1_000_000.0
 
-/**
- * Squeezes the fields onto as few lines as possible. Spaces inside a field are made unbreakable
- * first, so a line only ever ends at one of the dots between fields rather than halfway through a
- * date.
- */
-fun List<String>.joinAsExtendedDetails() =
-    joinToString(EXTENDED_DETAILS_SEPARATOR) { it.replace(' ', '\u00A0') }
+// past this a tenth of a megapixel is noise, and the decimal is two characters better spent
+private const val WHOLE_MEGAPIXELS_FROM = 10
 
 /**
  * The fields the user picked under "Manage extended details", each one already formatted, in the
  * order the settings dialog lists them. Touches the file, so keep it off the main thread.
+ *
+ * Every field says its piece in as little room as it can: these sit over the photo, so a field
+ * spelling out what it could imply costs a strip of the picture. Anything the file has nothing to
+ * say about is dropped rather than printed empty, and two fields coming out word for word the same
+ * - a photo last modified when it was taken, most often - are shown once.
  *
  * [skipName] leaves the file name out - the viewer prints it above these as its own heading, and
  * repeating it there would only cost a line.
@@ -72,6 +70,7 @@ fun Context.getMediumExtendedDetails(medium: Medium, skipName: Boolean = false):
         .filter { (flag, _) -> wanted and flag != 0 }
         .map { (_, produce) -> produce() }
         .filter { it.isNotEmpty() }
+        .distinct()
 }
 
 /**
@@ -84,40 +83,83 @@ private fun Context.extendedDetailFields(
     exif: ExifInterface,
 ): List<Pair<Int, () -> String>> = listOf(
     EXT_NAME to { medium.name },
-    EXT_PATH to { "${file.parent.trimEnd('/')}/" },
+    // the storage's name in place of its mount point: "/storage/emulated/0/" is most of a line
+    // spent saying "internal", while an SD card still reads as one
+    EXT_PATH to { "${humanizePath(file.parent.orEmpty()).trimEnd('/')}/" },
     EXT_SIZE to { file.length().formatSize() },
-    EXT_RESOLUTION to { getMediumResolution(medium, file).orEmpty() },
-    EXT_LAST_MODIFIED to { getFileLastModified(file) },
-    EXT_DATE_TAKEN to { exif.getExifDateTaken(this) },
+    EXT_RESOLUTION to { getMediumResolution(medium, file) },
+    EXT_LAST_MODIFIED to { formatDetailDate(getFileLastModified(file)) },
+    EXT_DATE_TAKEN to { formatDetailDate(exif.getDateTaken()) },
     EXT_CAMERA_MODEL to { exif.getExifCameraModel() },
     EXT_EXIF_PROPERTIES to { exif.getExifProperties() },
     EXT_GPS to { getLatLonAltitude(medium.path) },
-    EXT_ORIENTATION to { exif.getReadableOrientation(this) },
+    // an unturned photo has nothing to report, so this only appears when there is a turn
+    EXT_ORIENTATION to { exif.getOrientationChange(this) },
     // an empty one is dropped along with the rest of the fields the file has nothing to say about
     EXT_DESCRIPTION to { getFileDescription(medium.path) },
     EXT_RATING to {
         // straight out of the file rather than off the Medium, which may be a copy made before the
-        // rating was last changed
+        // rating was last changed. no label: stars need none, and an unrated file says nothing
         val rating = XmpRating.read(exif.getAttributeBytes(ExifInterface.TAG_XMP)?.toString(Charsets.UTF_8))
-        "${getString(R.string.rating)}: ${getRatingLabel(rating)}"
+        if (rating > 0) getRatingLabel(rating) else ""
     },
 )
 
-private fun Context.getMediumResolution(medium: Medium, file: File): String? {
-    return if (medium.name.endsWith(".jxl", ignoreCase = true)) {
-        val resolution = try {
-            JxlCoder.getSize(file.readBytes())
-        } catch (ignored: OutOfMemoryError) {
-            null
-        }
+/**
+ * A date as the header prints it: the user's own date format with the month name shortened, so
+ * "15 September 2026" reads "15 Sep 2026" without reordering the parts or dropping the year.
+ */
+private fun Context.formatDetailDate(millis: Long): String {
+    if (millis <= 0) {
+        return ""
+    }
 
-        resolution?.let { Point(it.width, it.height).formatAsResolution() }
-    } else {
-        getResolution(file.absolutePath)?.formatAsResolution()
+    val calendar = Calendar.getInstance()
+    calendar.timeInMillis = millis
+    val pattern = "${config.dateFormat.replace("MMMM", "MMM")}, ${getTimeFormat()}"
+    return DateFormat.format(pattern, calendar).toString()
+}
+
+/** When the photo was taken, 0 when it does not say. */
+private fun ExifInterface.getDateTaken(): Long {
+    val dateTime = getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)
+        ?: getAttribute(ExifInterface.TAG_DATETIME)
+        ?: return 0
+
+    return try {
+        SimpleDateFormat(EXIF_DATE_PATTERN, Locale.ENGLISH).parse(dateTime.trim())?.time ?: 0
+    } catch (ignored: Exception) {
+        0
     }
 }
 
-private fun Context.getFileLastModified(file: File): String {
+private fun Context.getMediumResolution(medium: Medium, file: File): String {
+    val size = if (medium.name.endsWith(".jxl", ignoreCase = true)) {
+        try {
+            JxlCoder.getSize(file.readBytes())?.let { it.width to it.height }
+        } catch (ignored: OutOfMemoryError) {
+            null
+        }
+    } else {
+        getResolution(file.absolutePath)?.let { it.x to it.y }
+    }
+
+    return size?.let { (width, height) -> formatResolution(width, height) }.orEmpty()
+}
+
+/** "6000x4000 (24MP)" - a times sign rather than a spaced x, and no megapixel decimal to spare. */
+private fun formatResolution(width: Int, height: Int): String {
+    val megaPixels = width.toLong() * height / PIXELS_PER_MEGAPIXEL
+    val rounded = if (megaPixels >= WHOLE_MEGAPIXELS_FROM) {
+        megaPixels.roundToInt().toString()
+    } else {
+        "%.1f".format(megaPixels)
+    }
+
+    return "$width×$height (${rounded}MP)"
+}
+
+private fun Context.getFileLastModified(file: File): Long {
     val projection = arrayOf(Images.Media.DATE_MODIFIED)
     val uri = Files.getContentUri("external")
     val selection = "${MediaStore.MediaColumns.DATA} = ?"
@@ -125,14 +167,13 @@ private fun Context.getFileLastModified(file: File): String {
     val cursor = contentResolver.query(uri, projection, selection, selectionArgs, null)
     cursor?.use {
         return if (cursor.moveToFirst()) {
-            val dateModified = cursor.getLongValue(Images.Media.DATE_MODIFIED) * 1000L
-            dateModified.formatDate(this)
+            cursor.getLongValue(Images.Media.DATE_MODIFIED) * 1000L
         } else {
-            file.lastModified().formatDate(this)
+            file.lastModified()
         }
     }
 
-    return ""
+    return 0
 }
 
 private fun getLatLonAltitude(path: String): String {
@@ -142,16 +183,18 @@ private fun getLatLonAltitude(path: String): String {
         return ""
     }
 
-    var result = ""
+    val parts = mutableListOf<String>()
     val latLon = FloatArray(2)
     if (exif.getLatLong(latLon)) {
-        result = "${latLon[0]},  ${latLon[1]}"
+        // five decimals is a bit over a metre - past that a coordinate is only costing room
+        parts += "%.5f".format(Locale.US, latLon[0])
+        parts += "%.5f".format(Locale.US, latLon[1])
     }
 
     val altitude = exif.getAltitude(0.0)
     if (altitude != 0.0) {
-        result += ",  ${altitude}m"
+        parts += "${altitude.roundToInt()}m"
     }
 
-    return result.trimStart(',').trim()
+    return parts.joinToString(", ")
 }

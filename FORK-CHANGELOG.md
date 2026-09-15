@@ -9,6 +9,7 @@ Fork-only changes, newest first. Internal fixes are left out.
 - **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with
   adjustable spacing and an optional folder size on the details line.
 ### Changed
+- The details at the top of a photo are more compact.
 - **A selection's menu is laid out like the viewer's.**
 - Updated the style and opening animation of the copy and move chooser.
 - The rating chooser is smaller, and opens in the middle of the screen.
