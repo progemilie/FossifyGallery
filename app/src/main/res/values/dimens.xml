@@ -287,7 +287,5 @@
     <dimen name="folder_stack_back_inset">16dp</dimen>
     <!-- a column of the style preview, which a sample tile's spacing is taken out of -->
     <dimen name="folder_style_sample_column">152dp</dimen>
-    <!-- how long a line of the viewer's extended details may run before the next field wraps under
-         it, so a wide screen stacks them rather than stringing them all along the top -->
-    <dimen name="viewer_details_max_line_width">360dp</dimen>
+    <dimen name="viewer_details_max_line_width">300dp</dimen>
 </resources>
