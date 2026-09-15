@@ -9,4 +9,18 @@
         <!-- the glyph beside the name, there to be recognised before the name is read -->
         <attr name="cardIcon" format="reference" />
     </declare-styleable>
+
+    <declare-styleable name="FolderCoverView">
+        <!-- the cover's height over its width; left out, the cover is square -->
+        <attr name="coverAspectRatio" format="float" />
+        <!-- rounds the cover by its outline rather than by cutting the bitmap -->
+        <attr name="coverCornerRadius" format="dimension" />
+        <!-- the sibling laid over the cover, whose area the cover frosts -->
+        <attr name="frostBehind" format="reference" />
+    </declare-styleable>
+
+    <declare-styleable name="FolderStackCards">
+        <!-- the cover the cards sit under, whose picture they take after -->
+        <attr name="stackCover" format="reference" />
+    </declare-styleable>
 </resources>

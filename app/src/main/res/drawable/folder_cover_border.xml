@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- traced around a rounded cover, and tinted from the theme where it is bound, see dressFor -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <!-- named outright: a tinted shape with no fill of its own is filled with the tint, over the whole cover -->
+    <solid android:color="@android:color/transparent" />
+    <corners android:radius="@dimen/rounded_corner_radius_big" />
+    <stroke
+        android:width="@dimen/folder_cover_border_width"
+        android:color="@android:color/white" />
+</shape>

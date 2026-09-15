@@ -101,6 +101,8 @@ const val WERE_FAVORITES_MIGRATED = "were_favorites_migrated"
 const val FOLDER_THUMBNAIL_STYLE = "folder_thumbnail_style"
 const val FOLDER_MEDIA_COUNT = "folder_media_count"
 const val LIMIT_FOLDER_TITLE = "folder_limit_title"
+const val FOLDER_SHOW_SIZE = "folder_show_size"
+const val FOLDER_SPACING = "folder_spacing"
 const val THUMBNAIL_SPACING = "thumbnail_spacing"
 const val FILE_ROUNDED_CORNERS = "file_rounded_corners"
 const val CUSTOM_FOLDERS_ORDER = "custom_folders_order"
@@ -331,6 +333,8 @@ const val FOLDER_MEDIA_CNT_NONE = 3
 
 const val FOLDER_STYLE_SQUARE = 1
 const val FOLDER_STYLE_ROUNDED_CORNERS = 2
+const val FOLDER_STYLE_CARD = 3
+const val FOLDER_STYLE_STACK = 4
 
 // animations
 const val THUMBNAIL_FADE_DURATION_MS = 150

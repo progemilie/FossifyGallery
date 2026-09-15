@@ -15,6 +15,7 @@ import android.net.Uri
 import android.os.Process
 import android.provider.MediaStore.Files
 import android.provider.MediaStore.Images
+import android.util.Size
 import android.widget.ImageView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.Priority
@@ -97,6 +98,7 @@ import org.fossify.gallery.helpers.MyWidgetProvider
 import org.fossify.gallery.helpers.Perf
 import org.fossify.gallery.helpers.PicassoRoundedCornersTransformation
 import org.fossify.gallery.helpers.RECYCLE_BIN
+import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_NONE
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_SMALL
 import org.fossify.gallery.helpers.SHOW_ALL
@@ -631,6 +633,8 @@ fun Context.loadImage(
     roundCorners: Int,
     signature: ObjectKey,
     overrideSize: Int? = null,
+    // for a cover that is not square; the square overrideSize otherwise
+    overrideHeight: Int? = null,
     skipMemoryCacheAtPaths: ArrayList<String>? = null,
     onError: (() -> Unit)? = null
 ) {
@@ -651,6 +655,7 @@ fun Context.loadImage(
             roundCorners = roundCorners,
             signature = signature,
             overrideSize = overrideSize,
+            overrideHeight = overrideHeight,
             skipMemoryCacheAtPaths = skipMemoryCacheAtPaths,
             animate = animateGifs,
             tryLoadingWithPicasso = type == TYPE_IMAGES && path.isPng(),
@@ -685,7 +690,7 @@ fun Context.preloadImage(
         cropThumbnails = cropThumbnails,
         roundCorners = roundCorners,
         signature = signature,
-        overrideSize = overrideSize,
+        overrideSize = Size(overrideSize, overrideSize),
         skipMemoryCacheAtPaths = null,
         animate = animateGifs,
         // no view for it to fade into, and a transition is no part of the cache key either way
@@ -705,6 +710,17 @@ private fun thumbnailDecodeFormat(roundCorners: Int) = if (roundCorners == ROUND
     DecodeFormat.PREFER_RGB_565
 } else {
     DecodeFormat.PREFER_ARGB_8888
+}
+
+/** What cuts a thumbnail's corners for [roundCorners], or null where it keeps them square. */
+fun Context.coverCornersTransformation(roundCorners: Int): RoundedCorners? {
+    val radius = when (roundCorners) {
+        ROUNDED_CORNERS_SMALL -> org.fossify.commons.R.dimen.rounded_corner_radius_small
+        ROUNDED_CORNERS_BIG -> org.fossify.commons.R.dimen.rounded_corner_radius_big
+        else -> return null
+    }
+
+    return RoundedCorners(resources.getDimension(radius).toInt())
 }
 
 /** The ladder of column counts the media grid can be pinched through on this screen. */
@@ -764,6 +780,7 @@ fun Context.loadImageBase(
      * picture once per width.
      */
     overrideSize: Int? = null,
+    overrideHeight: Int? = null,
     skipMemoryCacheAtPaths: ArrayList<String>? = null,
     animate: Boolean = false,
     tryLoadingWithPicasso: Boolean = false,
@@ -777,7 +794,7 @@ fun Context.loadImageBase(
         cropThumbnails = cropThumbnails,
         roundCorners = roundCorners,
         signature = signature,
-        overrideSize = overrideSize,
+        overrideSize = overrideSize?.let { Size(it, overrideHeight ?: it) },
         skipMemoryCacheAtPaths = skipMemoryCacheAtPaths,
         animate = animate,
         crossFadeDuration = crossFadeDuration,
@@ -821,7 +838,7 @@ private fun Context.thumbnailRequest(
     cropThumbnails: Boolean,
     roundCorners: Int,
     signature: ObjectKey,
-    overrideSize: Int?,
+    overrideSize: Size?,
     skipMemoryCacheAtPaths: ArrayList<String>?,
     animate: Boolean,
     crossFadeDuration: Int,
@@ -835,7 +852,7 @@ private fun Context.thumbnailRequest(
         .format(decodeFormat)
 
     if (overrideSize != null) {
-        options.override(overrideSize)
+        options.override(overrideSize.width, overrideSize.height)
     }
 
     if (cropThumbnails) {
@@ -859,17 +876,14 @@ private fun Context.thumbnailRequest(
         options.decode(Bitmap::class.java)
     }
 
-    if (roundCorners != ROUNDED_CORNERS_NONE) {
-        val cornerSize =
-            if (roundCorners == ROUNDED_CORNERS_SMALL) org.fossify.commons.R.dimen.rounded_corner_radius_small else org.fossify.commons.R.dimen.rounded_corner_radius_big
-        val cornerRadius = resources.getDimension(cornerSize).toInt()
-        val roundedCornersTransform = RoundedCorners(cornerRadius)
-        options.optionalTransform(MultiTransformation(CenterCrop(), roundedCornersTransform))
+    val cornersTransform = coverCornersTransformation(roundCorners)
+    if (cornersTransform != null) {
+        options.optionalTransform(MultiTransformation(CenterCrop(), cornersTransform))
         options.optionalTransform(
             WebpDrawable::class.java,
             MultiTransformation(
                 WebpDrawableTransformation(CenterCrop()),
-                WebpDrawableTransformation(roundedCornersTransform)
+                WebpDrawableTransformation(cornersTransform)
             )
         )
     }
@@ -906,14 +920,9 @@ fun Context.loadSVG(
         .apply(options)
         .transition(getOptionalCrossFadeTransition(crossFadeDuration))
 
-    if (roundCorners != ROUNDED_CORNERS_NONE) {
-        val cornerSize = when (roundCorners) {
-            ROUNDED_CORNERS_SMALL -> org.fossify.commons.R.dimen.rounded_corner_radius_small
-            else -> org.fossify.commons.R.dimen.rounded_corner_radius_big
-        }
-
-        val cornerRadius = resources.getDimension(cornerSize).toInt()
-        builder = builder.transform(CenterCrop(), RoundedCorners(cornerRadius))
+    val cornersTransform = coverCornersTransformation(roundCorners)
+    if (cornersTransform != null) {
+        builder = builder.transform(CenterCrop(), cornersTransform)
     }
 
     builder.into(target)
@@ -1473,7 +1482,8 @@ fun Context.updateDirectoryPath(path: String) {
             || grouping and GROUP_BY_LAST_MODIFIED_DAILY != 0
             || grouping and GROUP_BY_LAST_MODIFIED_MONTHLY != 0
 
-    val getProperFileSize = config.directorySorting and SORT_BY_SIZE != 0
+    // summed only where something shows it: sorting by size, or the size written on a folder's cover
+    val getProperFileSize = config.directorySorting and SORT_BY_SIZE != 0 || config.showFolderSize
 
     val lastModifieds = if (getProperLastModified) {
         mediaFetcher.getFolderLastModifieds(path)

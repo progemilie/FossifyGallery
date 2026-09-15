@@ -766,12 +766,7 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
-    private fun getFolderStyleText() = getString(
-        when (config.folderStyle) {
-            FOLDER_STYLE_SQUARE -> R.string.square
-            else -> R.string.rounded_corners
-        }
-    )
+    private fun getFolderStyleText() = getString(FolderCoverStyle.from(config.folderStyle).title)
 
     private fun setupKeepLastModified() {
         binding.settingsKeepLastModified.isChecked = config.keepLastModified
@@ -1323,6 +1318,8 @@ class SettingsActivity : SimpleActivity() {
                 put(FOLDER_THUMBNAIL_STYLE, config.folderStyle)
                 put(FOLDER_MEDIA_COUNT, config.showFolderMediaCount)
                 put(LIMIT_FOLDER_TITLE, config.limitFolderTitle)
+                put(FOLDER_SHOW_SIZE, config.showFolderSize)
+                put(FOLDER_SPACING, config.folderSpacing)
                 put(THUMBNAIL_SPACING, config.thumbnailSpacing)
                 put(FILE_ROUNDED_CORNERS, config.fileRoundedCorners)
                 put(SEARCH_ALL_FILES_BY_DEFAULT, config.searchAllFilesByDefault)
@@ -1469,6 +1466,8 @@ class SettingsActivity : SimpleActivity() {
                 EDITOR_BRUSH_SIZE -> config.editorBrushSize = value.toString().toFloat()
                 FOLDER_THUMBNAIL_STYLE -> config.folderStyle = value.toInt()
                 FOLDER_MEDIA_COUNT -> config.showFolderMediaCount = value.toInt()
+                FOLDER_SHOW_SIZE -> config.showFolderSize = value.toBoolean()
+                FOLDER_SPACING -> config.folderSpacing = value.toInt()
                 LIMIT_FOLDER_TITLE -> config.limitFolderTitle = value.toBoolean()
                 THUMBNAIL_SPACING -> config.thumbnailSpacing = value.toInt()
                 FILE_ROUNDED_CORNERS -> config.fileRoundedCorners = value.toBoolean()

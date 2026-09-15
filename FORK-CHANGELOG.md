@@ -6,6 +6,8 @@ Fork-only changes, newest first. Internal fixes are left out.
 ### Added
 - **Zooming into a photo takes the chrome away**, and letting it back out brings it back.
 - Holding a picked picture and dragging unpicks the pictures the finger passes over.
+- **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with
+  adjustable spacing and an optional folder size on the details line.
 ### Changed
 - **A selection's menu is laid out like the viewer's.**
 - Updated the style and opening animation of the copy and move chooser.

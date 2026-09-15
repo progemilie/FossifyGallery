@@ -65,7 +65,6 @@
     <dimen name="widget_initial_size">110dp</dimen>
     <dimen name="full_brush_size">40dp</dimen>
     <dimen name="lock_padding">30dp</dimen>
-    <dimen name="sample_thumbnail_size">180dp</dimen>
     <dimen name="directory_picker_dialog_min_height">180dp</dimen>
     <dimen name="smaller_icon_size">36dp</dimen>
     <dimen name="accent_border_min_width">2dp</dimen>
@@ -269,4 +268,23 @@
     <dimen name="info_popup_padding">14dp</dimen>
     <dimen name="settings_info_button">40dp</dimen>
     <dimen name="settings_info_padding">10dp</dimen>
+
+    <!-- folder cover styles, see FolderCoverStyle -->
+    <dimen name="folder_cover_border_width">1dp</dimen>
+    <dimen name="folder_card_frost_radius">14dp</dimen>
+    <!-- how far above the label the frost starts, and the distance it fades in over from there -->
+    <dimen name="folder_card_frost_rise">10dp</dimen>
+    <dimen name="folder_card_frost_feather">36dp</dimen>
+    <dimen name="folder_card_label_padding">8dp</dimen>
+    <dimen name="folder_card_name_text_size">13sp</dimen>
+    <dimen name="folder_card_details_text_size">11sp</dimen>
+    <dimen name="folder_stack_peek">5dp</dimen>
+    <dimen name="folder_stack_cover_top">10dp</dimen>
+    <!-- both cards: one card's height, and the peek the middle one sits lower by -->
+    <dimen name="folder_stack_cards_height">29dp</dimen>
+    <dimen name="folder_stack_glass_blur">8dp</dimen>
+    <dimen name="folder_stack_middle_inset">8dp</dimen>
+    <dimen name="folder_stack_back_inset">16dp</dimen>
+    <!-- a column of the style preview, which a sample tile's spacing is taken out of -->
+    <dimen name="folder_style_sample_column">152dp</dimen>
 </resources>

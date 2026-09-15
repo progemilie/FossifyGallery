@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    No padding above the thumbnail: the tile's own margin already spaces it from the row above, and
-    padding on top of that left a tile's worth of blank line under every name and count.
+    The tall card: a 4:5 cover with the name written over a frosted band along its bottom. Rounded by
+    the cover's own outline rather than in the bitmap, see FolderCoverStyle.CARD.
 -->
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/dir_holder"
     android:layout_width="wrap_content"
@@ -11,10 +12,13 @@
     android:clickable="true"
     android:focusable="true">
 
-    <org.fossify.commons.views.MySquareImageView
+    <org.fossify.gallery.views.FolderCoverView
         android:id="@+id/dir_thumbnail"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        app:coverAspectRatio="1.25"
+        app:coverCornerRadius="@dimen/rounded_corner_radius_big"
+        app:frostBehind="@+id/dir_bottom_holder" />
 
     <org.fossify.gallery.views.FolderGroupThumbnail
         android:id="@+id/dir_group_thumbnail"
@@ -54,17 +58,6 @@
         android:src="@drawable/ic_lock_vector"
         android:visibility="gone" />
 
-    <!-- over the padlock as well, so a locked tile is edged like the rest -->
-    <View
-        android:id="@+id/dir_cover_border"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_alignStart="@+id/dir_thumbnail"
-        android:layout_alignTop="@+id/dir_thumbnail"
-        android:layout_alignEnd="@+id/dir_thumbnail"
-        android:layout_alignBottom="@+id/dir_thumbnail"
-        android:background="@drawable/folder_cover_border" />
-
     <ImageView
         android:id="@+id/dir_check"
         android:layout_width="@dimen/selection_check_size"
@@ -78,12 +71,25 @@
         android:src="@drawable/ic_check_vector"
         android:visibility="gone" />
 
+    <ImageView
+        android:id="@+id/dir_pin"
+        android:layout_width="@dimen/selection_check_size"
+        android:layout_height="@dimen/selection_check_size"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_margin="@dimen/medium_margin"
+        android:background="@drawable/circle_black_background"
+        android:contentDescription="@string/pin"
+        android:padding="@dimen/small_margin"
+        android:src="@drawable/ic_pin_filled_vector"
+        android:visibility="gone" />
+
     <RelativeLayout
         android:id="@+id/dir_drag_handle_wrapper"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignStart="@+id/dir_name"
-        android:layout_alignEnd="@+id/dir_name"
+        android:layout_alignStart="@+id/dir_thumbnail"
+        android:layout_alignEnd="@+id/dir_thumbnail"
         android:visibility="gone">
 
         <ImageView
@@ -100,51 +106,70 @@
 
     </RelativeLayout>
 
-    <ImageView
-        android:id="@+id/dir_pin"
-        android:layout_width="@dimen/selection_check_size"
-        android:layout_height="@dimen/selection_check_size"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:layout_margin="@dimen/medium_margin"
-        android:background="@drawable/circle_black_background"
-        android:contentDescription="@string/pin"
-        android:padding="@dimen/small_margin"
-        android:src="@drawable/ic_pin_filled_vector"
-        android:visibility="gone" />
+    <!-- a darkening under the frost, and all a group's collage or an older Android gets -->
+    <View
+        android:id="@+id/dir_shadow_holder"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/tmb_shadow_height"
+        android:layout_alignStart="@+id/dir_thumbnail"
+        android:layout_alignEnd="@+id/dir_thumbnail"
+        android:layout_alignBottom="@+id/dir_thumbnail"
+        android:background="@drawable/folder_card_scrim" />
 
-    <TextView
-        android:id="@+id/dir_name"
+    <LinearLayout
+        android:id="@+id/dir_bottom_holder"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/dir_thumbnail"
         android:layout_alignStart="@+id/dir_thumbnail"
-        android:layout_toStartOf="@+id/dir_location"
-        android:paddingTop="@dimen/medium_margin"
-        android:textColor="@android:color/white"
-        android:textSize="@dimen/normal_text_size"
-        tools:text="Camera" />
+        android:layout_alignEnd="@+id/dir_thumbnail"
+        android:layout_alignBottom="@+id/dir_thumbnail"
+        android:orientation="vertical"
+        android:padding="@dimen/folder_card_label_padding">
 
-    <TextView
-        android:id="@+id/photo_cnt"
+        <TextView
+            android:id="@+id/dir_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:shadowColor="@color/folder_card_scrim"
+            android:shadowRadius="4"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/folder_card_name_text_size"
+            android:textStyle="bold"
+            tools:text="Camera" />
+
+        <TextView
+            android:id="@+id/photo_cnt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:alpha="0.85"
+            android:paddingTop="@dimen/tiny_margin"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/folder_card_details_text_size"
+            tools:text="36" />
+
+    </LinearLayout>
+
+    <!-- over the scrim, which would otherwise dim the edge along the bottom -->
+    <View
+        android:id="@+id/dir_cover_border"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/dir_name"
+        android:layout_height="match_parent"
         android:layout_alignStart="@+id/dir_thumbnail"
-        android:layout_toStartOf="@+id/dir_location"
-        android:paddingTop="@dimen/small_margin"
-        android:textColor="@android:color/white"
-        android:textSize="@dimen/normal_text_size"
-        tools:text="36" />
+        android:layout_alignTop="@+id/dir_thumbnail"
+        android:layout_alignEnd="@+id/dir_thumbnail"
+        android:layout_alignBottom="@+id/dir_thumbnail"
+        android:background="@drawable/folder_cover_border" />
 
     <ImageView
         android:id="@+id/dir_location"
         android:layout_width="@dimen/sd_card_icon_size"
         android:layout_height="@dimen/sd_card_icon_size"
-        android:layout_alignBottom="@+id/dir_name"
-        android:layout_alignParentEnd="true"
+        android:layout_alignEnd="@+id/dir_thumbnail"
+        android:layout_alignBottom="@+id/dir_thumbnail"
         android:alpha="0.8"
         android:contentDescription="@null"
+        android:layout_marginEnd="@dimen/small_margin"
+        android:layout_marginBottom="@dimen/small_margin"
         android:paddingTop="@dimen/tiny_margin"
         android:paddingBottom="@dimen/tiny_margin"
         android:src="@drawable/ic_sd_card_vector"

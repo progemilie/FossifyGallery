@@ -6,4 +6,7 @@
 
     <color name="star_enabled">#FFC107</color>
     <color name="star_disabled">#9E9E9E</color>
+
+    <!-- folder cover styles, see FolderCoverStyle -->
+    <color name="folder_card_scrim">#73000000</color>
 </resources>

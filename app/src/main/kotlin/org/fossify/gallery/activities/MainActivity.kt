@@ -471,9 +471,7 @@ class MainActivity :
             getRecyclerAdapter()?.updatePrimaryColor()
         }
 
-        val styleString =
-            "${config.folderStyle}${config.showFolderMediaCount}${config.limitFolderTitle}"
-        if (mStoredStyleString != styleString) {
+        if (mStoredStyleString != folderStyleString()) {
             setupAdapter(mDirsIgnoringSearch, forceRecreate = true)
         }
 
@@ -1234,8 +1232,13 @@ class MainActivity :
             mStoredAnimateGifs = animateGifs
             mStoredCropThumbnails = cropThumbnails
             mStoredScrollHorizontally = scrollHorizontally
-            mStoredStyleString = "$folderStyle$showFolderMediaCount$limitFolderTitle"
+            mStoredStyleString = folderStyleString()
         }
+    }
+
+    // everything a folder tile is laid out from, so that a change to any of it rebuilds the grid
+    private fun folderStyleString() = config.run {
+        "$folderStyle$showFolderMediaCount$limitFolderTitle$showFolderSize$folderSpacing"
     }
 
     private fun startNewPhotoFetcher() {
@@ -1827,7 +1830,8 @@ class MainActivity :
         val includedFolders = config.includedFolders
         val noMediaFolders = getNoMediaFoldersSync()
         val tempFolderPath = config.tempFolderPath
-        val getProperFileSize = config.directorySorting and SORT_BY_SIZE != 0
+        // summed only where something shows it: sorting by size, or the size written on a folder's cover
+        val getProperFileSize = config.directorySorting and SORT_BY_SIZE != 0 || config.showFolderSize
         val dirPathsToRemove = ArrayList<String>()
         val lastModifieds = mLastMediaFetcher!!.getLastModifieds()
         val dateTakens = mLastMediaFetcher!!.getDateTakens()
