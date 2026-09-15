@@ -1,6 +1,6 @@
 # Changelog
 
-Fork-only changes, newest first. Internal fixes are left out.
+Notable fork-only changes.
 
 ## [Unreleased]
 ### Added

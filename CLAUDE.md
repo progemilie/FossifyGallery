@@ -203,7 +203,7 @@ Branches:
 Commit and PR titles must follow a format of `type: summary`
 - Allowed types: `feat`, `tweak`, `fix`, `chore`, `docs`, `refactor`, `perf`, `test`, `build`, `ci`
 
-`FORK-CHANGELOG.md` records user-facing changes as they are made, under `## [Unreleased]` — include internal fixes only when major. When adding to the log add them to the correct section `### Added`, `### Changed`, `### Fixed`. Keep the entries simple and short, this is meant for the user to read.
+`FORK-CHANGELOG.md` records **notable** user-facing changes as they are made, under `## [Unreleased]` — include internal fixes only when major. When adding to the log add them to the correct section `### Added`, `### Changed`, `### Fixed`. Keep the entries simple and short, this is meant for the user to read.
 
 Never change `gradle.properties` on a work branch, version is changed by a tool activated separately when version is ready.
 
