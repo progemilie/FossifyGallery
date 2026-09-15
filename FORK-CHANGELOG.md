@@ -8,6 +8,8 @@ Notable fork-only changes.
 - Holding a picked picture and dragging unpicks the pictures the finger passes over.
 - **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with
   adjustable spacing and an optional folder size on the details line.
+- **Folder cover outlines and the custom order Save button can take the theme's colour**, with an
+  adjustable strength.
 ### Changed
 - The details at the top of a photo are more compact.
 - **A selection's menu is laid out like the viewer's.**

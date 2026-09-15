@@ -149,6 +149,7 @@ import org.fossify.gallery.helpers.GROUP_BY_LAST_MODIFIED_MONTHLY
 import org.fossify.gallery.helpers.GROUP_DESCENDING
 import org.fossify.gallery.helpers.GridChrome
 import org.fossify.gallery.helpers.GridPinchZoom
+import org.fossify.gallery.helpers.Hairline
 import org.fossify.gallery.helpers.LOCATION_INTERNAL
 import org.fossify.gallery.helpers.MAX_COLUMN_COUNT
 import org.fossify.gallery.helpers.MONTH_MILLISECONDS
@@ -267,6 +268,7 @@ class MainActivity :
     private var mStoredTextColor = 0
     private var mStoredPrimaryColor = 0
     private var mStoredStyleString = ""
+    private var mStoredCoverEdgeColor = 0
     private val binding by viewBinding(ActivityMainBinding::inflate)
     private val navPill by lazy { NavPill(binding.navPill) }
     private lateinit var chrome: GridChrome
@@ -471,7 +473,8 @@ class MainActivity :
             getRecyclerAdapter()?.updatePrimaryColor()
         }
 
-        if (mStoredStyleString != folderStyleString()) {
+        // the edge follows the primary colour and the tint settings, neither of which rebinds a tile
+        if (mStoredStyleString != folderStyleString() || mStoredCoverEdgeColor != Hairline.tintedColor(this)) {
             setupAdapter(mDirsIgnoringSearch, forceRecreate = true)
         }
 
@@ -1225,6 +1228,8 @@ class MainActivity :
             mStoredScrollHorizontally = scrollHorizontally
             mStoredStyleString = folderStyleString()
         }
+
+        mStoredCoverEdgeColor = Hairline.tintedColor(this)
     }
 
     // everything a folder tile is laid out from, so that a change to any of it rebuilds the grid

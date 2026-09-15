@@ -451,6 +451,15 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(GLASS_UI, true)
         set(glassUI) = prefs.edit { putBoolean(GLASS_UI, glassUI) }
 
+    var tintOutlines: Boolean
+        get() = prefs.getBoolean(TINT_OUTLINES, true)
+        set(tintOutlines) = prefs.edit { putBoolean(TINT_OUTLINES, tintOutlines) }
+
+    /** How far a tinted outline is carried towards the primary colour, out of [Hairline.MAX_TINT_STRENGTH]. */
+    var outlineTintStrength: Int
+        get() = prefs.getInt(OUTLINE_TINT_STRENGTH, Hairline.DEFAULT_TINT_STRENGTH)
+        set(outlineTintStrength) = prefs.edit { putInt(OUTLINE_TINT_STRENGTH, outlineTintStrength) }
+
     var hideExtendedDetails: Boolean
         get() = prefs.getBoolean(HIDE_EXTENDED_DETAILS, true)
         set(hideExtendedDetails) = prefs.edit().putBoolean(HIDE_EXTENDED_DETAILS, hideExtendedDetails).apply()

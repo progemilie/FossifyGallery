@@ -246,4 +246,7 @@ paints an opaque band under its own bar.
 - **Outlines** — `helpers/Hairline.kt` is the one line anything is edged with: folder covers, stack
   cards, dropdown surfaces, a thumbnail held in the reorder mode, and a glass panel set `isEdged`
   (the reorder mode's Save). Its colour is
-  worked out there and its weight is `R.dimen.hairline_width`.
+  worked out there and its weight is `R.dimen.hairline_width`. Everything but a dropdown takes
+  `tintedColor()`, carried towards the theme's primary colour by the tint settings in Look and Feel.
+  The folder grid works it out once per adapter, so `MainActivity` rebuilds the grid when it changes
+  — `updatePrimaryColor()` alone rebinds nothing.

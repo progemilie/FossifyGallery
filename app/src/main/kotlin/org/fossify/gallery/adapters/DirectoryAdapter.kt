@@ -93,6 +93,7 @@ import org.fossify.gallery.helpers.FOLDER_MEDIA_CNT_BRACKETS
 import org.fossify.gallery.helpers.FOLDER_MEDIA_CNT_LINE
 import org.fossify.gallery.helpers.FolderCoverStyle
 import org.fossify.gallery.helpers.FolderLabelPlacement
+import org.fossify.gallery.helpers.Hairline
 import org.fossify.gallery.helpers.LOCATION_INTERNAL
 import org.fossify.gallery.helpers.LOCATION_SD
 import org.fossify.gallery.helpers.MAX_FOLDER_GROUP_COVERS
@@ -169,6 +170,8 @@ class DirectoryAdapter(
 
     private var showMediaCount = config.showFolderMediaCount
     private val coverStyle = FolderCoverStyle.from(config.folderStyle)
+    // the folder screen rebuilds the adapter when this changes, see MainActivity.onActivated
+    private val coverEdgeColor = Hairline.tintedColor(activity)
     private val showFolderSize = config.showFolderSize
     private val folderSpacing = config.folderSpacing
     private var limitFolderTitle = config.limitFolderTitle
@@ -1068,7 +1071,7 @@ class DirectoryAdapter(
                 dirName.setTextColor(textColor)
                 dirLocation.applyColorFilter(textColor)
             } else {
-                dressFor(coverStyle, textColor)
+                dressFor(coverStyle, textColor, coverEdgeColor)
             }
 
             if (isListViewType) {

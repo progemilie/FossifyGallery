@@ -78,15 +78,21 @@ class GridDirectoryItemBinding(override val root: ViewGroup) : DirectoryItemBind
     override val dirStackCards: FolderStackCards? = root.findViewById(R.id.dir_stack_cards)
 }
 
-/** Colours what a tile's style leaves to the theme. Text on a cover keeps its own. */
-fun DirectoryItemBinding.dressFor(style: FolderCoverStyle, textColor: Int) {
+/**
+ * Colours what a tile's style leaves to the theme. Text on a cover keeps its own. A grid hands in
+ * [edgeColor] worked out once, rather than reading the tint settings on every bind.
+ */
+fun DirectoryItemBinding.dressFor(
+    style: FolderCoverStyle,
+    textColor: Int,
+    edgeColor: Int = Hairline.tintedColor(root.context)
+) {
     if (style.label == FolderLabelPlacement.BELOW) {
         dirName.setTextColor(textColor)
         photoCnt.setTextColor(textColor)
         dirLocation.applyColorFilter(textColor)
     }
 
-    val edgeColor = Hairline.color(textColor)
     dirCoverBorder?.backgroundTintList = ColorStateList.valueOf(edgeColor)
     dirStackCards?.setColors(page = root.context.getProperBackgroundColor(), text = textColor, edge = edgeColor)
 }

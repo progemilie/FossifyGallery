@@ -130,6 +130,7 @@ class SettingsActivity : SimpleActivity() {
     private fun setupSettingItems() {
         setupCustomizeColors()
         setupGlassUI()
+        setupTintOutlines()
         setupUseEnglish()
         setupLanguage()
         setupChangeDateTimeFormat()
@@ -276,6 +277,38 @@ class SettingsActivity : SimpleActivity() {
             binding.settingsGlassUi.toggle()
             config.glassUI = binding.settingsGlassUi.isChecked
         }
+    }
+
+    private fun setupTintOutlines() {
+        binding.settingsTintOutlines.isChecked = config.tintOutlines
+        binding.settingsTintOutlinesHolder.setOnClickListener {
+            binding.settingsTintOutlines.toggle()
+            config.tintOutlines = binding.settingsTintOutlines.isChecked
+            updateOutlineTintStrengthEnabled()
+        }
+
+        binding.settingsOutlineTintStrength.apply {
+            max = Hairline.MAX_TINT_STRENGTH
+            progress = config.outlineTintStrength
+            onSeekBarChangeListener { strength ->
+                config.outlineTintStrength = strength
+                showOutlineTintStrength(strength)
+            }
+        }
+
+        showOutlineTintStrength(config.outlineTintStrength)
+        updateOutlineTintStrengthEnabled()
+    }
+
+    private fun showOutlineTintStrength(strength: Int) {
+        binding.settingsOutlineTintStrengthValue.text = getString(R.string.outline_tint_strength_value, strength)
+    }
+
+    // dimmed rather than hidden with the tint off, so switching it back on does not move the rows below
+    private fun updateOutlineTintStrengthEnabled() {
+        val isTinted = config.tintOutlines
+        binding.settingsOutlineTintStrength.isEnabled = isTinted
+        binding.settingsOutlineTintStrengthHolder.alpha = if (isTinted) 1f else MEDIUM_ALPHA
     }
 
     private fun setupUseEnglish() {
@@ -1259,6 +1292,8 @@ class SettingsActivity : SimpleActivity() {
                 put(SHOW_THUMBNAIL_FILE_TYPES, config.showThumbnailFileTypes)
                 put(MARK_FAVORITE_ITEMS, config.markFavoriteItems)
                 put(GLASS_UI, config.glassUI)
+                put(TINT_OUTLINES, config.tintOutlines)
+                put(OUTLINE_TINT_STRENGTH, config.outlineTintStrength)
                 put(TABS_ENABLED, config.tabsEnabled)
                 put(SCROLL_HORIZONTALLY, config.scrollHorizontally)
                 put(ENABLE_PULL_TO_REFRESH, config.enablePullToRefresh)
@@ -1409,6 +1444,8 @@ class SettingsActivity : SimpleActivity() {
                 SHOW_THUMBNAIL_FILE_TYPES -> config.showThumbnailFileTypes = value.toBoolean()
                 MARK_FAVORITE_ITEMS -> config.markFavoriteItems = value.toBoolean()
                 GLASS_UI -> config.glassUI = value.toBoolean()
+                TINT_OUTLINES -> config.tintOutlines = value.toBoolean()
+                OUTLINE_TINT_STRENGTH -> config.outlineTintStrength = value.toInt()
                 TABS_ENABLED -> config.tabsEnabled = value.toBoolean()
                 SCROLL_HORIZONTALLY -> config.scrollHorizontally = value.toBoolean()
                 ENABLE_PULL_TO_REFRESH -> config.enablePullToRefresh = value.toBoolean()

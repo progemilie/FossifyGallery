@@ -64,6 +64,54 @@
 
                 </RelativeLayout>
 
+                <RelativeLayout
+                    android:id="@+id/settings_tint_outlines_holder"
+                    style="@style/SettingsHolderSwitchStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <org.fossify.commons.views.MyMaterialSwitch
+                        android:id="@+id/settings_tint_outlines"
+                        style="@style/SettingsSwitchStyle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/tint_outlines" />
+
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/settings_outline_tint_strength_holder"
+                    style="@style/SettingsHolderTextViewStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@null">
+
+                    <org.fossify.commons.views.MyTextView
+                        android:id="@+id/settings_outline_tint_strength_label"
+                        style="@style/SettingsTextLabelStyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_toStartOf="@+id/settings_outline_tint_strength_value"
+                        android:text="@string/outline_tint_strength" />
+
+                    <org.fossify.commons.views.MyTextView
+                        android:id="@+id/settings_outline_tint_strength_value"
+                        style="@style/SettingsTextValueStyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        tools:text="50%" />
+
+                    <org.fossify.commons.views.MySeekBar
+                        android:id="@+id/settings_outline_tint_strength"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_below="@+id/settings_outline_tint_strength_label"
+                        android:layout_marginTop="@dimen/medium_margin" />
+
+                </RelativeLayout>
+
             </org.fossify.gallery.views.SettingsCard>
 
             <org.fossify.gallery.views.SettingsCard
