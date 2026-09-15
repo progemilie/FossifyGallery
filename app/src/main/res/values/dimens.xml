@@ -280,7 +280,9 @@
     <dimen name="folder_card_details_text_size">11sp</dimen>
     <dimen name="folder_stack_peek">5dp</dimen>
     <dimen name="folder_stack_cover_top">10dp</dimen>
-    <dimen name="folder_stack_card_height">24dp</dimen>
+    <!-- both cards: one card's height, and the peek the middle one sits lower by -->
+    <dimen name="folder_stack_cards_height">29dp</dimen>
+    <dimen name="folder_stack_glass_blur">8dp</dimen>
     <dimen name="folder_stack_middle_inset">8dp</dimen>
     <dimen name="folder_stack_back_inset">16dp</dimen>
     <dimen name="folder_style_sample_width">136dp</dimen>

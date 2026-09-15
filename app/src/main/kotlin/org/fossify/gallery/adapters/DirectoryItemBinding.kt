@@ -14,6 +14,7 @@ import org.fossify.gallery.databinding.DirectoryItemListBinding
 import org.fossify.gallery.helpers.FolderCoverStyle
 import org.fossify.gallery.helpers.FolderLabelPlacement
 import org.fossify.gallery.views.FolderGroupThumbnail
+import org.fossify.gallery.views.FolderStackCards
 
 interface DirectoryItemBinding {
     val root: ViewGroup
@@ -31,6 +32,7 @@ interface DirectoryItemBinding {
     val dirDragHandle: ImageView
     val dirDragHandleWrapper: ViewGroup?
     val dirCoverBorder: View?
+    val dirStackCards: FolderStackCards?
 }
 
 class ListDirectoryItemBinding(val binding: DirectoryItemListBinding) : DirectoryItemBinding {
@@ -49,6 +51,7 @@ class ListDirectoryItemBinding(val binding: DirectoryItemListBinding) : Director
     override val dirDragHandle: ImageView = binding.dirDragHandle
     override val dirDragHandleWrapper: ViewGroup? = null
     override val dirCoverBorder: View? = null
+    override val dirStackCards: FolderStackCards? = null
 }
 
 fun DirectoryItemListBinding.toItemBinding() = ListDirectoryItemBinding(this)
@@ -72,11 +75,8 @@ class GridDirectoryItemBinding(override val root: ViewGroup) : DirectoryItemBind
     override val dirDragHandle: ImageView = root.findViewById(R.id.dir_drag_handle)
     override val dirDragHandleWrapper: ViewGroup = root.findViewById(R.id.dir_drag_handle_wrapper)
     override val dirCoverBorder: View? = root.findViewById(R.id.dir_cover_border)
+    override val dirStackCards: FolderStackCards? = root.findViewById(R.id.dir_stack_cards)
 }
-
-// how far the stack's cards are carried from the background towards the text colour
-private const val STACK_MIDDLE_CARD_SHADE = 0.3f
-private const val STACK_BACK_CARD_SHADE = 0.15f
 
 // the text colour always stands out from the theme's background, so a faint wash of it edges a cover
 private const val COVER_BORDER_ALPHA = 0x40
@@ -89,15 +89,7 @@ fun DirectoryItemBinding.dressFor(style: FolderCoverStyle, textColor: Int) {
         dirLocation.applyColorFilter(textColor)
     }
 
-    dirCoverBorder?.backgroundTintList =
-        ColorStateList.valueOf(ColorUtils.setAlphaComponent(textColor, COVER_BORDER_ALPHA))
-
-    if (style == FolderCoverStyle.STACK) {
-        // opaque rather than see-through, or the back card would show through the middle one
-        val background = root.context.getProperBackgroundColor()
-        root.findViewById<View>(R.id.dir_stack_middle).backgroundTintList =
-            ColorStateList.valueOf(ColorUtils.blendARGB(background, textColor, STACK_MIDDLE_CARD_SHADE))
-        root.findViewById<View>(R.id.dir_stack_back).backgroundTintList =
-            ColorStateList.valueOf(ColorUtils.blendARGB(background, textColor, STACK_BACK_CARD_SHADE))
-    }
+    val edgeColor = ColorUtils.setAlphaComponent(textColor, COVER_BORDER_ALPHA)
+    dirCoverBorder?.backgroundTintList = ColorStateList.valueOf(edgeColor)
+    dirStackCards?.setColors(page = root.context.getProperBackgroundColor(), text = textColor, edge = edgeColor)
 }

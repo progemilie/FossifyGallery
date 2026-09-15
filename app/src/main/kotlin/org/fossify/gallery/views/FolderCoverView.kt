@@ -11,6 +11,7 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.RenderEffect
 import android.graphics.RenderNode
 import android.graphics.Shader
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.util.AttributeSet
 import android.view.View
@@ -35,6 +36,9 @@ class FolderCoverView : MySquareImageView {
     private var frostAnchorId = NO_ID
     private var frostAnchor: View? = null
     private var frost: FrostPainter? = null
+
+    /** Told whenever the picture this cover draws changes, for a view drawing after it - see FolderStackCards. */
+    var onPictureChanged: (() -> Unit)? = null
 
     // a label wrapping onto another line moves its top without this view being drawn again
     private val anchorListener = OnLayoutChangeListener { _, _, top, _, _, _, oldTop, _, _ ->
@@ -78,6 +82,24 @@ class FolderCoverView : MySquareImageView {
                 featherHeight = resources.getDimension(R.dimen.folder_card_frost_feather)
             )
         }
+    }
+
+    override fun setImageDrawable(drawable: Drawable?) {
+        super.setImageDrawable(drawable)
+        onPictureChanged?.invoke()
+    }
+
+    // a picture fading in, or an animated one, changes without being set again
+    override fun invalidateDrawable(dr: Drawable) {
+        super.invalidateDrawable(dr)
+        if (dr === drawable) {
+            onPictureChanged?.invoke()
+        }
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        onPictureChanged?.invoke()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {

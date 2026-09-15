@@ -18,4 +18,9 @@
         <!-- the sibling laid over the cover, whose area the cover frosts -->
         <attr name="frostBehind" format="reference" />
     </declare-styleable>
+
+    <declare-styleable name="FolderStackCards">
+        <!-- the cover the cards sit under, whose picture they take after -->
+        <attr name="stackCover" format="reference" />
+    </declare-styleable>
 </resources>

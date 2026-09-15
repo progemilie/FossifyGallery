@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The stack: a rounded cover sitting on two cards that peek out above it, with the name and count
-    under it. The cards are coloured from the theme, see dressFor.
+    The stack: a rounded cover sitting on two glass cards that peek out above it and take after its
+    picture, with the name and count under it. See FolderStackCards.
 -->
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/dir_holder"
     android:layout_width="wrap_content"
@@ -14,30 +15,16 @@
 
     <!-- the cards take their width from the cover: scrolled sideways, the tile has none of its own
          to give them until the cover has been measured -->
-    <View
-        android:id="@+id/dir_stack_back"
+    <org.fossify.gallery.views.FolderStackCards
+        android:id="@+id/dir_stack_cards"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/folder_stack_card_height"
+        android:layout_height="@dimen/folder_stack_cards_height"
         android:layout_alignStart="@+id/dir_thumbnail"
         android:layout_alignEnd="@+id/dir_thumbnail"
         android:layout_alignParentTop="true"
-        android:layout_marginStart="@dimen/folder_stack_back_inset"
-        android:layout_marginEnd="@dimen/folder_stack_back_inset"
-        android:background="@drawable/folder_stack_card" />
+        app:stackCover="@+id/dir_thumbnail" />
 
-    <View
-        android:id="@+id/dir_stack_middle"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/folder_stack_card_height"
-        android:layout_alignStart="@+id/dir_thumbnail"
-        android:layout_alignEnd="@+id/dir_thumbnail"
-        android:layout_alignParentTop="true"
-        android:layout_marginStart="@dimen/folder_stack_middle_inset"
-        android:layout_marginTop="@dimen/folder_stack_peek"
-        android:layout_marginEnd="@dimen/folder_stack_middle_inset"
-        android:background="@drawable/folder_stack_card" />
-
-    <org.fossify.commons.views.MySquareImageView
+    <org.fossify.gallery.views.FolderCoverView
         android:id="@+id/dir_thumbnail"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

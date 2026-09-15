@@ -1135,7 +1135,11 @@ class DirectoryAdapter(
         // its image and the placeholder behind it or they show through the cell gaps
         dirThumbnail.beInvisibleIf(isGroup)
 
-        if (lockedFolderPaths.contains(directory.path)) {
+        val isLocked = lockedFolderPaths.contains(directory.path)
+        // the thumbnail behind a collage or a padlock still holds whatever cover it was last bound to
+        dirStackCards?.takesAfterCover = !isGroup && !isLocked
+
+        if (isLocked) {
             dirLock.beVisible()
             dirLock.background = ColorDrawable(root.context.getProperBackgroundColor())
             dirLock.applyColorFilter(root.context.getProperBackgroundColor().getContrastColor())
