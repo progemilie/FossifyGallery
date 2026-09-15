@@ -9,7 +9,6 @@ import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.gallery.databinding.ViewerHeaderBinding
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.getMediumExtendedDetails
-import org.fossify.gallery.extensions.joinAsExtendedDetails
 import org.fossify.gallery.models.Medium
 
 /**
@@ -56,13 +55,10 @@ class ViewerHeader(private val activity: Activity, private val binding: ViewerHe
 
         pendingDetails = Runnable {
             ensureBackgroundThread {
-                val details = activity
-                    .getMediumExtendedDetails(medium, skipName = true)
-                    .joinAsExtendedDetails()
-
+                val details = activity.getMediumExtendedDetails(medium, skipName = true)
                 activity.runOnUiThread {
                     if (isStillCurrent()) {
-                        detailsView.text = details
+                        detailsView.setFields(details)
                         detailsView.beVisibleIf(details.isNotEmpty())
                     }
                 }
