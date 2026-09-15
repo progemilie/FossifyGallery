@@ -642,7 +642,6 @@ class MediaGridPane(
         binding.mediaRefreshLayout.isEnabled = false
         reorderPills.show()
         host.onPaneStateChanged()
-        getMediaAdapter()?.reorderMode?.onSelectionChanged = reorderPills::setMarkedCount
         getMediaAdapter()?.reorderMode?.setActive(true, flatMedia)
         handleGridSpacing(flatMedia)
         setupLayoutManager()

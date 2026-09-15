@@ -15,9 +15,7 @@ Notable fork-only changes.
 - The rating chooser is smaller, and opens in the middle of the screen.
 - Clearing the cache asks first.
 - The thumbnail you come back to from a photo no longer pops in.
-- **Custom order mode follows the app's style**: Cancel floats at the top, the move buttons and Save
-  float at the bottom, and a picked up picture looks like a picked up folder.
-- Back in custom order mode unmarks the marked pictures first, rather than leaving the mode.
+- **Custom order mode is restyled** to match the rest of the app.
 ### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.

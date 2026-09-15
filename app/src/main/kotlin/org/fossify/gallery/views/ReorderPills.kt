@@ -3,7 +3,6 @@ package org.fossify.gallery.views
 import android.view.ViewGroup
 import androidx.appcompat.widget.TooltipCompat
 import org.fossify.commons.extensions.applyColorFilter
-import org.fossify.commons.helpers.MEDIUM_ALPHA
 import org.fossify.gallery.R
 import org.fossify.gallery.databinding.MediaReorderPillsBinding
 import org.fossify.gallery.helpers.Glass
@@ -16,7 +15,7 @@ import org.fossify.gallery.helpers.showPanel
  * out at the top, and along the foot the two send-to-an-end arrows opposite Save. Built to the same
  * measurements as [SelectionPills], and like them never panned away with the grid.
  *
- * Painting and enabling itself is its own business - the grid only says what the buttons do.
+ * Painting itself is its own business - the grid only says what the buttons do.
  */
 class ReorderPills(
     private val binding: MediaReorderPillsBinding,
@@ -77,18 +76,6 @@ class ReorderPills(
 
             reorderCancelLabel.setTextColor(content)
             reorderSaveLabel.setTextColor(content)
-        }
-    }
-
-    /**
-     * The two send-to-an-end buttons have nothing to act on until something is marked, so they stay
-     * in place but dimmed until then rather than coming and going beside Save.
-     */
-    fun setMarkedCount(markedCount: Int) {
-        val canMove = markedCount > 0
-        listOf(binding.reorderMoveToTop, binding.reorderMoveToBottom).forEach {
-            it.isEnabled = canMove
-            it.alpha = if (canMove) 1f else MEDIUM_ALPHA
         }
     }
 }

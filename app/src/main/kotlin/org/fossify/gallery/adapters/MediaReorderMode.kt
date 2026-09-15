@@ -63,9 +63,6 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
 
     private var dragLiftAnimator: Animator? = null
 
-    /** Tells how many items are marked, so the reorder pills can enable what acts on them. */
-    var onSelectionChanged: ((marked: Int) -> Unit)? = null
-
     /**
      * Swaps the grid over to [newMedia] - which the caller flattens, sections cannot take part in a
      * hand made order - and lets a long press start a drag rather than a selection. Leaving the
@@ -78,7 +75,6 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         carriedItems = emptyList()
         draggedPath = null
         markedPaths.clear()
-        notifySelection()
         if (reordering) {
             adapter.finishActMode()
             if (itemTouchHelper == null) {
@@ -113,7 +109,6 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
             }
         }
 
-        notifySelection()
         return true
     }
 
@@ -196,7 +191,6 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         adapter.swipeRefreshLayout?.isEnabled = !isActive && activity.config.enablePullToRefresh
         myViewHolder?.itemView?.dropAfterDrag()
         dropCarriedItems()
-        notifySelection()
     }
 
     /**
@@ -209,7 +203,6 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         }
 
         adapter.repaintSelection(holder.itemView, medium)
-        notifySelection()
     }
 
     /**
@@ -231,7 +224,6 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         }
 
         carriedItems.filter { it.path != medium.path }.forEach { removeItem(it.path) }
-        notifySelection()
         itemTouchHelper?.startDrag(holder)
     }
 
@@ -290,8 +282,6 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
     }
 
     private fun indexOfPath(path: String) = media.indexOfFirst { (it as? Medium)?.path == path }
-
-    private fun notifySelection() = onSelectionChanged?.invoke(markedPaths.size)
 
     /**
      * Pulls the picked up thumbnail out of the grid the way a folder tile is picked up, edged like a
