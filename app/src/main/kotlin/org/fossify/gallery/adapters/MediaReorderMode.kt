@@ -19,6 +19,7 @@ import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.interfaces.ItemTouchHelperContract
 import org.fossify.gallery.R
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.helpers.Hairline
 import org.fossify.gallery.helpers.PaddedGridMoveCallback
 import org.fossify.gallery.helpers.SelectionMark
 import org.fossify.gallery.helpers.animateDragLift
@@ -161,7 +162,7 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         return media.mapNotNull { (it as? Medium)?.path }
     }
 
-    /** A view let go of mid drag would come back to another item still lifted. */
+    /** A view let go of mid drag would come back to another item still lifted and still edged. */
     fun resetItemState(itemView: View) {
         itemView.scaleX = 1f
         itemView.scaleY = 1f
@@ -169,6 +170,7 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         itemView.translationZ = 0f
         // the tick is put back on every bind, the count of a carried group is not
         itemView.findCountBadge()?.beGone()
+        itemView.findThumbnail()?.foreground = null
     }
 
     override fun onRowMoved(fromPosition: Int, toPosition: Int) {
@@ -292,24 +294,27 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
     private fun notifySelection() = onSelectionChanged?.invoke(markedPaths.size)
 
     /**
-     * Pulls the picked up thumbnail out of the grid the way a folder tile is picked up, so the moment
-     * the long press takes hold and the item is free to be moved is unmistakable. A tap of feedback
-     * goes with it, the finger is on the item and cannot see it.
+     * Pulls the picked up thumbnail out of the grid the way a folder tile is picked up, edged like a
+     * folder's cover for as long as it is held, so the moment the long press takes hold and the item
+     * is free to be moved is unmistakable. A tap of feedback goes with it, the finger is on the item
+     * and cannot see it.
      */
     private fun View.liftForDrag() {
         performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         // ItemTouchHelper owns the elevation of whatever it drags, translationZ is ours to lift with
         outlineProvider = thumbnailOutlineProvider
+        findThumbnail()?.foreground = Hairline.drawable(activity, adapter.thumbnailCornerRadius)
         dragLiftAnimator?.cancel()
         dragLiftAnimator = animatePickUp()
         showCarriedCount(carriedItems.size)
     }
 
     private fun View.dropAfterDrag() {
-        // the shadow goes at once rather than when the item has settled - carrying a group re-lays
-        // the grid out on the drop, and a reset waiting on an animation that a re-layout can cut
-        // short would leave it cast for good
+        // the edge and the shadow go at once rather than when the item has settled - carrying a
+        // group re-lays the grid out on the drop, and a reset waiting on an animation that a
+        // re-layout can cut short would leave both on the thumbnail for good
         outlineProvider = ViewOutlineProvider.BACKGROUND
+        findThumbnail()?.foreground = null
         hideCarriedCount()
         dragLiftAnimator?.cancel()
         dragLiftAnimator = animateDragLift(1f, 0f)

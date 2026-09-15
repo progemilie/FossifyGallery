@@ -38,7 +38,8 @@ would throw; the table is the authority. Access via `extensions/CustomMediaOrder
 Reordering lives in `adapters/MediaReorderMode.kt` and is put up by `MediaGridPane` through
 `views/ReorderPills.kt`, glass pills standing where a selection's would: multi-select marks a group,
 dragging any marked item carries the whole group, and Back unmarks before it leaves. A picked up
-item is lifted by `helpers/DragLift.kt`'s `animatePickUp()`, the same lift a folder tile gets.
+item is lifted by `helpers/DragLift.kt`'s `animatePickUp()`, the same lift a folder tile gets, and
+edged in the `Hairline` a folder's cover wears for as long as it is held.
 
 ### Two grids, one window
 
@@ -243,5 +244,6 @@ paints an opaque band under its own bar.
   touches translation: a panel places itself against its anchor with it. A pill floating over a grid
   is dressed by `GlassPanel.dressAsFloatingPill()`.
 - **Outlines** — `helpers/Hairline.kt` is the one line anything is edged with: folder covers, stack
-  cards, dropdown surfaces, and a glass panel set `isEdged` (the reorder mode's Save). Its colour is
+  cards, dropdown surfaces, a thumbnail held in the reorder mode, and a glass panel set `isEdged`
+  (the reorder mode's Save). Its colour is
   worked out there and its weight is `R.dimen.hairline_width`.
