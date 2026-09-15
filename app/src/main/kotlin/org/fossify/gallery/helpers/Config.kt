@@ -663,10 +663,6 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(FOLDER_SHOW_SIZE, false)
         set(showFolderSize) = prefs.edit().putBoolean(FOLDER_SHOW_SIZE, showFolderSize).apply()
 
-    var showFolderDate: Boolean
-        get() = prefs.getBoolean(FOLDER_SHOW_DATE, false)
-        set(showFolderDate) = prefs.edit().putBoolean(FOLDER_SHOW_DATE, showFolderDate).apply()
-
     var folderSpacing: Int
         get() = prefs.getInt(FOLDER_SPACING, DEFAULT_FOLDER_SPACING)
         set(folderSpacing) = prefs.edit().putInt(FOLDER_SPACING, folderSpacing).apply()

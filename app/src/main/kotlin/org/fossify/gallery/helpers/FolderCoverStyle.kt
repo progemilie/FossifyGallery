@@ -1,13 +1,10 @@
 package org.fossify.gallery.helpers
 
-import android.content.Context
 import android.content.res.Resources
-import android.text.format.DateUtils
 import androidx.annotation.LayoutRes
 import androidx.annotation.StringRes
 import org.fossify.commons.extensions.formatSize
 import org.fossify.gallery.R
-import java.util.Calendar
 import kotlin.math.roundToInt
 
 /** Where a style writes a folder's name and details: over the cover or under it. */
@@ -99,29 +96,11 @@ enum class FolderCoverStyle(
 }
 
 /**
- * The line under a folder's name: whichever of its file count, size and newest date are asked for, in
- * that order. [count] is null where the count is not to go on this line.
+ * The line under a folder's name: its file count and size, whichever are asked for. [count] is null
+ * where the count is not to go on this line.
  */
-fun Context.folderDetailsLine(count: String?, size: Long, date: Long, showSize: Boolean, showDate: Boolean): String {
-    val parts = listOfNotNull(
-        count,
-        // nothing on a folder weighs nothing: 0 is a size that has not been summed yet, see getProperFileSize
-        if (showSize && size > 0) size.formatSize() else null,
-        if (showDate && date > 0) shortFolderDate(date) else null
-    )
-
-    return parts.joinToString(FOLDER_DETAILS_SEPARATOR)
-}
-
-// the day and month within this year, the month and year before it: a tile is barely a word wide
-private fun Context.shortFolderDate(millis: Long): String {
-    val thisYear = Calendar.getInstance().get(Calendar.YEAR)
-    val year = Calendar.getInstance().apply { timeInMillis = millis }.get(Calendar.YEAR)
-    val flags = if (year == thisYear) {
-        DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_NO_YEAR or DateUtils.FORMAT_ABBREV_MONTH
-    } else {
-        DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_NO_MONTH_DAY or DateUtils.FORMAT_ABBREV_MONTH
-    }
-
-    return DateUtils.formatDateTime(this, millis, flags)
+fun folderDetailsLine(count: String?, size: Long, showSize: Boolean): String {
+    // nothing on a folder weighs nothing: 0 is a size that has not been summed yet, see getProperFileSize
+    val shownSize = if (showSize && size > 0) size.formatSize() else null
+    return listOfNotNull(count, shownSize).joinToString(FOLDER_DETAILS_SEPARATOR)
 }

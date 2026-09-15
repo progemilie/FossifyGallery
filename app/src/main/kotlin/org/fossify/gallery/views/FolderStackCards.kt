@@ -16,6 +16,7 @@ import android.view.View
 import android.widget.ImageView
 import androidx.annotation.RequiresApi
 import androidx.core.graphics.ColorUtils
+import androidx.core.graphics.withSave
 import org.fossify.gallery.R
 import kotlin.math.roundToInt
 
@@ -132,7 +133,8 @@ class FolderStackCards(context: Context, attrs: AttributeSet?) : View(context, a
             if (painter != null && cover != null && canvas.isHardwareAccelerated) {
                 painter.record(cover)
                 cards.forEachIndexed { index, card ->
-                    painter.drawCard(canvas, index, boundsOf(card), pageColor, ColorUtils.setAlphaComponent(pageColor, card.glassFade))
+                    val fade = ColorUtils.setAlphaComponent(pageColor, card.glassFade)
+                    painter.drawCard(canvas, index, boundsOf(card), pageColor, fade)
                     drawEdge(canvas)
                 }
                 return
@@ -198,13 +200,13 @@ private class GlassPainter(blurRadius: Float, private val cornerRadius: Float, c
 
         val card = node.beginRecording(width, bounds.height())
         card.drawColor(base)
-        card.save()
-        val offset = width * (1 - GLASS_OVERFILL) / 2
-        card.translate(offset, offset)
-        val scale = width * GLASS_OVERFILL / picture.width
-        card.scale(scale, scale)
-        card.drawRenderNode(picture)
-        card.restore()
+        card.withSave {
+            val offset = width * (1 - GLASS_OVERFILL) / 2
+            translate(offset, offset)
+            val zoom = width * GLASS_OVERFILL / picture.width
+            scale(zoom, zoom)
+            drawRenderNode(picture)
+        }
         card.drawColor(fade)
         node.endRecording()
 

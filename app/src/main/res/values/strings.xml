@@ -295,7 +295,6 @@
     <string name="folder_style_card">Tall card</string>
     <string name="folder_style_stack">Stack</string>
     <string name="show_folder_size">Show folder size</string>
-    <string name="show_folder_date">Show the date of the newest file</string>
     <string name="folder_spacing">Folder spacing</string>
     <string name="export_favorite_paths">Export favorites</string>
     <string name="import_favorite_paths">Import favorites</string>

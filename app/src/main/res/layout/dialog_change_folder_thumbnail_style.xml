@@ -134,14 +134,6 @@
                 android:text="@string/show_folder_size" />
 
             <org.fossify.commons.views.MyAppCompatCheckbox
-                android:id="@+id/dialog_folder_show_date"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:paddingTop="@dimen/medium_margin"
-                android:paddingBottom="@dimen/medium_margin"
-                android:text="@string/show_folder_date" />
-
-            <org.fossify.commons.views.MyAppCompatCheckbox
                 android:id="@+id/dialog_folder_limit_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

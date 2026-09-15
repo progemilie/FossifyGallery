@@ -1238,7 +1238,7 @@ class MainActivity :
 
     // everything a folder tile is laid out from, so that a change to any of it rebuilds the grid
     private fun folderStyleString() = config.run {
-        "$folderStyle$showFolderMediaCount$limitFolderTitle$showFolderSize$showFolderDate$folderSpacing"
+        "$folderStyle$showFolderMediaCount$limitFolderTitle$showFolderSize$folderSpacing"
     }
 
     private fun startNewPhotoFetcher() {

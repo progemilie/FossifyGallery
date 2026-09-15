@@ -7,7 +7,7 @@ Fork-only changes, newest first. Internal fixes are left out.
 - **Zooming into a photo takes the chrome away**, and letting it back out brings it back.
 - Holding a picked picture and dragging unpicks the pictures the finger passes over.
 - **More folder cover styles**: a tall card with the name on a frosted band, and a stack.
-- Folder covers can show the folder's size and the date of its newest file.
+- Folder covers can show the folder's size.
 - **Folder spacing** can be set for every folder style but Square.
 ### Changed
 - **A selection's menu is laid out like the viewer's.**

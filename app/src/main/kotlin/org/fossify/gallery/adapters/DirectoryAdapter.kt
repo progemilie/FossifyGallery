@@ -170,7 +170,6 @@ class DirectoryAdapter(
     private var showMediaCount = config.showFolderMediaCount
     private val coverStyle = FolderCoverStyle.from(config.folderStyle)
     private val showFolderSize = config.showFolderSize
-    private val showFolderDate = config.showFolderDate
     private val folderSpacing = config.folderSpacing
     private var limitFolderTitle = config.limitFolderTitle
     var directorySorting = config.directorySorting
@@ -1043,13 +1042,7 @@ class DirectoryAdapter(
                 else -> directory.subfoldersMediaCount.toString()
             }
 
-            photoCnt.text = activity.folderDetailsLine(
-                count = count,
-                size = directory.size,
-                date = directory.taken.takeIf { it > 0 } ?: directory.modified,
-                showSize = showFolderSize,
-                showDate = showFolderDate
-            )
+            photoCnt.text = folderDetailsLine(count = count, size = directory.size, showSize = showFolderSize)
 
             // on every tile or none, so a row keeps one height
             photoCnt.beVisibleIf(hasDetailsLine)
@@ -1237,7 +1230,7 @@ class DirectoryAdapter(
     private fun getRoundedCorners() = if (isListViewType) ROUNDED_CORNERS_SMALL else coverStyle.bitmapCorners
 
     // whether tiles carry a line under the name at all, which the sideways layout has to know up front
-    private val hasDetailsLine get() = showMediaCount == FOLDER_MEDIA_CNT_LINE || showFolderSize || showFolderDate
+    private val hasDetailsLine get() = showMediaCount == FOLDER_MEDIA_CNT_LINE || showFolderSize
 
     /**
      * The size a cover is decoded to: the column count's nominal share of the grid, rounded to a

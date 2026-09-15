@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.RadioButton
 import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.graphics.createBitmap
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.MultiTransformation
 import com.bumptech.glide.load.Transformation
@@ -36,7 +37,6 @@ import org.fossify.gallery.helpers.FOLDER_SPACING_STEPS
 import org.fossify.gallery.helpers.FolderCoverStyle
 import org.fossify.gallery.helpers.FolderLabelPlacement
 import org.fossify.gallery.helpers.folderDetailsLine
-import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -65,7 +65,6 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
                 val fullest = TileOptions(
                     countMode = FOLDER_MEDIA_CNT_LINE,
                     showSize = true,
-                    showDate = true,
                     limitTitle = false,
                     spacing = spacing
                 )
@@ -80,9 +79,8 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
     init {
         binding.apply {
             dialogFolderShowSize.isChecked = config.showFolderSize
-            dialogFolderShowDate.isChecked = config.showFolderDate
             dialogFolderLimitTitle.isChecked = config.limitFolderTitle
-            listOf(dialogFolderShowSize, dialogFolderShowDate, dialogFolderLimitTitle).forEach {
+            listOf(dialogFolderShowSize, dialogFolderLimitTitle).forEach {
                 it.setOnCheckedChangeListener { _, _ -> updateSample() }
             }
         }
@@ -137,7 +135,6 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
             else -> FOLDER_MEDIA_CNT_NONE
         },
         showSize = binding.dialogFolderShowSize.isChecked,
-        showDate = binding.dialogFolderShowDate.isChecked,
         limitTitle = binding.dialogFolderLimitTitle.isChecked,
         spacing = FOLDER_SPACING_STEPS[binding.dialogFolderSpacing.progress]
     )
@@ -204,14 +201,12 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
                 dirName.ellipsize = TextUtils.TruncateAt.MIDDLE
             }
 
-            photoCnt.text = activity.folderDetailsLine(
+            photoCnt.text = folderDetailsLine(
                 count = sample.count.toString().takeIf { options.countMode == FOLDER_MEDIA_CNT_LINE },
                 size = sample.size,
-                date = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(sample.daysAgo),
-                showSize = options.showSize,
-                showDate = options.showDate
+                showSize = options.showSize
             )
-            photoCnt.beVisibleIf(options.countMode == FOLDER_MEDIA_CNT_LINE || options.showSize || options.showDate)
+            photoCnt.beVisibleIf(options.countMode == FOLDER_MEDIA_CNT_LINE || options.showSize)
         }
     }
 
@@ -230,7 +225,7 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
 
     private fun sampleCover(@DrawableRes id: Int) = sampleCovers.getOrPut(id) {
         val drawable = checkNotNull(AppCompatResources.getDrawable(activity, id))
-        Bitmap.createBitmap(SAMPLE_COVER_WIDTH, SAMPLE_COVER_HEIGHT, Bitmap.Config.ARGB_8888).also {
+        createBitmap(SAMPLE_COVER_WIDTH, SAMPLE_COVER_HEIGHT).also {
             drawable.setBounds(0, 0, SAMPLE_COVER_WIDTH, SAMPLE_COVER_HEIGHT)
             drawable.draw(Canvas(it))
         }
@@ -242,7 +237,6 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
         config.folderSpacing = options.spacing
         config.showFolderMediaCount = options.countMode
         config.showFolderSize = options.showSize
-        config.showFolderDate = options.showDate
         config.limitFolderTitle = options.limitTitle
         callback()
     }
@@ -251,7 +245,6 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
         val name: String,
         val count: Int,
         val size: Long,
-        val daysAgo: Long,
         @DrawableRes val cover: Int
     )
 
@@ -259,7 +252,6 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
     private data class TileOptions(
         val countMode: Int,
         val showSize: Boolean,
-        val showDate: Boolean,
         val limitTitle: Boolean,
         val spacing: Int
     )
@@ -269,10 +261,9 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
         const val SAMPLE_COVER_HEIGHT = 480
         const val DISABLED_ALPHA = 0.4f
 
-        // one dated this year and one before it, so the date option shows both of its forms
         val SAMPLE_FOLDERS = listOf(
-            SampleFolder("Camera", 36, size = 214_000_000L, daysAgo = 3, cover = R.drawable.sample_cover_mountains),
-            SampleFolder("Holidays", 128, size = 1_340_000_000L, daysAgo = 400, cover = R.drawable.sample_cover_coast)
+            SampleFolder("Camera", 36, size = 214_000_000L, cover = R.drawable.sample_cover_mountains),
+            SampleFolder("Holidays", 128, size = 1_340_000_000L, cover = R.drawable.sample_cover_coast)
         )
     }
 }

@@ -2,8 +2,8 @@
 <!-- a made up photo for the folder style preview: opaque, so it reads the same on any theme -->
 <vector xmlns:aapt="http://schemas.android.com/aapt"
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="300dp"
-    android:height="400dp"
+    android:width="150dp"
+    android:height="200dp"
     android:viewportWidth="300"
     android:viewportHeight="400">
 

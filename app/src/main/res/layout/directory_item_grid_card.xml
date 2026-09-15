@@ -168,8 +168,10 @@
         android:layout_alignBottom="@+id/dir_thumbnail"
         android:alpha="0.8"
         android:contentDescription="@null"
-        android:paddingEnd="@dimen/small_margin"
-        android:paddingBottom="@dimen/small_margin"
+        android:layout_marginEnd="@dimen/small_margin"
+        android:layout_marginBottom="@dimen/small_margin"
+        android:paddingTop="@dimen/tiny_margin"
+        android:paddingBottom="@dimen/tiny_margin"
         android:src="@drawable/ic_sd_card_vector"
         android:visibility="gone" />
 
