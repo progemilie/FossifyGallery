@@ -6,14 +6,10 @@ Fork-only changes, newest first. Internal fixes are left out.
 ### Added
 - **Zooming into a photo takes the chrome away**, and letting it back out brings it back.
 - Holding a picked picture and dragging unpicks the pictures the finger passes over.
-- **More folder cover styles**: a tall card with the name on a frosted band, and a stack.
-- Folder covers can show the folder's size.
-- **Folder spacing** can be set for every folder style but Square.
+- **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with
+  adjustable spacing and an optional folder size on the details line.
 ### Changed
 - **A selection's menu is laid out like the viewer's.**
-- The folder style setting previews the style on two sample folders, and reads the same in light
-  and dark themes.
-- Rounded corners folder covers have a thin border that stands out from the theme.
 - Updated the style and opening animation of the copy and move chooser.
 - The rating chooser is smaller, and opens in the middle of the screen.
 - Clearing the cache asks first.
