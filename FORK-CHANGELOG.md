@@ -9,10 +9,7 @@ Fork-only changes, newest first. Internal fixes are left out.
 - **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with
   adjustable spacing and an optional folder size on the details line.
 ### Changed
-- **The details at the top of a photo take up less room.** Months are shortened, the storage path
-  drops its mount point, and fields with nothing to say — an unrated photo, one the right way up —
-  are left out. A dot never lands at the end or the start of a line any more, and on a wide
-  screen they stack into short lines instead of running along one long one.
+- The details at the top of a photo are more compact.
 - **A selection's menu is laid out like the viewer's.**
 - Updated the style and opening animation of the copy and move chooser.
 - The rating chooser is smaller, and opens in the middle of the screen.
