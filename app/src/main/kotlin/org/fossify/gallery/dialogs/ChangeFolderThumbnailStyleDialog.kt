@@ -50,6 +50,18 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
     // the illustrations are drawn once, rather than every time an option changes
     private val sampleCovers = HashMap<Int, Bitmap>()
 
+    // the preview is held at the height of the tallest style showing every detail, so switching styles
+    // or options never resizes the dialog. Declared ahead of init, which builds the first preview
+    private val sampleHeight by lazy {
+        val holder = binding.dialogFolderSampleHolder
+        val fullest = SampleOptions(FOLDER_MEDIA_CNT_LINE, showSize = true, showDate = true, limitTitle = false)
+        val tallest = FolderCoverStyle.entries.maxOf { style ->
+            SAMPLE_FOLDERS.maxOf { measuredHeight(sampleTile(style, it, fullest, holder).root) }
+        }
+
+        tallest + holder.paddingTop + holder.paddingBottom
+    }
+
     init {
         binding.apply {
             dialogFolderShowSize.isChecked = config.showFolderSize
@@ -97,15 +109,44 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
         else -> FOLDER_MEDIA_CNT_NONE
     }
 
+    private fun selectedOptions() = SampleOptions(
+        countMode = selectedCount(),
+        showSize = binding.dialogFolderShowSize.isChecked,
+        showDate = binding.dialogFolderShowDate.isChecked,
+        limitTitle = binding.dialogFolderLimitTitle.isChecked
+    )
+
     /** Two made up folders in the chosen style and options, built from the layouts the grid uses. */
     private fun updateSample() {
         val holder = binding.dialogFolderSampleHolder
         val style = selectedStyle()
+        val options = selectedOptions()
+        val transformation: Transformation<Bitmap> = activity.coverCornersTransformation(style.bitmapCorners)
+            ?.let { MultiTransformation(CenterCrop(), it) }
+            ?: CenterCrop()
+
+        holder.minimumHeight = sampleHeight
         holder.removeAllViews()
-        SAMPLE_FOLDERS.forEach { holder.addView(sampleTile(style, it, holder)) }
+        SAMPLE_FOLDERS.forEach { sample ->
+            sampleTile(style, sample, options, holder).apply {
+                dressFor(style, activity.getProperTextColor())
+                Glide.with(activity)
+                    .load(sampleCover(sample.cover))
+                    .apply(RequestOptions.bitmapTransform(transformation))
+                    .into(dirThumbnail)
+
+                holder.addView(root)
+            }
+        }
     }
 
-    private fun sampleTile(style: FolderCoverStyle, sample: SampleFolder, holder: ViewGroup): View {
+    /** A sample tile with its name and details written, not yet coloured or given a cover. */
+    private fun sampleTile(
+        style: FolderCoverStyle,
+        sample: SampleFolder,
+        options: SampleOptions,
+        holder: ViewGroup
+    ): GridDirectoryItemBinding {
         val tile = activity.layoutInflater.inflate(style.layout, holder, false) as ViewGroup
         tile.layoutParams.width = tile.resources.getDimensionPixelSize(R.dimen.folder_style_sample_width)
 
@@ -115,39 +156,38 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
             tile.layoutParams.height = (tile.layoutParams.width * style.aspectRatio).roundToInt()
         }
 
-        val countMode = selectedCount()
-        val showSize = binding.dialogFolderShowSize.isChecked
-        val showDate = binding.dialogFolderShowDate.isChecked
-        GridDirectoryItemBinding(tile).apply {
-            dirName.text = when (countMode) {
+        return GridDirectoryItemBinding(tile).apply {
+            dirName.text = when (options.countMode) {
                 FOLDER_MEDIA_CNT_BRACKETS -> "${sample.name} (${sample.count})"
                 else -> sample.name
             }
-            if (binding.dialogFolderLimitTitle.isChecked) {
+            if (options.limitTitle) {
                 dirName.setSingleLine()
                 dirName.ellipsize = TextUtils.TruncateAt.MIDDLE
             }
 
             photoCnt.text = activity.folderDetailsLine(
-                count = sample.count.toString().takeIf { countMode == FOLDER_MEDIA_CNT_LINE },
+                count = sample.count.toString().takeIf { options.countMode == FOLDER_MEDIA_CNT_LINE },
                 size = sample.size,
                 date = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(sample.daysAgo),
-                showSize = showSize,
-                showDate = showDate
+                showSize = options.showSize,
+                showDate = options.showDate
             )
-            photoCnt.beVisibleIf(countMode == FOLDER_MEDIA_CNT_LINE || showSize || showDate)
-            dressFor(style, activity.getProperTextColor())
+            photoCnt.beVisibleIf(options.countMode == FOLDER_MEDIA_CNT_LINE || options.showSize || options.showDate)
+        }
+    }
 
-            val transformation: Transformation<Bitmap> = activity.coverCornersTransformation(style.bitmapCorners)
-                ?.let { MultiTransformation(CenterCrop(), it) }
-                ?: CenterCrop()
-            Glide.with(activity)
-                .load(sampleCover(sample.cover))
-                .apply(RequestOptions.bitmapTransform(transformation))
-                .into(dirThumbnail)
+    /** How much of the holder's height [tile] takes, margins included. */
+    private fun measuredHeight(tile: View): Int {
+        val params = tile.layoutParams as ViewGroup.MarginLayoutParams
+        val heightSpec = if (params.height > 0) {
+            View.MeasureSpec.makeMeasureSpec(params.height, View.MeasureSpec.EXACTLY)
+        } else {
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         }
 
-        return tile
+        tile.measure(View.MeasureSpec.makeMeasureSpec(params.width, View.MeasureSpec.EXACTLY), heightSpec)
+        return tile.measuredHeight + params.topMargin + params.bottomMargin
     }
 
     private fun sampleCover(@DrawableRes id: Int) = sampleCovers.getOrPut(id) {
@@ -173,6 +213,13 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
         val size: Long,
         val daysAgo: Long,
         @DrawableRes val cover: Int
+    )
+
+    private data class SampleOptions(
+        val countMode: Int,
+        val showSize: Boolean,
+        val showDate: Boolean,
+        val limitTitle: Boolean
     )
 
     private companion object {
