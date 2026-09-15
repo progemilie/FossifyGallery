@@ -1,6 +1,7 @@
 package org.fossify.gallery.dialogs
 
 import android.content.DialogInterface
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.text.TextUtils
@@ -17,7 +18,10 @@ import com.bumptech.glide.request.RequestOptions
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.getAlertDialogBuilder
+import org.fossify.commons.extensions.getProperBackgroundColor
+import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.extensions.getProperTextColor
+import org.fossify.commons.extensions.onSeekBarChangeListener
 import org.fossify.commons.extensions.setupDialogStuff
 import org.fossify.gallery.R
 import org.fossify.gallery.adapters.GridDirectoryItemBinding
@@ -28,10 +32,12 @@ import org.fossify.gallery.extensions.coverCornersTransformation
 import org.fossify.gallery.helpers.FOLDER_MEDIA_CNT_BRACKETS
 import org.fossify.gallery.helpers.FOLDER_MEDIA_CNT_LINE
 import org.fossify.gallery.helpers.FOLDER_MEDIA_CNT_NONE
+import org.fossify.gallery.helpers.FOLDER_SPACING_STEPS
 import org.fossify.gallery.helpers.FolderCoverStyle
 import org.fossify.gallery.helpers.FolderLabelPlacement
 import org.fossify.gallery.helpers.folderDetailsLine
 import java.util.concurrent.TimeUnit
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val callback: () -> Unit) : DialogInterface.OnClickListener {
@@ -50,13 +56,22 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
     // the illustrations are drawn once, rather than every time an option changes
     private val sampleCovers = HashMap<Int, Bitmap>()
 
-    // the preview is held at the height of the tallest style showing every detail, so switching styles
-    // or options never resizes the dialog. Declared ahead of init, which builds the first preview
+    // the preview is held at the height of the tallest style at any spacing, showing every detail, so
+    // changing an option never resizes the dialog. Declared ahead of init, which builds the first preview
     private val sampleHeight by lazy {
         val holder = binding.dialogFolderSampleHolder
-        val fullest = SampleOptions(FOLDER_MEDIA_CNT_LINE, showSize = true, showDate = true, limitTitle = false)
         val tallest = FolderCoverStyle.entries.maxOf { style ->
-            SAMPLE_FOLDERS.maxOf { measuredHeight(sampleTile(style, it, fullest, holder).root) }
+            FOLDER_SPACING_STEPS.maxOf { spacing ->
+                val fullest = TileOptions(
+                    countMode = FOLDER_MEDIA_CNT_LINE,
+                    showSize = true,
+                    showDate = true,
+                    limitTitle = false,
+                    spacing = spacing
+                )
+
+                SAMPLE_FOLDERS.maxOf { measuredHeight(sampleTile(style, it, fullest, holder).root) }
+            }
         }
 
         tallest + holder.paddingTop + holder.paddingBottom
@@ -78,6 +93,7 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
             .apply {
                 activity.setupDialogStuff(binding.root, this) {
                     setupStyle()
+                    setupSpacing()
                     setupMediaCount()
                     updateSample()
                 }
@@ -87,6 +103,17 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
     private fun setupStyle() {
         styleButtons.getValue(FolderCoverStyle.from(config.folderStyle)).isChecked = true
         binding.dialogRadioFolderStyle.setOnCheckedChangeListener { _, _ -> updateSample() }
+    }
+
+    private fun setupSpacing() {
+        val textColor = activity.getProperTextColor()
+        binding.dialogFolderSpacing.apply {
+            setColors(textColor, activity.getProperPrimaryColor(), activity.getProperBackgroundColor())
+            tickMarkTintList = ColorStateList.valueOf(textColor)
+            max = FOLDER_SPACING_STEPS.lastIndex
+            progress = FOLDER_SPACING_STEPS.indices.minBy { abs(FOLDER_SPACING_STEPS[it] - config.folderSpacing) }
+            onSeekBarChangeListener { updateSample() }
+        }
     }
 
     private fun setupMediaCount() {
@@ -103,17 +130,16 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
     private fun selectedStyle() =
         styleButtons.entries.firstOrNull { it.value.isChecked }?.key ?: FolderCoverStyle.SQUARE
 
-    private fun selectedCount() = when (binding.dialogRadioFolderCountHolder.checkedRadioButtonId) {
-        R.id.dialog_radio_folder_count_line -> FOLDER_MEDIA_CNT_LINE
-        R.id.dialog_radio_folder_count_brackets -> FOLDER_MEDIA_CNT_BRACKETS
-        else -> FOLDER_MEDIA_CNT_NONE
-    }
-
-    private fun selectedOptions() = SampleOptions(
-        countMode = selectedCount(),
+    private fun selectedOptions() = TileOptions(
+        countMode = when (binding.dialogRadioFolderCountHolder.checkedRadioButtonId) {
+            R.id.dialog_radio_folder_count_line -> FOLDER_MEDIA_CNT_LINE
+            R.id.dialog_radio_folder_count_brackets -> FOLDER_MEDIA_CNT_BRACKETS
+            else -> FOLDER_MEDIA_CNT_NONE
+        },
         showSize = binding.dialogFolderShowSize.isChecked,
         showDate = binding.dialogFolderShowDate.isChecked,
-        limitTitle = binding.dialogFolderLimitTitle.isChecked
+        limitTitle = binding.dialogFolderLimitTitle.isChecked,
+        spacing = FOLDER_SPACING_STEPS[binding.dialogFolderSpacing.progress]
     )
 
     /** Two made up folders in the chosen style and options, built from the layouts the grid uses. */
@@ -124,6 +150,12 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
         val transformation: Transformation<Bitmap> = activity.coverCornersTransformation(style.bitmapCorners)
             ?.let { MultiTransformation(CenterCrop(), it) }
             ?: CenterCrop()
+
+        // square tiles meet edge to edge whatever the spacing
+        val spacingAlpha = if (style == FolderCoverStyle.SQUARE) DISABLED_ALPHA else 1f
+        binding.dialogFolderSpacing.isEnabled = style != FolderCoverStyle.SQUARE
+        binding.dialogFolderSpacing.alpha = spacingAlpha
+        binding.dialogFolderSpacingLabel.alpha = spacingAlpha
 
         holder.minimumHeight = sampleHeight
         holder.removeAllViews()
@@ -144,11 +176,17 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
     private fun sampleTile(
         style: FolderCoverStyle,
         sample: SampleFolder,
-        options: SampleOptions,
+        options: TileOptions,
         holder: ViewGroup
     ): GridDirectoryItemBinding {
         val tile = activity.layoutInflater.inflate(style.layout, holder, false) as ViewGroup
-        tile.layoutParams.width = tile.resources.getDimensionPixelSize(R.dimen.folder_style_sample_width)
+
+        // each tile has a column of a set width, so wider spacing narrows it the way it does in the grid
+        val margin = style.tileMargin(tile.resources, options.spacing)
+        (tile.layoutParams as ViewGroup.MarginLayoutParams).apply {
+            setMargins(margin, margin, margin, margin)
+            width = tile.resources.getDimensionPixelSize(R.dimen.folder_style_sample_column) - 2 * margin
+        }
 
         // a tile named over its cover is as tall as the cover, and is told so: the square layout pins
         // its name to the tile's bottom, which a holder measuring at most would stretch to its full height
@@ -199,11 +237,13 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
     }
 
     override fun onClick(dialog: DialogInterface, which: Int) {
+        val options = selectedOptions()
         config.folderStyle = selectedStyle().id
-        config.showFolderMediaCount = selectedCount()
-        config.showFolderSize = binding.dialogFolderShowSize.isChecked
-        config.showFolderDate = binding.dialogFolderShowDate.isChecked
-        config.limitFolderTitle = binding.dialogFolderLimitTitle.isChecked
+        config.folderSpacing = options.spacing
+        config.showFolderMediaCount = options.countMode
+        config.showFolderSize = options.showSize
+        config.showFolderDate = options.showDate
+        config.limitFolderTitle = options.limitTitle
         callback()
     }
 
@@ -215,16 +255,19 @@ class ChangeFolderThumbnailStyleDialog(val activity: BaseSimpleActivity, val cal
         @DrawableRes val cover: Int
     )
 
-    private data class SampleOptions(
+    /** Everything besides the style that a tile is laid out from. */
+    private data class TileOptions(
         val countMode: Int,
         val showSize: Boolean,
         val showDate: Boolean,
-        val limitTitle: Boolean
+        val limitTitle: Boolean,
+        val spacing: Int
     )
 
     private companion object {
         const val SAMPLE_COVER_WIDTH = 360
         const val SAMPLE_COVER_HEIGHT = 480
+        const val DISABLED_ALPHA = 0.4f
 
         // one dated this year and one before it, so the date option shows both of its forms
         val SAMPLE_FOLDERS = listOf(

@@ -171,6 +171,7 @@ class DirectoryAdapter(
     private val coverStyle = FolderCoverStyle.from(config.folderStyle)
     private val showFolderSize = config.showFolderSize
     private val showFolderDate = config.showFolderDate
+    private val folderSpacing = config.folderSpacing
     private var limitFolderTitle = config.limitFolderTitle
     var directorySorting = config.directorySorting
     var dateFormat = config.dateFormat
@@ -191,7 +192,10 @@ class DirectoryAdapter(
         val view = if (isListViewType) {
             DirectoryItemListBinding.inflate(layoutInflater, parent, false).root
         } else {
-            layoutInflater.inflate(coverStyle.layout, parent, false)
+            layoutInflater.inflate(coverStyle.layout, parent, false).apply {
+                val margin = coverStyle.tileMargin(resources, folderSpacing)
+                (layoutParams as ViewGroup.MarginLayoutParams).setMargins(margin, margin, margin, margin)
+            }
         }
 
         return createViewHolder(view)
@@ -1275,7 +1279,7 @@ class DirectoryAdapter(
         }
 
         // a cover does not fill its span, see FolderCoverStyle.coverInset
-        val inset = coverStyle.coverInset(resources)
+        val inset = coverStyle.coverInset(resources, folderSpacing)
         return ThumbnailSizes.snap((across / layoutManager.spanCount - inset).coerceAtLeast(1))
     }
 

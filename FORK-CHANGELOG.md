@@ -8,6 +8,7 @@ Fork-only changes, newest first. Internal fixes are left out.
 - Holding a picked picture and dragging unpicks the pictures the finger passes over.
 - **More folder cover styles**: a tall card with the name on a frosted band, and a stack.
 - Folder covers can show the folder's size and the date of its newest file.
+- **Folder spacing** can be set for every folder style but Square.
 ### Changed
 - **A selection's menu is laid out like the viewer's.**
 - The folder style setting previews the style on two sample folders, and reads the same in light

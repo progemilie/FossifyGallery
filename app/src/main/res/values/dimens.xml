@@ -285,5 +285,6 @@
     <dimen name="folder_stack_glass_blur">8dp</dimen>
     <dimen name="folder_stack_middle_inset">8dp</dimen>
     <dimen name="folder_stack_back_inset">16dp</dimen>
-    <dimen name="folder_style_sample_width">136dp</dimen>
+    <!-- a column of the style preview, which a sample tile's spacing is taken out of -->
+    <dimen name="folder_style_sample_column">152dp</dimen>
 </resources>

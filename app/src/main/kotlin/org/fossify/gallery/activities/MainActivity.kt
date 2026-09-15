@@ -471,9 +471,7 @@ class MainActivity :
             getRecyclerAdapter()?.updatePrimaryColor()
         }
 
-        val styleString =
-            config.run { "$folderStyle$showFolderMediaCount$limitFolderTitle$showFolderSize$showFolderDate" }
-        if (mStoredStyleString != styleString) {
+        if (mStoredStyleString != folderStyleString()) {
             setupAdapter(mDirsIgnoringSearch, forceRecreate = true)
         }
 
@@ -1234,8 +1232,13 @@ class MainActivity :
             mStoredAnimateGifs = animateGifs
             mStoredCropThumbnails = cropThumbnails
             mStoredScrollHorizontally = scrollHorizontally
-            mStoredStyleString = "$folderStyle$showFolderMediaCount$limitFolderTitle$showFolderSize$showFolderDate"
+            mStoredStyleString = folderStyleString()
         }
+    }
+
+    // everything a folder tile is laid out from, so that a change to any of it rebuilds the grid
+    private fun folderStyleString() = config.run {
+        "$folderStyle$showFolderMediaCount$limitFolderTitle$showFolderSize$showFolderDate$folderSpacing"
     }
 
     private fun startNewPhotoFetcher() {

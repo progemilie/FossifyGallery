@@ -8,11 +8,17 @@ import androidx.annotation.StringRes
 import org.fossify.commons.extensions.formatSize
 import org.fossify.gallery.R
 import java.util.Calendar
+import kotlin.math.roundToInt
 
 /** Where a style writes a folder's name and details: over the cover or under it. */
 enum class FolderLabelPlacement { ON_COVER, BELOW }
 
 private const val CARD_ASPECT_RATIO = 5f / 4f
+
+/** The spacings a folder tile can keep around itself, in dp, closest first. */
+@Suppress("MagicNumber")
+val FOLDER_SPACING_STEPS = listOf(2, 4, 8, 12, 16)
+const val DEFAULT_FOLDER_SPACING = 8
 
 // the hairline of padding directory_item_grid_square.xml keeps around its cover
 private const val SQUARE_COVER_INSET_PX = 2
@@ -75,11 +81,16 @@ enum class FolderCoverStyle(
         ROUNDED, CARD, STACK -> resources.getDimension(org.fossify.commons.R.dimen.rounded_corner_radius_big)
     }
 
-    /** How much narrower a cover is than the column it stands in. */
-    fun coverInset(resources: Resources): Int = when (this) {
+    /** The margin a tile keeps around itself at [spacing] dp. Square tiles keep none, and meet edge to edge. */
+    fun tileMargin(resources: Resources, spacing: Int): Int = when (this) {
+        SQUARE -> 0
+        ROUNDED, CARD, STACK -> (spacing * resources.displayMetrics.density).roundToInt()
+    }
+
+    /** How much narrower a cover is than the column it stands in, at [spacing] dp. */
+    fun coverInset(resources: Resources, spacing: Int): Int = when (this) {
         SQUARE -> SQUARE_COVER_INSET_PX
-        // the margin the tile is laid out with, either side
-        ROUNDED, CARD, STACK -> 2 * resources.getDimensionPixelSize(org.fossify.commons.R.dimen.medium_margin)
+        ROUNDED, CARD, STACK -> 2 * tileMargin(resources, spacing)
     }
 
     companion object {

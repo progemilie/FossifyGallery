@@ -74,6 +74,20 @@
 
             </RadioGroup>
 
+            <org.fossify.commons.views.MyTextView
+                android:id="@+id/dialog_folder_spacing_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/folder_spacing" />
+
+            <org.fossify.commons.views.MySeekBar
+                android:id="@+id/dialog_folder_spacing"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="@dimen/medium_margin"
+                android:paddingBottom="@dimen/bigger_margin"
+                android:tickMark="@drawable/folder_spacing_tick" />
+
             <include layout="@layout/divider" />
 
             <RadioGroup
