@@ -149,12 +149,13 @@ import org.fossify.gallery.helpers.GROUP_BY_LAST_MODIFIED_MONTHLY
 import org.fossify.gallery.helpers.GROUP_DESCENDING
 import org.fossify.gallery.helpers.GridChrome
 import org.fossify.gallery.helpers.GridPinchZoom
-import org.fossify.gallery.helpers.Hairline
 import org.fossify.gallery.helpers.LOCATION_INTERNAL
 import org.fossify.gallery.helpers.MAX_COLUMN_COUNT
 import org.fossify.gallery.helpers.MONTH_MILLISECONDS
 import org.fossify.gallery.helpers.MediaFetcher
 import org.fossify.gallery.helpers.OPEN_VIEWER_PATH
+import org.fossify.gallery.helpers.OutlineLook
+import org.fossify.gallery.helpers.OutlineSettings
 import org.fossify.gallery.helpers.PICKED_PATHS
 import org.fossify.gallery.helpers.RECYCLE_BIN
 import org.fossify.gallery.helpers.RESTORE_TAB
@@ -268,7 +269,7 @@ class MainActivity :
     private var mStoredTextColor = 0
     private var mStoredPrimaryColor = 0
     private var mStoredStyleString = ""
-    private var mStoredCoverEdgeColor = 0
+    private var mStoredCoverOutline: OutlineLook? = null
     private val binding by viewBinding(ActivityMainBinding::inflate)
     private val navPill by lazy { NavPill(binding.navPill) }
     private lateinit var chrome: GridChrome
@@ -473,8 +474,8 @@ class MainActivity :
             getRecyclerAdapter()?.updatePrimaryColor()
         }
 
-        // the edge follows the primary colour and the tint settings, neither of which rebinds a tile
-        if (mStoredStyleString != folderStyleString() || mStoredCoverEdgeColor != Hairline.tintedColor(this)) {
+        // the outline follows the primary colour and the outline settings, neither of which rebinds a tile
+        if (mStoredStyleString != folderStyleString() || mStoredCoverOutline != OutlineSettings.coverLook(this)) {
             setupAdapter(mDirsIgnoringSearch, forceRecreate = true)
         }
 
@@ -1229,7 +1230,7 @@ class MainActivity :
             mStoredStyleString = folderStyleString()
         }
 
-        mStoredCoverEdgeColor = Hairline.tintedColor(this)
+        mStoredCoverOutline = OutlineSettings.coverLook(this)
     }
 
     // everything a folder tile is laid out from, so that a change to any of it rebuilds the grid

@@ -19,12 +19,15 @@ import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.interfaces.ItemTouchHelperContract
 import org.fossify.gallery.R
 import org.fossify.gallery.extensions.config
-import org.fossify.gallery.helpers.Hairline
+import org.fossify.gallery.helpers.OutlineDrawable
+import org.fossify.gallery.helpers.OutlineSettings
 import org.fossify.gallery.helpers.PaddedGridMoveCallback
+import org.fossify.gallery.helpers.PhotoColor
 import org.fossify.gallery.helpers.SelectionMark
 import org.fossify.gallery.helpers.animateDragLift
 import org.fossify.gallery.helpers.animatePickUp
 import org.fossify.gallery.helpers.dragPictureOutline
+import org.fossify.gallery.helpers.setOutlineHalo
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
 import java.util.Collections
@@ -165,7 +168,7 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         itemView.translationZ = 0f
         // the tick is put back on every bind, the count of a carried group is not
         itemView.findCountBadge()?.beGone()
-        itemView.findThumbnail()?.foreground = null
+        itemView.findThumbnail()?.unedge()
     }
 
     override fun onRowMoved(fromPosition: Int, toPosition: Int) {
@@ -293,7 +296,7 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         // ItemTouchHelper owns the elevation of whatever it drags, translationZ is ours to lift with
         outlineProvider = thumbnailOutlineProvider
-        findThumbnail()?.foreground = Hairline.drawable(activity, adapter.thumbnailCornerRadius)
+        findThumbnail()?.edgeWhileHeld()
         dragLiftAnimator?.cancel()
         dragLiftAnimator = animatePickUp()
         showCarriedCount(carriedItems.size)
@@ -304,10 +307,26 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         // group re-lays the grid out on the drop, and a reset waiting on an animation that a
         // re-layout can cut short would leave both on the thumbnail for good
         outlineProvider = ViewOutlineProvider.BACKGROUND
-        findThumbnail()?.foreground = null
+        findThumbnail()?.unedge()
         hideCarriedCount()
         dragLiftAnimator?.cancel()
         dragLiftAnimator = animateDragLift(1f, 0f)
+    }
+
+    // TEMPORARY, see OutlineStyle: edged like a folder's cover, in its own photo's colour where covers take theirs
+    private fun ImageView.edgeWhileHeld() {
+        val cover = OutlineSettings.coverLook(activity)
+        val photoColor = if (cover.photoColor) PhotoColor.of(drawable, cover.isDarkTheme) else null
+        val look = photoColor?.let(cover::withSource) ?: cover
+        val radius = adapter.thumbnailCornerRadius
+        foreground = OutlineDrawable(activity, look, radius)
+        // over the grid: the lifted item is faded, and a faded view is drawn into a layer cut to its bounds
+        setOutlineHalo(look, radius, host = recyclerView)
+    }
+
+    private fun ImageView.unedge() {
+        foreground = null
+        setOutlineHalo(null, 0f)
     }
 
     /**

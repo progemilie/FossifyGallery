@@ -1,7 +1,5 @@
 package org.fossify.gallery.adapters
 
-import android.content.res.ColorStateList
-import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
@@ -12,7 +10,10 @@ import org.fossify.gallery.R
 import org.fossify.gallery.databinding.DirectoryItemListBinding
 import org.fossify.gallery.helpers.FolderCoverStyle
 import org.fossify.gallery.helpers.FolderLabelPlacement
-import org.fossify.gallery.helpers.Hairline
+import org.fossify.gallery.helpers.OutlineLook
+import org.fossify.gallery.helpers.OutlineSettings
+import org.fossify.gallery.views.CoverOutlineView
+import org.fossify.gallery.views.FolderCoverView
 import org.fossify.gallery.views.FolderGroupThumbnail
 import org.fossify.gallery.views.FolderStackCards
 
@@ -31,7 +32,7 @@ interface DirectoryItemBinding {
     val dirLocation: ImageView
     val dirDragHandle: ImageView
     val dirDragHandleWrapper: ViewGroup?
-    val dirCoverBorder: View?
+    val dirCoverBorder: CoverOutlineView?
     val dirStackCards: FolderStackCards?
 }
 
@@ -50,7 +51,7 @@ class ListDirectoryItemBinding(val binding: DirectoryItemListBinding) : Director
     override val dirLocation: ImageView = binding.dirLocation
     override val dirDragHandle: ImageView = binding.dirDragHandle
     override val dirDragHandleWrapper: ViewGroup? = null
-    override val dirCoverBorder: View? = null
+    override val dirCoverBorder: CoverOutlineView? = null
     override val dirStackCards: FolderStackCards? = null
 }
 
@@ -74,18 +75,18 @@ class GridDirectoryItemBinding(override val root: ViewGroup) : DirectoryItemBind
     override val dirLocation: ImageView = root.findViewById(R.id.dir_location)
     override val dirDragHandle: ImageView = root.findViewById(R.id.dir_drag_handle)
     override val dirDragHandleWrapper: ViewGroup = root.findViewById(R.id.dir_drag_handle_wrapper)
-    override val dirCoverBorder: View? = root.findViewById(R.id.dir_cover_border)
+    override val dirCoverBorder: CoverOutlineView? = root.findViewById(R.id.dir_cover_border)
     override val dirStackCards: FolderStackCards? = root.findViewById(R.id.dir_stack_cards)
 }
 
 /**
  * Colours what a tile's style leaves to the theme. Text on a cover keeps its own. A grid hands in
- * [edgeColor] worked out once, rather than reading the tint settings on every bind.
+ * [outline] worked out once, rather than reading the outline settings on every bind.
  */
 fun DirectoryItemBinding.dressFor(
     style: FolderCoverStyle,
     textColor: Int,
-    edgeColor: Int = Hairline.tintedColor(root.context)
+    outline: OutlineLook = OutlineSettings.coverLook(root.context)
 ) {
     if (style.label == FolderLabelPlacement.BELOW) {
         dirName.setTextColor(textColor)
@@ -93,6 +94,7 @@ fun DirectoryItemBinding.dressFor(
         dirLocation.applyColorFilter(textColor)
     }
 
-    dirCoverBorder?.backgroundTintList = ColorStateList.valueOf(edgeColor)
-    dirStackCards?.setColors(page = root.context.getProperBackgroundColor(), text = textColor, edge = edgeColor)
+    dirCoverBorder?.look = outline
+    dirStackCards?.setColors(page = root.context.getProperBackgroundColor(), text = textColor, outline = outline)
+    (dirThumbnail as? FolderCoverView)?.frostOutline = outline
 }

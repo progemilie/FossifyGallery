@@ -93,10 +93,10 @@ import org.fossify.gallery.helpers.FOLDER_MEDIA_CNT_BRACKETS
 import org.fossify.gallery.helpers.FOLDER_MEDIA_CNT_LINE
 import org.fossify.gallery.helpers.FolderCoverStyle
 import org.fossify.gallery.helpers.FolderLabelPlacement
-import org.fossify.gallery.helpers.Hairline
 import org.fossify.gallery.helpers.LOCATION_INTERNAL
 import org.fossify.gallery.helpers.LOCATION_SD
 import org.fossify.gallery.helpers.MAX_FOLDER_GROUP_COVERS
+import org.fossify.gallery.helpers.OutlineSettings
 import org.fossify.gallery.helpers.PaddedGridMoveCallback
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.RECYCLE_BIN
@@ -171,7 +171,7 @@ class DirectoryAdapter(
     private var showMediaCount = config.showFolderMediaCount
     private val coverStyle = FolderCoverStyle.from(config.folderStyle)
     // the folder screen rebuilds the adapter when this changes, see MainActivity.onActivated
-    private val coverEdgeColor = Hairline.tintedColor(activity)
+    private val coverOutline = OutlineSettings.coverLook(activity)
     private val showFolderSize = config.showFolderSize
     private val folderSpacing = config.folderSpacing
     private var limitFolderTitle = config.limitFolderTitle
@@ -186,6 +186,8 @@ class DirectoryAdapter(
         setupDragListener(false)
         fillLockedFolders()
         SelectionMark.settleChangeAnimations(recyclerView)
+        // TEMPORARY: an outline glowing past its cover draws outside the tile, see CoverOutlineView
+        recyclerView.clipChildren = !coverOutline.style.reachesOutside
     }
 
     override fun getActionMenuId() = R.menu.cab_directories
@@ -1071,7 +1073,7 @@ class DirectoryAdapter(
                 dirName.setTextColor(textColor)
                 dirLocation.applyColorFilter(textColor)
             } else {
-                dressFor(coverStyle, textColor, coverEdgeColor)
+                dressFor(coverStyle, textColor, coverOutline)
             }
 
             if (isListViewType) {

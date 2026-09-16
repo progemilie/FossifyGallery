@@ -22,4 +22,9 @@
     <item
         name="selection_mark_animator"
         type="id" />
+
+    <!-- TEMPORARY: the halo a view's outline lays over its parent, see helpers/OutlinePainter.kt -->
+    <item
+        name="outline_halo"
+        type="id" />
 </resources>

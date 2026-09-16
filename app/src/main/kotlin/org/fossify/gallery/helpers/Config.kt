@@ -451,14 +451,18 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(GLASS_UI, true)
         set(glassUI) = prefs.edit { putBoolean(GLASS_UI, glassUI) }
 
-    var tintOutlines: Boolean
-        get() = prefs.getBoolean(TINT_OUTLINES, true)
-        set(tintOutlines) = prefs.edit { putBoolean(TINT_OUTLINES, tintOutlines) }
+    // TEMPORARY: the outline lab's settings, see OutlineSettings, which is what reads them
+    var outlinePillProfile: String
+        get() = prefs.getString(OUTLINE_PILL_PROFILE, "")!!
+        set(outlinePillProfile) = prefs.edit { putString(OUTLINE_PILL_PROFILE, outlinePillProfile) }
 
-    /** How far a tinted outline is carried towards the primary colour, out of [Hairline.MAX_TINT_STRENGTH]. */
-    var outlineTintStrength: Int
-        get() = prefs.getInt(OUTLINE_TINT_STRENGTH, Hairline.DEFAULT_TINT_STRENGTH)
-        set(outlineTintStrength) = prefs.edit { putInt(OUTLINE_TINT_STRENGTH, outlineTintStrength) }
+    var outlineCoverProfile: String
+        get() = prefs.getString(OUTLINE_COVER_PROFILE, "")!!
+        set(outlineCoverProfile) = prefs.edit { putString(OUTLINE_COVER_PROFILE, outlineCoverProfile) }
+
+    var outlineCoversMatchPill: Boolean
+        get() = prefs.getBoolean(OUTLINE_COVERS_MATCH_PILL, false)
+        set(outlineCoversMatchPill) = prefs.edit { putBoolean(OUTLINE_COVERS_MATCH_PILL, outlineCoversMatchPill) }
 
     var hideExtendedDetails: Boolean
         get() = prefs.getBoolean(HIDE_EXTENDED_DETAILS, true)

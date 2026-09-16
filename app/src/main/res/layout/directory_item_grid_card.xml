@@ -10,6 +10,7 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:clickable="true"
+    android:clipChildren="false"
     android:focusable="true">
 
     <org.fossify.gallery.views.FolderCoverView
@@ -150,7 +151,7 @@
     </LinearLayout>
 
     <!-- over the scrim, which would otherwise dim the edge along the bottom -->
-    <View
+    <org.fossify.gallery.views.CoverOutlineView
         android:id="@+id/dir_cover_border"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -158,7 +159,7 @@
         android:layout_alignTop="@+id/dir_thumbnail"
         android:layout_alignEnd="@+id/dir_thumbnail"
         android:layout_alignBottom="@+id/dir_thumbnail"
-        android:background="@drawable/folder_cover_border" />
+        android:importantForAccessibility="no" />
 
     <ImageView
         android:id="@+id/dir_location"

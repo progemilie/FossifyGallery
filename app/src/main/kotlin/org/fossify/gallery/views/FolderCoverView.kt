@@ -19,6 +19,8 @@ import android.view.ViewOutlineProvider
 import androidx.annotation.RequiresApi
 import org.fossify.commons.views.MySquareImageView
 import org.fossify.gallery.R
+import org.fossify.gallery.helpers.OutlineLook
+import org.fossify.gallery.helpers.PhotoColor
 import kotlin.math.roundToInt
 
 /**
@@ -36,6 +38,15 @@ class FolderCoverView : MySquareImageView {
     private var frostAnchorId = NO_ID
     private var frostAnchor: View? = null
     private var frost: FrostPainter? = null
+
+    /** TEMPORARY, see OutlineStyle: an outline that bleeds its colour into the frost. */
+    var frostOutline: OutlineLook? = null
+        set(value) {
+            if (field != value) {
+                field = value
+                invalidate()
+            }
+        }
 
     /** Told whenever the picture this cover draws changes, for a view drawing after it - see FolderStackCards. */
     var onPictureChanged: (() -> Unit)? = null
@@ -144,9 +155,15 @@ class FolderCoverView : MySquareImageView {
 
         val bandTop = (anchor.top - top - painter.rise).roundToInt().coerceAtLeast(0)
         if (bandTop < height) {
-            painter.draw(canvas, bandTop, width, height) { super.onDraw(it) }
+            painter.draw(canvas, bandTop, width, height, frostWash()) { super.onDraw(it) }
         }
     }
+}
+
+private fun FolderCoverView.frostWash(): Int {
+    val outline = frostOutline ?: return Color.TRANSPARENT
+    val source = if (outline.photoColor) PhotoColor.of(drawable, outline.isDarkTheme) else null
+    return (source?.let(outline::withSource) ?: outline).frostWash
 }
 
 /**
@@ -170,7 +187,7 @@ private class FrostPainter(blurRadius: Float, val rise: Float, featherHeight: Fl
         xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
     }
 
-    fun draw(canvas: Canvas, bandTop: Int, width: Int, height: Int, drawPicture: (Canvas) -> Unit) {
+    fun draw(canvas: Canvas, bandTop: Int, width: Int, height: Int, wash: Int, drawPicture: (Canvas) -> Unit) {
         picture.setPosition(0, 0, width, height)
         drawPicture(picture.beginRecording(width, height))
         picture.endRecording()
@@ -181,6 +198,10 @@ private class FrostPainter(blurRadius: Float, val rise: Float, featherHeight: Fl
         frost.translate(0f, -bandTop.toFloat())
         frost.drawRenderNode(picture)
         frost.translate(0f, bandTop.toFloat())
+        if (Color.alpha(wash) > 0) {
+            frost.drawColor(wash)
+        }
+
         frost.drawRect(0f, 0f, width.toFloat(), bandHeight.toFloat(), fadePaint)
         band.endRecording()
 

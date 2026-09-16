@@ -18,7 +18,9 @@ import androidx.annotation.RequiresApi
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.withSave
 import org.fossify.gallery.R
-import org.fossify.gallery.helpers.Hairline
+import org.fossify.gallery.helpers.OutlineLook
+import org.fossify.gallery.helpers.OutlinePainter
+import org.fossify.gallery.helpers.PhotoColor
 import kotlin.math.roundToInt
 
 // the cover's picture is recorded this many times smaller: the blur leaves no detail to lose, and the
@@ -85,16 +87,14 @@ class FolderStackCards(context: Context, attrs: AttributeSet?) : View(context, a
     }
 
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val edgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeWidth = Hairline.width(context).toFloat()
-    }
+    private val edgePainter = OutlinePainter(resources.displayMetrics.density)
 
     private val bounds = Rect()
     private val shape = RectF()
     private var cover: FolderCoverView? = null
     private var pageColor = Color.TRANSPARENT
     private var textColor = Color.TRANSPARENT
+    private var outline: OutlineLook? = null
 
     /** Whether the cover shows a picture of its own to take after - a group's collage or a padlock does not. */
     var takesAfterCover = true
@@ -105,11 +105,11 @@ class FolderStackCards(context: Context, attrs: AttributeSet?) : View(context, a
             }
         }
 
-    /** The page the cards fade towards, the text colour flat ones are shaded with, and their edge. */
-    fun setColors(page: Int, text: Int, edge: Int) {
+    /** The page the cards fade towards, the text colour flat ones are shaded with, and their outline. */
+    fun setColors(page: Int, text: Int, outline: OutlineLook) {
         pageColor = page
         textColor = text
-        edgePaint.color = edge
+        this.outline = outline
         invalidate()
     }
 
@@ -127,6 +127,7 @@ class FolderStackCards(context: Context, attrs: AttributeSet?) : View(context, a
     }
 
     override fun onDraw(canvas: Canvas) {
+        val outline = shownOutline()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val painter = glass
             val cover = cover?.takeIf { takesAfterCover && it.drawable != null && it.width > 0 }
@@ -134,20 +135,31 @@ class FolderStackCards(context: Context, attrs: AttributeSet?) : View(context, a
             if (painter != null && cover != null && canvas.isHardwareAccelerated) {
                 painter.record(cover)
                 cards.forEachIndexed { index, card ->
-                    val fade = ColorUtils.setAlphaComponent(pageColor, card.glassFade)
+                    val fade = ColorUtils.setAlphaComponent(outline?.bleedInto(pageColor) ?: pageColor, card.glassFade)
                     painter.drawCard(canvas, index, boundsOf(card), pageColor, fade)
-                    drawEdge(canvas)
+                    drawEdge(canvas, outline)
                 }
                 return
             }
         }
 
         cards.forEach { card ->
-            fillPaint.color = ColorUtils.blendARGB(pageColor, textColor, card.flatShade)
+            val fill = ColorUtils.blendARGB(pageColor, textColor, card.flatShade)
+            fillPaint.color = outline?.bleedInto(fill) ?: fill
             shape.set(boundsOf(card))
             canvas.drawRoundRect(shape, cornerRadius, cornerRadius, fillPaint)
-            drawEdge(canvas)
+            drawEdge(canvas, outline)
         }
+    }
+
+    // TEMPORARY, see OutlineStyle: the cards take the cover photo's colour along with the cover
+    private fun shownOutline(): OutlineLook? {
+        val outline = outline ?: return null
+        if (!outline.photoColor) {
+            return outline
+        }
+
+        return PhotoColor.of(cover?.drawable, outline.isDarkTheme)?.let(outline::withSource) ?: outline
     }
 
     // every card is as tall as the view less the peek, and set in from the cover's sides by its inset
@@ -156,12 +168,11 @@ class FolderStackCards(context: Context, attrs: AttributeSet?) : View(context, a
         return bounds
     }
 
-    // traced just inside the card last laid out by boundsOf
-    private fun drawEdge(canvas: Canvas) {
-        val halfEdge = edgePaint.strokeWidth / 2
+    // traced inside the card last laid out by boundsOf
+    private fun drawEdge(canvas: Canvas, outline: OutlineLook?) {
+        outline ?: return
         shape.set(bounds)
-        shape.inset(halfEdge, halfEdge)
-        canvas.drawRoundRect(shape, cornerRadius, cornerRadius, edgePaint)
+        edgePainter.drawInside(canvas, shape, cornerRadius, outline)
     }
 
     private class Card(val inset: Int, val top: Int, val flatShade: Float, val glassFade: Int)

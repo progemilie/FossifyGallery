@@ -169,9 +169,6 @@
     <string name="metadata_group_other">Comments and other markers</string>
 
     <string name="glass_ui">Glass UI</string>
-    <string name="tint_outlines">Tint outlines with the primary colour</string>
-    <string name="outline_tint_strength">Tint strength</string>
-    <string name="outline_tint_strength_value" translatable="false">%d%%</string>
 
     <string name="transform">Transform</string>
     <string name="crop">Crop</string>

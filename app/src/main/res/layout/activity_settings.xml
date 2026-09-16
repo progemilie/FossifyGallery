@@ -64,51 +64,27 @@
 
                 </RelativeLayout>
 
+                <!-- TEMPORARY, see OutlineStyle -->
                 <RelativeLayout
-                    android:id="@+id/settings_tint_outlines_holder"
-                    style="@style/SettingsHolderSwitchStyle"
+                    android:id="@+id/settings_outline_lab_holder"
+                    style="@style/SettingsHolderTextViewStyle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
 
-                    <org.fossify.commons.views.MyMaterialSwitch
-                        android:id="@+id/settings_tint_outlines"
-                        style="@style/SettingsSwitchStyle"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/tint_outlines" />
-
-                </RelativeLayout>
-
-                <RelativeLayout
-                    android:id="@+id/settings_outline_tint_strength_holder"
-                    style="@style/SettingsHolderTextViewStyle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@null">
-
                     <org.fossify.commons.views.MyTextView
-                        android:id="@+id/settings_outline_tint_strength_label"
+                        android:id="@+id/settings_outline_lab_label"
                         style="@style/SettingsTextLabelStyle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_alignParentStart="true"
-                        android:layout_toStartOf="@+id/settings_outline_tint_strength_value"
-                        android:text="@string/outline_tint_strength" />
+                        android:text="@string/outline_lab_title" />
 
                     <org.fossify.commons.views.MyTextView
-                        android:id="@+id/settings_outline_tint_strength_value"
+                        android:id="@+id/settings_outline_lab"
                         style="@style/SettingsTextValueStyle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        tools:text="50%" />
-
-                    <org.fossify.commons.views.MySeekBar
-                        android:id="@+id/settings_outline_tint_strength"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_below="@+id/settings_outline_tint_strength_label"
-                        android:layout_marginTop="@dimen/medium_margin" />
+                        android:layout_below="@+id/settings_outline_lab_label"
+                        tools:text="Pill: Hairline · Covers: same as the pill" />
 
                 </RelativeLayout>
 

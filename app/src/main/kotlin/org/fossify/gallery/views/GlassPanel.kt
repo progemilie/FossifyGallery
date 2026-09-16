@@ -16,8 +16,10 @@ import eightbitlab.com.blurview.BlurView
 import eightbitlab.com.blurview.BlurViewFacade
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.Glass
-import org.fossify.gallery.helpers.Hairline
+import org.fossify.gallery.helpers.OutlineDrawable
+import org.fossify.gallery.helpers.OutlineLook
 import org.fossify.gallery.helpers.Perf
+import org.fossify.gallery.helpers.setOutlineHalo
 
 /**
  * A panel of the app's frosted glass ([Glass]): rounded, and filled with a blurred copy of whatever
@@ -69,11 +71,20 @@ open class GlassPanel @JvmOverloads constructor(
             updateEdge()
         }
 
-    /** Edges the panel in the [Hairline], for one that has to stand apart from the panels beside it. */
-    var isEdged = false
+    /**
+     * Edges the panel, for one that has to stand apart from the panels beside it. TEMPORARY while the
+     * outline styles are compared, see OutlineStyle.
+     */
+    var outline: OutlineLook? = null
         set(value) {
+            val wasEdged = field != null
             field = value
-            if (value) updateEdge() else foreground = null
+            if (value == null && wasEdged) {
+                foreground = null
+                setOutlineHalo(null, cornerRadius)
+            }
+
+            updateColors()
         }
 
     /** Stops the copying for a panel that is still on screen but not to be looked at. */
@@ -136,7 +147,9 @@ open class GlassPanel @JvmOverloads constructor(
 
     /** Re-reads the theme, which is the only place any of these colours come from. */
     fun updateColors() {
-        flatFill = Glass.flatFill(context)
+        val outline = outline
+        val overlay = Glass.overlay(context, overlayAlpha).let { outline?.bleedInto(it) ?: it }
+        flatFill = Glass.flatFill(context).let { outline?.bleedInto(it) ?: it }
         updateEdge()
 
         val backdrop = backdrop
@@ -162,14 +175,15 @@ open class GlassPanel @JvmOverloads constructor(
             // the frame clear above stands in for that background and stays the real colour, so the
             // lift rides on the tint instead - the panel parts company with the app behind it without
             // the frost parting company with the content it is a copy of
-            .setOverlayColor(Glass.overlay(context, overlayAlpha))
+            .setOverlayColor(overlay)
     }
 
-    // a foreground rather than a stroke of our own: it is drawn over the content, inside the clip
+    // a foreground rather than a stroke of our own: it is drawn over the content, inside the clip. What
+    // reaches outside the panel is drawn by its parent, past the clip
     private fun updateEdge() {
-        if (isEdged) {
-            foreground = Hairline.drawable(context, cornerRadius)
-        }
+        val outline = outline ?: return
+        foreground = OutlineDrawable(context, outline, cornerRadius)
+        setOutlineHalo(outline, cornerRadius)
     }
 
     /**
