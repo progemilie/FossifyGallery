@@ -17,6 +17,7 @@ Notable fork-only changes.
 - The thumbnail you come back to from a photo no longer pops in.
 - **Custom order mode is restyled** to match the rest of the app.
 - Outlines on folder covers and in custom order mode are finer, and fade towards the bottom.
+- The menu opened from a pill at the bottom opens in the middle of the screen.
 ### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.
