@@ -27,6 +27,10 @@ Two rules for anything touching this:
 - Screens with no pinch of their own (search, the picker dialog) read `interactiveMediaColumnCnt()`
   rather than `Config.mediaColumnCnt`, or they inherit a count whose items cannot be tapped.
 
+The folder grid has no ladder: it steps one column at a time up to `GridZoom.folderColumnMax()`,
+the count whose cover is nearest 80dp (five on a phone). A stored count can be past it, so the grid
+and the folder picker read `fittedDirColumnCnt()` rather than `Config.dirColumnCnt`.
+
 ### Per-folder custom media order
 
 Sort-by-custom for media (upstream has it for folders only). The `media_order` Room table holds the
