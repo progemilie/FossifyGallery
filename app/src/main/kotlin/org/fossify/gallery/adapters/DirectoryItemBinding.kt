@@ -1,6 +1,5 @@
 package org.fossify.gallery.adapters
 
-import android.content.res.ColorStateList
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -12,7 +11,7 @@ import org.fossify.gallery.R
 import org.fossify.gallery.databinding.DirectoryItemListBinding
 import org.fossify.gallery.helpers.FolderCoverStyle
 import org.fossify.gallery.helpers.FolderLabelPlacement
-import org.fossify.gallery.helpers.Hairline
+import org.fossify.gallery.helpers.LitEdgeDrawable
 import org.fossify.gallery.views.FolderGroupThumbnail
 import org.fossify.gallery.views.FolderStackCards
 
@@ -86,7 +85,12 @@ fun DirectoryItemBinding.dressFor(style: FolderCoverStyle, textColor: Int) {
         dirLocation.applyColorFilter(textColor)
     }
 
-    val edgeColor = Hairline.color(textColor)
-    dirCoverBorder?.backgroundTintList = ColorStateList.valueOf(edgeColor)
-    dirStackCards?.setColors(page = root.context.getProperBackgroundColor(), text = textColor, edge = edgeColor)
+    dirCoverBorder?.apply {
+        // made once per tile, and only recoloured by every bind after
+        val edge = background as? LitEdgeDrawable
+            ?: LitEdgeDrawable(context, style.shapeRadius(resources)).also { background = it }
+        edge.color = textColor
+    }
+
+    dirStackCards?.setColors(page = root.context.getProperBackgroundColor(), text = textColor)
 }

@@ -157,8 +157,7 @@
         android:layout_alignStart="@+id/dir_thumbnail"
         android:layout_alignTop="@+id/dir_thumbnail"
         android:layout_alignEnd="@+id/dir_thumbnail"
-        android:layout_alignBottom="@+id/dir_thumbnail"
-        android:background="@drawable/folder_cover_border" />
+        android:layout_alignBottom="@+id/dir_thumbnail" />
 
     <ImageView
         android:id="@+id/dir_location"

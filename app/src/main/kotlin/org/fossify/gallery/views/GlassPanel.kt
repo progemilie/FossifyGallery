@@ -16,7 +16,7 @@ import eightbitlab.com.blurview.BlurView
 import eightbitlab.com.blurview.BlurViewFacade
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.Glass
-import org.fossify.gallery.helpers.Hairline
+import org.fossify.gallery.helpers.LitEdgeDrawable
 import org.fossify.gallery.helpers.Perf
 
 /**
@@ -69,7 +69,7 @@ open class GlassPanel @JvmOverloads constructor(
             updateEdge()
         }
 
-    /** Edges the panel in the [Hairline], for one that has to stand apart from the panels beside it. */
+    /** Edges the panel in a [LitEdgeDrawable], for one that has to stand apart from the panels beside it. */
     var isEdged = false
         set(value) {
             field = value
@@ -168,7 +168,7 @@ open class GlassPanel @JvmOverloads constructor(
     // a foreground rather than a stroke of our own: it is drawn over the content, inside the clip
     private fun updateEdge() {
         if (isEdged) {
-            foreground = Hairline.drawable(context, cornerRadius)
+            foreground = LitEdgeDrawable(context, cornerRadius)
         }
     }
 

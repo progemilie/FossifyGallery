@@ -39,7 +39,7 @@ Reordering lives in `adapters/MediaReorderMode.kt` and is put up by `MediaGridPa
 `views/ReorderPills.kt`, glass pills standing where a selection's would: multi-select marks a group,
 dragging any marked item carries the whole group, and Back unmarks before it leaves. A picked up
 item is lifted by `helpers/DragLift.kt`'s `animatePickUp()`, the same lift a folder tile gets, and
-edged in the `Hairline` a folder's cover wears for as long as it is held.
+edged in the `LitEdge` a folder's cover wears for as long as it is held.
 
 ### Two grids, one window
 
@@ -243,7 +243,9 @@ paints an opaque band under its own bar.
   matched to the platform drop-down animation `GlassMenu`'s popup still gets for free. Nothing there
   touches translation: a panel places itself against its anchor with it. A pill floating over a grid
   is dressed by `GlassPanel.dressAsFloatingPill()`.
-- **Outlines** — `helpers/Hairline.kt` is the one line anything is edged with: folder covers, stack
-  cards, dropdown surfaces, a thumbnail held in the reorder mode, and a glass panel set `isEdged`
-  (the reorder mode's Save). Its colour is
-  worked out there and its weight is `R.dimen.hairline_width`.
+- **Outlines** — a card that has to stand out wears `helpers/LitEdge.kt`: a fine line in the text
+  colour, lit along the top and fading down the sides. Folder covers (all but Square), stack cards, a
+  thumbnail held in the reorder mode and a glass panel set `isEdged` (the reorder mode's Save) wear it.
+  `LitEdge`'s defaults are the look, so applying it names none of them: `LitEdgeDrawable` is it as a
+  foreground or background, `LitEdgePainter` for a view drawing its own shapes. A dropdown's surface
+  keeps the plain `helpers/Hairline.kt`, weighted by `R.dimen.hairline_width`.

@@ -18,7 +18,7 @@ import androidx.annotation.RequiresApi
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.withSave
 import org.fossify.gallery.R
-import org.fossify.gallery.helpers.Hairline
+import org.fossify.gallery.helpers.LitEdgePainter
 import kotlin.math.roundToInt
 
 // the cover's picture is recorded this many times smaller: the blur leaves no detail to lose, and the
@@ -85,10 +85,7 @@ class FolderStackCards(context: Context, attrs: AttributeSet?) : View(context, a
     }
 
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val edgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeWidth = Hairline.width(context).toFloat()
-    }
+    private val edgePainter = LitEdgePainter(context)
 
     private val bounds = Rect()
     private val shape = RectF()
@@ -105,11 +102,11 @@ class FolderStackCards(context: Context, attrs: AttributeSet?) : View(context, a
             }
         }
 
-    /** The page the cards fade towards, the text colour flat ones are shaded with, and their edge. */
-    fun setColors(page: Int, text: Int, edge: Int) {
+    /** The page the cards fade towards, and the text colour flat ones are shaded with and all are edged in. */
+    fun setColors(page: Int, text: Int) {
         pageColor = page
         textColor = text
-        edgePaint.color = edge
+        edgePainter.color = text
         invalidate()
     }
 
@@ -156,12 +153,10 @@ class FolderStackCards(context: Context, attrs: AttributeSet?) : View(context, a
         return bounds
     }
 
-    // traced just inside the card last laid out by boundsOf
+    // traced inside the card last laid out by boundsOf
     private fun drawEdge(canvas: Canvas) {
-        val halfEdge = edgePaint.strokeWidth / 2
         shape.set(bounds)
-        shape.inset(halfEdge, halfEdge)
-        canvas.drawRoundRect(shape, cornerRadius, cornerRadius, edgePaint)
+        edgePainter.draw(canvas, shape, cornerRadius)
     }
 
     private class Card(val inset: Int, val top: Int, val flatShade: Float, val glassFade: Int)

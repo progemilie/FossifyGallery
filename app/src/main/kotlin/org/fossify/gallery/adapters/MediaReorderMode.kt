@@ -19,7 +19,7 @@ import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.interfaces.ItemTouchHelperContract
 import org.fossify.gallery.R
 import org.fossify.gallery.extensions.config
-import org.fossify.gallery.helpers.Hairline
+import org.fossify.gallery.helpers.LitEdgeDrawable
 import org.fossify.gallery.helpers.PaddedGridMoveCallback
 import org.fossify.gallery.helpers.SelectionMark
 import org.fossify.gallery.helpers.animateDragLift
@@ -293,7 +293,7 @@ class MediaReorderMode(private val adapter: MediaAdapter) : ItemTouchHelperContr
         performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         // ItemTouchHelper owns the elevation of whatever it drags, translationZ is ours to lift with
         outlineProvider = thumbnailOutlineProvider
-        findThumbnail()?.foreground = Hairline.drawable(activity, adapter.thumbnailCornerRadius)
+        findThumbnail()?.foreground = LitEdgeDrawable(activity, adapter.thumbnailCornerRadius)
         dragLiftAnimator?.cancel()
         dragLiftAnimator = animatePickUp()
         showCarriedCount(carriedItems.size)
