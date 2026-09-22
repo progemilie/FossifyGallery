@@ -10,7 +10,6 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:clickable="true"
-    android:clipChildren="false"
     android:focusable="true">
 
     <!-- the cards take their width from the cover: scrolled sideways, the tile has none of its own
@@ -69,15 +68,14 @@
         android:visibility="gone" />
 
     <!-- over the padlock as well, so a locked tile is edged like the rest -->
-    <org.fossify.gallery.views.CoverOutlineView
+    <View
         android:id="@+id/dir_cover_border"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_alignStart="@+id/dir_thumbnail"
         android:layout_alignTop="@+id/dir_thumbnail"
         android:layout_alignEnd="@+id/dir_thumbnail"
-        android:layout_alignBottom="@+id/dir_thumbnail"
-        android:importantForAccessibility="no" />
+        android:layout_alignBottom="@+id/dir_thumbnail" />
 
     <ImageView
         android:id="@+id/dir_check"

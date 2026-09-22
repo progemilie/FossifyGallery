@@ -6,7 +6,6 @@ import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.gallery.R
 import org.fossify.gallery.databinding.MediaReorderPillsBinding
 import org.fossify.gallery.helpers.Glass
-import org.fossify.gallery.helpers.OutlineSettings
 import org.fossify.gallery.helpers.PanelPivot
 import org.fossify.gallery.helpers.hidePanel
 import org.fossify.gallery.helpers.showPanel
@@ -35,6 +34,8 @@ class ReorderPills(
             reorderCancelPanel.dressAsFloatingPill(resources.getDimension(R.dimen.peek_pill_radius))
             reorderMovePanel.dressAsFloatingPill(resources.getDimension(R.dimen.nav_pill_radius))
             reorderSavePanel.dressAsFloatingPill(resources.getDimension(R.dimen.nav_pill_radius))
+            // the one way out that keeps the arrangement, set apart from the pills beside it
+            reorderSavePanel.isEdged = true
 
             reorderCancel.setOnClickListener { onCancel?.invoke() }
             reorderSave.setOnClickListener { onSave?.invoke() }
@@ -63,8 +64,6 @@ class ReorderPills(
     /** Repainted on every resume: the theme can change while the screen is away. */
     fun updateColors() {
         val content = Glass.contentColor(context)
-        // the one way out that keeps the arrangement, set apart from the pills beside it
-        binding.reorderSavePanel.outline = OutlineSettings.pillLook(context)
         panels.forEach { it.updateColors() }
         binding.apply {
             listOf(reorderCancel, reorderMoveToTop, reorderMoveToBottom, reorderSave).forEach {

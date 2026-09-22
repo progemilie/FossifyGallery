@@ -7,10 +7,8 @@ import org.fossify.gallery.R
 
 /**
  * The plain line a surface is edged with where it only has to be told apart from what it lies on - a
- * dropdown's surface. Its colour is worked out here and its weight is [R.dimen.hairline_width].
- *
- * Folder covers, a held thumbnail and the reorder mode's Save are edged by the outline styles instead,
- * see OutlineStyle - TEMPORARY while those are being compared.
+ * dropdown's surface. Its colour is worked out here and its weight is [R.dimen.hairline_width]. A card
+ * that has to stand out wears a [LitEdge] instead.
  */
 object Hairline {
     // the text colour always stands out from the theme's background, so a faint wash of it edges

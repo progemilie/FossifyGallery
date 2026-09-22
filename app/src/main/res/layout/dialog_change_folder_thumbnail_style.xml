@@ -10,7 +10,6 @@
         android:id="@+id/dialog_folder_sample_holder"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:clipChildren="false"
         android:gravity="center"
         android:orientation="horizontal"
         android:paddingLeft="@dimen/activity_margin"

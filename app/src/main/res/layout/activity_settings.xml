@@ -64,30 +64,6 @@
 
                 </RelativeLayout>
 
-                <!-- TEMPORARY, see OutlineStyle -->
-                <RelativeLayout
-                    android:id="@+id/settings_outline_lab_holder"
-                    style="@style/SettingsHolderTextViewStyle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-
-                    <org.fossify.commons.views.MyTextView
-                        android:id="@+id/settings_outline_lab_label"
-                        style="@style/SettingsTextLabelStyle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/outline_lab_title" />
-
-                    <org.fossify.commons.views.MyTextView
-                        android:id="@+id/settings_outline_lab"
-                        style="@style/SettingsTextValueStyle"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_below="@+id/settings_outline_lab_label"
-                        tools:text="Pill: Hairline · Covers: same as the pill" />
-
-                </RelativeLayout>
-
             </org.fossify.gallery.views.SettingsCard>
 
             <org.fossify.gallery.views.SettingsCard

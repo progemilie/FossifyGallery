@@ -423,7 +423,7 @@
     -->
 
     <!-- what a settings card says of itself while it is shut -->
-    <string name="settings_color_customization_summary">App colors, the frosted glass chrome and outlines</string>
+    <string name="settings_color_customization_summary">App colors and the frosted glass chrome</string>
     <string name="settings_general_summary">Language, startup, tabs and which folders are shown</string>
     <string name="settings_videos_summary">Autoplay, looping, gestures and what a tap does</string>
     <string name="settings_thumbnails_summary">Cropping, animated GIFs and what a thumbnail shows</string>

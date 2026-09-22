@@ -451,19 +451,6 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(GLASS_UI, true)
         set(glassUI) = prefs.edit { putBoolean(GLASS_UI, glassUI) }
 
-    // TEMPORARY: the outline lab's settings, see OutlineSettings, which is what reads them
-    var outlinePillProfile: String
-        get() = prefs.getString(OUTLINE_PILL_PROFILE, "")!!
-        set(outlinePillProfile) = prefs.edit { putString(OUTLINE_PILL_PROFILE, outlinePillProfile) }
-
-    var outlineCoverProfile: String
-        get() = prefs.getString(OUTLINE_COVER_PROFILE, "")!!
-        set(outlineCoverProfile) = prefs.edit { putString(OUTLINE_COVER_PROFILE, outlineCoverProfile) }
-
-    var outlineCoversMatchPill: Boolean
-        get() = prefs.getBoolean(OUTLINE_COVERS_MATCH_PILL, false)
-        set(outlineCoversMatchPill) = prefs.edit { putBoolean(OUTLINE_COVERS_MATCH_PILL, outlineCoversMatchPill) }
-
     var hideExtendedDetails: Boolean
         get() = prefs.getBoolean(HIDE_EXTENDED_DETAILS, true)
         set(hideExtendedDetails) = prefs.edit().putBoolean(HIDE_EXTENDED_DETAILS, hideExtendedDetails).apply()

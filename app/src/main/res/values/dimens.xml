@@ -264,7 +264,7 @@
     <dimen name="settings_info_button">40dp</dimen>
     <dimen name="settings_info_padding">10dp</dimen>
 
-    <!-- the weight of the one line anything is edged with, see Hairline -->
+    <!-- the weight of the plain line a dropdown is edged with, see Hairline -->
     <dimen name="hairline_width">1dp</dimen>
 
     <!-- folder cover styles, see FolderCoverStyle -->

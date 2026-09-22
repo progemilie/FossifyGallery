@@ -8,8 +8,6 @@ Notable fork-only changes.
 - Holding a picked picture and dragging unpicks the pictures the finger passes over.
 - **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with
   adjustable spacing and an optional folder size on the details line.
-- **Folder cover outlines and the custom order Save button can take the theme's colour**, in a
-  choice of styles still being tried out.
 ### Changed
 - The details at the top of a photo are more compact.
 - **A selection's menu is laid out like the viewer's.**
@@ -18,6 +16,7 @@ Notable fork-only changes.
 - Clearing the cache asks first.
 - The thumbnail you come back to from a photo no longer pops in.
 - **Custom order mode is restyled** to match the rest of the app.
+- Outlines on folder covers and in custom order mode are finer, and fade towards the bottom.
 ### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.

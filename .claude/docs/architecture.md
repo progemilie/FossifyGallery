@@ -39,7 +39,7 @@ Reordering lives in `adapters/MediaReorderMode.kt` and is put up by `MediaGridPa
 `views/ReorderPills.kt`, glass pills standing where a selection's would: multi-select marks a group,
 dragging any marked item carries the whole group, and Back unmarks before it leaves. A picked up
 item is lifted by `helpers/DragLift.kt`'s `animatePickUp()`, the same lift a folder tile gets, and
-edged in the `Hairline` a folder's cover wears for as long as it is held.
+edged in the `LitEdge` a folder's cover wears for as long as it is held.
 
 ### Two grids, one window
 
@@ -243,21 +243,9 @@ paints an opaque band under its own bar.
   matched to the platform drop-down animation `GlassMenu`'s popup still gets for free. Nothing there
   touches translation: a panel places itself against its anchor with it. A pill floating over a grid
   is dressed by `GlassPanel.dressAsFloatingPill()`.
-- **Outlines** — a dropdown's surface is edged with the plain line in `helpers/Hairline.kt`. Folder
-  covers, stack cards, the card's frost, a thumbnail held in the reorder mode and the reorder mode's
-  Save (`GlassPanel.outline`) are edged by an **outline style** instead. **TEMPORARY**: the styles
-  are being compared in the outline lab (`dialogs/OutlineLabDialog.kt`, a row in Look and Feel) and
-  all but the chosen one will go.
-  - `helpers/OutlineStyle.kt` holds the styles, their sliders and two stored profiles, the pill's and
-    the covers' (which can follow the pill's). `OutlineLook` is a profile made concrete: colours come
-    from the theme's primary colour, or per cover from `helpers/PhotoColor.kt`.
-  - `helpers/OutlinePainter.kt` draws a look inside a rounded rect and outside it. Every blur is baked
-    once into a shared alpha mask per size and drawn tinted, so scrolling pays for a bitmap draw, not
-    a blur.
-  - **What a style draws outside the shape needs room.** A cover's `CoverOutlineView` draws past its
-    own bounds, so the tile layouts and the folder grid (`DirectoryAdapter`) leave children unclipped
-    while such a style is on. A glass panel clips to its shape, so its halo is drawn by its parent's
-    overlay (`setOutlineHalo`). A lifted thumbnail is faded, and a faded view is drawn into a layer
-    cut to its bounds, so its halo is drawn by the grid.
-  - The folder grid resolves the covers' look once per adapter, so `MainActivity` rebuilds the grid
-    when it changes — `updatePrimaryColor()` alone rebinds nothing.
+- **Outlines** — a card that has to stand out wears `helpers/LitEdge.kt`: a fine line in the text
+  colour, lit along the top and fading down the sides. Folder covers (all but Square), stack cards, a
+  thumbnail held in the reorder mode and a glass panel set `isEdged` (the reorder mode's Save) wear it.
+  `LitEdge`'s defaults are the look, so applying it names none of them: `LitEdgeDrawable` is it as a
+  foreground or background, `LitEdgePainter` for a view drawing its own shapes. A dropdown's surface
+  keeps the plain `helpers/Hairline.kt`, weighted by `R.dimen.hairline_width`.

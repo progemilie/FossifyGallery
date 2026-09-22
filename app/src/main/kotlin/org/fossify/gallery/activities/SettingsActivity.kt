@@ -130,7 +130,6 @@ class SettingsActivity : SimpleActivity() {
     private fun setupSettingItems() {
         setupCustomizeColors()
         setupGlassUI()
-        setupOutlineLab()
         setupUseEnglish()
         setupLanguage()
         setupChangeDateTimeFormat()
@@ -277,25 +276,6 @@ class SettingsActivity : SimpleActivity() {
             binding.settingsGlassUi.toggle()
             config.glassUI = binding.settingsGlassUi.isChecked
         }
-    }
-
-    // TEMPORARY, see OutlineStyle
-    private fun setupOutlineLab() {
-        showOutlineLabSummary()
-        binding.settingsOutlineLabHolder.setOnClickListener {
-            OutlineLabDialog(this) { showOutlineLabSummary() }
-        }
-    }
-
-    private fun showOutlineLabSummary() {
-        val pill = getString(OutlineSettings.pill(this).style.title)
-        val covers = if (config.outlineCoversMatchPill) {
-            getString(R.string.outline_lab_same_as_pill)
-        } else {
-            getString(OutlineSettings.cover(this).style.title)
-        }
-
-        binding.settingsOutlineLab.text = getString(R.string.outline_lab_summary, pill, covers)
     }
 
     private fun setupUseEnglish() {
