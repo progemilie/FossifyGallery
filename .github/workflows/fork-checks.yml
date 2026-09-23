@@ -1,0 +1,63 @@
+name: Fork checks
+
+# Build, static analysis and unit tests for work merging into dev. The workflows inherited from
+# upstream only watch main and are disabled on this fork, so without this nothing checks a PR.
+
+on:
+  pull_request:
+    branches: [dev]
+    types: [opened, edited, synchronize, reopened]
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fork-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  title:
+    name: PR title
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Title follows 'type: summary'"
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if ! printf '%s' "$TITLE" | grep -Eq '^(feat|tweak|fix|chore|docs|refactor|perf|test|build|ci)(\([a-z-]+\))?: .+'; then
+            echo "::error::PR title must be 'type: summary' with a type from CLAUDE.md, got: $TITLE"
+            exit 1
+          fi
+
+  checks:
+    name: Build, detekt, lint, unit tests
+    # an edited PR is only a new title or body, which the job above covers
+    if: github.event.action != 'edited'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build, detekt, lint, unit tests
+        run: ./gradlew assembleFossDebug detekt lintFossDebug testFossDebugUnitTest --console=plain
+
+      - name: Keep the reports of a failed run
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            app/build/reports/
+            app/build/test-results/
+          retention-days: 7
