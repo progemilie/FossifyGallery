@@ -47,14 +47,18 @@ internal fun RandomAccessFile.readIntLittleEndian(): Int {
     }
 }
 
-/** Passes [length] bytes straight through, or steps over them when there is nowhere to write. */
+/**
+ * Passes [length] bytes straight through, or steps over them when there is nowhere to write.
+ * False when the file ran out first.
+ */
 internal fun InputStream.passThrough(out: OutputStream?, length: Int) =
     copyBytes(length, out) { buffer, count -> read(buffer, 0, count) }
 
+/** Copies [length] bytes from where [handle] stands, false when the file ran out first. */
 internal fun OutputStream.writeFrom(handle: RandomAccessFile, length: Int) =
     copyBytes(length, this) { buffer, count -> handle.read(buffer, 0, count) }
 
-private inline fun copyBytes(length: Int, out: OutputStream?, read: (ByteArray, Int) -> Int) {
+private inline fun copyBytes(length: Int, out: OutputStream?, read: (ByteArray, Int) -> Int): Boolean {
     val buffer = ByteArray(BUFFER_SIZE)
     var left = length
     while (left > 0) {
@@ -63,4 +67,6 @@ private inline fun copyBytes(length: Int, out: OutputStream?, read: (ByteArray, 
         out?.write(buffer, 0, count)
         left -= count
     }
+
+    return left == 0
 }

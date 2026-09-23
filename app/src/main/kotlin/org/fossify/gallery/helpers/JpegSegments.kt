@@ -11,8 +11,9 @@ import java.io.OutputStream
  * them followed by a two-byte length and a payload. The compressed picture starts at the scan marker
  * and runs to the end of the file, so everything from there on is copied over in one piece.
  */
-internal fun walkJpeg(file: File, out: OutputStream?, drop: Set<MetadataBlock>): Set<MetadataBlock> {
+internal fun walkJpeg(file: File, out: OutputStream?, drop: Set<MetadataBlock>): ContainerWalk {
     val found = mutableSetOf<MetadataBlock>()
+    var reachedPicture = false
     DataInputStream(BufferedInputStream(FileInputStream(file))).use { input ->
         input.skipFully(JPEG_SIGNATURE.size)
         out?.write(JPEG_SIGNATURE)
@@ -32,17 +33,22 @@ internal fun walkJpeg(file: File, out: OutputStream?, drop: Set<MetadataBlock>):
         if (marker == MARKER_SOS && input.copySegment(marker, out, drop, found)) {
             // the picture itself, plus whatever a phone has appended past the end marker
             out?.let { input.copyTo(it) }
+            reachedPicture = true
         }
     }
 
-    return found
+    return ContainerWalk(found, reachedPicture)
 }
 
-/** The next marker byte, or null at the end of the file. Fill bytes may pad the gap before one. */
+/**
+ * The next marker byte, or null at the end of the file or where anything but a marker comes next.
+ * Fill bytes may pad the gap before one; stray bytes there are a file this does not understand.
+ */
 private fun DataInputStream.nextMarker(): Int? {
+    if (read() != MARKER_PREFIX) return null
     var marker = read()
     while (marker == MARKER_PREFIX) marker = read()
-    return marker.takeIf { it != -1 }
+    return marker.takeIf { it != -1 && it != MARKER_STUFFED_ZERO }
 }
 
 /**
@@ -106,6 +112,9 @@ private const val MARKER_APP15 = 0xEF
 private const val MARKER_RESTART_FIRST = 0xD0
 private const val MARKER_END_OF_IMAGE = 0xD9
 private const val MARKER_TEMPORARY = 0x01
+
+/** 0xFF 0x00 is an escaped data byte inside the picture, never a marker. */
+private const val MARKER_STUFFED_ZERO = 0x00
 
 internal val JPEG_SIGNATURE = byteArrayOf(MARKER_PREFIX.toByte(), MARKER_START_OF_IMAGE.toByte())
 
