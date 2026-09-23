@@ -3,6 +3,7 @@ package org.fossify.gallery.helpers
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -51,6 +52,13 @@ class ContainerMetadataTest {
     fun `jpeg keeps the segments that say how to decode it`() {
         val out = rewrite(fullJpeg, MetadataBlock.entries.toSet())
         assertArrayEquals(jpeg(jfif, quantTable, scanHeader, scan), out)
+    }
+
+    @Test
+    fun `a file with nothing to remove is told apart from one that cannot be rewritten`() {
+        val bare = jpeg(jfif, quantTable, scanHeader, scan)
+        assertEquals(emptySet<MetadataBlock>(), ContainerMetadata.blocksIn(write(bare)))
+        assertNull(ContainerMetadata.blocksIn(write(ascii("GIF89a") + ByteArray(20))))
     }
 
     @Test
@@ -156,7 +164,7 @@ class ContainerMetadataTest {
     private fun assertRefused(source: ByteArray) {
         val file = write(source)
         assertFalse("rewrite accepted a malformed file", ContainerMetadata.rewrite(file, folder.newFile(), emptySet()))
-        assertEquals(emptySet<MetadataBlock>(), ContainerMetadata.blocksIn(file))
+        assertNull("a file rewrite refuses should offer nothing", ContainerMetadata.blocksIn(file))
     }
 
     private fun write(content: ByteArray): File = folder.newFile().apply { writeBytes(content) }

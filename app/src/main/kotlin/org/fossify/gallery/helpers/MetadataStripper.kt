@@ -40,7 +40,8 @@ object MetadataStripper {
     fun removableGroups(path: String): List<MetadataGroup> {
         if (!path.canBeStripped()) return emptyList()
 
-        val blocks = ContainerMetadata.blocksIn(File(path))
+        // the Exif fields below may still parse out of a file the rewrite would refuse
+        val blocks = ContainerMetadata.blocksIn(File(path)) ?: return emptyList()
         val fields = exifFields(path)
         return MetadataGroup.entries.filter { group ->
             GROUP_BLOCKS[group]?.let { it in blocks } ?: (group in fields)

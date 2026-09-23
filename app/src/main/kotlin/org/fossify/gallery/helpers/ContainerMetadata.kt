@@ -37,17 +37,17 @@ internal class ContainerWalk(val found: Set<MetadataBlock>, val isComplete: Bool
  */
 internal object ContainerMetadata {
     /**
-     * Every metadata block [file] carries, empty when the format is not one that can be rewritten -
-     * including a file that cannot be walked to its end, which [rewrite] would refuse anyway.
+     * Every metadata block [file] carries, or null when it cannot be rewritten at all: a format this
+     * does not walk, or a file that cannot be walked to its end, which [rewrite] would refuse.
      */
     @Suppress("TooGenericExceptionCaught") // a truncated or lying file throws from anywhere in the walk
-    fun blocksIn(file: File): Set<MetadataBlock> = try {
-        formatOf(file)?.let { it.walk(file, null, emptySet()) }?.takeIf { it.isComplete }?.found.orEmpty()
+    fun blocksIn(file: File): Set<MetadataBlock>? = try {
+        formatOf(file)?.let { it.walk(file, null, emptySet()) }?.takeIf { it.isComplete }?.found
     } catch (ignored: Exception) {
-        emptySet()
+        null
     } catch (ignored: OutOfMemoryError) {
         // a chunk claiming a length no file could hold asks for an array to match it
-        emptySet()
+        null
     }
 
     /**
