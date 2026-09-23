@@ -1176,8 +1176,26 @@ fun Context.updateDBMediaPath(oldPath: String, newPath: String) {
     val newFilename = newPath.getFilenameFromPath()
     val newParentPath = newPath.getParentPath()
     try {
-        mediaDB.updateMedium(newFilename, newPath, newParentPath, oldPath)
+        // named: the DAO declares these in a different order, and positionally they matched nothing
+        mediaDB.updateMedium(
+            oldPath = oldPath,
+            newParentPath = newParentPath,
+            newFilename = newFilename,
+            newFullPath = newPath
+        )
         favoritesDB.updateFavorite(newFilename, newPath, newParentPath, oldPath)
+    } catch (ignored: Exception) {
+    }
+
+    // keyed by path, so a rename would otherwise drop a file out of its folder's hand made order
+    // and make the next scan read its rating again
+    try {
+        mediaOrderDB.renamePath(oldPath, newPath)
+        mediaRatingsDB.updatePath(
+            newPath = newPath.lowercase(Locale.getDefault()),
+            newParentPath = newParentPath.lowercase(Locale.getDefault()),
+            oldPath = oldPath.lowercase(Locale.getDefault())
+        )
     } catch (ignored: Exception) {
     }
 }

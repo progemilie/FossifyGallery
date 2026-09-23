@@ -21,6 +21,10 @@ interface MediaOrderDao {
     @Query("DELETE FROM media_order WHERE folder_path = :folderPath")
     fun deleteFolderOrder(folderPath: String)
 
+    // every order the file is in keeps its place, the all media grid's included
+    @Query("UPDATE OR REPLACE media_order SET full_path = :newPath WHERE full_path = :oldPath COLLATE NOCASE")
+    fun renamePath(oldPath: String, newPath: String)
+
     @Transaction
     fun replaceFolderOrder(folderPath: String, paths: List<String>) {
         deleteFolderOrder(folderPath)
