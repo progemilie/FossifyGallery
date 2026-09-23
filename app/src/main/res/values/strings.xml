@@ -141,7 +141,6 @@
     <string name="metadata_more_hint">Swipe up for all details</string>
     <string name="metadata_filename">Name</string>
     <string name="metadata_date_taken">Date taken</string>
-    <string name="metadata_date_created">Date created</string>
     <string name="metadata_date_modified">Date modified</string>
     <string name="metadata_resolution">Resolution</string>
     <string name="metadata_format">Format</string>

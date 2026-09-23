@@ -734,6 +734,15 @@ fun Context.mediaGridZoom() = GridZoom.forMediaGrid(this, config.scrollHorizonta
 fun Context.interactiveMediaColumnCnt() =
     config.mediaColumnCnt.coerceAtMost(mediaGridZoom().largestInteractive)
 
+/** The most columns the folder grid offers on this screen - see [GridZoom.folderColumnMax]. */
+fun Context.maxDirColumnCnt() = GridZoom.folderColumnMax(this, config.scrollHorizontally)
+
+/**
+ * The stored folder column count, held to what this screen offers. Read rather than the count
+ * itself, which may have been left by a wider screen, or by a version that went up to twenty.
+ */
+fun Context.fittedDirColumnCnt() = config.dirColumnCnt.coerceIn(1, maxDirColumnCnt())
+
 fun Context.addTempFolderIfNeeded(dirs: ArrayList<Directory>): ArrayList<Directory> {
     val tempFolderPath = config.tempFolderPath
     return if (tempFolderPath.isNotEmpty()) {

@@ -1,6 +1,8 @@
 package org.fossify.gallery.helpers
 
 import android.view.ViewGroup
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import org.fossify.commons.views.MySearchMenu
 import org.fossify.gallery.interfaces.GridPane
 import org.fossify.gallery.views.GlassMenu
@@ -54,7 +56,32 @@ class GridChrome(
             this.pane?.onMenuItemClick(item.itemId) == true
         }
 
+        closeEmptySearchWithKeyboard()
         bind(pane)
+    }
+
+    /**
+     * Back with the keyboard up only puts the keyboard away, which leaves a search with nothing typed
+     * into it open for no reason - so an empty one goes with the keyboard. Only while the screen keeps
+     * its focus, as a dialog or the drop-down taking it sends the keyboard away too.
+     */
+    private fun closeEmptySearchWithKeyboard() {
+        val field = topBar.binding.topToolbarSearch
+        var keyboardShown = false
+        ViewCompat.setOnApplyWindowInsetsListener(field) { _, insets ->
+            val shown = insets.isVisible(WindowInsetsCompat.Type.ime())
+            if (keyboardShown && !shown) {
+                // closing reshapes the chrome, which is not something to do in the middle of insets
+                field.post {
+                    if (topBar.isSearchOpen && topBar.getCurrentQuery().isEmpty() && field.hasWindowFocus()) {
+                        topBar.closeSearch()
+                    }
+                }
+            }
+
+            keyboardShown = shown
+            insets
+        }
     }
 
     /** Points the bar, the drop-down and the panning at [pane]. */

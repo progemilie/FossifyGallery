@@ -87,23 +87,46 @@ class GridZoom private constructor(
         /** No tile is ever small enough to be worth decoding below this. */
         private const val MIN_THUMBNAIL_SIZE_PX = 32
 
-        fun forMediaGrid(context: Context, scrollHorizontally: Boolean): GridZoom {
-            val metrics = context.resources.displayMetrics
-            // the span count divides the axis the grid does *not* scroll along
-            val acrossPx = if (scrollHorizontally) metrics.heightPixels else metrics.widthPixels
-            val acrossDp = (acrossPx / metrics.density).roundToInt()
+        /** Under this a folder's name has next to no room left under its cover. */
+        private const val FOLDER_MIN_TILE_DP = 80
 
-            // rounded, not floored: flooring costs a screen a fraction of a dp short a whole column,
-            // so a 384dp phone and a 411dp one would disagree over seven
-            val interactiveMax = (acrossDp / INTERACTIVE_MIN_TILE_DP.toFloat())
-                .roundToInt()
+        /** Even a narrow screen keeps a few folder counts to choose between. */
+        private const val MIN_FOLDER_COLUMN_MAX = 3
+
+        fun forMediaGrid(context: Context, scrollHorizontally: Boolean): GridZoom {
+            val interactiveMax = columnsFitting(context, scrollHorizontally, INTERACTIVE_MIN_TILE_DP)
                 .coerceAtLeast(MIN_INTERACTIVE_MAX)
 
             val rungs = ladder(interactiveMax)
             // by value, not by index - the rungs below the boundary are no longer 1..interactiveMax
             val simplified = rungs.filter { it > interactiveMax }
             val sizedFor = simplified.getOrNull(1) ?: simplified.lastOrNull() ?: rungs.last()
-            return GridZoom(interactiveMax, rungs, atLeastPowerOfTwo(acrossPx / sizedFor))
+            return GridZoom(interactiveMax, rungs, atLeastPowerOfTwo(acrossPx(context, scrollHorizontally) / sizedFor))
+        }
+
+        /**
+         * The most columns the folder grid offers, cut the way the media grid's `interactiveMax`
+         * is. Every count up to it is a step of its own: a folder is only worth showing while its
+         * name can be read, so there is no zoomed-out stretch to hurry through.
+         */
+        fun folderColumnMax(context: Context, scrollHorizontally: Boolean) =
+            columnsFitting(context, scrollHorizontally, FOLDER_MIN_TILE_DP).coerceAtLeast(MIN_FOLDER_COLUMN_MAX)
+
+        // the span count divides the axis the grid does *not* scroll along
+        private fun acrossPx(context: Context, scrollHorizontally: Boolean): Int {
+            val metrics = context.resources.displayMetrics
+            return if (scrollHorizontally) metrics.heightPixels else metrics.widthPixels
+        }
+
+        /**
+         * How many tiles [tileDp] across the screen fits. Rounded, not floored: flooring costs a
+         * screen a fraction of a dp short a whole column, so a 384dp phone and a 411dp one would
+         * disagree over seven.
+         */
+        private fun columnsFitting(context: Context, scrollHorizontally: Boolean, tileDp: Int): Int {
+            val density = context.resources.displayMetrics.density
+            val acrossDp = (acrossPx(context, scrollHorizontally) / density).roundToInt()
+            return (acrossDp / tileDp.toFloat()).roundToInt()
         }
 
         /** The shared sequence, cut [SIMPLIFIED_RUNGS] past [interactiveMax]. */

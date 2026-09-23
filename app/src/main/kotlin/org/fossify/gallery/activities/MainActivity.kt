@@ -106,6 +106,7 @@ import org.fossify.gallery.extensions.createDirectoryFromMedia
 import org.fossify.gallery.extensions.currentTab
 import org.fossify.gallery.extensions.directoryDB
 import org.fossify.gallery.extensions.expandFolderGroups
+import org.fossify.gallery.extensions.fittedDirColumnCnt
 import org.fossify.gallery.extensions.folderGroups
 import org.fossify.gallery.extensions.getCachedDirectories
 import org.fossify.gallery.extensions.getCachedMedia
@@ -124,6 +125,7 @@ import org.fossify.gallery.extensions.isTabLocationGone
 import org.fossify.gallery.extensions.launchAbout
 import org.fossify.gallery.extensions.launchCamera
 import org.fossify.gallery.extensions.launchSettings
+import org.fossify.gallery.extensions.maxDirColumnCnt
 import org.fossify.gallery.extensions.mediaDB
 import org.fossify.gallery.extensions.movePathsInRecycleBin
 import org.fossify.gallery.extensions.movePinnedDirectoriesToFront
@@ -150,7 +152,6 @@ import org.fossify.gallery.helpers.GROUP_DESCENDING
 import org.fossify.gallery.helpers.GridChrome
 import org.fossify.gallery.helpers.GridPinchZoom
 import org.fossify.gallery.helpers.LOCATION_INTERNAL
-import org.fossify.gallery.helpers.MAX_COLUMN_COUNT
 import org.fossify.gallery.helpers.MONTH_MILLISECONDS
 import org.fossify.gallery.helpers.MediaFetcher
 import org.fossify.gallery.helpers.OPEN_VIEWER_PATH
@@ -231,18 +232,18 @@ class MainActivity :
     private var mTempShowHiddenHandler = Handler()
     private var mLastMediaFetcher: MediaFetcher? = null
 
-    // no ladder here, the folder grid draws every count the same way
+    // no ladder here: the folder grid steps one column at a time, up to what the screen fits
     private val mPinchZoom by lazy {
         GridPinchZoom(
             recyclerView = binding.directoryPane.directoriesGrid,
             onZoomIn = {
-                if (config.dirColumnCnt > 1) {
+                if (fittedDirColumnCnt() > 1) {
                     reduceColumnCount()
                     getRecyclerAdapter()?.finishActMode()
                 }
             },
             onZoomOut = {
-                if (config.dirColumnCnt < MAX_COLUMN_COUNT) {
+                if (fittedDirColumnCnt() < maxDirColumnCnt()) {
                     increaseColumnCount()
                     getRecyclerAdapter()?.finishActMode()
                 }
@@ -1575,7 +1576,7 @@ class MainActivity :
                 )
         }
 
-        layoutManager.spanCount = config.dirColumnCnt
+        layoutManager.spanCount = fittedDirColumnCnt()
     }
 
     private fun setupListLayoutManager() {
@@ -1601,7 +1602,7 @@ class MainActivity :
 
     private fun changeColumnCount() {
         val items = ArrayList<RadioItem>()
-        for (i in 1..MAX_COLUMN_COUNT) {
+        for (i in 1..maxDirColumnCnt()) {
             items.add(
                 RadioItem(
                     id = i,
@@ -1624,18 +1625,18 @@ class MainActivity :
     }
 
     private fun increaseColumnCount() {
-        config.dirColumnCnt += 1
+        config.dirColumnCnt = fittedDirColumnCnt() + 1
         columnCountChanged()
     }
 
     private fun reduceColumnCount() {
-        config.dirColumnCnt -= 1
+        config.dirColumnCnt = fittedDirColumnCnt() - 1
         columnCountChanged()
     }
 
     private fun columnCountChanged() {
         (binding.directoryPane.directoriesGrid.layoutManager as MyGridLayoutManager).spanCount =
-            config.dirColumnCnt
+            fittedDirColumnCnt()
         refreshMenuItems()
         getRecyclerAdapter()?.apply {
             notifyItemRangeChanged(0, dirs.size)

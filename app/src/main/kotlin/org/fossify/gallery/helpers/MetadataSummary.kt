@@ -21,8 +21,6 @@ import org.fossify.gallery.extensions.canHaveDescription
 import org.fossify.gallery.extensions.getFileDescription
 import org.fossify.gallery.models.MetadataTag
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.attribute.BasicFileAttributes
 import java.util.Date
 import java.util.Locale
 import androidx.exifinterface.media.ExifInterface as AndroidExif
@@ -83,10 +81,6 @@ internal object MetadataSummary {
             add(
                 labelRes = R.string.metadata_date_taken,
                 value = dateTaken(extracted, mediaTags)?.formatDate(context) ?: NO_VALUE
-            )
-            add(
-                labelRes = R.string.metadata_date_created,
-                value = dateCreated(file, extracted)?.formatDate(context) ?: NO_VALUE
             )
             add(
                 labelRes = R.string.metadata_date_modified,
@@ -168,20 +162,6 @@ internal object MetadataSummary {
         )
 
         return candidates.firstNotNullOfOrNull { it() }
-    }
-
-    /**
-     * When the file itself came into being. EXIF's digitized date is what a camera writes when it
-     * saves the file, so it beats the filesystem's own stamp, which a copy or a restore resets.
-     */
-    private fun dateCreated(file: File, extracted: ExtractedMetadata?): Long? {
-        extracted?.firstOf(ExifSubIFDDirectory::class.java)?.dateDigitized?.validMillis()?.let { return it }
-        return try {
-            Files.readAttributes(file.toPath(), BasicFileAttributes::class.java)
-                .creationTime().toMillis().takeIf { it > 0 }
-        } catch (ignored: Exception) {
-            null
-        }
     }
 
     /** Resolution as displayed, so with the EXIF rotation already applied, plus its aspect ratio. */

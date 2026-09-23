@@ -208,11 +208,28 @@ class GlassMenu private constructor(
         // offsets and size are the popup's, and the panel sits [room] inside it on every side
         popup.width = column.widestMenuRow(hiddenRows) + room * 2
         popup.height = fittedHeight()
-        popup.showAsDropDown(anchor, room - margin, verticalOffset(anchor, popup.height), Gravity.END)
+        popup.showAsDropDown(
+            anchor,
+            horizontalOffset(anchor),
+            verticalOffset(anchor, popup.height),
+            if (dropUp) Gravity.START else Gravity.END
+        )
 
         // the frost is a copy taken while the content behind draws, and nothing back there has any
         // reason to draw again once a popup is up over it
         binding.glassMenuPanel.post { contentBehind.invalidate() }
+    }
+
+    /**
+     * Where the panel sits across the window: its end under the three dots, or centred over a pill
+     * at the foot, which is itself centred - lined up with one button of it, the panel reads as
+     * belonging to that button alone.
+     */
+    private fun horizontalOffset(anchor: View) = if (dropUp) {
+        val anchorLeft = IntArray(2).also { anchor.getLocationInWindow(it) }[0]
+        (anchor.rootView.width - popup.width) / 2 - anchorLeft
+    } else {
+        room - margin
     }
 
     /** How far below the anchor's own foot the panel is dropped, which for a drop-up is above it. */
@@ -289,7 +306,7 @@ class GlassMenu private constructor(
             if (dropUp && anchor != null) {
                 // a popup keeps the corner it was placed by, so one growing upward has to be moved
                 // as well as resized, or it would reach back down over what it opened from
-                popup.update(anchor, room - margin, verticalOffset(anchor, height), popup.width, height)
+                popup.update(anchor, horizontalOffset(anchor), verticalOffset(anchor, height), popup.width, height)
             } else {
                 popup.update(popup.width, height)
             }

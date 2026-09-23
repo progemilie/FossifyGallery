@@ -31,6 +31,7 @@ import org.fossify.gallery.adapters.DirectoryAdapter
 import org.fossify.gallery.databinding.DialogDirectoryPickerBinding
 import org.fossify.gallery.extensions.addTempFolderIfNeeded
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.extensions.fittedDirColumnCnt
 import org.fossify.gallery.extensions.getCachedDirectories
 import org.fossify.gallery.extensions.getDirsToShow
 import org.fossify.gallery.extensions.getDistinctPath
@@ -64,7 +65,7 @@ class PickDirectoryDialog(
     init {
         (binding.directoriesGrid.layoutManager as MyGridLayoutManager).apply {
             orientation = if (activity.config.scrollHorizontally && isGridViewType) RecyclerView.HORIZONTAL else RecyclerView.VERTICAL
-            spanCount = if (isGridViewType) activity.config.dirColumnCnt else 1
+            spanCount = if (isGridViewType) activity.fittedDirColumnCnt() else 1
         }
 
         binding.directoriesFastscroller.updateColors(activity.getProperPrimaryColor())
