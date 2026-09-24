@@ -30,7 +30,7 @@ Gradle module). This repo is a fork.
 ./gradlew lint                   # Android Lint (config: lint.xml, baseline: app/lint-baseline.xml)
 ```
 
-There is no `app/src/test` or `app/src/androidTest` yet, so `testFossDebugUnitTest` runs nothing.
+Unit tests live in `app/src/test/kotlin` (JUnit 4, JVM only) and run with `testFossDebugUnitTest`.
 Lint and Detekt use baseline files to suppress pre-existing issues — new code should not add new
 findings. `.editorconfig` enforces LF, 4-space indent, 160-char max line length. `/build` and
 `/check` in `.claude/commands/` wrap the two loops these are usually run as.
