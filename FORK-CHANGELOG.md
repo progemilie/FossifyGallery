@@ -31,8 +31,8 @@ Notable fork-only changes.
 - Fixed a photo closed while it was still opening dropping off the bottom of the screen, rather than
   shrinking back into its thumbnail.
 - Fixed the Settings title, back arrow, status bar icons and last card's shadow on a light theme.
-- Fixed removing metadata from an unusually built file possibly saving only part of the photo.
-  Files that cannot be read to the end are now left untouched.
+- Fixed a renamed photo losing its place in a folder arranged by hand.
+- Fixed removing metadata from an unusually built file possibly saving only part of the photo. Files that cannot be read to the end are now left untouched.
 
 ## [v1.19.0] - 2026.09.01 — UI
 

@@ -23,6 +23,9 @@ interface MediaRatingsDao {
     @Query("DELETE FROM media_ratings WHERE full_path = :path")
     fun deletePath(path: String)
 
-    @Query("UPDATE media_ratings SET full_path = :newPath, parent_path = :newParentPath WHERE full_path = :oldPath")
+    @Query(
+        "UPDATE OR REPLACE media_ratings SET full_path = :newPath, parent_path = :newParentPath " +
+            "WHERE full_path = :oldPath"
+    )
     fun updatePath(newPath: String, newParentPath: String, oldPath: String)
 }
