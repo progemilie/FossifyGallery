@@ -29,7 +29,9 @@ Run from `dev`, clean and level with `origin/dev` — the tool refuses otherwise
    gh pr create --base dev --title "chore(release): fork vX.Y.Z" --body-file "$TMP/notes.md"
    ```
 
-**That is the end of it.** Merging the PR is the user's call, and `.github/workflows/fork-release.yml`
+**That is the end of it.** The PR is the only one CI builds (`fork-checks.yml`). A red build is
+fixed by a work PR into `dev`, then "Update branch" on the release PR — a plain re-run would build
+the old merge commit again. Merging the PR is the user's call, and `.github/workflows/fork-release.yml`
 does the rest: it sees `gradle.properties` change on `dev`, re-checks the changelog with
 `release.py verify`, tags the merged commit and publishes the GitHub release. Nothing here tags
 anything — a squash merge rewrites the sha, so a tag made now would name a commit about to be
