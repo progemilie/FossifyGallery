@@ -18,6 +18,13 @@ import java.io.OutputStream
 internal enum class MetadataBlock { EXIF, XMP, IPTC, ICC, OTHER }
 
 /**
+ * What a walk over a container found, and whether it got to the end of it. A walk that stopped
+ * short - a nonsense length, a byte where a marker should be, the file running out - has written a
+ * copy with the rest of the picture missing, which must never replace the original.
+ */
+internal class ContainerWalk(val found: Set<MetadataBlock>, val isComplete: Boolean)
+
+/**
  * Reads and rewrites the metadata blocks of an image container - JPEG, PNG and WebP - by copying the
  * file out block by block and leaving the unwanted ones behind.
  *
@@ -29,15 +36,18 @@ internal enum class MetadataBlock { EXIF, XMP, IPTC, ICC, OTHER }
  * Every entry point blocks on file IO. Call it off the main thread.
  */
 internal object ContainerMetadata {
-    /** Every metadata block [file] carries, empty when the format is not one that can be rewritten. */
+    /**
+     * Every metadata block [file] carries, or null when it cannot be rewritten at all: a format this
+     * does not walk, or a file that cannot be walked to its end, which [rewrite] would refuse.
+     */
     @Suppress("TooGenericExceptionCaught") // a truncated or lying file throws from anywhere in the walk
-    fun blocksIn(file: File): Set<MetadataBlock> = try {
-        formatOf(file)?.let { it.walk(file, null, emptySet()) }.orEmpty()
+    fun blocksIn(file: File): Set<MetadataBlock>? = try {
+        formatOf(file)?.let { it.walk(file, null, emptySet()) }?.takeIf { it.isComplete }?.found
     } catch (ignored: Exception) {
-        emptySet()
+        null
     } catch (ignored: OutOfMemoryError) {
         // a chunk claiming a length no file could hold asks for an array to match it
-        emptySet()
+        null
     }
 
     /**
@@ -47,11 +57,11 @@ internal object ContainerMetadata {
      */
     fun rewrite(source: File, destination: File, drop: Set<MetadataBlock>): Boolean {
         val format = formatOf(source) ?: return false
-        BufferedOutputStream(FileOutputStream(destination)).use { format.walk(source, it, drop) }
-        return destination.length() > 0
+        val walk = BufferedOutputStream(FileOutputStream(destination)).use { format.walk(source, it, drop) }
+        return walk.isComplete && destination.length() > 0
     }
 
-    private enum class Format(val walk: (File, OutputStream?, Set<MetadataBlock>) -> Set<MetadataBlock>) {
+    private enum class Format(val walk: (File, OutputStream?, Set<MetadataBlock>) -> ContainerWalk) {
         JPEG(::walkJpeg),
         PNG(::walkPng),
         WEBP(::walkWebp),

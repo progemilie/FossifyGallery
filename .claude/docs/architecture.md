@@ -165,7 +165,10 @@ A swipe up over the media raises `views/MetadataSheet.kt`, listing every group t
 `WebpChunks`, over the byte plumbing in `ContainerBytes`) do the removal by **copying the file out
 block by block and leaving the unwanted ones behind — never by re-encoding**, so a stripped file is
 pixel for pixel the file it came from. Only the three formats those walkers understand are offered;
-anything else is refused rather than copied.
+anything else is refused rather than copied. **So is a walk that stops short of the end** - a JPEG's
+scan, a PNG's IEND, the length its RIFF header gives - since the copy it wrote is missing the picture
+and an in-place strip would put it over the original. `blocksIn()` is null for such a file, which
+takes the action off the sheet.
 
 Location and orientation are the two groups that are *not* whole blocks but fields inside the Exif,
 so `MetadataStripper` settles them afterwards with `ExifInterface` plus `helpers/XmpFields.kt`. They
