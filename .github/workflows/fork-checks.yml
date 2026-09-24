@@ -29,7 +29,7 @@ jobs:
           TITLE: ${{ github.event.pull_request.title }}
         run: |
           if ! printf '%s' "$TITLE" | grep -Eq '^(feat|tweak|fix|chore|docs|refactor|perf|test|build|ci)(\([a-z-]+\))?: .+'; then
-            echo "::error::PR title must be 'type: summary' with a type from CLAUDE.md, got: $TITLE"
+            echo "::error::PR title must be 'type: summary', got: $TITLE"
             exit 1
           fi
 
