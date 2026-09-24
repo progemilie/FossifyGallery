@@ -15,45 +15,51 @@ import java.io.OutputStream
  * data above all - is passed straight through, so the size of the picture never becomes the size of
  * the heap this needs.
  */
-internal fun walkPng(file: File, out: OutputStream?, drop: Set<MetadataBlock>): Set<MetadataBlock> {
+internal fun walkPng(file: File, out: OutputStream?, drop: Set<MetadataBlock>): ContainerWalk {
     val found = mutableSetOf<MetadataBlock>()
+    var step = PngStep.MORE
     DataInputStream(BufferedInputStream(FileInputStream(file))).use { input ->
         input.skipFully(PNG_SIGNATURE.size)
         out?.write(PNG_SIGNATURE)
 
-        var more = true
-        while (more) {
-            more = input.copyChunk(out, drop, found)
+        while (step == PngStep.MORE) {
+            step = input.copyChunk(out, drop, found)
         }
     }
 
-    return found
+    return ContainerWalk(found, step == PngStep.END)
 }
+
+/** Where a walk stands after a chunk: on to the next, past the end chunk, or stopped short of it. */
+private enum class PngStep { MORE, END, BROKEN }
 
 /**
  * Reads one chunk, noting in [found] what it holds and writing it to [out] unless it is one of
- * [drop]. False once the end chunk is past, or once the file stops making sense.
+ * [drop]. A PNG always closes on its end chunk, so running out of file before it is [PngStep.BROKEN].
  */
 private fun DataInputStream.copyChunk(
     out: OutputStream?,
     drop: Set<MetadataBlock>,
     found: MutableSet<MetadataBlock>,
-): Boolean {
+): PngStep {
     val length = try {
         readInt()
     } catch (ignored: EOFException) {
-        return false
+        return PngStep.BROKEN
     }
 
-    if (length < 0) return false
+    if (length < 0) return PngStep.BROKEN
     val type = ByteArray(PNG_TYPE_LENGTH).also { readFully(it) }
     val name = type.toString(Charsets.US_ASCII)
 
     if (name !in PNG_METADATA_CHUNKS) {
         out?.writeInt(length)
         out?.write(type)
-        passThrough(out, length + PNG_CRC_LENGTH)
-        return name != PNG_END
+        return when {
+            !passThrough(out, length + PNG_CRC_LENGTH) -> PngStep.BROKEN
+            name == PNG_END -> PngStep.END
+            else -> PngStep.MORE
+        }
     }
 
     val data = ByteArray(length).also { readFully(it) }
@@ -67,7 +73,7 @@ private fun DataInputStream.copyChunk(
         out?.write(crc)
     }
 
-    return true
+    return PngStep.MORE
 }
 
 /** An international text chunk is where a PNG keeps its XMP; the rest are plain text or a date. */
