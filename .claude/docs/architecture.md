@@ -58,6 +58,10 @@ What breaks silently:
   tiles at the start are only safe until the grid rebinds: `ZoomThumbnails.stopBorrowing()` first.
 - **The glass panels copy whatever is behind them in software every frame**, the overlay included,
   so it draws only what the canvas's clip shows and only the screen's own draw asks for pictures.
+- **Nothing may follow the zoom by transforming the grid as a whole.** Headers keep their length
+  while rows scale, so one transform drifts from the drawing by every header above the screen - a
+  second copy of the screen sliding past, well down a grouped library. The grid's fade out over a
+  starting zoom places each tile and header on its own; along is kept in doubles for the same depth.
 
 ### Per-folder custom media order
 

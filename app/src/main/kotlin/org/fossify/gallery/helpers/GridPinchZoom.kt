@@ -1,6 +1,5 @@
 package org.fossify.gallery.helpers
 
-import android.graphics.Matrix
 import android.view.MotionEvent
 import android.view.ViewConfiguration
 import androidx.recyclerview.widget.RecyclerView
@@ -50,7 +49,6 @@ class GridPinchZoom(
     private var focusX = 0f
     private var focusY = 0f
     private var baselineSpan = 0f
-    private val point = FloatArray(2)
 
     init {
         recyclerView.addOnItemTouchListener(this)
@@ -149,27 +147,12 @@ class GridPinchZoom(
             return false
         }
 
-        // a zoom may scale and move the grid itself while the fingers are down, and the event comes
-        // in the grid's transformed coordinates - put back, or the grid's own movement reads as the
-        // fingers'
-        val matrix = recyclerView.matrix.takeUnless { it.isIdentity }
-        untransform(e, firstIndex, matrix)
-        val firstX = point[0]
-        val firstY = point[1]
-        untransform(e, secondIndex, matrix)
-
-        val dx = firstX - point[0]
-        val dy = firstY - point[1]
+        val dx = e.getX(firstIndex) - e.getX(secondIndex)
+        val dy = e.getY(firstIndex) - e.getY(secondIndex)
         span = sqrt(dx * dx + dy * dy)
-        focusX = (firstX + point[0]) / 2
-        focusY = (firstY + point[1]) / 2
+        focusX = (e.getX(firstIndex) + e.getX(secondIndex)) / 2
+        focusY = (e.getY(firstIndex) + e.getY(secondIndex)) / 2
         return true
-    }
-
-    private fun untransform(e: MotionEvent, index: Int, matrix: Matrix?) {
-        point[0] = e.getX(index)
-        point[1] = e.getY(index)
-        matrix?.mapPoints(point)
     }
 }
 

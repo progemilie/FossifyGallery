@@ -19,6 +19,7 @@ import com.bumptech.glide.load.resource.gif.GifDrawable
 import org.fossify.gallery.helpers.Perf
 import org.fossify.gallery.helpers.ZoomLayer
 import org.fossify.gallery.helpers.ZoomScene
+import org.fossify.gallery.helpers.forEachVisible
 import org.fossify.gallery.helpers.ZoomThumbnails
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem

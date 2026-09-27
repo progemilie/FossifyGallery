@@ -1,7 +1,9 @@
 package org.fossify.gallery.views
 
+import android.graphics.RectF
 import android.graphics.drawable.ColorDrawable
 import android.os.SystemClock
+import android.view.View
 import android.widget.ImageView
 import androidx.core.view.children
 import androidx.recyclerview.widget.RecyclerView
@@ -20,10 +22,10 @@ private const val PICTURES_WAIT_MS = 350L
  * The grid's side of a zoom: getting out of the way as one starts and coming back as it ends. See
  * MediaGridZoom.
  *
- * It is drawn over the zoom rather than hidden outright, fading out while it follows the count it is
- * showing, so that its badges go gently rather than all at once. It comes back the same way, faded in
- * over the zoom's last frame once its tiles have their pictures - both show the same grid, so all
- * that changes is the badges returning.
+ * It is drawn over the zoom rather than hidden outright, fading out while its tiles follow where the
+ * zoom draws them, so that their badges go gently rather than all at once. It comes back the same
+ * way, faded in over the zoom's last frame once its tiles have their pictures - both show the same
+ * grid, so all that changes is the badges returning.
  */
 internal class GridHandover(private val grid: MyRecyclerView) {
 
@@ -31,6 +33,7 @@ internal class GridHandover(private val grid: MyRecyclerView) {
     private var fadeStartedAt = 0L
     private var onBack: (() -> Unit)? = null
     private var waitUntil = 0L
+    private val square = RectF()
 
     private val fadeOut = object : Runnable {
         override fun run() {
@@ -39,7 +42,7 @@ internal class GridHandover(private val grid: MyRecyclerView) {
             val layer = shownLayer(session)
             if (elapsed >= FADE_OUT_MS || layer == null) {
                 grid.alpha = 0f
-                resetTransform()
+                settleTiles()
                 return
             }
 
@@ -70,17 +73,29 @@ internal class GridHandover(private val grid: MyRecyclerView) {
 
     fun start(session: ZoomSession) {
         this.session = session
+        // a simplified tile is only its picture, which the zoom draws just the same: nothing to fade
+        if (session.drawing.counts.isSimplified(session.startRung)) {
+            grid.alpha = 0f
+            return
+        }
+
         fadeStartedAt = SystemClock.uptimeMillis()
         grid.alpha = 1f
         grid.postOnAnimation(fadeOut)
     }
 
-    /** Waits for the grid to have its pictures, fades it in, and calls [onBack] once it is. */
-    fun handBack(onBack: () -> Unit) {
+    /**
+     * Waits for the grid to have its pictures, fades it in, and calls [onBack] once it is. A grid the
+     * zoom left [changed] starts from nothing; one it did not fades back from wherever it had got to.
+     */
+    fun handBack(changed: Boolean, onBack: () -> Unit) {
         this.onBack = onBack
         grid.removeCallbacks(fadeOut)
-        resetTransform()
-        grid.alpha = 0f
+        settleTiles()
+        if (changed) {
+            grid.alpha = 0f
+        }
+
         waitUntil = SystemClock.uptimeMillis() + PICTURES_WAIT_MS
         grid.addOnScrollListener(onScroll)
         grid.postOnAnimation(waitForPictures)
@@ -91,7 +106,7 @@ internal class GridHandover(private val grid: MyRecyclerView) {
         grid.removeCallbacks(fadeOut)
         grid.removeCallbacks(waitForPictures)
         grid.animate().cancel()
-        resetTransform()
+        settleTiles()
         grid.alpha = 1f
         handedBack()
     }
@@ -110,35 +125,50 @@ internal class GridHandover(private val grid: MyRecyclerView) {
         return listOfNotNull(scene.under, scene.over).firstOrNull { it.rung == session.startRung }
     }
 
-    /** Scales and moves the grid onto where the zoom draws the count it is showing. */
+    /**
+     * Puts each of the grid's tiles and headers over where the zoom draws it. One by one rather than
+     * the grid as a whole: the zoom scales rows and leaves headers their length, which no single
+     * transform of the grid can follow - it would drift from the zoom by every header above it.
+     */
     private fun follow(layer: ZoomLayer, session: ZoomSession) {
+        val layout = layer.layout
+        val sections = layout.sections
         val frame = session.frame
-        val origin = session.startOrigin
-        grid.pivotX = 0f
-        grid.pivotY = 0f
-        if (frame.horizontal) {
-            grid.scaleX = layer.scaleAlong
-            grid.scaleY = layer.scaleAcross
-            grid.translationX = if (frame.reversed) {
-                frame.width - layer.originAlong - layer.scaleAlong * (frame.width - origin)
-            } else {
-                layer.originAlong - layer.scaleAlong * origin
+        for (child in grid.children) {
+            val position = grid.getChildAdapterPosition(child)
+            val section = if (position == RecyclerView.NO_POSITION) -1 else sections.sectionOf(position)
+            if (section < 0) {
+                continue
             }
 
-            grid.translationY = layer.originAcross
-        } else {
-            grid.scaleX = layer.scaleAcross
-            grid.scaleY = layer.scaleAlong
-            grid.translationX = layer.originAcross
-            grid.translationY = layer.originAlong - layer.scaleAlong * origin
+            if (sections.isHeaded(section) && position == sections.headerPosition(section)) {
+                // a header keeps its size, and its place across
+                place(child, child.left.toFloat(), layer.headerStart(section), 1f)
+            } else {
+                val index = position - sections.firstMedium(section)
+                val span = index % layout.columns
+                val along = layer.tileAlong(section, index / layout.columns)
+                frame.square(along, layer.tileAcross(span), layer.tileSize(span), square)
+                place(child, square.left - frame.left, square.top - frame.top, layer.scaleAcross)
+            }
         }
     }
 
-    private fun resetTransform() {
-        grid.scaleX = 1f
-        grid.scaleY = 1f
-        grid.translationX = 0f
-        grid.translationY = 0f
+    /** Scales [child] by [scale] and moves it to [left], [top], about whatever pivot it has. */
+    private fun place(child: View, left: Float, top: Float, scale: Float) {
+        child.scaleX = scale
+        child.scaleY = scale
+        child.translationX = left - child.left - child.pivotX * (1 - scale)
+        child.translationY = top - child.top - child.pivotY * (1 - scale)
+    }
+
+    private fun settleTiles() {
+        for (child in grid.children) {
+            child.scaleX = 1f
+            child.scaleY = 1f
+            child.translationX = 0f
+            child.translationY = 0f
+        }
     }
 
     /** Whether every tile on screen has its picture, or at least whatever stands in for a failed one. */

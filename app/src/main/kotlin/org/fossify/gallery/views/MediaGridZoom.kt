@@ -195,7 +195,8 @@ class MediaGridZoom(
         isLanding = true
         val scene = session.scene
         val rung = scene.restRung
-        if (rung != session.startRung || abs(scene.restOrigin - session.startOrigin) >= HALF_PIXEL) {
+        val changed = rung != session.startRung || abs(scene.restOrigin - session.startOrigin) >= HALF_PIXEL
+        if (changed) {
             val columns = session.rungs[rung]
             val thumbnails = session.drawing.thumbnails
             // the tiles are about to be rebound, and the pictures borrowed from them go with them
@@ -208,7 +209,7 @@ class MediaGridZoom(
             session.restPosition()?.let { (position, offset) -> host.scrollTo(position, offset) }
         }
 
-        handover.handBack(::finish)
+        handover.handBack(changed, ::finish)
     }
 
     private fun finish() {
@@ -216,7 +217,7 @@ class MediaGridZoom(
         this.session = null
         isLanding = false
         overlay.drawing = null
-        overlay.visibility = View.GONE
+        overlay.visibility = View.INVISIBLE
         session.drawing.thumbnails.release()
         host.onZoomFinished()
     }

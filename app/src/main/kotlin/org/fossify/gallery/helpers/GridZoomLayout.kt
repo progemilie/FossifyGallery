@@ -285,7 +285,7 @@ class GridZoomLayout(val columns: Int, val shape: GridShape, val sections: GridS
     }
 
     /** The row holding [offset], counted in rows from the section's first row, and held to the section. */
-    fun rowAt(section: Int, offset: Float): Int {
+    fun rowAt(section: Int, offset: Double): Int {
         val rows = rows(section)
         val first = rowLength(section, 0)
         val row = if (offset < first) 0 else 1 + ((offset - first) / rowPitch).toInt()

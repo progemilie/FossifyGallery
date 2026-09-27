@@ -98,8 +98,8 @@ class GridZoomLayoutTest {
     @Test
     fun `rows are found by their offset and held to the section`() {
         val layout = GridZoomLayout(4, shape(), GridSections(media(10)))
-        assertEquals(0, layout.rowAt(0, -50f))
-        assertEquals(1, layout.rowAt(0, 300f))
-        assertEquals(2, layout.rowAt(0, 5000f))
+        assertEquals(0, layout.rowAt(0, -50.0))
+        assertEquals(1, layout.rowAt(0, 300.0))
+        assertEquals(2, layout.rowAt(0, 5000.0))
     }
 }

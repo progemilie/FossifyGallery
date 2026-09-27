@@ -14,7 +14,7 @@ import org.fossify.gallery.models.Medium
  * wants hundreds, and asking for them all in one frame would stall the very frame the pinch is meant
  * to be smoothest in.
  */
-private const val MISSING_PER_FRAME = 24
+private const val MISSING_PER_FRAME = 48
 
 /** ...and for tiles already drawn with a picture of another size, which only come out sharper. */
 private const val SHARPER_PER_FRAME = 6

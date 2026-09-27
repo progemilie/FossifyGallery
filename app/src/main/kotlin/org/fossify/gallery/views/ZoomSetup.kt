@@ -23,6 +23,7 @@ import org.fossify.gallery.helpers.GridShape
 import org.fossify.gallery.helpers.GridZoom
 import org.fossify.gallery.helpers.GridZoomLayout
 import org.fossify.gallery.helpers.ZoomScene
+import org.fossify.gallery.helpers.forEachVisible
 import org.fossify.gallery.helpers.ZoomThumbnails
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
@@ -35,7 +36,7 @@ class ZoomSession(
     val rungs: List<Int>,
     val startRung: Int,
     /** Where the grid's content started along when the zoom began. */
-    val startOrigin: Float,
+    val startOrigin: Double,
     val viewport: ZoomScene.Viewport,
 ) {
     val scene get() = drawing.scene
@@ -207,7 +208,7 @@ internal class ZoomSetup(
     }
 
     /** Where the grid's content starts along, worked back from a child it has laid out. */
-    private fun calibrate(layout: GridZoomLayout, frame: GridFrame): Float? {
+    private fun calibrate(layout: GridZoomLayout, frame: GridFrame): Double? {
         val layoutManager = grid.layoutManager ?: return null
         val sections = layout.sections
         val headerLength = layout.shape.headerLength
@@ -232,7 +233,7 @@ internal class ZoomSetup(
                 else -> layoutManager.getDecoratedLeft(child)
             }
 
-            return (start - offset).toFloat()
+            return start.toDouble() - offset
         }
 
         return null

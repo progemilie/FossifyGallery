@@ -19,24 +19,24 @@ class ZoomSceneTest {
 
     private fun media(count: Int) = List(count) { Medium().apply { path = "/m$it" } }
 
-    private fun scene(items: List<ThumbnailItem>, startRung: Int, startOrigin: Float): ZoomScene {
+    private fun scene(items: List<ThumbnailItem>, startRung: Int, startOrigin: Double): ZoomScene {
         val sections = GridSections(items)
         return ZoomScene(ladder.size, viewport, { GridZoomLayout(ladder[it], shape, sections) }, startRung, startOrigin)
     }
 
     @Test
     fun `a whole level is its count drawn as it lies`() {
-        val scene = scene(media(300), startRung = 3, startOrigin = -1000f)
+        val scene = scene(media(300), startRung = 3, startOrigin = -1000.0)
         assertEquals(3, scene.under.rung)
         assertNull(scene.over)
-        assertEquals(-1000f, scene.under.originAlong, 0f)
+        assertEquals(-1000.0, scene.under.originAlong, 0.0)
         assertEquals(1f, scene.under.scaleAlong, 0f)
         assertEquals(0f, scene.under.originAcross, 0f)
     }
 
     @Test
     fun `between two counts the fewer columns are drawn under the more`() {
-        val scene = scene(media(300), startRung = 3, startOrigin = -1000f)
+        val scene = scene(media(300), startRung = 3, startOrigin = -1000.0)
         scene.focusAlong = 1200f
         scene.focusAcross = 540f
         scene.update(3.5f)
@@ -49,7 +49,7 @@ class ZoomSceneTest {
 
     @Test
     fun `both counts draw their tiles on the same cells`() {
-        val scene = scene(media(300), startRung = 3, startOrigin = -1000f)
+        val scene = scene(media(300), startRung = 3, startOrigin = -1000.0)
         scene.focusAlong = 1200f
         scene.focusAcross = 540f
         scene.update(3.4f)
@@ -67,57 +67,57 @@ class ZoomSceneTest {
 
     @Test
     fun `a step is drawn continuously through the count at its end`() {
-        val scene = scene(media(300), startRung = 3, startOrigin = -1000f)
+        val scene = scene(media(300), startRung = 3, startOrigin = -1000.0)
         scene.focusAlong = 1200f
         scene.focusAcross = 300f
         scene.update(3.999f)
         val nearly = requireNotNull(scene.over).originAlong
         scene.update(4f)
         assertEquals(4, scene.under.rung)
-        assertEquals(nearly, scene.under.originAlong, 2f)
+        assertEquals(nearly, scene.under.originAlong, 2.0)
         assertEquals(0f, scene.under.originAcross, 0.5f)
     }
 
     @Test
     fun `pinching back to where it began puts the grid back`() {
-        val scene = scene(media(300), startRung = 5, startOrigin = -2345f)
+        val scene = scene(media(300), startRung = 5, startOrigin = -2345.0)
         scene.focusAlong = 900f
         scene.focusAcross = 700f
         scene.update(5.6f)
         scene.update(5.2f)
         scene.update(5f)
         assertEquals(5, scene.under.rung)
-        assertEquals(-2345f, scene.under.originAlong, 0.01f)
+        assertEquals(-2345.0, scene.under.originAlong, 0.01)
     }
 
     @Test
     fun `zooming out at the top of the list keeps it at the top`() {
-        val scene = scene(media(300), startRung = 2, startOrigin = viewport.paddingStart)
+        val scene = scene(media(300), startRung = 2, startOrigin = viewport.paddingStart.toDouble())
         scene.focusAlong = 1500f
         scene.focusAcross = 540f
         for (level in 1..20) {
             scene.update(2 + level / 10f)
-            assertTrue(scene.under.originAlong <= viewport.paddingStart + 0.01f)
+            assertTrue(scene.under.originAlong <= viewport.paddingStart + 0.01)
         }
 
         assertEquals(4, scene.under.rung)
-        assertEquals(viewport.paddingStart, scene.under.originAlong, 0.01f)
+        assertEquals(viewport.paddingStart.toDouble(), scene.under.originAlong, 0.01)
     }
 
     @Test
     fun `a short list stays at the top whatever the count`() {
-        val scene = scene(media(5), startRung = 3, startOrigin = viewport.paddingStart)
+        val scene = scene(media(5), startRung = 3, startOrigin = viewport.paddingStart.toDouble())
         scene.focusAlong = 400f
         scene.focusAcross = 540f
         scene.update(1f)
         assertEquals(1, scene.under.rung)
-        assertEquals(viewport.paddingStart, scene.under.originAlong, 0.01f)
+        assertEquals(viewport.paddingStart.toDouble(), scene.under.originAlong, 0.01)
     }
 
     @Test
     fun `headers keep their length while the rows around them scale`() {
         val items = listOf<ThumbnailItem>(ThumbnailSection("a")) + media(9) + ThumbnailSection("b") + media(40)
-        val scene = scene(items, startRung = 3, startOrigin = viewport.paddingStart)
+        val scene = scene(items, startRung = 3, startOrigin = viewport.paddingStart.toDouble())
         scene.focusAlong = 1800f
         scene.focusAcross = 540f
         scene.update(3.5f)
@@ -126,6 +126,37 @@ class ZoomSceneTest {
         assertEquals(headerEnd, layer.rowStart(1, 0), 0.01f)
         // the rows ahead of the second header scaled, so it lies nearer the first than it did
         assertTrue(layer.headerStart(1) - layer.headerStart(0) < shape.headerLength + 3 * 270f)
+    }
+
+    @Test
+    fun `a list losing its headers moves into place across the whole step`() {
+        // a hundred days of one photo each, under a header each, which the simplified counts drop
+        val items = (0 until 100).flatMap { day ->
+            listOf(ThumbnailSection("day $day"), Medium().apply { path = "/m$day" })
+        }
+
+        val grouped = GridSections(items)
+        val flat = GridSections(items.filterIsInstance<Medium>())
+        val scene = ZoomScene(ladder.size, viewport, {
+            GridZoomLayout(ladder[it], shape, if (ladder[it] > 7) flat else grouped)
+        }, 6, -8000.0)
+        scene.focusAlong = 1200f
+        scene.focusAcross = 540f
+
+        // the photo under the fingers is far down with its headers and near the top without them,
+        // so the grid has a long way to move - a little in every frame, never all at the end
+        var previous = Double.NaN
+        for (percent in 1..100) {
+            scene.update(6 + percent / 100f)
+            val origin = scene.layerOf(7).originAlong
+            if (!previous.isNaN()) {
+                assertTrue("jumped ${origin - previous} at $percent%", abs(origin - previous) < 60)
+            }
+
+            previous = origin
+        }
+
+        assertEquals(viewport.paddingStart.toDouble(), scene.under.originAlong, 0.01)
     }
 
     private fun onLattice(distance: Float, pitch: Float): Boolean {
