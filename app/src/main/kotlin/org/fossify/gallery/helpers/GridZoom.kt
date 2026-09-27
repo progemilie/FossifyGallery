@@ -55,12 +55,6 @@ class GridZoom private constructor(
      */
     fun snap(columnCount: Int) = rungs.minByOrNull { abs(it - columnCount) } ?: columnCount
 
-    /** One rung fewer columns, or the bottom of the ladder. */
-    fun zoomIn(columnCount: Int) = rungs.lastOrNull { it < snap(columnCount) } ?: rungs.first()
-
-    /** One rung more columns, or the top of the ladder. */
-    fun zoomOut(columnCount: Int) = rungs.firstOrNull { it > snap(columnCount) } ?: rungs.last()
-
     companion object {
         /** Under this a tile has no room left for anything drawn over the picture. */
         private const val INTERACTIVE_MIN_TILE_DP = 55

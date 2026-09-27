@@ -151,6 +151,7 @@ import org.fossify.gallery.helpers.GROUP_BY_LAST_MODIFIED_MONTHLY
 import org.fossify.gallery.helpers.GROUP_DESCENDING
 import org.fossify.gallery.helpers.GridChrome
 import org.fossify.gallery.helpers.GridPinchZoom
+import org.fossify.gallery.helpers.PinchSteps
 import org.fossify.gallery.helpers.LOCATION_INTERNAL
 import org.fossify.gallery.helpers.MONTH_MILLISECONDS
 import org.fossify.gallery.helpers.MediaFetcher
@@ -236,18 +237,20 @@ class MainActivity :
     private val mPinchZoom by lazy {
         GridPinchZoom(
             recyclerView = binding.directoryPane.directoriesGrid,
-            onZoomIn = {
-                if (fittedDirColumnCnt() > 1) {
-                    reduceColumnCount()
-                    getRecyclerAdapter()?.finishActMode()
+            listener = PinchSteps(
+                onZoomIn = {
+                    if (fittedDirColumnCnt() > 1) {
+                        reduceColumnCount()
+                        getRecyclerAdapter()?.finishActMode()
+                    }
+                },
+                onZoomOut = {
+                    if (fittedDirColumnCnt() < maxDirColumnCnt()) {
+                        increaseColumnCount()
+                        getRecyclerAdapter()?.finishActMode()
+                    }
                 }
-            },
-            onZoomOut = {
-                if (fittedDirColumnCnt() < maxDirColumnCnt()) {
-                    increaseColumnCount()
-                    getRecyclerAdapter()?.finishActMode()
-                }
-            }
+            )
         )
     }
     private var mDirs = ArrayList<Directory>()

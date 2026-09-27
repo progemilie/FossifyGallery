@@ -80,5 +80,14 @@ class SimpleThumbnailLoader(
             .signature(signature)
             .preload(size, size)
 
+    /** The same request again, into a target of the caller's - see [ZoomThumbnails]. */
+    fun into(path: String, signature: ObjectKey, target: Target<Drawable>) {
+        requests
+            .load(ThumbnailSource(path))
+            .apply(options)
+            .signature(signature)
+            .into(target)
+    }
+
     fun clear(target: View) = requests.clear(target)
 }

@@ -38,6 +38,14 @@
         android:textSize="@dimen/bigger_text_size"
         android:visibility="gone" />
 
+    <!-- the grid while it is pinched between column counts, under it so that the grid can fade out
+         from over it; see MediaGridZoom -->
+    <org.fossify.gallery.views.GridZoomOverlay
+        android:id="@+id/media_zoom_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/media_refresh_layout"
         android:layout_width="match_parent"

@@ -681,6 +681,24 @@ fun Context.preloadImage(
     animateGifs: Boolean,
 ): Target<Drawable>? {
     Perf.count("thumb.preload")
+    return thumbnailRequestFor(type, path, cropThumbnails, roundCorners, signature, overrideSize, animateGifs)
+        ?.preload(overrideSize, overrideSize)
+}
+
+/**
+ * The request [loadImage] binds a grid tile's thumbnail with, short of what it goes into - for
+ * anything that has to ask for the very picture a bind will: [preloadImage], or a zoom drawing the
+ * grid at a count it is not at yet. Null for an SVG, which is rendered by a pipeline of its own.
+ */
+fun Context.thumbnailRequestFor(
+    type: Int,
+    path: String,
+    cropThumbnails: Boolean,
+    roundCorners: Int,
+    signature: ObjectKey,
+    overrideSize: Int,
+    animateGifs: Boolean,
+): RequestBuilder<Drawable>? {
     if (type == TYPE_SVGS) {
         return null
     }
@@ -696,7 +714,7 @@ fun Context.preloadImage(
         // no view for it to fade into, and a transition is no part of the cache key either way
         crossFadeDuration = 0,
         decodeFormat = thumbnailDecodeFormat(roundCorners)
-    ).preload(overrideSize, overrideSize)
+    )
 }
 
 /**
