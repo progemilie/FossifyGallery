@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Picture
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.drawable.BitmapDrawable
@@ -136,26 +137,31 @@ class GridZoomOverlay(context: Context, attrs: AttributeSet? = null) : View(cont
     private fun draw(canvas: Canvas, drawing: ZoomDrawing) {
         val frame = drawing.frame
         canvas.withClip(frame.left, frame.top, frame.left + frame.width, frame.top + frame.height) {
-            if (!getClipBounds(clip)) {
-                return@withClip
-            }
+            drawClipped(canvas, drawing)
+        }
+    }
 
-            // only the screen's own frame asks for pictures, and it asks once
-            val isScreen = isHardwareAccelerated
-            if (isScreen) {
-                drawing.thumbnails.startFrame()
-            }
+    private fun drawClipped(canvas: Canvas, drawing: ZoomDrawing) {
+        if (!canvas.getClipBounds(clip)) {
+            return
+        }
 
-            val scene = drawing.scene
-            val over = scene.over
-            drawLayer(this, underPass.set(drawing, scene.under, over, isOver = false, mayAsk = isScreen, clip))
-            if (over != null) {
-                drawLayer(this, overPass.set(drawing, over, scene.under, isOver = true, mayAsk = isScreen, clip))
-            }
+        // only the screen's own frame asks for pictures, and it asks once - the canvas's to say, not
+        // the view's, which is hardware accelerated however it is being drawn
+        val isScreen = canvas.isHardwareAccelerated
+        if (isScreen) {
+            drawing.thumbnails.startFrame()
+        }
 
-            if (isScreen && drawing.thumbnails.isShortOfAsks) {
-                postInvalidateOnAnimation()
-            }
+        val scene = drawing.scene
+        val over = scene.over
+        drawLayer(canvas, underPass.set(drawing, scene.under, over, isOver = false, mayAsk = isScreen, clip))
+        if (over != null) {
+            drawLayer(canvas, overPass.set(drawing, over, scene.under, isOver = true, mayAsk = isScreen, clip))
+        }
+
+        if (isScreen && drawing.thumbnails.isShortOfAsks) {
+            postInvalidateOnAnimation()
         }
     }
 
@@ -370,8 +376,21 @@ internal class ZoomTilePainter {
             tilePaint.alpha = (alpha * OPAQUE).toInt()
             canvas.drawBitmap(bitmap, source, fitted, tilePaint)
         } else if (picture != null) {
-            canvas.drawPicture(picture, fitted)
+            drawPicture(canvas, picture, alpha)
         }
+    }
+
+    // a picture takes no paint to fade it by, so one part way through a fade goes through a layer -
+    // only ever an SVG's, and only ever for the few frames of a fade
+    private fun drawPicture(canvas: Canvas, picture: Picture, alpha: Float) {
+        if (alpha >= 1f) {
+            canvas.drawPicture(picture, fitted)
+            return
+        }
+
+        val saved = canvas.saveLayerAlpha(fitted, (alpha * OPAQUE).toInt())
+        canvas.drawPicture(picture, fitted)
+        canvas.restoreToCount(saved)
     }
 
     private fun drawPlaceholder(canvas: Canvas, tile: RectF, pass: LayerPass, alpha: Float) {
