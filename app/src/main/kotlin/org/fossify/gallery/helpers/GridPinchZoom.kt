@@ -22,7 +22,7 @@ class GridPinchZoom(
     interface Listener {
         /**
          * The fingers have moved far enough apart or together to be pinching, around [focusX],
-         * [focusY] in the grid's own coordinates. False leaves them to the grid.
+         * [focusY] in the grid's own coordinates. False is not yet, asked again as they move on.
          */
         fun onPinchStart(focusX: Float, focusY: Float): Boolean
 
@@ -117,14 +117,15 @@ class GridPinchZoom(
     }
 
     private fun beginPinch(): Boolean {
+        // a grid still catching up on a layout, as one is for a frame after a zoom lands, is asked
+        // again on the next move rather than lost to the whole gesture
         if (!listener.onPinchStart(focusX, focusY)) {
-            // not now, and not again until the fingers come down afresh
-            baselineSpan = 0f
             return false
         }
 
-        // re-baselined here, or the zoom would open with a jump by whatever the slop cost
-        baselineSpan = span
+        // the slop taken off the baseline, or the zoom would open with a jump by it - and only the
+        // slop: movement a busy main thread delivers all in one event still counts
+        baselineSpan = (baselineSpan + if (span > baselineSpan) touchSlop else -touchSlop).coerceAtLeast(1f)
         isPinching = true
         return true
     }

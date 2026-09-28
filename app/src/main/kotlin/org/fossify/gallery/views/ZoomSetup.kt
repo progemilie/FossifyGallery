@@ -42,15 +42,15 @@ class ZoomSession(
     val scene get() = drawing.scene
     val frame get() = drawing.frame
 
-    /** A point in the grid's own coordinates, as the scene measures along... */
-    fun alongOf(x: Float, y: Float) = when {
-        !frame.horizontal -> y
-        frame.reversed -> frame.width - x
-        else -> x
-    }
-
-    /** ...and across. */
-    fun acrossOf(x: Float, y: Float) = if (frame.horizontal) y else x
+    /** Zooms about [x], [y] in the grid's own coordinates - see [ZoomScene.focusOn]. */
+    fun focusOn(x: Float, y: Float) = scene.focusOn(
+        along = when {
+            !frame.horizontal -> y
+            frame.reversed -> frame.width - x
+            else -> x
+        },
+        across = if (frame.horizontal) y else x
+    )
 
     /**
      * The list position the grid scrolls to, and how far past its padding that item starts, for the
@@ -124,8 +124,7 @@ internal class ZoomSetup(
         thumbnails.borrow(layoutManager.spanCount, borrowPictures(adapter))
         val drawing = ZoomDrawing(scene, thumbnails, frame, header?.second, tileStyleOf(adapter), counts)
         return ZoomSession(drawing, host.ladder.rungs, startRung, startOrigin, viewport).also {
-            scene.focusAlong = it.alongOf(focusX, focusY)
-            scene.focusAcross = it.acrossOf(focusX, focusY)
+            it.focusOn(focusX, focusY)
         }
     }
 

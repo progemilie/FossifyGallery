@@ -75,6 +75,9 @@ class MediaGridZoom(
     private val handover = GridHandover(grid)
     private var session: ZoomSession? = null
     private var level = 0f
+
+    /** The level the fingers' spread is measured from: where the zoom was as they came down. */
+    private var pinchFrom = 0f
     private var velocity = 0f
     private var movedAt = 0L
     private var settle: ValueAnimator? = null
@@ -84,18 +87,36 @@ class MediaGridZoom(
     val isActive get() = session != null
 
     override fun onPinchStart(focusX: Float, focusY: Float): Boolean {
-        // one still settling or handing back is seen to the end first
-        finishNow()
-        return begin(focusX, focusY)
+        val session = session
+        // one still settling is carried on from where it has got to, rather than landed and begun
+        // afresh - a landed grid has a layout to catch up on before a zoom can be read off it
+        if (session != null && !isLanding) {
+            settle?.let {
+                settle = null
+                it.cancel()
+            }
+
+            session.focusOn(focusX, focusY)
+        } else {
+            // one handing back is seen to the end first
+            finishNow()
+            if (!begin(focusX, focusY)) {
+                return false
+            }
+        }
+
+        pinchFrom = level
+        velocity = 0f
+        movedAt = SystemClock.uptimeMillis()
+        return true
     }
 
     override fun onPinch(spread: Float) {
-        val session = session ?: return
-        if (settle != null || isLanding) {
+        if (session == null || settle != null || isLanding) {
             return
         }
 
-        val next = session.startRung - ln(spread) / ln(SPREAD_PER_STEP)
+        val next = pinchFrom - ln(spread) / ln(SPREAD_PER_STEP)
         val now = SystemClock.uptimeMillis()
         val speed = (next - level) * MS_PER_SECOND / (now - movedAt).coerceAtLeast(1)
         velocity = (velocity + speed) / 2
@@ -130,14 +151,11 @@ class MediaGridZoom(
         }
     }
 
-    /** Brings any zoom to rest where it is and hands the grid straight back. */
+    /** Brings any zoom to rest, on the count it was settling on if any, and hands the grid straight back. */
     fun finishNow() {
         val session = session ?: return
-        settle?.let {
-            settle = null
-            it.cancel()
-        }
-
+        // ending it lands it
+        settle?.end()
         if (!isLanding) {
             moveTo(level.roundToInt().coerceIn(0, session.rungs.lastIndex).toFloat())
             land()
@@ -152,8 +170,6 @@ class MediaGridZoom(
         } ?: return false
         this.session = session
         level = session.startRung.toFloat()
-        velocity = 0f
-        movedAt = SystemClock.uptimeMillis()
         overlay.drawing = session.drawing
         overlay.visibility = View.VISIBLE
         handover.start(session)

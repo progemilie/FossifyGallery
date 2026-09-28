@@ -37,8 +37,7 @@ class ZoomSceneTest {
     @Test
     fun `between two counts the fewer columns are drawn under the more`() {
         val scene = scene(media(300), startRung = 3, startOrigin = -1000.0)
-        scene.focusAlong = 1200f
-        scene.focusAcross = 540f
+        scene.focusOn(1200f, 540f)
         scene.update(3.5f)
         assertEquals(3, scene.under.rung)
         assertEquals(4, scene.over?.rung)
@@ -50,8 +49,7 @@ class ZoomSceneTest {
     @Test
     fun `both counts draw their tiles on the same cells`() {
         val scene = scene(media(300), startRung = 3, startOrigin = -1000.0)
-        scene.focusAlong = 1200f
-        scene.focusAcross = 540f
+        scene.focusOn(1200f, 540f)
         scene.update(3.4f)
         val under = scene.under
         val over = requireNotNull(scene.over)
@@ -68,8 +66,7 @@ class ZoomSceneTest {
     @Test
     fun `a step is drawn continuously through the count at its end`() {
         val scene = scene(media(300), startRung = 3, startOrigin = -1000.0)
-        scene.focusAlong = 1200f
-        scene.focusAcross = 300f
+        scene.focusOn(1200f, 300f)
         scene.update(3.999f)
         val nearly = requireNotNull(scene.over).originAlong
         scene.update(4f)
@@ -81,8 +78,7 @@ class ZoomSceneTest {
     @Test
     fun `pinching back to where it began puts the grid back`() {
         val scene = scene(media(300), startRung = 5, startOrigin = -2345.0)
-        scene.focusAlong = 900f
-        scene.focusAcross = 700f
+        scene.focusOn(900f, 700f)
         scene.update(5.6f)
         scene.update(5.2f)
         scene.update(5f)
@@ -91,10 +87,20 @@ class ZoomSceneTest {
     }
 
     @Test
+    fun `fingers coming down elsewhere mid stretch leave it where it is drawn`() {
+        val scene = scene(media(300), startRung = 0, startOrigin = -1000.0)
+        scene.focusOn(1200f, 540f)
+        scene.update(-0.5f)
+        val stretched = scene.under.originAlong
+        scene.focusOn(300f, 100f)
+        scene.update(-0.5f)
+        assertEquals(stretched, scene.under.originAlong, 0.0)
+    }
+
+    @Test
     fun `zooming out at the top of the list keeps it at the top`() {
         val scene = scene(media(300), startRung = 2, startOrigin = viewport.paddingStart.toDouble())
-        scene.focusAlong = 1500f
-        scene.focusAcross = 540f
+        scene.focusOn(1500f, 540f)
         for (level in 1..20) {
             scene.update(2 + level / 10f)
             assertTrue(scene.under.originAlong <= viewport.paddingStart + 0.01)
@@ -107,8 +113,7 @@ class ZoomSceneTest {
     @Test
     fun `a short list stays at the top whatever the count`() {
         val scene = scene(media(5), startRung = 3, startOrigin = viewport.paddingStart.toDouble())
-        scene.focusAlong = 400f
-        scene.focusAcross = 540f
+        scene.focusOn(400f, 540f)
         scene.update(1f)
         assertEquals(1, scene.under.rung)
         assertEquals(viewport.paddingStart.toDouble(), scene.under.originAlong, 0.01)
@@ -118,8 +123,7 @@ class ZoomSceneTest {
     fun `headers keep their length while the rows around them scale`() {
         val items = listOf<ThumbnailItem>(ThumbnailSection("a")) + media(9) + ThumbnailSection("b") + media(40)
         val scene = scene(items, startRung = 3, startOrigin = viewport.paddingStart.toDouble())
-        scene.focusAlong = 1800f
-        scene.focusAcross = 540f
+        scene.focusOn(1800f, 540f)
         scene.update(3.5f)
         val layer = scene.under
         val headerEnd = layer.headerStart(1) + shape.headerLength
@@ -140,8 +144,7 @@ class ZoomSceneTest {
         val scene = ZoomScene(ladder.size, viewport, {
             GridZoomLayout(ladder[it], shape, if (ladder[it] > 7) flat else grouped)
         }, 6, -8000.0)
-        scene.focusAlong = 1200f
-        scene.focusAcross = 540f
+        scene.focusOn(1200f, 540f)
 
         // the photo under the fingers is far down with its headers and near the top without them,
         // so the grid has a long way to move - a little in every frame, never all at the end

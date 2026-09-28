@@ -170,9 +170,14 @@ class ZoomScene(
     var restOrigin = startOrigin
         private set
 
-    /** Whatever the fingers are around, along and across. */
+    /** Whatever the fingers are around, along and across - see [focusOn]. */
     var focusAlong = 0f
+        private set
     var focusAcross = 0f
+        private set
+
+    /** How far past either end of the ladder the count at rest is being pulled. */
+    private var overshoot = 0f
 
     /** The count with fewer columns, always drawn; the other only between two counts. */
     lateinit var under: ZoomLayer
@@ -193,12 +198,24 @@ class ZoomScene(
 
     fun layerOf(rung: Int) = layers.getOrPut(rung) { ZoomLayer(rung, layoutOf(rung)) }
 
+    /**
+     * Zooms about [along], [across] from here on. A step under way keeps to the point it began with,
+     * and so does a stretch past either end, which is drawn about it and would jump.
+     */
+    fun focusOn(along: Float, across: Float) {
+        if (overshoot == 0f) {
+            focusAlong = along
+            focusAcross = across
+        }
+    }
+
     fun update(level: Float) {
         val clamped = level.coerceIn(0f, (rungCount - 1).toFloat())
+        overshoot = level - clamped
         while (true) {
             if (clamped == restRung.toFloat()) {
                 step = null
-                showRest(level - clamped)
+                showRest()
                 return
             }
 
@@ -221,7 +238,7 @@ class ZoomScene(
     }
 
     /** One count drawn as it lies, pulled a little bigger or smaller by any pinching past the ends. */
-    private fun showRest(overshoot: Float) {
+    private fun showRest() {
         val layer = layerOf(restRung)
         val stretch = STRETCH_MAX * (1 - exp(-abs(overshoot) * STRETCH_RATE))
         val scale = if (overshoot < 0) 1 + stretch else 1 / (1 + stretch)
