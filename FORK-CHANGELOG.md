@@ -9,10 +9,7 @@ Notable fork-only changes.
 - **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with
   adjustable spacing and an optional folder size on the details line.
 ### Changed
-- **Pinching the photo grid zooms smoothly**: the pictures follow your fingers and change in place
-  rather than jumping between rows, new columns slide in from the sides, and letting go settles on
-  the nearest size.
-- Pinching to zoom takes a little more movement for each step.
+- Pinching the photo grid zooms smoothly.
 - The details at the top of a photo are more compact.
 - **A selection's menu is laid out like the viewer's.**
 - Updated the style and opening animation of the copy and move chooser.
@@ -37,7 +34,6 @@ Notable fork-only changes.
 - Fixed the Settings title, back arrow, status bar icons and last card's shadow on a light theme.
 - Fixed a renamed photo losing its place in a folder arranged by hand.
 - Fixed removing metadata from an unusually built file possibly saving only part of the photo. Files that cannot be read to the end are now left untouched.
-- Fixed a pinch that started slowly selecting the photo under a finger.
 
 ## [v1.19.0] - 2026.09.01 — UI
 
