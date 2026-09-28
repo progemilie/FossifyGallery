@@ -38,13 +38,6 @@ class GridSections private constructor(
     /** How many media the list holds, its headers left out. */
     val mediaCount = sizes.sum()
 
-    /** The same media as one run with no headers, the way the simplified counts list them. */
-    fun withoutHeaders() = if (count == 0) {
-        this
-    } else {
-        GridSections(false, intArrayOf(0), booleanArrayOf(false), intArrayOf(mediaCount), intArrayOf(0))
-    }
-
     fun isHeaded(section: Int) = headed[section]
 
     /** How many media the section holds. */
@@ -118,6 +111,13 @@ class GridSections private constructor(
             }
 
             return GridSections(items.firstOrNull() is ThumbnailSection, starts, headed, sizes, headersAhead)
+        }
+
+        /** [mediaCount] media as one run with no headers, the way the simplified counts list them. */
+        fun headerless(mediaCount: Int) = if (mediaCount == 0) {
+            GridSections(false, IntArray(0), BooleanArray(0), IntArray(0), IntArray(0))
+        } else {
+            GridSections(false, intArrayOf(0), booleanArrayOf(false), intArrayOf(mediaCount), intArrayOf(0))
         }
     }
 }

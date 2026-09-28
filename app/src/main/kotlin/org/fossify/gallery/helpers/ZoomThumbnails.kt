@@ -105,7 +105,8 @@ class ZoomThumbnails(
         }
 
         val stand = latest[path] ?: if (canBorrow) borrowed[path] else null
-        if (slot == null && mayAsk && (stand == null || isSharpening) && spend(hasPicture = stand != null)) {
+        val wantsOne = slot == null && (stand == null || isSharpening)
+        if (wantsOne && mayAsk && spend(hasPicture = stand != null)) {
             ask(medium, columnCount, key)?.let { return it }
         }
 

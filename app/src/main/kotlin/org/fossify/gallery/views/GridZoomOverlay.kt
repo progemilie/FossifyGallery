@@ -44,24 +44,14 @@ class GridFrame(
     val horizontal: Boolean,
     /** A sideways grid laid out right to left, whose content starts at its right edge. */
     val reversed: Boolean,
-    /** The grid's padding across, ahead of its spans and after them. */
-    val acrossPaddingStart: Int,
-    val acrossPaddingEnd: Int,
 ) {
     val alongLength get() = if (horizontal) width else height
 
-    /** What the spans share out across: the grid's size that way, less its padding. */
-    val acrossSpace get() = (if (horizontal) height else width).toInt() - acrossPaddingStart - acrossPaddingEnd
-
-    /**
-     * Where the grid can show a tile at all, in the overlay's coordinates: never in its padding
-     * across. Tiles a zoom brings in from the sides come in from there, as they come in from off
-     * screen in a grid with no such padding, rather than being drawn whole in it.
-     */
-    val tileBounds = if (horizontal) {
-        RectF(left, top + acrossPaddingStart, left + width, top + height - acrossPaddingEnd)
+    /** The whole of the grid along, and from [acrossStart] to [acrossEnd] across, in the overlay's coordinates. */
+    fun bandAcross(acrossStart: Float, acrossEnd: Float) = if (horizontal) {
+        RectF(left, top + acrossStart, left + width, top + acrossEnd)
     } else {
-        RectF(left + acrossPaddingStart, top, left + width - acrossPaddingEnd, top + height)
+        RectF(left + acrossStart, top, left + acrossEnd, top + height)
     }
 
     /** Puts a square [size] long at [along], [across] into [out], in the overlay's coordinates. */
@@ -113,6 +103,12 @@ class ZoomDrawing(
     val scene: ZoomScene,
     val thumbnails: ZoomThumbnails,
     val frame: GridFrame,
+    /**
+     * Where the grid can show a tile at all, in the overlay's coordinates: never in its padding
+     * across. Tiles a zoom brings in from the sides come in from there, as they come in from off
+     * screen in a grid with no such padding, rather than being drawn whole in it.
+     */
+    val tileBounds: RectF,
     val headerStyle: HeaderStyle?,
     val tileStyle: TileStyle,
     val counts: ZoomCounts,
@@ -153,7 +149,9 @@ class GridZoomOverlay(context: Context, attrs: AttributeSet? = null) : View(cont
 
     override fun onDraw(canvas: Canvas) {
         val drawing = drawing ?: return
-        Perf.section("zoom.draw") { draw(canvas, drawing) }
+        Perf.section("zoom.draw") {
+            canvas.withClip(drawing.tileBounds) { draw(canvas, drawing) }
+        }
     }
 
     /**
@@ -162,12 +160,6 @@ class GridZoomOverlay(context: Context, attrs: AttributeSet? = null) : View(cont
      * GlassPanel - and a whole screenful of tiles drawn twice more in software is most of a frame.
      */
     private fun draw(canvas: Canvas, drawing: ZoomDrawing) {
-        canvas.withClip(drawing.frame.tileBounds) {
-            drawClipped(canvas, drawing)
-        }
-    }
-
-    private fun drawClipped(canvas: Canvas, drawing: ZoomDrawing) {
         if (!canvas.getClipBounds(clip)) {
             return
         }

@@ -140,7 +140,7 @@ class ZoomSceneTest {
         }
 
         val grouped = GridSections.of(items)
-        val flat = grouped.withoutHeaders()
+        val flat = GridSections.headerless(grouped.mediaCount)
         val scene = ZoomScene(ladder.size, viewport, {
             GridZoomLayout(ladder[it], shape, if (ladder[it] > 7) flat else grouped)
         }, 6, -8000.0)

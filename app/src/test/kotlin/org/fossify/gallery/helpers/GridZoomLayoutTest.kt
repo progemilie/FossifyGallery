@@ -103,7 +103,7 @@ class GridZoomLayoutTest {
         assertEquals(filtered, MediaWithoutHeaders(items, sections))
 
         val flat = GridSections.of(filtered)
-        val derived = sections.withoutHeaders()
+        val derived = GridSections.headerless(sections.mediaCount)
         assertEquals(flat.isGrouped, derived.isGrouped)
         assertEquals(flat.count, derived.count)
         assertEquals(flat.size(0), derived.size(0))

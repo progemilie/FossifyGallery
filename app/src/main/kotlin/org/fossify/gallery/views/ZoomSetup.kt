@@ -118,7 +118,12 @@ internal class ZoomSetup(
         val scene = ZoomScene(host.ladder.rungs.size, viewport, counts::layoutOf, startRung, startOrigin)
         val thumbnails = ZoomThumbnails(grid.context, loaderOf(adapter, host.ladder), onPicture)
         thumbnails.borrow(layoutManager.spanCount, borrowPictures(adapter))
-        val drawing = ZoomDrawing(scene, thumbnails, frame, header?.second, tileStyleOf(adapter), counts)
+        val tileBounds = frame.bandAcross(
+            acrossStart = shape.acrossPadding.toFloat(),
+            acrossEnd = (shape.acrossPadding + shape.acrossSpace).toFloat()
+        )
+
+        val drawing = ZoomDrawing(scene, thumbnails, frame, tileBounds, header?.second, tileStyleOf(adapter), counts)
         return ZoomSession(drawing, host.ladder.rungs, startRung, startOrigin, viewport).also {
             it.focusOn(focusX, focusY)
         }
@@ -146,15 +151,17 @@ internal class ZoomSetup(
             width = grid.width.toFloat(),
             height = grid.height.toFloat(),
             horizontal = horizontal,
-            reversed = horizontal && grid.layoutDirection == View.LAYOUT_DIRECTION_RTL,
-            acrossPaddingStart = if (horizontal) grid.paddingTop else grid.paddingLeft,
-            acrossPaddingEnd = if (horizontal) grid.paddingBottom else grid.paddingRight
+            reversed = horizontal && grid.layoutDirection == View.LAYOUT_DIRECTION_RTL
         )
     }
 
     private fun shapeOf(frame: GridFrame, headerLength: Int) = GridShape(
-        acrossSpace = frame.acrossSpace,
-        acrossPadding = frame.acrossPaddingStart,
+        acrossSpace = if (frame.horizontal) {
+            grid.height - grid.paddingTop - grid.paddingBottom
+        } else {
+            grid.width - grid.paddingLeft - grid.paddingRight
+        },
+        acrossPadding = if (frame.horizontal) grid.paddingTop else grid.paddingLeft,
         spacing = grid.context.config.thumbnailSpacing,
         sideSpacing = grid.context.config.fileRoundedCorners,
         horizontal = frame.horizontal,
@@ -291,7 +298,7 @@ private class LadderCounts(
     private val shape: GridShape,
 ) : ZoomCounts {
     private val simplified = MediaWithoutHeaders(interactive, sections)
-    private val simplifiedSections = sections.withoutHeaders()
+    private val simplifiedSections = GridSections.headerless(sections.mediaCount)
     private val layouts = HashMap<Int, GridZoomLayout>()
 
     override fun itemsOf(rung: Int) = if (isSimplified(rung)) simplified else interactive
