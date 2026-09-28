@@ -131,12 +131,18 @@ class GridZoomOverlay(context: Context, attrs: AttributeSet? = null) : View(cont
     var drawing: ZoomDrawing? = null
         set(value) {
             field = value
+            if (value == null) {
+                // each holds on to what it last drew - the whole zoom, and the grid's list with it
+                underPass = LayerPass()
+                overPass = LayerPass()
+            }
+
             invalidate()
         }
 
     private val painter = ZoomTilePainter()
-    private val underPass = LayerPass()
-    private val overPass = LayerPass()
+    private var underPass = LayerPass()
+    private var overPass = LayerPass()
     private val tile = RectF()
     private val clip = Rect()
 
