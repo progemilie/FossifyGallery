@@ -3,6 +3,13 @@
 Sorting and grouping are one dialog, "Sort by", with a dropdown apiece and an arrow beside each for
 which way it runs. It replaced two dialogs of radio buttons; "Group by" is gone from the menus.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [ratings](ratings.md) — sorting by rating brings its own headers, overriding the grouping.
+- [custom-media-order](custom-media-order.md) — a hand made order is drawn flat, overriding the grouping.
+
 ## Where it lives
 
 - `dialogs/ChangeSortingDialog.kt` — the dialog.

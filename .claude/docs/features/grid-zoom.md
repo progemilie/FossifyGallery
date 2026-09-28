@@ -3,6 +3,15 @@
 Pinching the media grid moves smoothly through a ladder of column counts; past the counts a finger
 can tap, the grid is drawn simplified. The folder grid steps one count at a time instead.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [thumbnails](thumbnails.md) — the overlay asks for pictures through the bind's own request (`MediaAdapter.thumbnailRequestAt`), as the prefetcher does; change how a tile is requested and landing a zoom decodes every tile again.
+- [floating-chrome](floating-chrome.md) — `GridZoomLayout` mirrors the grid's padding, which `FloatingTopBar.keepGridClear()` sets; the glass panels copy the overlay in software every frame.
+- [selection](selection.md) — `MediaGridPane.reserveBottomRoom()` changes the grid's padding, which `GridZoomLayout` has to mirror.
+- [custom-media-order](custom-media-order.md) — reordering steps a simplified grid in to `largestInteractive`, and its list must not change during a zoom.
+
 ## Where it lives
 
 | File | Job |

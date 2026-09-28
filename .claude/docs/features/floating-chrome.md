@@ -4,6 +4,15 @@ The browsing screens draw content edge to edge with the chrome over it, made of 
 material. No immersive mode is involved — commons' `EdgeToEdgeActivity` already enables it; what the
 fork changed is that the app no longer paints an opaque band under its own bar.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [grid-zoom](grid-zoom.md) — the zoom mirrors the grid padding set here, and the glass panels copy the zoom overlay every frame.
+- [two-grids-one-window](two-grids-one-window.md) — a pane swap is a draw, so `keepGridClear()` has to be called outright during one.
+- [selection](selection.md) — a selection covers the bar (`isCovered`) while keeping its room, so the grid does not jump.
+- [hold-choosers](hold-choosers.md) — choosers place themselves with translation, which is why `PanelAnim` never touches it.
+
 ## Where it lives
 
 | File | Job |

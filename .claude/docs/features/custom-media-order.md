@@ -3,6 +3,16 @@
 Sort-by-custom for media; upstream has it for folders only. A folder's pictures are dragged into an
 order of the user's own, which then comes up whenever that folder is sorted by hand.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [selection](selection.md) — reorder mode borrows the selection gestures and `SelectionMark`.
+- [grid-zoom](grid-zoom.md) — arranging needs a tappable count, and the list must not change mid zoom.
+- [ratings](ratings.md) — `media_order` and `media_ratings` are both keyed by path and move together in `updateDBMediaPath()` on a rename.
+- [sort-dialog](sort-dialog.md) — a hand made order is drawn flat whatever the grouping, which is why the dialog greys grouping out.
+- [order-groups-export](order-groups-export.md) — export and import carry every folder's media order, never the all media grid's.
+
 ## Where it lives
 
 - `models/MediaOrder.kt`, `interfaces/MediaOrderDao.kt` — the `media_order` Room table (DB v11).

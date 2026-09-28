@@ -3,6 +3,13 @@
 All three hand made arrangements — folder groups, the folder grid's order, and each folder's media
 order — go out and come back in one plain text file.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [folder-groups](folder-groups.md) — groups are written by name and resolved to this install's ids on import.
+- [custom-media-order](custom-media-order.md) — media orders are written per folder, and never for the all media grid.
+
 ## Where it lives
 
 - `helpers/OrderAndGroupsIO.kt` — `exportOrderAndGroups`, `importOrderAndGroups`, the parser.

@@ -5,6 +5,17 @@ than two screens, because that is the only way the navigation pill and the searc
 still through a swap. An activity handover costs ~400ms to its first frame, which either a window
 animation covers — carrying the chrome off with it — or a frozen screen does.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [tabs](tabs.md) — a tab switch between the grids is a pane swap in this screen.
+- [startup-screen](startup-screen.md) — startup decides which pane opens.
+- [floating-chrome](floating-chrome.md) — the chrome is the window's, pointed at a pane by `GridChrome.bind()`; a swap is a draw, not a layout.
+- [folder-groups](folder-groups.md) — an open group changes the bar that belongs to the pane that is up.
+- [glass-menu](glass-menu.md) — the navigation pill opens the drop-down, and its spec is asked again on every open because panes swap.
+- [peek-viewer](peek-viewer.md) — the pane's request codes, `REQUEST_PEEK` among them, sit clear of each host's own.
+
 ## Where it lives
 
 - `activities/MainActivity.kt` — both panes, the swap, startup, tab restore.

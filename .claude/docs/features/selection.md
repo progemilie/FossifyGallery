@@ -4,6 +4,17 @@ Selecting in either grid is made through two frosted pills instead of the platfo
 action bar, with a tick that settles rather than flashes, a tick on each group header that takes the
 whole group, and a hold on a picked item that unpicks by drag.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [custom-media-order](custom-media-order.md) — reorder mode takes over the selection gestures (`isSelecting()` is false) and draws its marks with `SelectionMark`.
+- [folder-groups](folder-groups.md) — `FolderDragMode` replaces drag-to-select on the folder grid; both rely on change animations being off.
+- [peek-viewer](peek-viewer.md) — the peek's result comes back through `applySelection`, and its button is part of a tile while selecting.
+- [glass-menu](glass-menu.md) — the pill's menu segment opens the drop-down, which leaves out what `PILL_ACTIONS` already shows.
+- [grid-zoom](grid-zoom.md) — `reserveBottomRoom()` changes padding the zoom layout mirrors.
+- [floating-chrome](floating-chrome.md) — the search bar is covered, not removed, while selecting.
+
 ## Where it lives
 
 - `helpers/SelectionChrome.kt` — supplies the action mode, and fills the pills from it.

@@ -3,6 +3,13 @@
 Rating, copy/move and tabs answer a hold on their button with a picker the finger drags through
 without lifting off, and a tap with the dialog (or action) they always had.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [floating-chrome](floating-chrome.md) — `PanelAnim` never touches translation, because choosers place themselves with it.
+- [tabs](tabs.md) — `TabChooser` is a hold chooser too.
+
 ## Where it lives
 
 | File | Job |

@@ -4,6 +4,15 @@ A row of thumbnails between the photo and the bottom actions in the viewer, port
 `ThumbnailScroller`. Whatever sits in the middle of the strip is what the pager shows, so scrolling
 the strip and swiping the photo are two views of one position. The peek viewer carries it too.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [file-edits](file-edits.md) — an in-place edit has to `reload` the strip's thumbnail by hand.
+- [peek-viewer](peek-viewer.md) — the peek draws its ticks on the strip.
+- [viewer-transition](viewer-transition.md) — the strip is centred on the opening photo before the flight lands.
+- [thumbnails](thumbnails.md) — the strip is the one thumbnail view that must be reloaded by hand after an edit.
+
 ## Where it lives
 
 - `views/ViewerThumbnailStrip.kt` — the strip: layout manager, snapping, per-frame decoration.

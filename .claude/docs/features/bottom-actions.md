@@ -3,6 +3,10 @@
 The row of buttons under a fullscreen photo can be reordered and filled with up to eight actions,
 Mirror, Rating and Tabs among them.
 
+## Coupled with
+
+None known.
+
 ## Where it lives
 
 - `helpers/BottomAction.kt` — `ALL_BOTTOM_ACTIONS`, `parseBottomActionsOrder`,

@@ -5,6 +5,15 @@ fullscreen viewer: the media, a tick-and-count pill, and the thumbnail strip. A 
 small to choose between near identical frames, and this is how to look without dropping the
 selection.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [selection](selection.md) — the peek writes the selection back through `applySelection`.
+- [viewer-transition](viewer-transition.md) — it opens and closes with the same flight, and dresses its strip and pill before the flight lands.
+- [thumbnail-strip](thumbnail-strip.md) — ticks go onto the strip's children through `setSelection`, not through a rebind.
+- [two-grids-one-window](two-grids-one-window.md) — `REQUEST_PEEK` has to stay clear of every host's request codes.
+
 ## Where it lives
 
 - `activities/PeekViewerActivity.kt` — the viewer. A `BaseViewerActivity` over upstream's

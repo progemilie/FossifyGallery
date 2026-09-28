@@ -4,6 +4,13 @@ A folder tile can take one of four looks — **Square**, **Rounded**, **Card** (
 name on a frosted band) and **Stack** (a cover on two peeking cards) — with adjustable spacing and an
 optional folder size on the details line.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [folder-groups](folder-groups.md) — every style has to hold a group's collage and badge.
+- [thumbnails](thumbnails.md) — covers decode at the snapped column width less the style's inset, at its aspect ratio.
+
 ## Where it lives
 
 | File | Job |

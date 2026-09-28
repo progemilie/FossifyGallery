@@ -5,6 +5,12 @@ it, a [thumbnail strip](thumbnail-strip.md) and the [bottom action bar](bottom-a
 foot, and a [glass drop-down](glass-menu.md) behind the three dots. Tapping the photo, or zooming
 into it, takes all of that away.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [viewer-transition](viewer-transition.md) — the chrome rides in with the flight, dressed before the pager exists.
+
 ## Where it lives
 
 - `activities/ViewPagerActivity.kt` — the viewer; `PhotoVideoActivity` and `VideoPlayerActivity`

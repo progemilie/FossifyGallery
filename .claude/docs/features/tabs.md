@@ -3,6 +3,15 @@
 The app can keep up to three places (`MAX_TABS`): a grid, a folder, a folder group or a file open in
 the viewer. Off by default (`Config.tabsEnabled`); turning it off puts every screen back as it was.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [two-grids-one-window](two-grids-one-window.md) — switching between the two grids is a pane swap, and a restart empties `MediaActivity.mMedia`.
+- [startup-screen](startup-screen.md) — a tab with no place, and the first tab on every launch, opens the startup screen.
+- [folder-groups](folder-groups.md) — a tab keeps the open group's id.
+- [hold-choosers](hold-choosers.md) — `TabChooser` is a hold chooser, placed and animated like the others.
+
 ## Where it lives
 
 | File | Job |

@@ -3,6 +3,10 @@
 Settings are one card per section, each closed down to its icon, title and a line saying what is
 inside until it is tapped. Only one is open at a time.
 
+## Coupled with
+
+None known.
+
 ## Where it lives
 
 - `activities/SettingsActivity.kt` — the screen; `revealCard`, `paintSettings`.

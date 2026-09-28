@@ -3,6 +3,13 @@
 A frosted `GlassPanel` in place of the platform's overflow popup on all three browsing screens and
 behind a selection's menu segment, with items gathered into sections.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [selection](selection.md) — `openedBy()` serves the selection pill's menu; `SELECTION_MENU` leaves out what the pill shows.
+- [two-grids-one-window](two-grids-one-window.md) — the spec is asked again on every open because the panes swap.
+
 ## Where it lives
 
 - `views/GlassMenu.kt` — the drop-down; `replaceOverflow()` and `openedBy()`.

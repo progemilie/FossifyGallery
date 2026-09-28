@@ -3,6 +3,13 @@
 A setting for what the app opens on: Pictures, Albums, Favorites, or any folder. It took over
 upstream's "Set as default folder", which only ever named a folder.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [tabs](tabs.md) — the first tab is reset to this on every launch, and a new tab opens here.
+- [two-grids-one-window](two-grids-one-window.md) — the setting, not `Config.showAll`, decides which pane comes up.
+
 ## Where it lives
 
 - `extensions/StartupScreen.kt` — `startupTargets`, `startupTargetLabel`, `isStartupTargetGone`.

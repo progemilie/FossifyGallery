@@ -96,6 +96,10 @@ it when nothing is attached.
 each explained in a file of its own under `.claude/docs/features/` — read a feature's file before
 working in that area. What is kept here is only what cuts across features.
 
+**Before editing a fork file, grep `.claude/docs/features` for its class name**, read every doc that
+names it, and then the docs each one lists under "Coupled with" — those are the features that break
+silently when this one changes without them.
+
 ### Fossify Commons dependency
 
 Most base classes, shared dialogs and extension functions come from the external

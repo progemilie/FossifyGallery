@@ -4,6 +4,13 @@ A swipe up over the media (or the Properties button) raises `views/MetadataSheet
 group of metadata the file carries. The sheet also writes two things: the file's description, and
 removal of metadata groups.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [file-edits](file-edits.md) — description writes and metadata removal follow its rules.
+- [ratings](ratings.md) — descriptions share the XMP packet a rating is written into.
+
 ## Where it lives
 
 | File | Job |

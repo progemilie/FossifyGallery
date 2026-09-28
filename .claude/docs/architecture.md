@@ -2,6 +2,9 @@
 
 The shape of the app as the fork has left it, and the conventions every feature leans on. Each fork
 feature has a file of its own under [features/](features/) — read it before working in that area.
+Each opens with **Coupled with**: the features that break silently when this one changes without them.
+A coupling is listed in both files, and only when there is something that breaks — a feature that
+is merely related is linked in the prose instead.
 CLAUDE.md keeps only the rules that break silently when missed.
 
 ## Fork and upstream

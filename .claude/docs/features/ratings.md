@@ -4,6 +4,15 @@ Photos are rated out of five, the way Aves does it, with the rating written into
 Lightroom, digiKam and Windows all read it. Media can be sorted by rating, which brings its own
 headers, and a rating badge can be shown on thumbnails.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [file-edits](file-edits.md) — writes go through `XmpPacket`, put the date back and invalidate no cache.
+- [metadata-sheet](metadata-sheet.md) — descriptions share the same XMP packet.
+- [custom-media-order](custom-media-order.md) — both Room tables are keyed by path and move together on a rename.
+- [sort-dialog](sort-dialog.md) — the rating sort overrides the chosen grouping.
+
 ## Where it lives
 
 | File | Job |

@@ -4,6 +4,16 @@ Several folders drawn under one tile in the folder grid, with a collage cover. N
 Tapping the tile steps into the group; a selection can group, add to, rename or ungroup; a tile
 dragged and held over another groups the two, and dropped between tiles arranges the grid.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [selection](selection.md) — the drag replaces drag-to-select on this grid, and both rely on change animations being off.
+- [order-groups-export](order-groups-export.md) — groups travel by name, and tiles stand in the folder order under synthetic paths.
+- [folder-cover-styles](folder-cover-styles.md) — the collage and group badge sit inside every style's layout; stack cards go flat behind a collage.
+- [two-grids-one-window](two-grids-one-window.md) — an open group changes the search bar (`updateTopBarForGroup`), which belongs to whichever pane is up.
+- [tabs](tabs.md) — a tab remembers the open group by id, one more reason ids are never reused.
+
 ## Where it lives
 
 | File | Job |

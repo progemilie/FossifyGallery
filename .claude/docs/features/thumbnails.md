@@ -4,6 +4,16 @@ Everything that draws a picture small goes through one pipeline, built so a pict
 from the cheapest source that covers the size, and found in the cache by every screen that asks
 for it after.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [grid-zoom](grid-zoom.md) — the zoom overlay and the simplified grid's loader share the bind's requests; `simpleThumbnailSize` is deliberately off the `ThumbnailSizes` ladder.
+- [file-edits](file-edits.md) — every cache key is path + last-modified + size, so each in-place edit has to call `TransformedMedia.onTransformed`.
+- [viewer-transition](viewer-transition.md) — a flight's pictures are the viewer's own cached requests (`lowResPhotoRequest`, `fullPhotoRequest`); changing one changes what the tap preloads.
+- [folder-cover-styles](folder-cover-styles.md) — a cover's decode size comes from the style's inset and aspect ratio.
+- [thumbnail-strip](thumbnail-strip.md) — the strip decodes its own thumbnails at strip size, outside the grid pipeline.
+
 ## Where it lives
 
 | File | Job |

@@ -4,6 +4,15 @@ Tapping a photo grows that tile into the fullscreen one, and closing shrinks it 
 tile was swiped to. The grid stays drawn underneath the whole way, so the two windows read as one
 surface. The full viewer, the peek viewer and `PhotoVideoActivity` all fly this way.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [thumbnails](thumbnails.md) — the tap preloads the viewer's own requests; any change to them has to keep the two identical.
+- [viewer-chrome](viewer-chrome.md) — the chrome is dressed from the medium named before the flight (`aimAtOpeningMedium`).
+- [peek-viewer](peek-viewer.md) — the peek flies the same way.
+- [thumbnail-strip](thumbnail-strip.md) — the strip is dressed before the flight lands.
+
 ## Where it lives
 
 | File | Job |

@@ -4,6 +4,15 @@ Several fork features write to the user's files: ratings, descriptions, mirrorin
 metadata removal. They split into two kinds, and each kind owes the rest of the app something
 different.
 
+## Coupled with
+
+Read these before changing this feature — each can break silently if this one changes without it.
+
+- [thumbnails](thumbnails.md) — `TransformedMedia` is what makes the cache keys move.
+- [thumbnail-strip](thumbnail-strip.md) — thumbnails already on screen need `ViewerThumbnailAdapter.reload(path)`.
+- [ratings](ratings.md) — rating writes follow the metadata-write rules here.
+- [metadata-sheet](metadata-sheet.md) — descriptions and metadata removal follow the rules here.
+
 ## Where it lives
 
 - `helpers/XmpPacket.kt` — parse, edit and serialise an XMP packet; `editXmp()`.
