@@ -100,6 +100,8 @@ working in that area. What is kept here is only what cuts across features.
 names it, and then the docs each one lists under "Coupled with" — those are the features that break
 silently when this one changes without them.
 
+When adding or changing a feature, update its doc under `.claude/docs/features/` in the same change.
+
 ### Fossify Commons dependency
 
 Most base classes, shared dialogs and extension functions come from the external
