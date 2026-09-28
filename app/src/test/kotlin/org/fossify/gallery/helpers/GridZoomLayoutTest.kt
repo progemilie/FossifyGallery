@@ -34,7 +34,7 @@ class GridZoomLayoutTest {
 
     @Test
     fun `a row is as long as its longest tile`() {
-        val layout = GridZoomLayout(7, shape(), GridSections(media(10)))
+        val layout = GridZoomLayout(7, shape(), GridSections.of(media(10)))
         // spans are 154 or 155 wide, and the tiles as long as they are wide
         assertEquals(155, layout.rowLength(0, 0))
         assertEquals(155, layout.rowPitch)
@@ -46,7 +46,7 @@ class GridZoomLayoutTest {
 
     @Test
     fun `sections start on a fresh row under their header`() {
-        val layout = GridZoomLayout(4, shape(), GridSections(grouped(5, 3)))
+        val layout = GridZoomLayout(4, shape(), GridSections.of(grouped(5, 3)))
         assertEquals(2, layout.rows(0))
         assertEquals(1, layout.rows(1))
         assertEquals(0, layout.sectionRowStart(0))
@@ -60,7 +60,7 @@ class GridZoomLayoutTest {
 
     @Test
     fun `wide spacing insets the first row less than the rest`() {
-        val layout = GridZoomLayout(3, shape(spacing = 12), GridSections(grouped(7)))
+        val layout = GridZoomLayout(3, shape(spacing = 12), GridSections.of(grouped(7)))
         // spans of 360: the middle tile loses 4 either side, the outer ones 8 on their inner side
         assertEquals(352, layout.spans.tileLength(0))
         assertEquals(352, layout.spans.tileLength(1))
@@ -73,7 +73,7 @@ class GridZoomLayoutTest {
 
     @Test
     fun `right to left spans start from the right`() {
-        val layout = GridZoomLayout(4, shape(across = 1079, rtl = true), GridSections(media(4)))
+        val layout = GridZoomLayout(4, shape(across = 1079, rtl = true), GridSections.of(media(4)))
         assertEquals(809, layout.spans.cellStart(0))
         assertEquals(0, layout.spans.cellStart(3))
         assertEquals(0, layout.spans.spanAt(1000f))
@@ -84,20 +84,36 @@ class GridZoomLayoutTest {
     fun `a medium keeps its ordinal whichever list it is found in`() {
         // header, three media, two headers, four media
         val items = grouped(3, 0, 4)
-        val sections = GridSections(items)
+        val sections = GridSections.of(items)
         assertEquals(3, sections.count)
         // the empty middle section shares its start with the one after it
         val position = sections.positionOfOrdinal(3)
         assertEquals(6, position)
-        val flat = GridSections(items.filterIsInstance<Medium>())
+        val flat = GridSections.of(items.filterIsInstance<Medium>())
         assertEquals(1, flat.count)
         assertEquals(3, flat.positionOfOrdinal(3))
         assertEquals(3, sections.ordinalOf(sections.sectionOf(position), position))
     }
 
     @Test
+    fun `a list read without its headers is the list filtered`() {
+        val items = grouped(3, 0, 4)
+        val sections = GridSections.of(items)
+        val filtered = items.filterIsInstance<Medium>()
+        assertEquals(filtered, MediaWithoutHeaders(items, sections))
+
+        val flat = GridSections.of(filtered)
+        val derived = sections.withoutHeaders()
+        assertEquals(flat.isGrouped, derived.isGrouped)
+        assertEquals(flat.count, derived.count)
+        assertEquals(flat.size(0), derived.size(0))
+        assertEquals(flat.firstMedium(0), derived.firstMedium(0))
+        assertEquals(flat.headersThrough(0), derived.headersThrough(0))
+    }
+
+    @Test
     fun `rows are found by their offset and held to the section`() {
-        val layout = GridZoomLayout(4, shape(), GridSections(media(10)))
+        val layout = GridZoomLayout(4, shape(), GridSections.of(media(10)))
         assertEquals(0, layout.rowAt(0, -50.0))
         assertEquals(1, layout.rowAt(0, 300.0))
         assertEquals(2, layout.rowAt(0, 5000.0))

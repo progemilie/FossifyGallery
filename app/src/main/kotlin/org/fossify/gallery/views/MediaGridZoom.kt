@@ -59,8 +59,8 @@ class MediaGridZoom(
         val ladder: GridZoom
         val adapter: MediaAdapter?
 
-        /** What the grid binds at the simplified counts, or at the full ones. */
-        fun itemsFor(simplified: Boolean): List<ThumbnailItem>
+        /** What the grid binds at the full counts, headers and all; the simplified ones drop them. */
+        val items: List<ThumbnailItem>
 
         /** Puts the grid at [columnCount] with nothing animated: the zoom has drawn the change already. */
         fun applyColumnCount(columnCount: Int)

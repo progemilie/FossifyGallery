@@ -232,7 +232,7 @@ class MediaGridPane(
         MediaGridZoom(binding.mediaGrid, binding.mediaZoomOverlay, object : MediaGridZoom.Host {
             override val ladder get() = mGridZoom
             override val adapter get() = getMediaAdapter()
-            override fun itemsFor(simplified: Boolean) = gridItems(simplified)
+            override val items get() = fullGridItems()
             override fun applyColumnCount(columnCount: Int) = setColumnCount(columnCount, animate = false)
             override fun scrollTo(position: Int, offset: Int) =
                 (binding.mediaGrid.layoutManager as MyGridLayoutManager).scrollToPositionWithOffset(position, offset)
@@ -1267,18 +1267,12 @@ class MediaGridPane(
     private fun gridSource() = mSearchResults ?: mMedia
 
     /**
-     * What the grid binds at the simplified counts or at the full ones, whichever it is at now - for
-     * a zoom, which draws both. The adapter's own list where it is the one asked for: a zoom finds
-     * tiles by their positions in it.
+     * What the grid binds at the full counts, headers and all, whichever count it is at now - for a
+     * zoom, which draws the simplified counts from it too. The adapter's own list while it is the one:
+     * a zoom finds tiles by their positions in it.
      */
-    private fun gridItems(simplified: Boolean): List<ThumbnailItem> {
-        val adapter = getMediaAdapter()
-        if (adapter != null && adapter.isSimplified == simplified) {
-            return adapter.media
-        }
-
-        return if (simplified) gridSource().filterTo(ArrayList()) { it is Medium } else gridSource()
-    }
+    private fun fullGridItems(): List<ThumbnailItem> =
+        getMediaAdapter()?.takeUnless { it.isSimplified }?.media ?: gridSource()
 
     private fun zoomFinished() {
         binding.mediaGrid.itemAnimator = if (isGridSimplified()) null else mDefaultItemAnimator

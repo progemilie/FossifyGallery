@@ -22,12 +22,12 @@ import org.fossify.gallery.helpers.GridSections
 import org.fossify.gallery.helpers.GridShape
 import org.fossify.gallery.helpers.GridZoom
 import org.fossify.gallery.helpers.GridZoomLayout
+import org.fossify.gallery.helpers.MediaWithoutHeaders
 import org.fossify.gallery.helpers.ZoomScene
 import org.fossify.gallery.helpers.forEachVisible
 import org.fossify.gallery.helpers.ZoomThumbnails
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
-import org.fossify.gallery.models.ThumbnailSection
 import kotlin.math.roundToInt
 
 /** One zoom, from the fingers coming down to the grid taking over again. */
@@ -108,15 +108,11 @@ internal class ZoomSetup(
         }
 
         val frame = frameOf(layoutManager)
-        val interactive = host.itemsFor(simplified = false)
-        val header = if (!frame.horizontal && interactive.any { it is ThumbnailSection }) {
-            measureHeader(adapter)
-        } else {
-            null
-        }
-
+        val items = host.items
+        val sections = GridSections.of(items)
+        val header = if (!frame.horizontal && sections.isGrouped) measureHeader(adapter) else null
         val shape = shapeOf(frame, header?.first ?: 0)
-        val counts = LadderCounts(host.ladder, interactive, { host.itemsFor(simplified = true) }, shape)
+        val counts = LadderCounts(host.ladder, items, sections, shape)
         val startOrigin = calibrate(counts.layoutOf(startRung), frame) ?: return null
         val viewport = viewportOf(frame)
         val scene = ZoomScene(host.ladder.rungs.size, viewport, counts::layoutOf, startRung, startOrigin)
@@ -282,17 +278,18 @@ internal class ZoomSetup(
     }
 }
 
-/** The ladder's counts as a zoom draws them: each one's list, and its layout worked out once. */
+/**
+ * The ladder's counts as a zoom draws them: each one's list, and its layout worked out once. The
+ * simplified counts' list is the full one read without its headers.
+ */
 private class LadderCounts(
     private val ladder: GridZoom,
     private val interactive: List<ThumbnailItem>,
-    // a whole library filtered, which a zoom that never reaches a simplified count has no use for
-    simplifiedItems: () -> List<ThumbnailItem>,
+    private val sections: GridSections,
     private val shape: GridShape,
 ) : ZoomCounts {
-    private val simplified by lazy(simplifiedItems)
-    private val sections = GridSections(interactive)
-    private val simplifiedSections by lazy { GridSections(simplified) }
+    private val simplified = MediaWithoutHeaders(interactive, sections)
+    private val simplifiedSections = sections.withoutHeaders()
     private val layouts = HashMap<Int, GridZoomLayout>()
 
     override fun itemsOf(rung: Int) = if (isSimplified(rung)) simplified else interactive

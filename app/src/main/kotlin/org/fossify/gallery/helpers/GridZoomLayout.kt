@@ -24,48 +24,25 @@ class GridShape(
  * A grid's list cut into its grouping sections: a header where there is one, and the run of media
  * under it. A list with no headers is one section.
  */
-class GridSections(items: List<ThumbnailItem>) {
+class GridSections private constructor(
     /** Whether a tile's column counts from its own section - see [GridSpacingItemDecoration]. */
-    val isGrouped = items.firstOrNull() is ThumbnailSection
-
-    val count: Int
-
+    val isGrouped: Boolean,
     /** Where each section starts in the list: at its header, or at its first medium. */
-    private val starts: IntArray
-    private val headed: BooleanArray
-    private val sizes: IntArray
-    private val headersAhead: IntArray
+    private val starts: IntArray,
+    private val headed: BooleanArray,
+    private val sizes: IntArray,
+    private val headersAhead: IntArray,
+) {
+    val count get() = starts.size
 
-    init {
-        var sections = 0
-        items.forEachIndexed { position, item ->
-            if (item is ThumbnailSection || position == 0) {
-                sections++
-            }
-        }
+    /** How many media the list holds, its headers left out. */
+    val mediaCount = sizes.sum()
 
-        count = sections
-        starts = IntArray(sections)
-        headed = BooleanArray(sections)
-        sizes = IntArray(sections)
-        headersAhead = IntArray(sections)
-        var section = -1
-        var headers = 0
-        items.forEachIndexed { position, item ->
-            if (item is ThumbnailSection || position == 0) {
-                section++
-                starts[section] = position
-                headed[section] = item is ThumbnailSection
-                headersAhead[section] = headers
-                if (item is ThumbnailSection) {
-                    headers++
-                }
-            }
-
-            if (item !is ThumbnailSection) {
-                sizes[section]++
-            }
-        }
+    /** The same media as one run with no headers, the way the simplified counts list them. */
+    fun withoutHeaders() = if (count == 0) {
+        this
+    } else {
+        GridSections(false, intArrayOf(0), booleanArrayOf(false), intArrayOf(mediaCount), intArrayOf(0))
     }
 
     fun isHeaded(section: Int) = headed[section]
@@ -108,6 +85,54 @@ class GridSections(items: List<ThumbnailItem>) {
 
         return low
     }
+
+    companion object {
+        fun of(items: List<ThumbnailItem>): GridSections {
+            var count = 0
+            items.forEachIndexed { position, item ->
+                if (item is ThumbnailSection || position == 0) {
+                    count++
+                }
+            }
+
+            val starts = IntArray(count)
+            val headed = BooleanArray(count)
+            val sizes = IntArray(count)
+            val headersAhead = IntArray(count)
+            var section = -1
+            var headers = 0
+            items.forEachIndexed { position, item ->
+                if (item is ThumbnailSection || position == 0) {
+                    section++
+                    starts[section] = position
+                    headed[section] = item is ThumbnailSection
+                    headersAhead[section] = headers
+                    if (item is ThumbnailSection) {
+                        headers++
+                    }
+                }
+
+                if (item !is ThumbnailSection) {
+                    sizes[section]++
+                }
+            }
+
+            return GridSections(items.firstOrNull() is ThumbnailSection, starts, headed, sizes, headersAhead)
+        }
+    }
+}
+
+/**
+ * The media of a list cut into [sections], without its headers - read through the list rather than
+ * copied out of it, which for a whole library is a copy the size of it.
+ */
+class MediaWithoutHeaders(
+    private val items: List<ThumbnailItem>,
+    private val sections: GridSections,
+) : AbstractList<ThumbnailItem>() {
+    override val size get() = sections.mediaCount
+
+    override fun get(index: Int) = items[sections.positionOfOrdinal(index)]
 }
 
 /**

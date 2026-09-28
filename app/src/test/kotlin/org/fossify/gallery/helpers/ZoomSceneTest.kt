@@ -20,7 +20,7 @@ class ZoomSceneTest {
     private fun media(count: Int) = List(count) { Medium().apply { path = "/m$it" } }
 
     private fun scene(items: List<ThumbnailItem>, startRung: Int, startOrigin: Double): ZoomScene {
-        val sections = GridSections(items)
+        val sections = GridSections.of(items)
         return ZoomScene(ladder.size, viewport, { GridZoomLayout(ladder[it], shape, sections) }, startRung, startOrigin)
     }
 
@@ -139,8 +139,8 @@ class ZoomSceneTest {
             listOf(ThumbnailSection("day $day"), Medium().apply { path = "/m$day" })
         }
 
-        val grouped = GridSections(items)
-        val flat = GridSections(items.filterIsInstance<Medium>())
+        val grouped = GridSections.of(items)
+        val flat = grouped.withoutHeaders()
         val scene = ZoomScene(ladder.size, viewport, {
             GridZoomLayout(ladder[it], shape, if (ladder[it] > 7) flat else grouped)
         }, 6, -8000.0)
