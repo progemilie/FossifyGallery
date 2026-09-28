@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.Icon
 import android.view.Menu
 import android.view.View
@@ -19,7 +20,9 @@ import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
+import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.request.target.Target
+import com.bumptech.glide.signature.ObjectKey
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.adapters.MyRecyclerViewAdapter
@@ -80,7 +83,6 @@ import org.fossify.gallery.extensions.loadSVG
 import org.fossify.gallery.extensions.mediaGridZoom
 import org.fossify.gallery.extensions.openEditor
 import org.fossify.gallery.extensions.openPath
-import org.fossify.gallery.extensions.preloadImage
 import org.fossify.gallery.extensions.rescanFolderMedia
 import org.fossify.gallery.extensions.restoreRecycleBinPaths
 import org.fossify.gallery.extensions.saveMirroredImageToFile
@@ -89,6 +91,7 @@ import org.fossify.gallery.extensions.setAs
 import org.fossify.gallery.extensions.shareMediaPaths
 import org.fossify.gallery.extensions.shareMediumPath
 import org.fossify.gallery.extensions.showRestoreConfirmationDialog
+import org.fossify.gallery.extensions.thumbnailRequestFor
 import org.fossify.gallery.extensions.toggleFileVisibility
 import org.fossify.gallery.extensions.tryCopyMoveFilesTo
 import org.fossify.gallery.extensions.updateDBMediaPath
@@ -147,6 +150,9 @@ class MediaAdapter(
 
         /** Rows' worth of each item type the recycler keeps to recycle. */
         const val POOLED_ROWS = 3
+
+        /** [thumbnailKeyAt] for the simplified counts, which no decode size can be mistaken for. */
+        const val SIMPLIFIED_THUMBNAIL_KEY = -1
     }
 
     private val config = activity.config
@@ -205,7 +211,8 @@ class MediaAdapter(
     private var columnCount = config.mediaColumnCnt
     private var scrollHorizontally = config.scrollHorizontally
     private var animateGifs = config.animateGifs
-    private var cropThumbnails = config.cropThumbnails
+    var cropThumbnails = config.cropThumbnails
+        private set
     private var displayFilenames = config.displayFileNames
     private var showFileTypes = config.showThumbnailFileTypes
     private var showRatings = config.showThumbnailRating
@@ -239,10 +246,26 @@ class MediaAdapter(
                     PhotoItemGridBinding.inflate(layoutInflater, parent, false)
                 } else {
                     VideoItemGridBinding.inflate(layoutInflater, parent, false)
-                }
+                }.also { fillSpan(it.root) }
             }
         }
         return createViewHolder(binding.root)
+    }
+
+    /**
+     * Has a grid item fill its span exactly, rather than wrap its picture. Wrapped, it is measured
+     * at most the span, which an item measured for a narrower one still fits - so the recycler keeps
+     * it at its old size when the grid goes to fewer columns and nothing about the item asks for a
+     * layout, as nothing does when a zoom lands and rebinds it where it is.
+     */
+    private fun fillSpan(item: View) {
+        item.layoutParams = item.layoutParams.apply {
+            if (scrollHorizontally) {
+                height = ViewGroup.LayoutParams.MATCH_PARENT
+            } else {
+                width = ViewGroup.LayoutParams.MATCH_PARENT
+            }
+        }
     }
 
     override fun onBindViewHolder(holder: MyRecyclerViewAdapter.ViewHolder, position: Int) {
@@ -1167,13 +1190,14 @@ class MediaAdapter(
      * further out: column counts whose tiles come within a step of each other - five and six, or a
      * count read down the screen and one read across it - stop keeping a copy of the picture each.
      */
-    private fun thumbnailSize() = tileSize()?.let { ThumbnailSizes.snap(it.coerceAtLeast(1)) }
+    private fun thumbnailSize(columnCount: Int = this.columnCount) =
+        tileSize(columnCount)?.let { ThumbnailSizes.snap(it.coerceAtLeast(1)) }
 
     /**
      * The width a tile is actually given, before [thumbnailSize] rounds it to a rung. Null in the
      * list view, which has no column to be divided out of, and before the grid has been measured.
      */
-    private fun tileSize(): Int? {
+    private fun tileSize(columnCount: Int = this.columnCount): Int? {
         if (isListViewType) {
             return null
         }
@@ -1266,11 +1290,6 @@ class MediaAdapter(
             markSelected(medium, isSelected)
             bindPeekButton(medium)
 
-            var path = medium.path
-            if (hasOTGConnected && root.context.isPathOnOTG(path)) {
-                path = path.getOTGPublicPath(root.context)
-            }
-
             val roundedCorners = getRoundedCorners()
             mediumThumbnail.setBackgroundResource(
                 when (roundedCorners) {
@@ -1287,7 +1306,7 @@ class MediaAdapter(
 
             activity.loadImage(
                 type = medium.type,
-                path = path,
+                path = thumbnailPath(medium),
                 target = mediumThumbnail,
                 horizontalScroll = scrollHorizontally,
                 animateGifs = animateGifs,
@@ -1313,12 +1332,7 @@ class MediaAdapter(
     private fun setupSimpleThumbnail(view: View, medium: Medium) {
         val thumbnail = view as MySquareImageView
         thumbnail.isHorizontalScrolling = scrollHorizontally
-
-        var path = medium.path
-        if (hasOTGConnected && thumbnail.context.isPathOnOTG(path)) {
-            path = path.getOTGPublicPath(thumbnail.context)
-        }
-
+        val path = thumbnailPath(medium)
         if (medium.type == TYPE_SVGS) {
             activity.loadSVG(
                 path = path,
@@ -1332,38 +1346,62 @@ class MediaAdapter(
         }
     }
 
-    /**
-     * Starts the same request [setupThumbnail] or [setupSimpleThumbnail] would, for an item the grid
-     * has not reached yet - see [ThumbnailPrefetcher]. Null for anything there is nothing to warm:
-     * a grouping header, an SVG (rendered by a pipeline of its own), and a file whose thumbnail is
-     * deliberately kept out of the memory cache because it was just edited in place (see
-     * `TransformedMedia`).
-     */
+    /** Warms the thumbnail of an item the grid has not reached yet - see [ThumbnailPrefetcher]. */
     private fun prefetchThumbnail(position: Int): Target<*>? {
         val medium = media.getOrNull(position) as? Medium ?: return null
+        val request = thumbnailRequestAt(medium, medium.getKey(), columnCount, isSimplified) ?: return null
+        Perf.count("thumb.preload")
+        return request.preload()
+    }
+
+    /**
+     * The request [setupThumbnail] or [setupSimpleThumbnail] binds [medium] with at [columnCount],
+     * short of what it goes into - for anything that has to ask ahead of the bind for the very picture
+     * it will ask for: the [ThumbnailPrefetcher], or a zoom drawing the grid at a count it is not at
+     * yet (see ZoomThumbnails). Sized by its own override, so a preload needs no size of its own.
+     *
+     * Null for anything there is nothing to ask for: an SVG (rendered by a pipeline of its own), and a
+     * file whose thumbnail is deliberately kept out of the memory cache because it was just edited in
+     * place (see `TransformedMedia`).
+     */
+    fun thumbnailRequestAt(
+        medium: Medium,
+        signature: ObjectKey,
+        columnCount: Int,
+        simplified: Boolean,
+    ): RequestBuilder<Drawable>? {
         if (medium.type == TYPE_SVGS || transformedImagePaths.contains(medium.path)) {
             return null
         }
 
-        var path = medium.path
-        if (hasOTGConnected && activity.isPathOnOTG(path)) {
-            path = path.getOTGPublicPath(activity)
+        if (simplified) {
+            return simpleThumbnails.request(thumbnailPath(medium), signature)
         }
 
-        if (isSimplified) {
-            return simpleThumbnails.preload(path, medium.getKey())
-        }
-
-        val size = thumbnailSize() ?: return null
-        return activity.preloadImage(
+        return activity.thumbnailRequestFor(
             type = medium.type,
-            path = path,
+            path = thumbnailPath(medium),
             cropThumbnails = cropThumbnails,
             roundCorners = getRoundedCorners(),
-            signature = medium.getKey(),
-            overrideSize = size,
+            signature = signature,
+            overrideSize = thumbnailSize(columnCount) ?: return null,
             animateGifs = animateGifs
         )
+    }
+
+    /**
+     * One number for any two counts whose tiles are bound with the same picture: the simplified
+     * counts all share theirs, and neighbouring full counts often round to one size.
+     */
+    fun thumbnailKeyAt(columnCount: Int, simplified: Boolean) =
+        if (simplified) SIMPLIFIED_THUMBNAIL_KEY else thumbnailSize(columnCount) ?: 0
+
+    /** What a header's title is drawn in. */
+    val sectionTextColor get() = textColor
+
+    private fun thumbnailPath(medium: Medium): String {
+        val path = medium.path
+        return if (hasOTGConnected && activity.isPathOnOTG(path)) path.getOTGPublicPath(activity) else path
     }
 
     private fun setupSection(view: View, section: ThumbnailSection) {

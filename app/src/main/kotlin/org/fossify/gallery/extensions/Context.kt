@@ -666,12 +666,14 @@ fun Context.loadImage(
 }
 
 /**
- * Warms the caches for a thumbnail with no view to put it in - see [ThumbnailPrefetcher]. The mirror
- * of [loadImage], and has to stay one: every argument below is part of Glide's cache key, so a
- * preload differing from the load that follows it decodes the picture a second time rather than
- * saving the first. Null for an SVG, which is rendered by a pipeline of its own.
+ * The request [loadImage] binds a grid tile's thumbnail with, short of what it goes into - for
+ * anything that has to ask for the very picture a bind will: the [ThumbnailPrefetcher], or a zoom
+ * drawing the grid at a count it is not at yet. The mirror of [loadImage], and has to stay one: every
+ * argument below is part of Glide's cache key, so a request differing from the load that follows it
+ * decodes the picture a second time rather than saving the first. Null for an SVG, which is rendered
+ * by a pipeline of its own.
  */
-fun Context.preloadImage(
+fun Context.thumbnailRequestFor(
     type: Int,
     path: String,
     cropThumbnails: Boolean,
@@ -679,8 +681,7 @@ fun Context.preloadImage(
     signature: ObjectKey,
     overrideSize: Int,
     animateGifs: Boolean,
-): Target<Drawable>? {
-    Perf.count("thumb.preload")
+): RequestBuilder<Drawable>? {
     if (type == TYPE_SVGS) {
         return null
     }
@@ -696,7 +697,7 @@ fun Context.preloadImage(
         // no view for it to fade into, and a transition is no part of the cache key either way
         crossFadeDuration = 0,
         decodeFormat = thumbnailDecodeFormat(roundCorners)
-    ).preload(overrideSize, overrideSize)
+    )
 }
 
 /**
@@ -839,7 +840,7 @@ fun Context.loadImageBase(
 /**
  * The thumbnail request everything drawing one is built from, short of what it is drawn into. Shared
  * so that a preload and the bind that follows it cannot come to describe the same picture
- * differently - see [preloadImage].
+ * differently - see [thumbnailRequestFor].
  */
 @SuppressLint("CheckResult")
 private fun Context.thumbnailRequest(

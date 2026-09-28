@@ -208,6 +208,125 @@ def cmd_text(a):
     print("typed " + repr(a.text))
 
 
+# `input` has no second finger, and SELinux keeps the shell off the touchscreen's evdev node even
+# though it is in the input group - so a pinch goes in through the emulator console, which puts
+# events on the virtual touchscreen itself. One `event send` per frame, timed from here.
+PINCH_TOUCHSCREEN = "virtio_input_multi_touch_1"  # the one wired to display 0
+PINCH_IDS = (4201, 4202)
+
+
+def touch_raw_max():
+    """The touchscreen's raw axis maximum, which screen coordinates are scaled into."""
+    for block in sh("getevent", "-p").split("add device")[1:]:
+        if 'name:     "%s"' % PINCH_TOUCHSCREEN in block:
+            axis = re.search(r"0035\s*:.*?max (\d+)", block)
+            return int(axis.group(1)) if axis else 32767
+    sys.exit("no %s among the input devices" % PINCH_TOUCHSCREEN)
+
+
+class Console:
+    """The emulator console of SERIAL, authenticated."""
+
+    def __init__(self):
+        import socket
+        m = re.fullmatch(r"emulator-(\d+)", SERIAL)
+        if not m:
+            sys.exit("a pinch needs an emulator: its console is how the second finger gets in")
+        token_path = os.path.join(os.path.expanduser("~"), ".emulator_console_auth_token")
+        self.sock = socket.create_connection(("127.0.0.1", int(m.group(1))), timeout=3)
+        self.send("auth " + open(token_path).read().strip())
+
+    def send(self, line):
+        self.sock.sendall((line + "\r\n").encode())
+
+    def close(self):
+        # a moment for the last commands to be read before the socket goes
+        time.sleep(0.2)
+        self.sock.close()
+
+
+def pinch_frames(a, raw_max, w, h):
+    """The gesture as console commands: fingers either side of --at along --angle, at each span."""
+    import math
+    cx, cy = (int(v) for v in a.at.split(",")) if a.at else (w // 2, h // 2)
+    spans = [float(s) for s in re.split(r"[ ,]+", a.spans.strip())]
+    dx, dy = math.cos(math.radians(a.angle)) / 2, math.sin(math.radians(a.angle)) / 2
+    per_leg = max(1, a.ms // a.frame_ms)
+
+    def raw(v, size):
+        return max(0, min(raw_max, int(v * (raw_max + 1) / size)))
+
+    def move(span, first=False):
+        events = []
+        for slot, sign in enumerate((-1, 1)):
+            x, y = cx + sign * dx * span, cy + sign * dy * span
+            events.append("EV_ABS:ABS_MT_SLOT:%d" % slot)
+            if first:
+                events += ["EV_ABS:ABS_MT_TRACKING_ID:%d" % PINCH_IDS[slot],
+                           "EV_ABS:ABS_MT_TOUCH_MAJOR:1280", "EV_ABS:ABS_MT_PRESSURE:512"]
+            events += ["EV_ABS:ABS_MT_POSITION_X:%d" % raw(x, w),
+                       "EV_ABS:ABS_MT_POSITION_Y:%d" % raw(y, h)]
+        return "event send " + " ".join(events) + " EV_SYN:0:0"
+
+    frames = [] if a.resume else [move(spans[0], first=True)]
+    for start, end in zip(spans, spans[1:]):
+        for i in range(1, per_leg + 1):
+            t = i / per_leg
+            # eased like a hand: quick through the middle, slower at either end
+            t = t * t * (3 - 2 * t)
+            frames.append(move(start + (end - start) * t))
+    frames += [move(spans[-1])] * max(0, a.dwell // a.frame_ms)
+    if not a.hold:
+        frames.append(lift())
+    return frames, (cx, cy), spans
+
+
+def lift():
+    return ("event send EV_ABS:ABS_MT_SLOT:0 EV_ABS:ABS_MT_TRACKING_ID:-1 "
+            "EV_ABS:ABS_MT_SLOT:1 EV_ABS:ABS_MT_TRACKING_ID:-1 EV_SYN:0:0")
+
+
+def play_frames(frames, frame_ms):
+    console = Console()
+    started = time.time()
+    for i, frame in enumerate(frames):
+        console.send(frame)
+        # against the start rather than the last frame, so a slow send does not stretch the rest
+        delay = started + (i + 1) * frame_ms / 1000.0 - time.time()
+        if delay > 0:
+            time.sleep(delay)
+    console.close()
+
+
+def cmd_pinch(a):
+    """Two fingers either side of a point, moved through a list of spans.
+
+    Spans growing is fingers spreading (zooming in), shrinking is pinching together. --hold leaves
+    both fingers down at the last span so a shot can be taken mid-gesture; --resume carries on
+    from there without putting them down again, and --release just lifts them.
+    """
+    if a.release:
+        play_frames([lift()], a.frame_ms)
+        print("lifted both fingers")
+        return
+    w, h = screen_size()
+    frames, (cx, cy), spans = pinch_frames(a, touch_raw_max(), w, h)
+    if not a.film:
+        t0 = time.time()
+        play_frames(frames, a.frame_ms)
+        print("pinched at %d,%d through spans %s in %d frames, %dms%s" % (
+            cx, cy, "->".join("%d" % s for s in spans), len(frames),
+            int((time.time() - t0) * 1000), "  -- fingers still down" if a.hold else ""))
+        return
+    import threading
+    player = threading.Thread(target=play_frames, args=(frames, a.frame_ms))
+    film_args = argparse.Namespace(tap=None, key=None, frames=a.film, interval=a.interval,
+                                   scale=a.film_scale, cols=a.cols, out=a.out or "pinch.png",
+                                   dir=a.dir)
+    player.start()
+    cmd_film(film_args, running=player)
+
+
 # ------------------------------------------------------------ launch and waiting
 
 def focused():
@@ -307,8 +426,11 @@ def cmd_shot(a):
     save(img, os.path.join(out_dir(a.dir), name), note)
 
 
-def cmd_film(a):
-    """A burst of frames tiled into one sheet: a whole transition, looked at once."""
+def cmd_film(a, running=None):
+    """A burst of frames tiled into one sheet: a whole transition, looked at once.
+
+    `running` is a gesture already playing in the background (see pinch), waited for afterwards.
+    """
     from PIL import Image, ImageDraw
     trigger = None
     if a.tap:
@@ -326,6 +448,8 @@ def cmd_film(a):
     for _ in range(a.frames):
         frames.append((int((time.time() - t0) * 1000), grab()))
         time.sleep(a.interval / 1000.0)
+    if running is not None:
+        running.join()
     thumbs = [(ms, f.resize((int(f.width * a.scale), int(f.height * a.scale))))
               for ms, f in frames]
     tw, th = thumbs[0][1].size
@@ -525,6 +649,25 @@ def main():
     s.add_argument("--points", help="x1,y1,x2,y2")
     s.add_argument("--frac", type=float, default=0.6, help="fraction of the screen")
     s.add_argument("--ms", type=int, default=300)
+
+    s = add("pinch", cmd_pinch, "two-finger pinch through a list of spans, optionally filmed")
+    s.add_argument("--spans", default="300,700",
+                   help="finger separations in px, e.g. 300,700 spreads (zooms in), 700,300 "
+                        "pinches together; more than two goes back and forth")
+    s.add_argument("--at", help="x,y the fingers are either side of (default screen centre)")
+    s.add_argument("--angle", type=float, default=60, help="degrees from horizontal")
+    s.add_argument("--ms", type=int, default=500, help="duration of each leg between spans")
+    s.add_argument("--dwell", type=int, default=0, help="ms held still at the last span")
+    s.add_argument("--frame-ms", type=int, default=16)
+    s.add_argument("--hold", action="store_true", help="leave both fingers down at the end")
+    s.add_argument("--resume", action="store_true", help="fingers are already down (--hold)")
+    s.add_argument("--release", action="store_true", help="only lift both fingers")
+    s.add_argument("--film", type=int, default=0, help="film this many frames while pinching")
+    s.add_argument("--interval", type=int, default=0, help="extra ms between filmed frames")
+    s.add_argument("--film-scale", type=float, default=0.25)
+    s.add_argument("--cols", type=int, default=0)
+    s.add_argument("-o", "--out")
+    s.add_argument("--dir")
 
     s = add("key", cmd_key, "keyevent, e.g. BACK")
     s.add_argument("key")

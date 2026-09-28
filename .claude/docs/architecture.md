@@ -5,8 +5,8 @@ points here for the rest; read the section for an area before working in it.
 
 ### The zoomed-out media grid
 
-`helpers/GridZoom.kt` is the ladder of column counts the media grid is pinched through
-(`helpers/GridPinchZoom.kt`, which replaces commons' unusable zoom listener): every screen takes a
+`helpers/GridZoom.kt` is the ladder of column counts the media grid is pinched through (see the
+next section): every screen takes a
 prefix of one sequence — single steps to 7, then 1.4x apart — cut three **simplified** rungs past
 `interactiveMax`, the count whose tile is nearest 55dp. A phone gets 1-7, 10, 14, 20 and no screen
 more than fourteen rungs; the sideways grid divides the height. **`interactiveMax` is a boundary,
@@ -30,6 +30,38 @@ Two rules for anything touching this:
 The folder grid has no ladder: it steps one column at a time up to `GridZoom.folderColumnMax()`,
 the count whose cover is nearest 80dp (five on a phone). A stored count can be past it, so the grid
 and the folder picker read `fittedDirColumnCnt()` rather than `Config.dirColumnCnt`.
+
+### Pinching between column counts
+
+`helpers/GridPinchZoom.kt` follows two fingers (commons' zoom listener is unusable) and reports how
+far they have spread; the folder grid takes that in steps (`PinchSteps`), the media grid follows it
+continuously through `views/MediaGridZoom.kt`. A level is a rung plus a fraction, one rung per 1.6x
+of spread, and letting go settles on the nearest rung.
+
+While the fingers are down **the grid itself is left alone**. `views/GridZoomOverlay.kt`, under it
+in the pane, draws the two neighbouring counts from `helpers/ZoomScene.kt`: each scaled so their
+tiles are one size, and lined up on one lattice by an anchor tile near the fingers, so a tile never
+travels between rows - the anchor's row keeps its tiles, other rows only change pictures, and the
+columns one count lacks come in from or go out to the sides. Headers keep their length while rows
+scale. On landing the grid is put at the count and scrolled to lie exactly as last drawn, then
+`GridHandover` fades it back in once its tiles have their pictures.
+
+What breaks silently:
+- **`helpers/GridZoomLayout.kt` must place things exactly where the grid does** - span borders as
+  GridLayoutManager spreads them, insets through the decoration's own `TileInsets`, header length
+  measured off a real header. Any change to the grid's padding, decoration, tile or header layout has
+  to be mirrored there, or the zoom jumps where it starts and where the grid takes over.
+- **Nothing may change the grid's list during a zoom** - it is drawn from, and put back from, the
+  list as it was; `setupAdapter()` defers until `onZoomFinished`.
+- **The overlay's pictures are the bind's own requests** (`MediaAdapter.thumbnailRequestAt`), the same
+  rule as the prefetcher's, or landing decodes every tile again. Those borrowed from the grid's
+  tiles at the start are only safe until the grid rebinds: `ZoomThumbnails.stopBorrowing()` first.
+- **The glass panels copy whatever is behind them in software every frame**, the overlay included,
+  so it draws only what the canvas's clip shows and only the screen's own draw asks for pictures.
+- **Nothing may follow the zoom by transforming the grid as a whole.** Headers keep their length
+  while rows scale, so one transform drifts from the drawing by every header above the screen - a
+  second copy of the screen sliding past, well down a grouped library. The grid's fade out over a
+  starting zoom places each tile and header on its own; along is kept in doubles for the same depth.
 
 ### Per-folder custom media order
 

@@ -222,26 +222,29 @@ class MediaGridPane(
     // grid has to work from this rather than mMedia, or it puts the whole library back on screen
     private var mSearchResults: ArrayList<ThumbnailItem>? = null
 
-    /**
-     * The item a zoom is keeping in place and how far down the grid to keep it. Held as a path
-     * rather than a position, which the dropped grouping headers shift.
-     */
-    private var mZoomAnchor: Pair<String, Float>? = null
-
     // built on first use rather than here, where there is no context to read yet, and dropped when
     // the scroll direction changes which axis it divides
     private var mCachedGridZoom: GridZoom? = null
     private val mGridZoom: GridZoom
         get() = mCachedGridZoom ?: activity.mediaGridZoom().also { mCachedGridZoom = it }
 
-    private val mPinchZoom by lazy {
-        GridPinchZoom(
-            recyclerView = binding.mediaGrid,
-            onZoomIn = { stepColumnCount(mGridZoom.zoomIn(config.mediaColumnCnt)) },
-            onZoomOut = { stepColumnCount(mGridZoom.zoomOut(config.mediaColumnCnt)) },
-            onPinchStart = ::captureZoomAnchor
-        )
+    private val mZoom by lazy {
+        MediaGridZoom(binding.mediaGrid, binding.mediaZoomOverlay, object : MediaGridZoom.Host {
+            override val ladder get() = mGridZoom
+            override val adapter get() = getMediaAdapter()
+            override val items get() = fullGridItems()
+            override fun applyColumnCount(columnCount: Int) = setColumnCount(columnCount, animate = false)
+            override fun scrollTo(position: Int, offset: Int) =
+                (binding.mediaGrid.layoutManager as MyGridLayoutManager).scrollToPositionWithOffset(position, offset)
+
+            override fun onZoomFinished() = zoomFinished()
+        })
     }
+
+    private val mPinchZoom by lazy { GridPinchZoom(binding.mediaGrid, mZoom) }
+
+    /** Whether the media changed while a zoom was drawing the grid, and the grid has yet to be told. */
+    private var mMediaChangedWhileZooming = false
 
     private var mStoredAnimateGifs = true
     private var mStoredCropThumbnails = true
@@ -426,6 +429,7 @@ class MediaGridPane(
     }
 
     override fun onDeactivated() {
+        mZoom.finishNow()
         mIsActive = false
         mIsGettingMedia = false
         binding.mediaRefreshLayout.isRefreshing = false
@@ -757,6 +761,11 @@ class MediaGridPane(
                     media = filtered as ArrayList<Medium>, path = mPath
                 )
                 activity.runOnUiThread {
+                    if (mZoom.isActive) {
+                        mMediaChangedWhileZooming = true
+                        return@runOnUiThread
+                    }
+
                     if (grouped.isEmpty()) {
                         binding.mediaEmptyTextPlaceholder.text =
                             activity.getString(org.fossify.commons.R.string.no_items_found)
@@ -792,6 +801,15 @@ class MediaGridPane(
     private fun getMediaAdapter() = binding.mediaGrid.adapter as? MediaAdapter
 
     private fun setupAdapter() {
+        // a zoom draws the grid from the list as it was, and is put back from it: the change waits
+        if (mZoom.isActive) {
+            mMediaChangedWhileZooming = true
+        } else {
+            fillAdapter()
+        }
+    }
+
+    private fun fillAdapter() {
         if (!mShowAll && isDirEmpty()) {
             return
         }
@@ -1192,29 +1210,24 @@ class MediaGridPane(
         }
     }
 
-    /** One count along in a pinch, keeping whatever the fingers came down on where it was. */
-    private fun stepColumnCount(columnCount: Int) {
-        if (columnCount == config.mediaColumnCnt) {
-            return
-        }
-
-        setColumnCount(columnCount)
-        restoreZoomAnchor()
-    }
-
-    private fun setColumnCount(columnCount: Int) {
+    private fun setColumnCount(columnCount: Int, animate: Boolean = true) {
         if (columnCount == config.mediaColumnCnt) {
             return
         }
 
         config.mediaColumnCnt = columnCount
         getMediaAdapter()?.finishActMode()
-        columnCountChanged()
+        columnCountChanged(animate)
     }
 
-    private fun columnCountChanged() {
+    private fun columnCountChanged(animate: Boolean = true) {
         (binding.mediaGrid.layoutManager as MyGridLayoutManager).spanCount = config.mediaColumnCnt
         applyGridPerformanceTuning()
+        // a zoom has drawn the change already, and the grid fades back in over it: animated again
+        // underneath, it would show as it did. zoomFinished() puts the animator back
+        if (!animate) {
+            binding.mediaGrid.itemAnimator = null
+        }
 
         // crossing into or out of the simplified counts swaps every item's view type and drops the
         // grouping headers, so the grid is handed a different list
@@ -1235,11 +1248,15 @@ class MediaGridPane(
             return
         }
 
-        // the change animation must stay on for full thumbnails: it is what binds the new count onto
-        // a fresh view, and Glide sizes the picture from the view it is handed - rebinding the old
-        // one in place asks for the size the tile used to be
-        binding.mediaGrid.itemAnimator = if (isGridSimplified()) null else mDefaultItemAnimator
+        restoreItemAnimator()
         getMediaAdapter()?.applyColumnCount(config.mediaColumnCnt)
+    }
+
+    // the change animation must stay on for full thumbnails: it is what binds the new count onto a
+    // fresh view, and Glide sizes the picture from the view it is handed - rebinding the old one in
+    // place asks for the size the tile used to be
+    private fun restoreItemAnimator() {
+        binding.mediaGrid.itemAnimator = if (isGridSimplified()) null else mDefaultItemAnimator
     }
 
     private fun isGridViewType() =
@@ -1252,6 +1269,22 @@ class MediaGridPane(
 
     /** Whatever the grid is currently built from - a search narrows it, everything else is [mMedia]. */
     private fun gridSource() = mSearchResults ?: mMedia
+
+    /**
+     * What the grid binds at the full counts, headers and all, whichever count it is at now - for a
+     * zoom, which draws the simplified counts from it too. The adapter's own list while it is the one:
+     * a zoom finds tiles by their positions in it.
+     */
+    private fun fullGridItems(): List<ThumbnailItem> =
+        getMediaAdapter()?.takeUnless { it.isSimplified }?.media ?: gridSource()
+
+    private fun zoomFinished() {
+        restoreItemAnimator()
+        if (mMediaChangedWhileZooming) {
+            mMediaChangedWhileZooming = false
+            setupAdapter()
+        }
+    }
 
     /**
      * The list the grid draws: its source minus the grouping headers once simplified, where they
@@ -1300,52 +1333,7 @@ class MediaGridPane(
         })
     }
 
-    private fun zoomInAt(x: Float, y: Float) {
-        val columnCount = mGridZoom.zoomIn(config.mediaColumnCnt)
-        if (columnCount == config.mediaColumnCnt) {
-            return
-        }
-
-        captureZoomAnchor(x, y)
-        setColumnCount(columnCount)
-        restoreZoomAnchor()
-    }
-
-    /**
-     * Marks whatever is under ([x], [y]) as the item to rebuild the grid around. A pinch takes this
-     * once, at the start - retaken each step it would follow the item's own drift.
-     */
-    private fun captureZoomAnchor(x: Float, y: Float) {
-        val path = binding.mediaGrid.findChildViewUnder(x, y)
-            ?.let { binding.mediaGrid.getChildAdapterPosition(it) }
-            ?.let { getMediaAdapter()?.media?.getOrNull(it) as? Medium }
-            ?.path
-
-        val layoutManager = binding.mediaGrid.layoutManager as MyGridLayoutManager
-        val offset = if (layoutManager.orientation == RecyclerView.HORIZONTAL) {
-            x - binding.mediaGrid.paddingLeft
-        } else {
-            y - binding.mediaGrid.paddingTop
-        }
-
-        mZoomAnchor = path?.to(offset.coerceAtLeast(0f))
-    }
-
-    /** Puts the anchored item back where it was found. */
-    private fun restoreZoomAnchor() {
-        val (path, offset) = mZoomAnchor ?: return
-        // posted: the new count has only just reached the layout manager, and the list may have just
-        // lost or gained its grouping headers
-        binding.mediaGrid.post {
-            val position = getMediaAdapter()?.getItemKeyPosition(path.hashCode()) ?: return@post
-            if (position == -1) {
-                return@post
-            }
-
-            (binding.mediaGrid.layoutManager as MyGridLayoutManager)
-                .scrollToPositionWithOffset(position, offset.toInt())
-        }
-    }
+    private fun zoomInAt(x: Float, y: Float) = mZoom.zoomInAt(x, y)
 
     private fun isSetWallpaperIntent() = pick.wallpaper
 

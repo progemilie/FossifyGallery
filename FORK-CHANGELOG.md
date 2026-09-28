@@ -9,6 +9,7 @@ Notable fork-only changes.
 - **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with
   adjustable spacing and an optional folder size on the details line.
 ### Changed
+- Pinching the photo grid zooms smoothly.
 - The details at the top of a photo are more compact.
 - **A selection's menu is laid out like the viewer's.**
 - Updated the style and opening animation of the copy and move chooser.
