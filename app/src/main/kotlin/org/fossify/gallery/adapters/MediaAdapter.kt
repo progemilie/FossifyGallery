@@ -211,7 +211,8 @@ class MediaAdapter(
     private var columnCount = config.mediaColumnCnt
     private var scrollHorizontally = config.scrollHorizontally
     private var animateGifs = config.animateGifs
-    private var cropThumbnails = config.cropThumbnails
+    var cropThumbnails = config.cropThumbnails
+        private set
     private var displayFilenames = config.displayFileNames
     private var showFileTypes = config.showThumbnailFileTypes
     private var showRatings = config.showThumbnailRating

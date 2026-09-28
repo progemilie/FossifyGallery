@@ -131,7 +131,8 @@ internal class ZoomSetup(
     private fun tileStyleOf(adapter: MediaAdapter) = TileStyle(
         placeholderColor = grid.context.getColor(org.fossify.commons.R.color.md_grey_black),
         cornerRadius = adapter.thumbnailCornerRadius,
-        padding = grid.context.config.thumbnailSpacing.takeIf { it <= 1 } ?: 0
+        padding = grid.context.config.thumbnailSpacing.takeIf { it <= 1 } ?: 0,
+        cropPictures = adapter.cropThumbnails
     )
 
     /** Where the grid sits in the overlay, and which way round it runs. */

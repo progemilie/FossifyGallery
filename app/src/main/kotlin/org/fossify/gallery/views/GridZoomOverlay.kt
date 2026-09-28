@@ -75,6 +75,11 @@ class TileStyle(
     val cornerRadius: Float,
     /** Around the picture in a full tile, whose holder is padded by a thin spacing. */
     val padding: Int,
+    /**
+     * Whether an SVG fills its tile, cropped, rather than fitting inside it. Its view scales it, where
+     * a photo's thumbnail comes cropped or not out of the decoder, and is only ever fitted.
+     */
+    val cropPictures: Boolean,
 )
 
 /** What a zoom knows of each of the ladder's column counts, by rung. */
@@ -356,8 +361,9 @@ internal class ZoomTilePainter {
     private val source = Rect()
 
     fun drawTile(canvas: Canvas, tile: RectF, found: Drawable?, pass: LayerPass, alpha: Float) {
-        val bitmap = found?.let(::bitmapOf)?.takeIf { !it.isRecycled }
-        val picture = (found as? PictureDrawable)?.picture?.takeIf { it.width > 0 && it.height > 0 }
+        val shown = found?.let(::shownOf)
+        val bitmap = shown?.let(::bitmapOf)?.takeIf { !it.isRecycled }
+        val picture = (shown as? PictureDrawable)?.picture?.takeIf { it.width > 0 && it.height > 0 }
         if (!pass.isSimplified) {
             val padding = pass.drawing.tileStyle.padding * pass.layer.scaleAcross
             tile.inset(padding, padding)
@@ -366,7 +372,13 @@ internal class ZoomTilePainter {
         // a full tile keeps its placeholder under a picture that leaves any of it showing, as the
         // grid's does, and any tile shows one while it has no picture at all
         val hasPicture = bitmap != null || picture != null
-        val covered = fit(tile, bitmap?.width ?: picture?.width ?: 0, bitmap?.height ?: picture?.height ?: 0)
+        val covered = fit(
+            tile,
+            width = bitmap?.width ?: picture?.width ?: 0,
+            height = bitmap?.height ?: picture?.height ?: 0,
+            crop = picture != null && pass.drawing.tileStyle.cropPictures
+        )
+
         if (!hasPicture || (!covered && !pass.isSimplified)) {
             drawPlaceholder(canvas, tile, pass, alpha)
         }
@@ -376,19 +388,15 @@ internal class ZoomTilePainter {
             tilePaint.alpha = (alpha * OPAQUE).toInt()
             canvas.drawBitmap(bitmap, source, fitted, tilePaint)
         } else if (picture != null) {
-            drawPicture(canvas, picture, alpha)
+            drawPicture(canvas, tile, picture, alpha)
         }
     }
 
-    // a picture takes no paint to fade it by, so one part way through a fade goes through a layer -
-    // only ever an SVG's, and only ever for the few frames of a fade
-    private fun drawPicture(canvas: Canvas, picture: Picture, alpha: Float) {
-        if (alpha >= 1f) {
-            canvas.drawPicture(picture, fitted)
-            return
-        }
-
-        val saved = canvas.saveLayerAlpha(fitted, (alpha * OPAQUE).toInt())
+    // held to the tile, which a cropped picture overhangs; and a picture takes no paint to fade it
+    // by, so one part way through a fade goes through a layer - only an SVG's, for a fade's few frames
+    private fun drawPicture(canvas: Canvas, tile: RectF, picture: Picture, alpha: Float) {
+        val saved = if (alpha < 1f) canvas.saveLayerAlpha(tile, (alpha * OPAQUE).toInt()) else canvas.save()
+        canvas.clipRect(tile)
         canvas.drawPicture(picture, fitted)
         canvas.restoreToCount(saved)
     }
@@ -402,16 +410,18 @@ internal class ZoomTilePainter {
     }
 
     /**
-     * Fits [width] by [height] into [tile] the way the grid's ImageView does, centred, and says
-     * whether that covers the whole tile. Nothing to fit covers nothing.
+     * Fits [width] by [height] into [tile] the way the grid's ImageView does, centred - or where
+     * [crop], over it - and says whether that covers the whole tile. Nothing to fit covers nothing.
      */
-    private fun fit(tile: RectF, width: Int, height: Int): Boolean {
+    private fun fit(tile: RectF, width: Int, height: Int, crop: Boolean): Boolean {
         if (width <= 0 || height <= 0) {
             fitted.set(tile)
             return false
         }
 
-        val scale = minOf(tile.width() / width, tile.height() / height)
+        val widthScale = tile.width() / width
+        val heightScale = tile.height() / height
+        val scale = if (crop) maxOf(widthScale, heightScale) else minOf(widthScale, heightScale)
         val halfWidth = width * scale / 2
         val halfHeight = height * scale / 2
         fitted.set(
@@ -423,15 +433,17 @@ internal class ZoomTilePainter {
         return fitted.width() >= tile.width() - 1 && fitted.height() >= tile.height() - 1
     }
 
-    /** The picture a tile shows, whatever Glide wrapped it in; null where it is not a bitmap. */
-    private fun bitmapOf(drawable: Drawable): Bitmap? = when (drawable) {
-        is BitmapDrawable -> drawable.bitmap
-        is TransitionDrawable -> if (drawable.numberOfLayers > 0) {
-            bitmapOf(drawable.getDrawable(drawable.numberOfLayers - 1))
+    /** What a tile shows once any cross-fade Glide wrapped it in is over. */
+    private fun shownOf(drawable: Drawable): Drawable =
+        if (drawable is TransitionDrawable && drawable.numberOfLayers > 0) {
+            shownOf(drawable.getDrawable(drawable.numberOfLayers - 1))
         } else {
-            null
+            drawable
         }
 
+    /** The bitmap a tile shows, or null where it is not one. */
+    private fun bitmapOf(drawable: Drawable): Bitmap? = when (drawable) {
+        is BitmapDrawable -> drawable.bitmap
         is GifDrawable -> drawable.firstFrame
         is WebpDrawable -> drawable.firstFrame
         else -> null
