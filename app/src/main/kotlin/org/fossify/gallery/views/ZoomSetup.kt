@@ -146,17 +146,15 @@ internal class ZoomSetup(
             width = grid.width.toFloat(),
             height = grid.height.toFloat(),
             horizontal = horizontal,
-            reversed = horizontal && grid.layoutDirection == View.LAYOUT_DIRECTION_RTL
+            reversed = horizontal && grid.layoutDirection == View.LAYOUT_DIRECTION_RTL,
+            acrossPaddingStart = if (horizontal) grid.paddingTop else grid.paddingLeft,
+            acrossPaddingEnd = if (horizontal) grid.paddingBottom else grid.paddingRight
         )
     }
 
     private fun shapeOf(frame: GridFrame, headerLength: Int) = GridShape(
-        acrossSpace = if (frame.horizontal) {
-            grid.height - grid.paddingTop - grid.paddingBottom
-        } else {
-            grid.width - grid.paddingLeft - grid.paddingRight
-        },
-        acrossPadding = if (frame.horizontal) grid.paddingTop else grid.paddingLeft,
+        acrossSpace = frame.acrossSpace,
+        acrossPadding = frame.acrossPaddingStart,
         spacing = grid.context.config.thumbnailSpacing,
         sideSpacing = grid.context.config.fileRoundedCorners,
         horizontal = frame.horizontal,
