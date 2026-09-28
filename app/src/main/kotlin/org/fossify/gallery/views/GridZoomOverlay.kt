@@ -152,6 +152,10 @@ class GridZoomOverlay(context: Context, attrs: AttributeSet? = null) : View(cont
             if (over != null) {
                 drawLayer(this, overPass.set(drawing, over, scene.under, isOver = true, mayAsk = isScreen, clip))
             }
+
+            if (isScreen && drawing.thumbnails.isShortOfAsks) {
+                postInvalidateOnAnimation()
+            }
         }
     }
 

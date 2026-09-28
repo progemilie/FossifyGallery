@@ -20,6 +20,13 @@ private const val MISSING_PER_FRAME = 48
 private const val SHARPER_PER_FRAME = 6
 
 /**
+ * However many that leaves, the most of a frame asking may take. A request costs the main thread a
+ * good deal more on a slow phone than a fast one, and a frame it overruns is dropped just the same;
+ * asking faster than the decoders can keep up shows nothing sooner anyway.
+ */
+private const val ASKING_NANOS_PER_FRAME = 3_000_000L
+
+/**
  * The pictures a zoom draws its tiles with - see MediaGridZoom.
  *
  * Each is asked for exactly as the grid's own bind at that count would ask for it, so the tiles bound
@@ -46,8 +53,10 @@ class ZoomThumbnails(
 
     private val requests = Glide.with(context.applicationContext)
     private val borrowed = HashMap<String, Drawable>()
+    private var borrowedColumns = 0
     private var borrowedKey = Int.MIN_VALUE
     private var canBorrow = true
+    private var isSharpening = true
 
     /** Every request made, by key and then path; one that could not be made stays, empty. */
     private val slots = SparseArray<HashMap<String, Slot>>()
@@ -57,10 +66,20 @@ class ZoomThumbnails(
 
     private var missingBudget = MISSING_PER_FRAME
     private var sharperBudget = SHARPER_PER_FRAME
+    private var askingNanos = 0L
     private var isAsking = false
+
+    /**
+     * Whether the frame left tiles unasked for want of allowance. Another frame has to ask for them:
+     * with the fingers still, nothing else may draw one, as a picture already in memory arrives at
+     * once and asks for no redraw of its own.
+     */
+    var isShortOfAsks = false
+        private set
 
     /** Takes the pictures the grid's tiles are showing at [columnCount], by path. */
     fun borrow(columnCount: Int, pictures: Map<String, Drawable>) {
+        borrowedColumns = columnCount
         borrowedKey = loader.keyOf(columnCount)
         borrowed.putAll(pictures)
     }
@@ -68,6 +87,8 @@ class ZoomThumbnails(
     fun startFrame() {
         missingBudget = MISSING_PER_FRAME
         sharperBudget = SHARPER_PER_FRAME
+        askingNanos = 0L
+        isShortOfAsks = false
     }
 
     /**
@@ -84,35 +105,47 @@ class ZoomThumbnails(
         }
 
         val stand = latest[path] ?: if (canBorrow) borrowed[path] else null
-        if (slot == null && mayAsk && spend(hasPicture = stand != null)) {
+        if (slot == null && mayAsk && (stand == null || isSharpening) && spend(hasPicture = stand != null)) {
             ask(medium, columnCount, key)?.let { return it }
         }
 
         return stand
     }
 
-    private fun spend(hasPicture: Boolean) = if (hasPicture) {
-        sharperBudget-- > 0
-    } else {
-        missingBudget-- > 0
+    private fun spend(hasPicture: Boolean): Boolean {
+        val allowed = askingNanos < ASKING_NANOS_PER_FRAME && if (hasPicture) {
+            sharperBudget-- > 0
+        } else {
+            missingBudget-- > 0
+        }
+
+        isShortOfAsks = isShortOfAsks || !allowed
+        return allowed
     }
 
     /**
-     * Asks for pictures of its own for [media] at [columnCount], whatever the frame's allowance. For
-     * a count whose tiles are about to be rebound with the very pictures that were borrowed: asking
-     * for them while the tiles still hold them costs no decode, and afterwards they are not there.
+     * The zoom has come to rest, and the grid is about to bind its own pictures: a tile drawn with one
+     * of another size keeps it rather than asking again for what the grid is asking for. A tile with
+     * nothing to show still asks, or it would wait on the whole grid's pictures to fade in over it.
      */
-    fun keep(media: Collection<Medium>, columnCount: Int) {
-        val key = loader.keyOf(columnCount)
-        media.forEach {
-            if (slots[key]?.containsKey(it.path) != true) {
-                ask(it, columnCount, key)
-            }
-        }
+    fun stopSharpening() {
+        isSharpening = false
     }
 
-    /** From here on only pictures asked for by the zoom itself are drawn. */
-    fun stopBorrowing() {
+    /**
+     * From here on only pictures asked for by the zoom itself are drawn. Any of [onScreen] drawn with
+     * a borrowed picture and nothing of the zoom's own to stand in for it is asked for first, at the
+     * count it was borrowed at: its tile still holds it, so it comes straight back with no decode,
+     * where once the grid rebinds it may not be there to come back.
+     */
+    fun stopBorrowing(onScreen: Collection<Medium>) {
+        for (medium in onScreen) {
+            val path = medium.path
+            if (latest[path] == null && borrowed.containsKey(path) && slots[borrowedKey]?.containsKey(path) != true) {
+                ask(medium, borrowedColumns, borrowedKey)
+            }
+        }
+
         canBorrow = false
         borrowed.clear()
     }
@@ -133,10 +166,12 @@ class ZoomThumbnails(
         (slots[key] ?: HashMap<String, Slot>().also { slots.put(key, it) })[medium.path] = slot
         // a picture already in memory arrives before load() returns, and is drawn this frame
         isAsking = true
+        val startedAt = System.nanoTime()
         try {
             Perf.section("zoom.ask") { loader.load(medium, columnCount, slot) }
         } finally {
             isAsking = false
+            askingNanos += System.nanoTime() - startedAt
         }
 
         return slot.picture

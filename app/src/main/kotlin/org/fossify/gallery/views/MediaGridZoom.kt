@@ -212,14 +212,13 @@ class MediaGridZoom(
         val scene = session.scene
         val rung = scene.restRung
         val changed = rung != session.startRung || abs(scene.restOrigin - session.startOrigin) >= HALF_PIXEL
+        val thumbnails = session.drawing.thumbnails
+        thumbnails.stopSharpening()
         if (changed) {
-            val columns = session.rungs[rung]
-            val thumbnails = session.drawing.thumbnails
             // the tiles are about to be rebound, and the pictures borrowed from them go with them
-            thumbnails.keep(session.restingMedia(), columns)
-            thumbnails.stopBorrowing()
+            thumbnails.stopBorrowing(session.restingMedia())
             if (rung != session.startRung) {
-                host.applyColumnCount(columns)
+                host.applyColumnCount(session.rungs[rung])
             }
 
             session.restPosition()?.let { (position, offset) -> host.scrollTo(position, offset) }
