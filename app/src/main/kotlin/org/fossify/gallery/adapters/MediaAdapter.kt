@@ -20,6 +20,7 @@ import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
+import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.signature.ObjectKey
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
@@ -82,7 +83,6 @@ import org.fossify.gallery.extensions.loadSVG
 import org.fossify.gallery.extensions.mediaGridZoom
 import org.fossify.gallery.extensions.openEditor
 import org.fossify.gallery.extensions.openPath
-import org.fossify.gallery.extensions.preloadImage
 import org.fossify.gallery.extensions.rescanFolderMedia
 import org.fossify.gallery.extensions.restoreRecycleBinPaths
 import org.fossify.gallery.extensions.saveMirroredImageToFile
@@ -1273,11 +1273,6 @@ class MediaAdapter(
             markSelected(medium, isSelected)
             bindPeekButton(medium)
 
-            var path = medium.path
-            if (hasOTGConnected && root.context.isPathOnOTG(path)) {
-                path = path.getOTGPublicPath(root.context)
-            }
-
             val roundedCorners = getRoundedCorners()
             mediumThumbnail.setBackgroundResource(
                 when (roundedCorners) {
@@ -1294,7 +1289,7 @@ class MediaAdapter(
 
             activity.loadImage(
                 type = medium.type,
-                path = path,
+                path = thumbnailPath(medium),
                 target = mediumThumbnail,
                 horizontalScroll = scrollHorizontally,
                 animateGifs = animateGifs,
@@ -1320,12 +1315,7 @@ class MediaAdapter(
     private fun setupSimpleThumbnail(view: View, medium: Medium) {
         val thumbnail = view as MySquareImageView
         thumbnail.isHorizontalScrolling = scrollHorizontally
-
-        var path = medium.path
-        if (hasOTGConnected && thumbnail.context.isPathOnOTG(path)) {
-            path = path.getOTGPublicPath(thumbnail.context)
-        }
-
+        val path = thumbnailPath(medium)
         if (medium.type == TYPE_SVGS) {
             activity.loadSVG(
                 path = path,
@@ -1339,71 +1329,47 @@ class MediaAdapter(
         }
     }
 
-    /**
-     * Starts the same request [setupThumbnail] or [setupSimpleThumbnail] would, for an item the grid
-     * has not reached yet - see [ThumbnailPrefetcher]. Null for anything there is nothing to warm:
-     * a grouping header, an SVG (rendered by a pipeline of its own), and a file whose thumbnail is
-     * deliberately kept out of the memory cache because it was just edited in place (see
-     * `TransformedMedia`).
-     */
+    /** Warms the thumbnail of an item the grid has not reached yet - see [ThumbnailPrefetcher]. */
     private fun prefetchThumbnail(position: Int): Target<*>? {
         val medium = media.getOrNull(position) as? Medium ?: return null
-        if (medium.type == TYPE_SVGS || transformedImagePaths.contains(medium.path)) {
-            return null
-        }
-
-        val path = thumbnailPath(medium)
-        if (isSimplified) {
-            return simpleThumbnails.preload(path, medium.getKey())
-        }
-
-        val size = thumbnailSize() ?: return null
-        return activity.preloadImage(
-            type = medium.type,
-            path = path,
-            cropThumbnails = cropThumbnails,
-            roundCorners = getRoundedCorners(),
-            signature = medium.getKey(),
-            overrideSize = size,
-            animateGifs = animateGifs
-        )
+        val request = thumbnailRequestAt(medium, medium.getKey(), columnCount, isSimplified) ?: return null
+        Perf.count("thumb.preload")
+        return request.preload()
     }
 
     /**
-     * Starts the request a tile of [medium] is bound with at [columnCount], into [target] rather
-     * than a tile - for a zoom drawing the grid at a count it is not at yet, see ZoomThumbnails.
-     * The bind's own request, so the tiles bound once the zoom settles find their pictures done.
-     * False where there is nothing to ask for, on the same terms as [prefetchThumbnail].
+     * The request [setupThumbnail] or [setupSimpleThumbnail] binds [medium] with at [columnCount],
+     * short of what it goes into - for anything that has to ask ahead of the bind for the very picture
+     * it will ask for: the [ThumbnailPrefetcher], or a zoom drawing the grid at a count it is not at
+     * yet (see ZoomThumbnails). Sized by its own override, so a preload needs no size of its own.
+     *
+     * Null for anything there is nothing to ask for: an SVG (rendered by a pipeline of its own), and a
+     * file whose thumbnail is deliberately kept out of the memory cache because it was just edited in
+     * place (see `TransformedMedia`).
      */
-    fun loadThumbnailAt(
+    fun thumbnailRequestAt(
         medium: Medium,
         signature: ObjectKey,
         columnCount: Int,
         simplified: Boolean,
-        target: Target<Drawable>
-    ): Boolean {
+    ): RequestBuilder<Drawable>? {
         if (medium.type == TYPE_SVGS || transformedImagePaths.contains(medium.path)) {
-            return false
+            return null
         }
 
         if (simplified) {
-            simpleThumbnails.into(thumbnailPath(medium), signature, target)
-            return true
+            return simpleThumbnails.request(thumbnailPath(medium), signature)
         }
 
-        val size = thumbnailSize(columnCount) ?: return false
-        val request = activity.thumbnailRequestFor(
+        return activity.thumbnailRequestFor(
             type = medium.type,
             path = thumbnailPath(medium),
             cropThumbnails = cropThumbnails,
             roundCorners = getRoundedCorners(),
             signature = signature,
-            overrideSize = size,
+            overrideSize = thumbnailSize(columnCount) ?: return null,
             animateGifs = animateGifs
-        ) ?: return false
-
-        request.into(target)
-        return true
+        )
     }
 
     /**

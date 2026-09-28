@@ -8,6 +8,7 @@ import android.widget.ImageView
 import androidx.core.graphics.drawable.toDrawable
 import com.bumptech.glide.Glide
 import com.bumptech.glide.Priority
+import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.integration.webp.WebpBitmapFactory
 import com.bumptech.glide.integration.webp.decoder.WebpDownsampler
 import com.bumptech.glide.load.DecodeFormat
@@ -16,7 +17,6 @@ import com.bumptech.glide.load.resource.bitmap.CenterCrop
 import com.bumptech.glide.load.resource.bitmap.FitCenter
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions
-import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.signature.ObjectKey
 
 /**
@@ -30,7 +30,7 @@ class SimpleThumbnailLoader(
     context: Context,
     cropThumbnails: Boolean,
     /** What the tile is decoded to - see `GridZoom.simpleThumbnailSize`. */
-    private val size: Int
+    size: Int
 ) {
     private val requests = Glide.with(context.applicationContext)
 
@@ -59,35 +59,19 @@ class SimpleThumbnailLoader(
     }
 
     fun load(path: String, target: ImageView, signature: ObjectKey) {
+        request(path, signature).transition(noTransition).into(target)
+    }
+
+    /**
+     * What [load] asks for, short of what it goes into - for anything asking ahead of a bind, which
+     * has to ask for the very same picture. See `MediaAdapter.thumbnailRequestAt`.
+     */
+    fun request(path: String, signature: ObjectKey): RequestBuilder<Drawable> =
         requests
             // a tile this small comes out of the photo's embedded copy where there is one
             .load(ThumbnailSource(path))
             .apply(options)
             .signature(signature)
-            .transition(noTransition)
-            .into(target)
-    }
-
-    /**
-     * The same request with nothing to draw it into, for an item the grid has not reached yet - see
-     * [ThumbnailPrefetcher]. Shares [options] with [load] rather than restating it, so the two
-     * cannot come to ask for different pictures.
-     */
-    fun preload(path: String, signature: ObjectKey): Target<Drawable> =
-        requests
-            .load(ThumbnailSource(path))
-            .apply(options)
-            .signature(signature)
-            .preload(size, size)
-
-    /** The same request again, into a target of the caller's - see [ZoomThumbnails]. */
-    fun into(path: String, signature: ObjectKey, target: Target<Drawable>) {
-        requests
-            .load(ThumbnailSource(path))
-            .apply(options)
-            .signature(signature)
-            .into(target)
-    }
 
     fun clear(target: View) = requests.clear(target)
 }

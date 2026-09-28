@@ -53,7 +53,7 @@ What breaks silently:
   to be mirrored there, or the zoom jumps where it starts and where the grid takes over.
 - **Nothing may change the grid's list during a zoom** - it is drawn from, and put back from, the
   list as it was; `setupAdapter()` defers until `onZoomFinished`.
-- **The overlay's pictures are the bind's own requests** (`MediaAdapter.loadThumbnailAt`), the same
+- **The overlay's pictures are the bind's own requests** (`MediaAdapter.thumbnailRequestAt`), the same
   rule as the prefetcher's, or landing decodes every tile again. Those borrowed from the grid's
   tiles at the start are only safe until the grid rebinds: `ZoomThumbnails.stopBorrowing()` first.
 - **The glass panels copy whatever is behind them in software every frame**, the overlay included,

@@ -267,14 +267,17 @@ internal class ZoomSetup(
             return key
         }
 
-        override fun load(medium: Medium, columnCount: Int, target: CustomTarget<Drawable>) =
-            adapter.loadThumbnailAt(
+        override fun load(medium: Medium, columnCount: Int, target: CustomTarget<Drawable>): Boolean {
+            val request = adapter.thumbnailRequestAt(
                 medium = medium,
                 signature = signatures.getOrPut(medium.path) { medium.getKey() },
                 columnCount = columnCount,
-                simplified = ladder.isSimplified(columnCount),
-                target = target
-            )
+                simplified = ladder.isSimplified(columnCount)
+            ) ?: return false
+
+            request.into(target)
+            return true
+        }
     }
 }
 

@@ -1248,11 +1248,15 @@ class MediaGridPane(
             return
         }
 
-        // the change animation must stay on for full thumbnails: it is what binds the new count onto
-        // a fresh view, and Glide sizes the picture from the view it is handed - rebinding the old
-        // one in place asks for the size the tile used to be
-        binding.mediaGrid.itemAnimator = if (isGridSimplified()) null else mDefaultItemAnimator
+        restoreItemAnimator()
         getMediaAdapter()?.applyColumnCount(config.mediaColumnCnt)
+    }
+
+    // the change animation must stay on for full thumbnails: it is what binds the new count onto a
+    // fresh view, and Glide sizes the picture from the view it is handed - rebinding the old one in
+    // place asks for the size the tile used to be
+    private fun restoreItemAnimator() {
+        binding.mediaGrid.itemAnimator = if (isGridSimplified()) null else mDefaultItemAnimator
     }
 
     private fun isGridViewType() =
@@ -1275,7 +1279,7 @@ class MediaGridPane(
         getMediaAdapter()?.takeUnless { it.isSimplified }?.media ?: gridSource()
 
     private fun zoomFinished() {
-        binding.mediaGrid.itemAnimator = if (isGridSimplified()) null else mDefaultItemAnimator
+        restoreItemAnimator()
         if (mMediaChangedWhileZooming) {
             mMediaChangedWhileZooming = false
             setupAdapter()
