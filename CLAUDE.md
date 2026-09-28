@@ -92,8 +92,15 @@ it when nothing is attached.
 
 ## Architecture
 
-Feature-level detail lives in `.claude/docs/architecture.md`; what is kept here is the shape of
-the app and the rules that break silently when missed.
+`.claude/docs/architecture.md` describes the app's shape in more depth and indexes the fork features,
+each explained in a file of its own under `.claude/docs/features/` — read a feature's file before
+working in that area. What is kept here is only what cuts across features.
+
+**Before editing a fork file, grep `.claude/docs/features` for its class name**, read every doc that
+names it, and then the docs each one lists under "Coupled with" — those are the features that break
+silently when this one changes without them.
+
+When adding or changing a feature, update its doc under `.claude/docs/features/` in the same change.
 
 ### Fossify Commons dependency
 
@@ -102,19 +109,23 @@ Most base classes, shared dialogs and extension functions come from the external
 nearly every screen extends `SimpleActivity`, `helpers/Config.kt` extends its `BaseConfig`, and its
 dialogs and `org.fossify.commons.extensions.*` are used rather than reimplemented.
 
-**Fork features drive the upstream classes from outside wherever that is reasonable** — see
-`FolderDragMode`, `FolderGroupActions` and `MediaReorderMode`, each of which drives an upstream
-adapter rather than living inside it.
+**Fork features live in files of their own and drive upstream classes from outside** wherever that
+is reasonable, leaving the upstream class only a hook — upstream is merged in, and this is what keeps
+the conflicts small.
 
 ### Package layout (app/src/main/kotlin/org/fossify/gallery/)
 
 Conventional `activities/adapters/fragments/dialogs/helpers/models/views/`. Browsing is
-`MainActivity` (both top level grids, see below), `MediaActivity` (a folder opened as a screen of
-its own) and `ViewPagerActivity` (fullscreen viewer); `helpers/MediaFetcher.kt` is the MediaStore
-query engine and `databases/GalleryDatabase.kt` the single Room DB (manual migrations, v4→v12).
+`MainActivity` (the folder grid and the all media grid, as two panes of one window),
+`MediaActivity` (a folder opened as a screen of its own) and `ViewPagerActivity` (fullscreen
+viewer); `helpers/MediaFetcher.kt` is the MediaStore query engine and `databases/GalleryDatabase.kt`
+the single Room DB (manual migrations, v4→v12).
 
 No formal MVVM/MVP — activity/fragment plus base-class inheritance, with view binding enabled and
-state held in activities/adapters/`Config` rather than ViewModels.
+state held in activities/adapters/`Config` rather than ViewModels. Screens hand each other lists and
+bitmaps through process-wide statics rather than intents, since a folder's paths run past what a
+binder transaction carries. Anything the main thread has to read lives in `Config`, where Room would
+throw.
 
 ### Media loading
 
@@ -126,65 +137,31 @@ Both Glide and Picasso are used deliberately for different jobs:
   and `helpers/PicassoRoundedCornersTransformation.kt`/`RotateTransformation.kt`.
 - Video playback uses `androidx.media3.exoplayer`.
 
-Nothing small is decoded from a whole photo if the photo carries a copy of itself: anything drawing
-a thumbnail loads a `ThumbnailSource`, and `helpers/ExifThumbnailLoader.kt` swaps in the file's
-embedded copy when it is big enough. Worth it because `inSampleSize` saves the inverse transform but
-not the pass over the entropy-coded data — a 12MP JPEG costs the same ~37ms at any size, against
-~3ms for the 512x384 copy inside it. The loader gives that copy an Exif header carrying the photo's
-own orientation, or a rotated photo faces different ways in the grid and the viewer.
+Every thumbnail goes through one pipeline — a `ThumbnailSource` (the photo's embedded copy where it
+is big enough), a decode size snapped to `ThumbnailSizes`, and the WebP decoder held to the safe path
+(CVE-2023-4863). See `.claude/docs/features/thumbnails.md`.
 
-Every Glide thumbnail goes through `loadImageBase()`, which is also where the WebP decoder is held
-to the safe path (CVE-2023-4863) — except the zoomed-out media grid, which has its own loader below.
-Both hand their prepared request to `helpers/ThumbnailPrefetcher.kt`, which decodes what the media
-grid is scrolling towards — about a screenful ahead of the finger against a quarter of one behind.
-**A preload must describe the picture exactly as the bind that follows it does** — model, signature,
-`override()` size, transform and format are all cache key — or the grid decodes everything twice, so
-the request is shared rather than restated.
+### Rules that break silently
 
-Cache keys everywhere are derived from path + last-modified + size (`Medium.getSignature()`,
-`Directory.getKey()`). **Anything that edits a file in place must call
-`TransformedMedia.onTransformed(path)`** before touching caches — it bumps a per-path version folded
-into both keys, plus a global generation counter screens use to decide whether to rebind stale
-bitmaps. An edit leaving size and timestamp unchanged is otherwise invisible to every cache.
-
-### Fork features, and the rules they impose
-
-Each is explained in `.claude/docs/architecture.md` — read that section before working in the area.
-What is listed here is only what breaks *silently* when it is missed.
-
-- **The zoomed-out media grid** — the grid's source is `gridSource()`, never `mMedia`; a screen with
-  no pinch of its own reads `interactiveMediaColumnCnt()`, not `Config.mediaColumnCnt`; and
-  `interactiveMax` is a boundary rather than a rung, so anything naming a tappable count wants
-  `largestInteractive`. A preload must describe the picture exactly as the bind that follows it does.
-- **Per-folder custom media order** — the `media_order` table is the authority;
-  `Config.customMediaOrderFolders` is only an index, so the main thread can answer
-  `hasCustomMediaOrder()` where Room would throw.
-- **Two grids, one window** — the bar belongs to whichever pane is up, which `updateTopBarForGroup()`
-  checks first; a re-inflated menu has to be recoloured or its icons draw invisibly; a swap moves
-  panes by `translationX`, so anything waiting on a layout pass has to be called outright.
-- **Folder groups** — a group tile never reaches Room or the scan (`expandFolderGroups()` is the
-  gate); ids are never reused; and while a group is open, anything re-scanning or re-sorting works
-  from `mDirsIgnoringSearch`, never from what the adapter holds.
-- **Order & groups export** — import drops anything naming a file or folder that is not there, and
-  any section left empty by that; the sentinel folders are exempt, nothing can stat them.
-- **The viewer's bottom action bar** — `helpers/BottomAction.kt` is the one table both the bar and
-  `ManageBottomActionsDialog` read; `applyBottomActionsOrder()` rebuilds the chain rather than
-  reordering children.
-- **Choosers held open over a button** — `revealOver()` lays one out INVISIBLE and shows it only once
-  positioned; the folder list is prefetched into `mQuickChooserFolders`, far too slow to build when
-  the hold fires.
-- **The three dots' drop-down** — a `MenuSpec` only arranges: anything it fails to name is appended
-  to the last shown section rather than dropped, so no action goes missing by being forgotten there.
-- **The metadata sheet** — `MetadataReader` reads straight off the file every time, never from Room,
-  MediaStore or the `Medium` the grid was built from; removal copies the file block by block and
-  never re-encodes.
-- **Growing a tile into the viewer** — a flight is drawn with the photo's own picture, never the
-  tile's, and needs all of: the translucent theme *and* `Window.setFormat(TRANSLUCENT)`, no custom
-  animation in `ActivityOptions`, and the exit tile looked up on every page change. Miss one and the
-  photo grows out of a black screen.
-- **Chrome that floats over the content** — `keepGridClearOfTopBar()` pads the grid by the bar's
-  measured height, which already carries the status bar inset; doing it in the layout double-counts.
-  Every glass panel comes and goes through `PanelAnim`'s `showPanel`/`hidePanel`.
+- **A preload must describe the picture exactly as the bind that follows it does** — model,
+  signature, `override()` size, transform and format are all cache key — or the grid decodes
+  everything twice, so the request is shared rather than restated.
+- **Anything that edits a file in place must call `TransformedMedia.onTransformed(path)`** before
+  touching caches. Every cache key is built from path + last-modified + size, so an edit leaving
+  those unchanged is otherwise invisible to every cache.
+- **Paths the fork keys by must survive renames and synthetic paths.** Room tables keyed by path are
+  carried through a rename in `updateDBMediaPath()`; a folder group's `folder_group:<id>` tile never
+  reaches Room or the scan; the sentinel folders (`SHOW_ALL`, favourites, the recycle bin) cannot be
+  stat'd.
+- **The media grid's list is `gridSource()`, never `mMedia`** — a search narrows it.
+- **Two panes, one window** — the search bar belongs to whichever pane is up, and a pane swap is a
+  draw rather than a layout, so anything waiting on a layout pass has to be called outright.
+- **Floating chrome** — `FloatingTopBar.keepGridClear()` pads the grid by the bar's height, which
+  already carries the status bar inset; a re-inflated menu has to be recoloured or its icons draw
+  invisibly; every glass panel comes and goes through `PanelAnim`'s `showPanel`/`hidePanel`.
+- **The viewer's window is translucent** so a tile can grow into it over the grid; a custom
+  animation in `ActivityOptions` or a missing `Window.setFormat(TRANSLUCENT)` leaves it growing out
+  of a black screen.
 
 ## Code style
 
