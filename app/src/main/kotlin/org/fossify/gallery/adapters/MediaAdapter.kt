@@ -246,10 +246,26 @@ class MediaAdapter(
                     PhotoItemGridBinding.inflate(layoutInflater, parent, false)
                 } else {
                     VideoItemGridBinding.inflate(layoutInflater, parent, false)
-                }
+                }.also { fillSpan(it.root) }
             }
         }
         return createViewHolder(binding.root)
+    }
+
+    /**
+     * Has a grid item fill its span exactly, rather than wrap its picture. Wrapped, it is measured
+     * at most the span, which an item measured for a narrower one still fits - so the recycler keeps
+     * it at its old size when the grid goes to fewer columns and nothing about the item asks for a
+     * layout, as nothing does when a zoom lands and rebinds it where it is.
+     */
+    private fun fillSpan(item: View) {
+        item.layoutParams = item.layoutParams.apply {
+            if (scrollHorizontally) {
+                height = ViewGroup.LayoutParams.MATCH_PARENT
+            } else {
+                width = ViewGroup.LayoutParams.MATCH_PARENT
+            }
+        }
     }
 
     override fun onBindViewHolder(holder: MyRecyclerViewAdapter.ViewHolder, position: Int) {
