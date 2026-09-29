@@ -8,12 +8,6 @@ import kotlin.math.pow
 private const val FADE_FROM = 0.3f
 private const val FADE_TO = 0.7f
 
-/**
- * Choosing the anchor from a row next to the fingers' instead costs this much of a column, so a
- * neighbouring row is only taken when it spares the grid real sideways travel.
- */
-private const val NEIGHBOUR_ROW_COST = 0.35f
-
 /** How much bigger or smaller the grid can be pulled past either end of the ladder. */
 private const val STRETCH_MAX = 0.08f
 
@@ -26,9 +20,13 @@ private const val SMOOTHSTEP = 3f
 private fun lerp(from: Double, to: Double, progress: Float) = from + (to - from) * progress
 
 /**
- * One column count's layout as it is drawn at a moment of a zoom: scaled, and moved to line up with
- * the other count drawn beside it. Rows scale while headers keep their length, as they do in either
- * grid, so a header rides along with the rows around it without ever growing.
+ * One column count's layout as it is drawn at a moment of a zoom: scaled, and moved along to line up
+ * with the other count drawn beside it. Rows scale while headers keep their length, as they do in
+ * either grid, so a header rides along with the rows around it without ever growing.
+ *
+ * Across, it is scaled about the edge its rows start from, which stays where the grid has it: the
+ * grid grows and shrinks away from that edge only, so nothing slides sideways as a zoom passes from
+ * one count to the next.
  *
  * Coordinates are the grid's own, turned so that "along" runs the way it scrolls - see [ZoomScene].
  * Where the content starts along is kept to double precision: well down a large library it lies
@@ -42,14 +40,17 @@ class ZoomLayer(val rung: Int, val layout: GridZoomLayout) {
 
     /** Where the layout's zero across is drawn, the grid's padding being part of the layout. */
     var originAcross = 0f
+        private set
     var scaleAcross = 1f
+        private set
 
     private val headerLength = layout.shape.headerLength
+    private val rowsStart = layout.shape.rowsStart.toFloat()
 
-    fun place(originAlong: Double, scaleAlong: Float, originAcross: Float, scaleAcross: Float) {
+    fun place(originAlong: Double, scaleAlong: Float, scaleAcross: Float) {
         this.originAlong = originAlong
         this.scaleAlong = scaleAlong
-        this.originAcross = originAcross
+        this.originAcross = rowsStart * (1 - scaleAcross)
         this.scaleAcross = scaleAcross
     }
 
@@ -147,9 +148,10 @@ inline fun ZoomLayer.forEachVisible(
  *
  * A level is a rung of the ladder and a fraction - 3.4 is four tenths of the way from the fourth
  * count to the fifth. In between, both counts are drawn, each scaled so that their tiles are one
- * size, and lined up so that their tiles land on the same cells. A tile then never travels from one
- * row to another: the row the anchor sits in keeps its tiles, every other row only changes pictures,
- * and the columns one count has and the other has not come in from, or go out to, the sides.
+ * size, and lined up so that their tiles land on the same cells. Across, both are pinned at the edge
+ * rows start from, so the column one count has and the other has not comes in, or goes out, at the
+ * far edge alone. Along, they are lined up by the tile under the fingers, whose row stays under
+ * them. A tile never travels: each cell only changes over from one count's picture to the other's.
  *
  * All of it is worked in the grid's own coordinates turned so that "along" is the way it scrolls,
  * which a grid laid out right to left and sideways runs from its right edge.
@@ -170,7 +172,7 @@ class ZoomScene(
     var restOrigin = startOrigin
         private set
 
-    /** Whatever the fingers are around, along and across - see [focusOn]. */
+    /** Whatever the fingers are around, along and across - see [focusOn]. Across it only picks the anchor. */
     var focusAlong = 0f
         private set
     var focusAcross = 0f
@@ -245,7 +247,6 @@ class ZoomScene(
         layer.place(
             originAlong = focusAlong + (restOrigin - focusAlong) * scale.toDouble(),
             scaleAlong = scale,
-            originAcross = focusAcross * (1 - scale),
             scaleAcross = scale
         )
 
@@ -260,9 +261,10 @@ class ZoomScene(
     }
 
     /**
-     * The zoom between two neighbouring counts, set out from the one it was entered at. Everything
-     * turns on the anchor, a tile the two layouts are lined up by: drawn in the same cell in both,
-     * it holds still but for the zoom itself, and so do the tiles beside it in its row.
+     * The zoom between two neighbouring counts, set out from the one it was entered at. Along, it
+     * turns on the anchor, the tile under the fingers: its row in either count is drawn in one place,
+     * which holds still but for the zoom itself. Across there is nothing to line up, both counts
+     * being pinned at the edge their rows start from.
      */
     private inner class Step(val from: Int, val to: Int) {
         val fromLayer = layerOf(from)
@@ -271,21 +273,17 @@ class ZoomScene(
         private val toLayout = toLayer.layout
         private val headerLength = fromLayout.shape.headerLength
 
-        // the anchor's row start (rows alone, plus the headers ahead of it) and cell start across
+        // the anchor's row start in either count: rows alone, plus the headers ahead of it
         private var fromRow = 0.0
         private var fromHeaders = 0
-        private var fromAcross = 0f
         private var toRow = 0.0
         private var toHeaders = 0
-        private var toAcross = 0f
-
-        /** How far across the anchor has to drift beyond the zoom to land on its column in [to]... */
-        private var acrossDrift = 0f
 
         /**
-         * ...and how far along, to land where [to] can lie: nowhere near the fingers, when a list that
-         * lost its headers is much shorter above the anchor than it was. Both are spread evenly over
-         * the step, rather than left until the list's end forces them in the step's last few frames.
+         * How far along the anchor has to drift beyond the zoom to land where [to] can lie: nowhere
+         * near the fingers, when a list that lost its headers is much shorter above the anchor than it
+         * was. Spread evenly over the step, rather than left until the list's end forces it in the
+         * step's last few frames.
          */
         private var alongDrift = 0.0
 
@@ -296,7 +294,7 @@ class ZoomScene(
 
         init {
             // it may be part way through another step, and the anchor is looked for as it lies
-            fromLayer.place(restOrigin, 1f, 0f, 1f)
+            fromLayer.place(restOrigin, 1f, 1f)
             chooseAnchor()
             val restAnchor = restOrigin + fromRow + headerLength.toDouble() * fromHeaders
             val endScale = toLayout.rowPitch.toDouble() / fromLayout.rowPitch
@@ -314,7 +312,6 @@ class ZoomScene(
             val toScaleAcross = across / toLayout.pitch
             val toScaleAlong = along / toLayout.rowPitch
 
-            val anchorAcross = focusAcross + (fromAcross - focusAcross) * fromScaleAcross + acrossDrift * progress
             val restAnchor = restOrigin + fromRow + headerLength.toDouble() * fromHeaders
             val zoomed = focusAlong + (restAnchor - focusAlong) * fromScaleAlong + alongDrift * progress
             // held to where each count could lie, weighed by how far the step has come
@@ -327,14 +324,12 @@ class ZoomScene(
             fromLayer.place(
                 originAlong = anchorAlong - fromScaleAlong * fromRow - headerLength.toDouble() * fromHeaders,
                 scaleAlong = fromScaleAlong,
-                originAcross = anchorAcross - fromScaleAcross * fromAcross,
                 scaleAcross = fromScaleAcross
             )
 
             toLayer.place(
                 originAlong = anchorAlong - toScaleAlong * toRow - headerLength.toDouble() * toHeaders,
                 scaleAlong = toScaleAlong,
-                originAcross = anchorAcross - toScaleAcross * toAcross,
                 scaleAcross = toScaleAcross
             )
         }
@@ -345,7 +340,11 @@ class ZoomScene(
             return toLayer.originAlong
         }
 
-        /** The anchor as close to the fingers as it can be while being led least far astray across. */
+        /**
+         * The tile under the fingers, or the nearest to them in the row they are over. Its row is
+         * where the two counts meet, so the medium the fingers came down on stays in the row under
+         * them, if not in the same column.
+         */
         private fun chooseAnchor() {
             val sections = fromLayout.sections
             var section = fromLayer.sectionAt(focusAlong)
@@ -358,22 +357,17 @@ class ZoomScene(
                 section--
             }
 
-            val focusRow = fromLayer.rowAt(section, focusAlong)
-            var bestCost = Float.MAX_VALUE
-            for (row in focusRow - 1..focusRow + 1) {
-                if (row < 0 || row >= fromLayout.rows(section)) {
-                    continue
-                }
-
-                val span = nearestSpan(section, row)
-                val position = fromLayout.positionAt(section, row, span)
-                val cost = driftFor(section, span, position) +
-                    NEIGHBOUR_ROW_COST * toLayout.pitch * abs(row - focusRow)
-                if (cost < bestCost) {
-                    bestCost = cost
-                    adopt(section, row, span, position)
-                }
+            if (fromLayout.rows(section) == 0) {
+                return
             }
+
+            val row = fromLayer.rowAt(section, focusAlong)
+            val position = fromLayout.positionAt(section, row, nearestSpan(section, row))
+            val (toSection, toRowIndex) = locateInTo(sections.ordinalOf(section, position))
+            fromRow = (fromLayout.sectionRowStart(section) + fromLayout.rowOffset(section, row)).toDouble()
+            fromHeaders = sections.headersThrough(section)
+            toRow = (toLayout.sectionRowStart(toSection) + toLayout.rowOffset(toSection, toRowIndex)).toDouble()
+            toHeaders = toLayout.sections.headersThrough(toSection)
         }
 
         /** The span nearest the fingers across that has a tile in this row. */
@@ -390,34 +384,12 @@ class ZoomScene(
             return if (abs(focusAcross - first) <= abs(focusAcross - last)) 0 else tiles - 1
         }
 
-        /** How far across the anchor at [position] would have to drift. */
-        private fun driftFor(section: Int, span: Int, position: Int): Float {
-            val (_, _, toSpan) = locateInTo(fromLayout.sections.ordinalOf(section, position))
-            return abs(toLayout.spans.cellStart(toSpan) - zoomedAcross(fromLayout.spans.cellStart(span).toFloat()))
-        }
-
-        private fun adopt(section: Int, row: Int, span: Int, position: Int) {
-            val (toSection, toRowIndex, toSpan) = locateInTo(fromLayout.sections.ordinalOf(section, position))
-            fromRow = (fromLayout.sectionRowStart(section) + fromLayout.rowOffset(section, row)).toDouble()
-            fromHeaders = fromLayout.sections.headersThrough(section)
-            fromAcross = fromLayout.spans.cellStart(span).toFloat()
-            toRow = (toLayout.sectionRowStart(toSection) + toLayout.rowOffset(toSection, toRowIndex)).toDouble()
-            toHeaders = toLayout.sections.headersThrough(toSection)
-            toAcross = toLayout.spans.cellStart(toSpan).toFloat()
-            acrossDrift = toAcross - zoomedAcross(fromAcross)
-        }
-
-        /** Where a point across ends up once zoomed from [from]'s pitch to [to]'s about the fingers. */
-        private fun zoomedAcross(across: Float) =
-            focusAcross + (across - focusAcross) * (toLayout.pitch / fromLayout.pitch)
-
-        /** Section, row and span of the medium at [ordinal] in [to]'s layout. */
-        private fun locateInTo(ordinal: Int): Triple<Int, Int, Int> {
+        /** Section and row of the medium at [ordinal] in [to]'s layout. */
+        private fun locateInTo(ordinal: Int): Pair<Int, Int> {
             val sections = toLayout.sections
             val position = sections.positionOfOrdinal(ordinal)
             val section = sections.sectionOf(position)
-            val index = position - sections.firstMedium(section)
-            return Triple(section, index / toLayout.columns, index % toLayout.columns)
+            return section to (position - sections.firstMedium(section)) / toLayout.columns
         }
 
         /** Where the anchor may be drawn along at the latest, for the content to reach the far end. */

@@ -64,6 +64,56 @@ class ZoomSceneTest {
     }
 
     @Test
+    fun `the grid grows and shrinks away from the edge its rows start at`() {
+        val padded = GridShape(1040, 20, 1, false, horizontal = false, rtl = false, headerLength = 120)
+        val sections = GridSections.of(media(300))
+        val scene = ZoomScene(ladder.size, viewport, { GridZoomLayout(ladder[it], padded, sections) }, 3, -1000.0)
+        // fingers well over to the right, which used to pull the grid towards them
+        scene.focusOn(1200f, 900f)
+        for (percent in -60..200 step 5) {
+            scene.update(3 + percent / 100f)
+            assertEquals(20f, scene.under.spansStart, 0.01f)
+            scene.over?.let { over ->
+                assertEquals(20f, over.spansStart, 0.01f)
+                // the first column is the same cell at both counts, so nothing slides sideways
+                assertEquals(scene.under.tileAcross(0), over.tileAcross(0), 1f)
+            }
+        }
+    }
+
+    @Test
+    fun `a grid laid out from the right grows and shrinks away from its right edge`() {
+        val rtl = GridShape(1040, 20, 1, false, horizontal = false, rtl = true, headerLength = 120)
+        val sections = GridSections.of(media(300))
+        val scene = ZoomScene(ladder.size, viewport, { GridZoomLayout(ladder[it], rtl, sections) }, 3, -1000.0)
+        scene.focusOn(1200f, 100f)
+        for (percent in -60..200 step 5) {
+            scene.update(3 + percent / 100f)
+            for (layer in listOfNotNull(scene.under, scene.over)) {
+                assertEquals(1060f, layer.spansEnd, 0.01f)
+            }
+        }
+    }
+
+    @Test
+    fun `the row under the fingers stays under them`() {
+        val scene = scene(media(300), startRung = 3, startOrigin = -1000.0)
+        scene.focusOn(1200f, 700f)
+        val atRest = scene.under
+        val row = atRest.rowAt(0, 1200f)
+        val medium = atRest.layout.positionAt(0, row, atRest.spanAt(700f))
+        val rowStart = atRest.rowStart(0, row)
+
+        scene.update(3.5f)
+        val under = scene.under
+        val over = requireNotNull(scene.over)
+        // the medium's row at four columns and at five is drawn in one place...
+        assertEquals(under.rowStart(0, medium / 4), over.rowStart(0, medium / 5), 0.01f)
+        // ...which has moved only as far as zooming about the fingers takes it
+        assertEquals(1200f + (rowStart - 1200f) * under.scaleAlong, under.rowStart(0, row), 0.5f)
+    }
+
+    @Test
     fun `a step is drawn continuously through the count at its end`() {
         val scene = scene(media(300), startRung = 3, startOrigin = -1000.0)
         scene.focusOn(1200f, 300f)

@@ -10,6 +10,8 @@ Notable fork-only changes.
   adjustable spacing and an optional folder size on the details line.
 ### Changed
 - Pinching the photo grid zooms smoothly.
+- The photo grid grows and shrinks from its left edge while pinching, rather than sliding from side
+  to side between column counts.
 - The details at the top of a photo are more compact.
 - **A selection's menu is laid out like the viewer's.**
 - Updated the style and opening animation of the copy and move chooser.
