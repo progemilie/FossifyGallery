@@ -421,18 +421,32 @@
         https://github.com/FossifyOrg/Commons/tree/master/commons/src/main/res
     -->
 
-    <!-- what a settings card says of itself while it is shut -->
-    <string name="settings_color_customization_summary">App colors and the frosted glass chrome</string>
-    <string name="settings_general_summary">Language, startup, tabs and which folders are shown</string>
-    <string name="settings_videos_summary">Autoplay, looping, gestures and what a tap does</string>
-    <string name="settings_thumbnails_summary">Cropping, animated GIFs and what a thumbnail shows</string>
-    <string name="settings_scrolling_summary">Which way the grids scroll, and pull to refresh</string>
-    <string name="settings_fullscreen_media_summary">Brightness, rotation, gestures and the system bars</string>
-    <string name="settings_deep_zoomable_images_summary">Zooming, rotating and image quality in the viewer</string>
-    <string name="settings_extended_details_summary">The details drawn over a photo in the viewer</string>
-    <string name="settings_security_summary">Password protection for the app and its hidden items</string>
-    <string name="settings_file_operations_summary">Deleting, empty folders and keeping timestamps</string>
-    <string name="settings_bottom_actions_summary">The row of buttons under a fullscreen photo</string>
-    <string name="settings_recycle_bin_summary">Where deleted files go, and emptying it</string>
-    <string name="settings_migrating_summary">Import and export settings, favorites and arrangements</string>
+    <!-- Settings: the categories on the first page, and what each says of itself -->
+    <string name="settings_appearance_summary">Colors, glass, language and date format</string>
+    <string name="settings_browsing_summary">Startup, tabs, scrolling and search</string>
+    <string name="settings_thumbnails_covers_summary">Cropping, GIFs and folder covers</string>
+    <string name="settings_folders">Folders</string>
+    <string name="settings_folders_summary">Included, excluded and hidden folders</string>
+    <string name="settings_viewer_summary">Display, details and bottom actions</string>
+    <string name="settings_gestures_zoom">Gestures &amp; zoom</string>
+    <string name="settings_gestures_zoom_summary">Swipes, deep zoom and image quality</string>
+    <string name="settings_videos_summary">Autoplay, looping, gestures and taps</string>
+    <string name="settings_security_summary">Password protection</string>
+    <string name="settings_files">Files &amp; recycle bin</string>
+    <string name="settings_files_summary">Deleting and the recycle bin</string>
+    <string name="settings_backup">Storage &amp; backup</string>
+    <string name="settings_backup_summary">Cache, export and import</string>
+    <!-- Settings: the headings over groups of settings within a category -->
+    <string name="settings_section_language_region">Language &amp; region</string>
+    <string name="settings_section_folder_covers">Folder covers</string>
+    <string name="settings_section_folders_shown">Folders shown</string>
+    <string name="settings_section_hidden_items">Hidden items</string>
+    <string name="settings_section_loading">Loading</string>
+    <string name="settings_section_display">Display</string>
+    <string name="settings_section_navigation">Moving between photos</string>
+    <string name="settings_section_gestures">Gestures</string>
+    <string name="settings_section_playback">Playback</string>
+    <string name="settings_section_player">Player</string>
+    <string name="settings_section_password_protection">Password protection</string>
+    <string name="settings_section_order_groups">Order &amp; groups</string>
 </resources>

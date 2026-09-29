@@ -9,4 +9,20 @@
 
     <!-- folder cover styles, see FolderCoverStyle -->
     <color name="folder_card_scrim">#73000000</color>
+
+    <!--
+        A hue per settings page, worn by its icons and by the badge of the link that opens it: fixed,
+        like the system's own Settings, so a page is known by its colour whatever the theme's accent.
+        Mid-toned, to carry a white glyph and to read as a tint on both themes.
+    -->
+    <color name="settings_hue_appearance">#7E57C2</color>
+    <color name="settings_hue_browsing">#1E88E5</color>
+    <color name="settings_hue_thumbnails">#00897B</color>
+    <color name="settings_hue_folders">#F9A825</color>
+    <color name="settings_hue_viewer">#5C6BC0</color>
+    <color name="settings_hue_gestures">#0097A7</color>
+    <color name="settings_hue_videos">#E53935</color>
+    <color name="settings_hue_security">#43A047</color>
+    <color name="settings_hue_files">#F4511E</color>
+    <color name="settings_hue_backup">#607D8B</color>
 </resources>

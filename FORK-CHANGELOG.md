@@ -15,6 +15,8 @@ Notable fork-only changes.
 - Updated the style and opening animation of the copy and move chooser.
 - The rating chooser is smaller, and opens in the middle of the screen.
 - Clearing the cache asks first.
+- **Settings are redesigned** like a phone's own settings app: a first page of categories, each
+  opening a page of its own, with every setting grouped and given an icon.
 - The thumbnail you come back to from a photo no longer pops in.
 - **Custom order mode is restyled** to match the rest of the app.
 - Outlines on folder covers and in custom order mode are finer, and fade towards the bottom.

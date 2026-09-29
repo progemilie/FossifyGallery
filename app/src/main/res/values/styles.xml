@@ -2,11 +2,87 @@
 
     <style name="AppTheme" parent="AppTheme.Base" />
 
-    <!-- one section of the settings screen; see org.fossify.gallery.views.SettingsCard -->
-    <style name="SettingsCardStyle">
-        <item name="android:layout_marginStart">@dimen/settings_card_margin</item>
-        <item name="android:layout_marginTop">@dimen/settings_card_gap</item>
-        <item name="android:layout_marginEnd">@dimen/settings_card_margin</item>
+    <!-- the settings screen: pages of rounded groups of rows, see org.fossify.gallery.views.SettingsGroup -->
+    <style name="SettingsPage">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="SettingsPageTitle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingStart">@dimen/settings_page_title_margin</item>
+        <item name="android:paddingTop">@dimen/settings_page_title_top</item>
+        <item name="android:paddingEnd">@dimen/settings_page_title_margin</item>
+        <item name="android:paddingBottom">@dimen/settings_page_title_bottom</item>
+        <item name="android:textSize">@dimen/settings_page_title_text_size</item>
+    </style>
+
+    <style name="SettingsGroup">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">@dimen/settings_group_margin</item>
+        <item name="android:layout_marginEnd">@dimen/settings_group_margin</item>
+        <item name="android:layout_marginBottom">@dimen/settings_group_gap</item>
+    </style>
+
+    <style name="SettingsRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">@dimen/settings_row_min_height</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingStart">@dimen/settings_row_padding_horizontal</item>
+        <item name="android:paddingTop">@dimen/settings_row_padding_vertical</item>
+        <item name="android:paddingEnd">@dimen/settings_row_padding_horizontal</item>
+        <item name="android:paddingBottom">@dimen/settings_row_padding_vertical</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+    </style>
+
+    <!-- a row's first child, which its group tints with the page's hue -->
+    <style name="SettingsRowIcon">
+        <item name="android:layout_width">@dimen/settings_row_icon_size</item>
+        <item name="android:layout_height">@dimen/settings_row_icon_size</item>
+        <item name="android:layout_marginEnd">@dimen/settings_row_icon_gap</item>
+        <item name="android:importantForAccessibility">no</item>
+    </style>
+
+    <style name="SettingsRowTexts">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="SettingsRowTitle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">@dimen/bigger_text_size</item>
+    </style>
+
+    <!-- a title alone in its row, taking the room a column of texts would -->
+    <style name="SettingsRowLabel" parent="SettingsRowTitle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_weight">1</item>
+    </style>
+
+    <style name="SettingsRowSummary">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">@dimen/settings_row_summary_gap</item>
+        <item name="android:alpha">0.7</item>
+        <item name="android:textSize">@dimen/normal_text_size</item>
+    </style>
+
+    <!-- the switch is the row's title too, its thumb at the row's end; the row takes the tap -->
+    <style name="SettingsRowSwitch">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:background">@null</item>
+        <item name="android:clickable">false</item>
+        <item name="android:textSize">@dimen/bigger_text_size</item>
     </style>
 
     <style name="CustomBottomSheetDialogTheme" parent="Theme.Design.Light.BottomSheetDialog">
