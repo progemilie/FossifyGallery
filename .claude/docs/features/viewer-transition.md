@@ -23,11 +23,12 @@ Read these before changing this feature — each can break silently if this one 
 | `adapters/MediaGridNavigator.kt` | `locateTile()` — the grid's answer to "where is the tile for this path" |
 | `helpers/ViewerReturn.kt` | Puts the grid back onto the item the viewer was left on |
 | `helpers/ViewerLaunchGuard.kt` | One tap opens one viewer |
+| `helpers/ViewerOpening.kt` | A flick down while a photo is still opening closes it; `DownFlick` |
 | `extensions/Glide.kt` | `lowResPhotoRequest()` / `fullPhotoRequest()` — what the viewer paints with |
 | `res/anim/viewer_hold.xml`, `ViewerTheme` | The no-motion window animation, the translucent theme |
 
-Constants: `FLIGHT_GROW_MS` (250), `FLIGHT_DURATION_MS` (the shrink), `FLIGHT_CHROME_IN`,
-`FLIGHT_SETTLE_*` in `Constants.kt`.
+Constants: `FLIGHT_GROW_MS` (200), `FLIGHT_DURATION_MS` (the shrink, 180), `FLIGHT_CHROME_IN`,
+`FLIGHT_SETTLE_*`, `OPENING_FLICK_DP` in `Constants.kt`.
 
 ## The picture
 
@@ -64,6 +65,24 @@ handed to `enter()` and built once the flight lands — only the pager waits, si
 already drawing what the viewer will draw, where it will draw it. The medium is named before the
 flight (`aimAtOpeningMedium()`), so the bar, strip and buttons can ride in on `FLIGHT_CHROME_IN`
 dressed for the right file.
+
+## Flicking away a photo that is still opening
+
+Someone who opens the wrong photo flicks it away at once, while nothing is there to take the flick:
+the pager is built only once the grow lands, a photo still loading turns touches down, and for the
+first few hundred milliseconds the viewer's window is not taking touches at all, so the gesture goes
+to the grid's window underneath. Both ends watch for it:
+
+- `ViewerOpening.watchGrid` sits ahead of the dispatch of every screen that opens a flight
+  (`MainActivity`, `MediaActivity`, `SearchActivity`). From `beginFlight` until the viewer has the
+  screen, a gesture on the grid is kept from it — it would scroll the grid under the flight — and a
+  flick down closes the viewer, or has it close as soon as it is up (`takeCloseAsked`).
+- `TileFlight.watchOpeningFlick` does the same in the viewer's own window until the stage is
+  revealed; from then on the fragment's own flick handling takes over.
+
+Every flick is timed by its events' own clock (`eventTime - downTime`), never by when the app gets
+round to an event: a viewer setting up can hold an ACTION_UP back for half a second, and a flick
+timed by that reads as a slow drag.
 
 ## What breaks silently
 

@@ -135,6 +135,7 @@ object ViewerTransition {
         setAnchor(flightAnchor)
         fetchFlightPictures(context, medium)
         dropWhenDestroyed(context, flightAnchor)
+        ViewerOpening.began()
         return true
     }
 

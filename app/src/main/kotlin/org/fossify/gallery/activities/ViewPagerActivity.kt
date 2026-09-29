@@ -160,6 +160,7 @@ import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_FAVORITE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_VISIBILITY
 import org.fossify.gallery.helpers.ColorModeHelper
 import org.fossify.gallery.helpers.TileFlight
+import org.fossify.gallery.helpers.ViewerOpening
 import org.fossify.gallery.helpers.DefaultPageTransformer
 import org.fossify.gallery.helpers.TabSwitcher
 import org.fossify.gallery.helpers.applyBottomActionsOrder
@@ -318,6 +319,9 @@ class ViewPagerActivity :
      * brightness slider - has no beginning on record and so is not finished here either.
      */
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        // before any of this exists: the pager is only built once the opening flight lands
+        ViewerOpening.watchViewer(this, ev, flight)
+
         if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
             mPagerTookGesture = mPagerScrollState != ViewPager.SCROLL_STATE_IDLE
         }

@@ -179,7 +179,7 @@ const val GO_TO_PREV_ITEM = "go_to_prev_item"
 const val SHOW_TEMP_HIDDEN_DURATION = 300000L
 const val CLICK_MAX_DURATION = 150
 const val CLICK_MAX_DISTANCE = 100
-const val MAX_CLOSE_DOWN_GESTURE_DURATION = 300
+const val MAX_CLOSE_DOWN_GESTURE_DURATION = 450
 const val MAX_ZOOM_EQUALITY_TOLERANCE = 0.01
 const val DRAG_THRESHOLD = 8
 const val MONTH_MILLISECONDS = MONTH_SECONDS * 1000L
@@ -361,18 +361,17 @@ const val FOLDER_FLASH_DURATION_MS = 90L
 const val FOLDER_FLASH_BLINKS = 3
 
 // the flight between a grid tile and the fullscreen viewer, see TileFlight and ViewerTransition
-const val FLIGHT_DURATION_MS = 220L
+const val FLIGHT_DURATION_MS = 180L
 
 /**
  * How long a tile takes to grow into the photo, against [FLIGHT_DURATION_MS] for the shrink back.
  *
  * Longer because the two are not given the same frames. A shrink runs on a viewer that has been up
- * for a while and is drawn every 16ms; a grow is drawn while its window is still being brought up,
- * where the frames come 40 to 60ms apart. Measured over the same flight, 220ms of that is five or
- * six frames and steps as much as 0.7 of the way across in one of them, against a quarter at worst
- * once there is enough of it for eight.
+ * for a while and is drawn every frame; a grow is drawn while its window is still being brought up,
+ * where the frames come 40 to 60ms apart. Any shorter and a grow is four frames at worst, each a
+ * leap rather than a step.
  */
-const val FLIGHT_GROW_MS = 250L
+const val FLIGHT_GROW_MS = 200L
 
 /**
  * How much of a flight has run before the chrome starts fading in behind it, and all of a shrink
@@ -384,7 +383,10 @@ const val FLIGHT_CHROME_IN = 0.35f
 const val FLIGHT_SETTLE_WAIT_MS = 900L
 
 /** How long the last correction onto a photo that landed somewhere unexpected is given. */
-const val FLIGHT_SETTLE_MS = 120L
+const val FLIGHT_SETTLE_MS = 100L
+
+/** How far a finger has to travel down, in dp, for a flick made while a photo is opening to close it. */
+const val OPENING_FLICK_DP = 40
 
 /** The small first pass at a fullscreen photo, which is also the picture a flight is drawn with. */
 const val LOW_RES_IMAGE_SIZE = 320

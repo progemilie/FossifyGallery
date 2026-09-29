@@ -16,6 +16,8 @@ Notable fork-only changes.
 - The rating chooser is smaller, and opens in the middle of the screen.
 - Clearing the cache asks first.
 - The thumbnail you come back to from a photo no longer pops in.
+- **Opening and closing a photo is quicker**, and a photo can be swiped away the moment it starts
+  opening.
 - **Custom order mode is restyled** to match the rest of the app.
 - Outlines on folder covers and in custom order mode are finer, and fade towards the bottom.
 - The menu opened from a pill at the bottom opens in the middle of the screen.
@@ -29,6 +31,7 @@ Notable fork-only changes.
 - Fixed peek buttons and group ticks staying on a tile after a selection had ended.
 - Fixed holding and dragging to select more pictures not working when the hold started on a peek button.
 - Fixed two photos opening on top of each other when two thumbnails were tapped at once.
+- Fixed a quick swipe down on a photo sometimes being ignored while it was still loading.
 - Fixed a photo closed while it was still opening dropping off the bottom of the screen, rather than
   shrinking back into its thumbnail.
 - Fixed the Settings title, back arrow, status bar icons and last card's shadow on a light theme.

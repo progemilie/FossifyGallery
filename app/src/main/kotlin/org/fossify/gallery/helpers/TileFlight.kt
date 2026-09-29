@@ -87,6 +87,12 @@ class TileFlight(
     private var growTile: ViewerTransition.Tile? = null
 
     /**
+     * Whether the viewer is still opening: the tile growing, or its photo not yet handed over, with
+     * nothing under the flight able to take a gesture - see [ViewerOpening.watchViewer].
+     */
+    val isOpening get() = growTile != null && !isClosing
+
+    /**
      * Grows the tapped tile into the photo, and runs [buildContent] - the screen's own setup, the
      * pager and the media it loads - once it has landed. Does nothing at all where there is nothing
      * to grow from - an external intent, a restored screen, or a platform too old to draw a window
@@ -112,6 +118,7 @@ class TileFlight(
 
         pendingContent = buildContent
         growTile = tile
+        ViewerOpening.closeOnFlick(activity)
 
         activity.letGridShowThrough(true)
         scrim.backdrop = 0f
@@ -134,6 +141,12 @@ class TileFlight(
             val tileCrop = tile.crop()
             val endCrop = if (awaitingPicture) tileCrop else 0f
             overlay.fly(flying, tile.frame, landing(), tileCrop, endCrop)
+
+            // flicked away on the grid before this window could be told
+            if (ViewerOpening.takeCloseAsked()) {
+                activity.finish()
+                return@doOnLayout
+            }
 
             animate(from = 0f, to = 1f, duration = FLIGHT_GROW_MS, interpolator = GROW) { t ->
                 pickUpPicture(path)
@@ -226,6 +239,7 @@ class TileFlight(
     }
 
     private fun revealStage() {
+        ViewerOpening.ended()
         growTile = null
         stage.alpha = 1f
         overlay.clear()
@@ -279,6 +293,8 @@ class TileFlight(
         }
 
         isClosing = true
+        // the grid's next gesture is its own, the viewer being on its way out
+        ViewerOpening.ended()
         // nothing is built behind a flight that has turned round
         pendingContent = null
         animator?.dropWithoutLanding()
