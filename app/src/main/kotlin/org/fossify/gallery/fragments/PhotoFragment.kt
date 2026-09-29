@@ -125,6 +125,7 @@ class PhotoFragment : ViewPagerFragment() {
     private var mWasInit = false
     private var mIsPanorama = false
     private var mIsSubsamplingVisible = false    // checking view.visibility is unreliable, use an extra variable for it
+    private var mIsViewerClosing = false
     private var mShouldResetImage = false
     private var mCurrentPortraitPhotoPath = ""
     private var mOriginalPath = ""
@@ -697,6 +698,12 @@ class PhotoFragment : ViewPagerFragment() {
         else -> isGesturesViewUnzoomed()
     }
 
+    // the zoomable layer decodes the photo all over again, and would do it under the shrink
+    override fun onViewerClosing() {
+        mIsViewerClosing = true
+        mLoadZoomableViewHandler.removeCallbacksAndMessages(null)
+    }
+
     private fun setupGesturesViewStateListener() {
         binding.gesturesView.controller.addOnStateChangeListener(object : GestureController.OnStateChangeListener {
             override fun onStateChanged(state: State) {
@@ -841,6 +848,10 @@ class PhotoFragment : ViewPagerFragment() {
 
     private fun scheduleZoomableView() {
         mLoadZoomableViewHandler.removeCallbacksAndMessages(null)
+        if (mIsViewerClosing) {
+            return
+        }
+
         mLoadZoomableViewHandler.postDelayed({
             if (mIsFragmentVisible && context?.config?.allowZoomingImages == true && (mMedium.isImage() || mMedium.isPortrait()) && !mIsSubsamplingVisible) {
                 addZoomableView()

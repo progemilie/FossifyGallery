@@ -236,6 +236,10 @@ class ViewPagerActivity :
     /** Whether the gesture in progress began while the pager was still moving; see [dispatchTouchEvent]. */
     private var mPagerTookGesture = false
 
+    /** Whether a finger is on the screen, and the media list read in while it was - see [gotMedia]. */
+    private var mIsTouched = false
+    private var mMediaHeldBack: (() -> Unit)? = null
+
     private var mSlideshowHandler = Handler()
     private var mSlideshowInterval = SLIDESHOW_DEFAULT_INTERVAL
     private var mSlideshowMoveBackwards = false
@@ -334,6 +338,17 @@ class ViewPagerActivity :
 
         if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) {
             getCurrentFragment()?.handleViewerEvent(ev)
+        }
+
+        // after the gesture has had its say, so a list held back through a flick that closes the
+        // viewer finds it closing
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
+            mIsTouched = true
+        } else if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) {
+            mIsTouched = false
+            val heldBack = mMediaHeldBack
+            mMediaHeldBack = null
+            heldBack?.invoke()
         }
 
         return handled
@@ -1842,6 +1857,17 @@ class ViewPagerActivity :
     }
 
     private fun gotMedia(thumbnailItems: ArrayList<ThumbnailItem>, ignorePlayingVideos: Boolean = false, refetchViewPagerPosition: Boolean = false) {
+        // read in while the photo shrinks away, it would rebuild the pager in the frames of the shrink
+        if (flight.isClosing) {
+            return
+        }
+
+        // nor under a finger, where it would take the gesture's page away half way through it
+        if (mIsTouched) {
+            mMediaHeldBack = { gotMedia(thumbnailItems, ignorePlayingVideos, refetchViewPagerPosition) }
+            return
+        }
+
         val media = thumbnailItems.asSequence().filter {
             it is Medium && !mIgnoredPaths.contains(it.path)
         }.map { it as Medium }.toMutableList() as ArrayList<Medium>

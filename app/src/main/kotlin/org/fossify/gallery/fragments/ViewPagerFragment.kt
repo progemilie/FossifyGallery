@@ -80,6 +80,12 @@ abstract class ViewPagerFragment : Fragment() {
     open fun displayedMedia(): DisplayedMedia? = null
 
     /**
+     * The viewer is shrinking back into the grid, and anything the fragment starts loading from now
+     * on would only land in the frames of that shrink. See [org.fossify.gallery.helpers.TileFlight].
+     */
+    open fun onViewerClosing() {}
+
+    /**
      * Runs the flick detection over an event the fragment's own views did not get to see, which the
      * viewer feeds in from [android.app.Activity.dispatchTouchEvent].
      *

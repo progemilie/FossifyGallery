@@ -18,7 +18,9 @@ import androidx.core.animation.doOnEnd
 import androidx.core.view.doOnLayout
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
+import androidx.fragment.app.FragmentActivity
 import org.fossify.gallery.extensions.screenRect
+import org.fossify.gallery.fragments.ViewPagerFragment
 import org.fossify.gallery.views.FlightOverlay
 import org.fossify.commons.R as commonsR
 
@@ -65,8 +67,12 @@ class TileFlight(
     private var exitTile: ViewerTransition.Tile? = null
     private var exitPath = ""
 
-    /** Set once the viewer is on its way out, so nothing left running puts the chrome back. */
-    private var isClosing = false
+    /**
+     * Set once the viewer is on its way out, so nothing left running puts the chrome back, and so the
+     * screen can turn away whatever it is still loading - see [stopStage].
+     */
+    var isClosing = false
+        private set
 
     /** The proportions of the picture in flight, which is what a landing rect is measured from. */
     private var flightAspect = 1f
@@ -297,6 +303,7 @@ class TileFlight(
         ViewerOpening.ended()
         // nothing is built behind a flight that has turned round
         pendingContent = null
+        activity.stopStage(stage)
         animator?.dropWithoutLanding()
         animator = null
         if (shown != null && picture != null) {
@@ -436,6 +443,20 @@ fun Activity.holdWindowStill() {
 private fun Activity.letGridShowThrough(letThrough: Boolean) {
     if (ViewerTransition.isSupported) {
         window.setFormat(if (letThrough) PixelFormat.TRANSLUCENT else PixelFormat.OPAQUE)
+    }
+}
+
+/**
+ * Has the screen behind a shrink do nothing more. Whatever it is still setting up - the pages either
+ * side, the zoomable layer, the media list being read back in - would land in the frames of the
+ * shrink, the motion made most in the app. The stage is hidden rather than left faded out, as a faded
+ * view still uploads every picture that finishes decoding in it, to be drawn at nothing; not gone,
+ * which would lay the whole screen out again in the shrink's first frame.
+ */
+private fun Activity.stopStage(stage: View) {
+    stage.isInvisible = true
+    (this as? FragmentActivity)?.supportFragmentManager?.fragments?.forEach {
+        (it as? ViewPagerFragment)?.onViewerClosing()
     }
 }
 

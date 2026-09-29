@@ -27,7 +27,7 @@ Read these before changing this feature — each can break silently if this one 
 | `extensions/Glide.kt` | `lowResPhotoRequest()` / `fullPhotoRequest()` — what the viewer paints with |
 | `res/anim/viewer_hold.xml`, `ViewerTheme` | The no-motion window animation, the translucent theme |
 
-Constants: `FLIGHT_GROW_MS` (200), `FLIGHT_DURATION_MS` (the shrink, 180), `FLIGHT_CHROME_IN`,
+Constants: `FLIGHT_GROW_MS` (250), `FLIGHT_DURATION_MS` (the shrink, 220), `FLIGHT_CHROME_IN`,
 `FLIGHT_SETTLE_*`, `OPENING_FLICK_DP` in `Constants.kt`.
 
 ## The picture
@@ -58,13 +58,13 @@ awaited — turns the overlay's picture round from wherever it has got to.
 
 ## The two directions
 
-A shrink runs on a viewer that has had the main thread to itself, so it is drawn every frame. **A grow
-is started from `onCreate` and has to be given the main thread, or it is not drawn**: inflating a
-pager and starting a decode costs a third of a second of dropped frames. So the screen's setup is
-handed to `enter()` and built once the flight lands — only the pager waits, since the flight is
-already drawing what the viewer will draw, where it will draw it. The medium is named before the
-flight (`aimAtOpeningMedium()`), so the bar, strip and buttons can ride in on `FLIGHT_CHROME_IN`
-dressed for the right file.
+A shrink is given the main thread by the viewer stopping everything else — see [a close stops the
+viewer](#a-close-stops-the-viewer). **A grow is started from `onCreate` and has to be given the main
+thread, or it is not drawn**: inflating a pager and starting a decode costs a third of a second of
+dropped frames. So the screen's setup is handed to `enter()` and built once the flight lands — only
+the pager waits, since the flight is already drawing what the viewer will draw, where it will draw
+it. The medium is named before the flight (`aimAtOpeningMedium()`), so the bar, strip and buttons can
+ride in on `FLIGHT_CHROME_IN` dressed for the right file.
 
 ## Flicking away a photo that is still opening
 
@@ -77,12 +77,33 @@ to the grid's window underneath. Both ends watch for it:
   (`MainActivity`, `MediaActivity`, `SearchActivity`). From `beginFlight` until the viewer has the
   screen, a gesture on the grid is kept from it — it would scroll the grid under the flight — and a
   flick down closes the viewer, or has it close as soon as it is up (`takeCloseAsked`).
-- `TileFlight.watchOpeningFlick` does the same in the viewer's own window until the stage is
+- `ViewerOpening.watchViewer` does the same in the viewer's own window until the stage is
   revealed; from then on the fragment's own flick handling takes over.
 
 Every flick is timed by its events' own clock (`eventTime - downTime`), never by when the app gets
 round to an event: a viewer setting up can hold an ACTION_UP back for half a second, and a flick
 timed by that reads as a slow drag.
+
+## A close stops the viewer
+
+The close people make most is a photo looked at and flicked away, and it comes while the viewer is
+still setting up. `ViewPagerActivity` builds its pager only once `GetMediaAsynctask` has read the
+whole library back in — later the bigger the library — and after that the pages either side and the
+zoomable layer load. All of it runs on the main thread, and whatever lands during a shrink freezes it
+for as long as it takes. So a close has the viewer do nothing more (`stopStage()` in `TileFlight.kt`):
+
+- The stage is hidden (`INVISIBLE`) rather than left faded out, since a faded view still uploads
+  every picture that finishes decoding in it. Not `GONE`, which would lay the whole screen out again
+  in the shrink's first frame.
+- Every `ViewPagerFragment` is told (`onViewerClosing()`); `PhotoFragment` drops the zoomable layer it
+  has scheduled.
+- `gotMedia` drops a list read in while `flight.isClosing`, and holds back one read in under a finger
+  until the finger lifts: a pager rebuilt half way through a flick loses the flick, and one rebuilt
+  just before a close is what the shrink's first frame waits on.
+
+The shrink also runs on the clock, so a slow frame skips it ahead: at 180ms the emulator skipped the
+end of a quarter of the shrinks made while a photo was still opening, against one in thirty at 220 —
+which is what keeps `FLIGHT_DURATION_MS` there.
 
 ## What breaks silently
 
@@ -105,6 +126,8 @@ And:
 
 - `ViewerLaunchGuard` turns away a second tap until the viewer that opened is back on top; two tiles
   tapped at once used to open two viewers.
+- Anything a viewer starts once `isClosing` is set lands in the frames of the shrink: a new kind of
+  loading has to check it, or stop in `onViewerClosing()`.
 - The grid anchor is dropped when the grid comes back up, and when it is destroyed
   (`dropWhenDestroyed`), or a stale grid answers for the next viewer.
 - `PhotoFragment` reports no rect until something is drawn; reporting the view's whole bounds made
