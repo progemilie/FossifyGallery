@@ -19,7 +19,6 @@ import org.fossify.gallery.helpers.GROUP_BY_NONE
 import org.fossify.gallery.helpers.GROUP_DESCENDING
 import org.fossify.gallery.helpers.GROUP_SHOW_FILE_COUNT
 import org.fossify.gallery.helpers.SHOW_ALL
-import org.fossify.gallery.helpers.SORT_BY_RATING
 import org.fossify.gallery.views.DROPDOWN_DISABLED_ALPHA
 import org.fossify.gallery.views.Dropdown
 import org.fossify.commons.R as commonsR
@@ -129,10 +128,10 @@ class ChangeSortingDialog(
             isEnabled = !isCustomMediaSorting
         }
 
-        // a hand made order is drawn as the flat list it is and a rating brings headers of its own,
-        // so MediaFetcher.groupMedia ignores the grouping under either - say so, rather than leave a
-        // live looking choice that is dropped the moment the dialog closes
-        setGroupSectionLive(sorting != SORT_BY_CUSTOM && sorting != SORT_BY_RATING)
+        // a hand made order is drawn as the flat list it is, so MediaFetcher.groupMedia ignores the
+        // grouping under it - say so, rather than leave a live looking choice that is dropped the
+        // moment the dialog closes
+        setGroupSectionLive(sorting != SORT_BY_CUSTOM)
         refreshDivider()
     }
 

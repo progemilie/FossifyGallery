@@ -2,6 +2,7 @@ package org.fossify.gallery
 
 import android.os.StrictMode
 import org.fossify.gallery.helpers.Config
+import org.fossify.gallery.helpers.keepRatingHeaders
 import com.github.ajalt.reprint.core.Reprint
 import com.squareup.picasso.Downloader
 import com.squareup.picasso.Picasso
@@ -27,6 +28,7 @@ class App : FossifyApp() {
             enableStrictMode()
         }
 
+        keepRatingHeaders()
         Reprint.initialize(this)
         Picasso.setSingletonInstance(Picasso.Builder(this).downloader(object : Downloader {
             override fun load(request: Request) = Response.Builder().build()

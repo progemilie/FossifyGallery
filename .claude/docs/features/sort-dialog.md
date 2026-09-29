@@ -7,7 +7,7 @@ which way it runs. It replaced two dialogs of radio buttons; "Group by" is gone 
 
 Read these before changing this feature — each can break silently if this one changes without it.
 
-- [ratings](ratings.md) — sorting by rating brings its own headers, overriding the grouping.
+- [ratings](ratings.md) — rating is both a sorting and a grouping, and a scan has to read ratings, and the real date taken, for them.
 - [custom-media-order](custom-media-order.md) — a hand made order is drawn flat, overriding the grouping.
 
 ## Where it lives
@@ -24,12 +24,12 @@ The two orders are independent: a folder is often wanted newest first with its m
 oldest at the top. One "use for this folder only" tick covers both.
 
 The group section goes away on the folder grid and under horizontal scrolling, and greys out while
-sorting by rating or by hand — `groupMedia` ignores the grouping under either, since a rating brings
-headers of its own and a hand made order is a flat list. Sorting by hand is only offered in a folder
-that has been arranged; a shuffle and a hand made order hide the direction arrow (INVISIBLE, so the
-field does not change width).
+sorting by hand — `groupMedia` ignores the grouping under a hand made order, which is a flat list.
+Sorting by hand is only offered in a folder that has been arranged; a shuffle and a hand made order
+hide the direction arrow (INVISIBLE, so the field does not change width).
 
-Sorting by rating falls back to newest first within each rating, the way Aves does.
+Rating is offered in both dropdowns and combines with anything in the other. Sorting by rating falls
+back to the date taken, newest first, within each rating, the way Aves does.
 
 `Dropdown` is a `PopupWindow`, modelled on `GlassMenu` but on a plain raised surface: a popup is its
 own window, with nothing behind it for a `GlassPanel` to sample. It measures against the window's

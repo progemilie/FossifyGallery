@@ -22,6 +22,7 @@ import org.fossify.gallery.helpers.GROUP_BY_FOLDER
 import org.fossify.gallery.helpers.GROUP_BY_LAST_MODIFIED_DAILY
 import org.fossify.gallery.helpers.GROUP_BY_LAST_MODIFIED_MONTHLY
 import org.fossify.gallery.helpers.GROUP_BY_NONE
+import org.fossify.gallery.helpers.GROUP_BY_RATING
 import org.fossify.gallery.helpers.SORT_BY_RATING
 import org.fossify.gallery.views.DropdownOption
 import org.fossify.commons.R as commonsR
@@ -69,6 +70,7 @@ internal fun groupingOptions(context: Context, offerFolder: Boolean): List<Dropd
         add(GROUP_BY_DATE_TAKEN_MONTHLY to R.string.by_date_taken_monthly)
         add(GROUP_BY_FILE_TYPE to R.string.by_file_type)
         add(GROUP_BY_EXTENSION to R.string.by_extension)
+        add(GROUP_BY_RATING to R.string.rating)
         if (offerFolder) {
             add(GROUP_BY_FOLDER to R.string.by_folder)
         }

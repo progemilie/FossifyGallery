@@ -163,6 +163,7 @@ import org.fossify.gallery.helpers.SET_WALLPAPER_INTENT
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_TEMP_HIDDEN_DURATION
 import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
+import org.fossify.gallery.helpers.SORT_BY_RATING
 import org.fossify.gallery.helpers.SelectionChrome
 import org.fossify.gallery.helpers.TAB_SCROLL_OFFSET
 import org.fossify.gallery.helpers.TAB_SCROLL_PATH
@@ -1881,6 +1882,8 @@ class MainActivity :
                 val grouping = config.getFolderGrouping(directory.path)
                 val getProperDateTaken = config.directorySorting and SORT_BY_DATE_TAKEN != 0
                         || sorting and SORT_BY_DATE_TAKEN != 0
+                        // media rated alike fall back to the date taken
+                        || sorting and SORT_BY_RATING != 0
                         || grouping and GROUP_BY_DATE_TAKEN_DAILY != 0
                         || grouping and GROUP_BY_DATE_TAKEN_MONTHLY != 0
 
@@ -2007,6 +2010,8 @@ class MainActivity :
             val grouping = config.getFolderGrouping(folder)
             val getProperDateTaken = config.directorySorting and SORT_BY_DATE_TAKEN != 0
                     || sorting and SORT_BY_DATE_TAKEN != 0
+                    // media rated alike fall back to the date taken
+                    || sorting and SORT_BY_RATING != 0
                     || grouping and GROUP_BY_DATE_TAKEN_DAILY != 0
                     || grouping and GROUP_BY_DATE_TAKEN_MONTHLY != 0
 

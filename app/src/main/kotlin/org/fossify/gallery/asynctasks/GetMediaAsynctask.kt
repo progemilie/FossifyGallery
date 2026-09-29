@@ -24,6 +24,8 @@ class GetMediaAsynctask(
         val folderGrouping = context.config.getFolderGrouping(pathToUse)
         val folderSorting = context.config.getFolderSorting(pathToUse)
         val getProperDateTaken = folderSorting and SORT_BY_DATE_TAKEN != 0 ||
+            // media rated alike fall back to the date taken
+            folderSorting and SORT_BY_RATING != 0 ||
             folderGrouping and GROUP_BY_DATE_TAKEN_DAILY != 0 ||
             folderGrouping and GROUP_BY_DATE_TAKEN_MONTHLY != 0
 

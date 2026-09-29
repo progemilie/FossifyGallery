@@ -23,6 +23,7 @@ Notable fork-only changes.
 - The metadata sheet no longer shows a date created, which only ever repeated another date.
 - The folder grid offers only as many columns as fit the screen — five on a phone — rather than
   up to twenty.
+- Sorting and grouping by rating works like any other sorting now.
 ### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.
@@ -33,6 +34,7 @@ Notable fork-only changes.
   shrinking back into its thumbnail.
 - Fixed the Settings title, back arrow, status bar icons and last card's shadow on a light theme.
 - Fixed a renamed photo losing its place in a folder arranged by hand.
+- Fixed photos with the same rating not being in date taken order when sorting by rating.
 - Fixed removing metadata from an unusually built file possibly saving only part of the photo. Files that cannot be read to the end are now left untouched.
 
 ## [v1.19.0] - 2026.09.01 — UI

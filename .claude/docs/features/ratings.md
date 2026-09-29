@@ -1,8 +1,8 @@
 # Ratings
 
 Photos are rated out of five, the way Aves does it, with the rating written into the file so Aves,
-Lightroom, digiKam and Windows all read it. Media can be sorted by rating, which brings its own
-headers, and a rating badge can be shown on thumbnails.
+Lightroom, digiKam and Windows all read it. Media can be sorted and grouped by rating, and a rating
+badge can be shown on thumbnails.
 
 ## Coupled with
 
@@ -11,7 +11,7 @@ Read these before changing this feature — each can break silently if this one 
 - [file-edits](file-edits.md) — writes go through `XmpPacket`, put the date back and invalidate no cache.
 - [metadata-sheet](metadata-sheet.md) — descriptions share the same XMP packet.
 - [custom-media-order](custom-media-order.md) — both Room tables are keyed by path and move together on a rename.
-- [sort-dialog](sort-dialog.md) — the rating sort overrides the chosen grouping.
+- [sort-dialog](sort-dialog.md) — rating is offered as a sorting and as a grouping, and a scan has to read ratings for either.
 
 ## Where it lives
 
@@ -22,6 +22,7 @@ Read these before changing this feature — each can break silently if this one 
 | `extensions/Rating.kt` | `getFileRating`, `updateFileRating`, `updateFilesRating`, `storeRating`, `canBeRated`, labels |
 | `models/MediaRating.kt`, `interfaces/MediaRatingsDao.kt` | The `media_ratings` cache (DB v12); `media.rating` column |
 | `helpers/RatingScan.kt` | The rating side of a media scan |
+| `helpers/RatingArrangement.kt` | What is sorted or grouped by rating; the one-off `keepRatingHeaders()` |
 | `helpers/MediaFetcher.kt` | `SORT_BY_RATING`, `GROUP_BY_RATING` |
 | `views/RatingChooser.kt`, `dialogs/RateMediumDialog.kt` | Hold the star and slide, or tap for a dialog — see [hold choosers](hold-choosers.md) |
 | `adapters/MediaAdapter.kt` | Bulk rating a selection |
@@ -42,15 +43,25 @@ action is not offered for others. `updateFileRating` refuses them with a toast, 
 size as the staleness signature — kept out of the media table because media rows are dropped and
 reinserted on every rescan. `RatingScan` answers a scan from the cache, opens a file only when nothing
 still describes it (caching "no rating" too), and writes what it read at the end. **It only runs at
-all when something will use the answer** — a thumbnail badge (`Config.showThumbnailRating`) or a
-rating sort on that folder. A rename carries the row along (`updateDBMediaPath`).
+all when something will use the answer** — a thumbnail badge (`Config.showThumbnailRating`), or
+sorting or grouping by rating on that folder or on the all media grid, which is put together out of
+every folder's scan (`arrangesByRating`). The one pass over the whole of MediaStore asks that of
+each file's folder, so a single folder sorted by rating does not read the whole library. A rename
+carries the row along (`updateDBMediaPath`).
 
 ## Sorting and grouping
 
-Sorting by rating brings its own headers (stars, or "unrated") in place of whatever grouping the folder
-is set to: `groupMedia` swaps in `GROUP_BY_RATING`, keeping only the file count preference and running
-the headers the way the sort runs. `GROUP_BY_RATING` is never offered as a grouping of its own. Within
-a rating, media falls back to newest first.
+Rating is a sorting and a grouping like any other, and the two combine freely: sorted by rating
+inside each month, or grouped by rating with each group in date order. A rating group is headed by
+its stars, or "Unrated".
+
+Within one rating a rating sort falls back to the date taken, newest first, the way Aves does. A scan
+leaves the date taken as the last modified date, or as nothing, unless it is asked for the real one
+(`getProperDateTaken`), so every scan sorting by rating asks for it.
+
+Sorting by rating used to bring rating headers along whatever the grouping said. `keepRatingHeaders()`
+turned those into saved groupings once, at startup (`RatingHeaders` is the working, unit tested), so
+nothing changed on screen for anyone already sorting by rating.
 
 ## What breaks silently
 
