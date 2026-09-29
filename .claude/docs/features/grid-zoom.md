@@ -64,10 +64,13 @@ on the nearest rung, or carries on to the next when the fingers lift fast enough
 
 While the fingers are down **the grid itself is left alone**. `GridZoomOverlay`, under it in the
 pane, draws the two neighbouring counts from `ZoomScene`: each scaled so their tiles are one size,
-and lined up on one lattice by an anchor tile near the fingers, so a tile never travels between rows
-— the anchor's row keeps its tiles, other rows only change pictures, and the columns one count lacks
-come in from or go out to the sides. Headers keep their length while rows scale. Only pictures are
-drawn, never badges. On landing the grid is put at the count and scrolled to lie exactly as last
+and lined up on one lattice. **Across, both are pinned at the edge rows start from** — the left, or
+the right in a right-to-left locale — so the grid only grows and shrinks away from it: the column one
+count lacks comes in or goes out at the far edge, and nothing slides sideways between counts. Along,
+they are lined up by the tile under the fingers, whose row at either count is drawn in one place, so
+the rows the pinch is over stay under it. A tile never travels; each cell only changes over from one
+count's picture to the other's. Headers keep their length while rows scale. Only pictures are drawn,
+never badges. On landing the grid is put at the count and scrolled to lie exactly as last
 drawn, then `GridHandover` fades it back in once its tiles have their pictures (at most
 `PICTURES_WAIT_MS`).
 

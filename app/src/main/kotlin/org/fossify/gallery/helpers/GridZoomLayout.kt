@@ -18,7 +18,10 @@ class GridShape(
     /** Spans laid out from the right, as a vertical grid is in a right-to-left locale. */
     val rtl: Boolean,
     val headerLength: Int,
-)
+) {
+    /** Where rows start across: the start of the spans, or their end when they are laid out from the right. */
+    val rowsStart get() = if (rtl) acrossPadding + acrossSpace else acrossPadding
+}
 
 /**
  * A grid's list cut into its grouping sections: a header where there is one, and the run of media
