@@ -32,6 +32,8 @@ Notable fork-only changes.
 - Fixed two photos opening on top of each other when two thumbnails were tapped at once.
 - Fixed a quick swipe down on a photo sometimes being ignored while it was still loading.
 - Fixed a photo swiped away straight after opening stuttering as it shrank back into its thumbnail.
+- Fixed the grid jumping to a photo near the top or bottom of the screen that was closed straight
+  after opening it.
 - Fixed a photo closed while it was still opening dropping off the bottom of the screen, rather than
   shrinking back into its thumbnail.
 - Fixed the Settings title, back arrow, status bar icons and last card's shadow on a light theme.

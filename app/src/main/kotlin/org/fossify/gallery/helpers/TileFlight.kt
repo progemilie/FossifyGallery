@@ -91,6 +91,7 @@ class TileFlight(
 
     /** The tile a grow set off from, until the viewer has taken the screen over from the flight. */
     private var growTile: ViewerTransition.Tile? = null
+    private var growPath = ""
 
     /**
      * Whether the viewer is still opening: the tile growing, or its photo not yet handed over, with
@@ -124,6 +125,7 @@ class TileFlight(
 
         pendingContent = buildContent
         growTile = tile
+        growPath = path
         ViewerOpening.closeOnFlick(activity)
 
         activity.letGridShowThrough(true)
@@ -268,6 +270,11 @@ class TileFlight(
         ViewerTransition.locate(path) { tile ->
             if (path == exitPath) {
                 exitTile = tile
+                // closed in the frame the grid took to scroll onto the tile it grew from, so the
+                // flight turned back to where the tile was: land where it went
+                if (isClosing && tile != null && path == growPath) {
+                    overlay.retarget(tile.frame)
+                }
             }
         }
     }
@@ -302,6 +309,8 @@ class TileFlight(
         isClosing = true
         // the grid's next gesture is its own, the viewer being on its way out
         ViewerOpening.ended()
+        // lands in the tile wherever the grid has it, and the grid is to stay put under it
+        ViewerTransition.hasFlownBack = true
         // nothing is built behind a flight that has turned round
         pendingContent = null
         activity.stopStage(stage)

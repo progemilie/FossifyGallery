@@ -30,6 +30,7 @@ class ViewerReturn {
     fun opening(path: String) {
         this.path = path
         isPending = true
+        ViewerTransition.hasFlownBack = false
     }
 
     /** Takes the path the viewer swiped to off its result, if it had one to give. */
@@ -43,9 +44,13 @@ class ViewerReturn {
     /**
      * Scrolls to the item if the grid has it. The request stays pending otherwise - a refresh still
      * on its way may yet bring the item in.
+     *
+     * Not after a photo shrank back into its tile, which landed where the grid has it. A viewer
+     * closed while still opening had no time to put the grid onto it out of sight, and scrolling
+     * now would be seen.
      */
     fun reveal(gridNavigator: MediaGridNavigator?) {
-        if (isPending && gridNavigator?.revealItem(path) == true) {
+        if (isPending && (ViewerTransition.hasFlownBack || gridNavigator?.revealItem(path) == true)) {
             isPending = false
         }
     }
