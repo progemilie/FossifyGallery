@@ -6,9 +6,6 @@ Notable fork-only changes.
 ### Added
 - **Zooming into a photo takes the chrome away**, and letting it back out brings it back.
 - Holding a picked picture and dragging unpicks the pictures the finger passes over.
-- **Group by rating.** Sorting by rating works like any other sorting now, so it can be combined
-  with any grouping — rating inside each month, say. Anything already sorted by rating keeps its
-  rating headers.
 - **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with
   adjustable spacing and an optional folder size on the details line.
 ### Changed
@@ -26,6 +23,7 @@ Notable fork-only changes.
 - The metadata sheet no longer shows a date created, which only ever repeated another date.
 - The folder grid offers only as many columns as fit the screen — five on a phone — rather than
   up to twenty.
+- Sorting and grouping by rating works like any other sorting now.
 ### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.
