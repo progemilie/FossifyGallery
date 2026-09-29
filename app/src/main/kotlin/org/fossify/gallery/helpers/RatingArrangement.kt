@@ -18,18 +18,6 @@ private const val RATING_HEADERS_KEPT = "rating_headers_kept"
 fun Config.arrangesByRating(path: String) =
     getFolderSorting(path) and SORT_BY_RATING != 0 || isRatingGrouping(getFolderGrouping(path))
 
-/** Whether anything at all is sorted or grouped by rating: the defaults, or any one folder. */
-fun Context.isAnythingArrangedByRating(): Boolean {
-    if (config.sorting and SORT_BY_RATING != 0 || isRatingGrouping(config.groupBy)) {
-        return true
-    }
-
-    return getSharedPrefs().all.any { (key, value) ->
-        value is Int && (key.startsWith(SORT_FOLDER_PREFIX) && value and SORT_BY_RATING != 0 ||
-            key.startsWith(GROUP_FOLDER_PREFIX) && isRatingGrouping(value))
-    }
-}
-
 // what Config.getFolderGrouping hands back inside a folder for a default of "by folder" has every
 // low bit set, GROUP_BY_NONE among them, and means no grouping at all
 private fun isRatingGrouping(grouping: Int) = grouping and GROUP_BY_NONE == 0 && grouping and GROUP_BY_RATING != 0

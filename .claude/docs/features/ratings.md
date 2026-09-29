@@ -45,9 +45,9 @@ reinserted on every rescan. `RatingScan` answers a scan from the cache, opens a 
 still describes it (caching "no rating" too), and writes what it read at the end. **It only runs at
 all when something will use the answer** — a thumbnail badge (`Config.showThumbnailRating`), or
 sorting or grouping by rating on that folder or on the all media grid, which is put together out of
-every folder's scan (`arrangesByRating`). The one pass over the whole of MediaStore asks whether
-anything at all is (`isAnythingArrangedByRating`). A rename carries the row along
-(`updateDBMediaPath`).
+every folder's scan (`arrangesByRating`). The one pass over the whole of MediaStore asks that of
+each file's folder, so a single folder sorted by rating does not read the whole library. A rename
+carries the row along (`updateDBMediaPath`).
 
 ## Sorting and grouping
 

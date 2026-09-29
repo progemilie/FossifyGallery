@@ -457,7 +457,7 @@ class MediaFetcher(val context: Context) {
         // hashed once instead of scanning the list again for every MediaStore row below
         val favorites = favoritePaths.toHashSet()
 
-        val ratings = RatingScan(context, FAVORITES, everyFolder = true)
+        val ratings = RatingScan(context, folder = null)
 
         val projection = arrayOf(
             Images.Media._ID,
