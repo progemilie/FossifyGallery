@@ -11,6 +11,7 @@ import android.widget.RelativeLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.view.children
+import androidx.core.view.descendants
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import com.google.gson.Gson
@@ -45,6 +46,7 @@ class SettingsActivity : SimpleActivity() {
     private var mRecycleBinContentSize = 0L
     private val binding by viewBinding(ActivitySettingsBinding::inflate)
     private lateinit var pages: SettingsPages
+    private lateinit var search: SettingsSearch
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,6 +78,16 @@ class SettingsActivity : SimpleActivity() {
             onShown = ::pageShown
         )
         pages.restoreState(savedInstanceState)
+
+        search = SettingsSearch(
+            holder = binding.settingsSearchHolder,
+            field = binding.settingsSearch,
+            clear = binding.settingsSearchClear,
+            links = binding.settingsHomeLinks,
+            results = binding.settingsSearchResults,
+            empty = binding.settingsSearchEmpty,
+            pages = pages
+        )
     }
 
     override fun onResume() {
@@ -91,7 +103,8 @@ class SettingsActivity : SimpleActivity() {
         setupSettingItems()
     }
 
-    override fun onBackPressedCompat() = pages.goHome()
+    // a page closes first, then whatever was being searched for, then the screen
+    override fun onBackPressedCompat() = pages.goHome() || search.clear()
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
@@ -226,7 +239,7 @@ class SettingsActivity : SimpleActivity() {
      */
     private fun setupPages() {
         val textColor = getProperTextColor()
-        binding.settingsHome.children.filterIsInstance<SettingsGroup>().forEach { it.updateColors() }
+        binding.settingsHome.descendants.filterIsInstance<SettingsGroup>().forEach { it.updateColors() }
         pages.links.forEach { it.updateColors(textColor) }
         pages.all.forEach {
             it.refreshGroups()
@@ -234,6 +247,8 @@ class SettingsActivity : SimpleActivity() {
         }
 
         pageShown(pages.shown, pages.title)
+        // after the pages, whose rows and colours its findings are drawn from
+        search.updateColors(textColor)
     }
 
     /**

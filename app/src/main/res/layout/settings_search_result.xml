@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A setting a search has found: its icon, its title, and the page and heading it is under. See SettingsSearch. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/SettingsRow">
+
+    <ImageView
+        android:id="@+id/settings_result_icon"
+        style="@style/SettingsRowIcon"
+        android:contentDescription="@null"
+        tools:src="@drawable/ic_settings_brightness_vector" />
+
+    <LinearLayout style="@style/SettingsRowTexts">
+
+        <org.fossify.commons.views.MyTextView
+            android:id="@+id/settings_result_title"
+            style="@style/SettingsRowTitle"
+            tools:text="@string/max_brightness" />
+
+        <org.fossify.commons.views.MyTextView
+            android:id="@+id/settings_result_path"
+            style="@style/SettingsRowSummary"
+            tools:text="@string/fullscreen_media" />
+
+    </LinearLayout>
+
+</LinearLayout>

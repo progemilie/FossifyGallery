@@ -40,15 +40,20 @@ class SettingsPage @JvmOverloads constructor(
         this.hue = hue
     }
 
-    private val groups get() = children.filterIsInstance<SettingsGroup>()
+    val groups get() = children.filterIsInstance<SettingsGroup>()
+
+    /** The hue as the page's icons wear it, which a search's findings wear too. */
+    @ColorInt
+    var iconColor: Int = hue
+        private set
 
     /**
      * Re-reads the theme. The hue its icons and headings wear is carried as far towards white on a
      * dark theme, or black on a light one, as it has to be to read on the cards.
      */
     fun updateColors() {
-        val readable = readableOn(settingsCardColor(context), hue)
-        groups.forEach { it.updateColors(readable) }
+        iconColor = readableOn(settingsCardColor(context), hue)
+        groups.forEach { it.updateColors(iconColor) }
     }
 
     /** Hides whichever groups have been left with nothing to show. */

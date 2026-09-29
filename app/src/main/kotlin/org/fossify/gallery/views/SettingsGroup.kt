@@ -68,6 +68,8 @@ class SettingsGroup @JvmOverloads constructor(
     /** The rows, for a screen that paints them only once they can be seen. */
     val settings: ViewGroup get() = rows
 
+    val title: CharSequence get() = heading.text ?: ""
+
     init {
         orientation = VERTICAL
         context.obtainStyledAttributes(attrs, R.styleable.SettingsGroup).use {

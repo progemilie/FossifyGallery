@@ -449,4 +449,5 @@
     <string name="settings_section_player">Player</string>
     <string name="settings_section_password_protection">Password protection</string>
     <string name="settings_section_order_groups">Order &amp; groups</string>
+    <string name="settings_search_clear">Clear search</string>
 </resources>

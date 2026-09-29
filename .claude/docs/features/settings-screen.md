@@ -15,6 +15,7 @@ None known.
 |---|---|
 | `activities/SettingsActivity.kt` | The screen: every setting's setup, `setupPages`, `pageShown` |
 | `helpers/SettingsPages.kt` | Which page is up, the links to them, the slide between them, back |
+| `helpers/SettingsSearch.kt` | The search at the top of the first page, and what it finds |
 | `views/SettingsPage.kt` | `SettingsPage` (a category's title and hue) and `SettingsLink` (a row opening one) |
 | `views/SettingsGroup.kt` | A heading over a rounded card of rows, with hairlines between them |
 | `layout/activity_settings.xml` | Every page at once; `layout/settings_link.xml` for a link |
@@ -45,8 +46,17 @@ LinearLayouts of icon, then texts or a switch; the Tabs row keeps a RelativeLayo
 for the (i), which is placed at runtime just past the label.
 
 The heading at the top of the content is the open page's name, and hands over to the bar's title as
-it scrolls under the bar. The bar floats over the pages, softened by the same edge fades the grids
-use.
+it scrolls under the bar, which fills in behind it. The bar floats over the pages, softened by the
+same edge fades the grids use.
+
+## Search
+
+While anything is typed into the field at the top of the first page, its links give way to every
+setting whose title holds the text (accents and case aside), under the page and heading it sits on.
+What is searched is read off the rows as they stand at that moment - a row's title is the first
+text it shows - so a row its setup has hidden is not found, and one it has retitled is found by its
+new title. Picking a finding opens its page, scrolls the setting into view and washes it in the
+page's hue for a moment. Back closes a page first, then the search, then the screen.
 
 ## What breaks silently
 

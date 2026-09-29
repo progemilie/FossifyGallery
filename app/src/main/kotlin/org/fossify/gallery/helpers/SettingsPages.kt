@@ -1,10 +1,13 @@
 package org.fossify.gallery.helpers
 
+import android.animation.ValueAnimator
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import android.widget.TextView
+import androidx.core.animation.doOnEnd
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.descendants
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
@@ -16,6 +19,12 @@ import org.fossify.gallery.views.SettingsPage
 private const val SLIDE = 0.1f
 private const val OUT_MS = 90L
 private const val IN_MS = 220L
+
+/** A revealed setting is brought this far down what can be seen, and washed in its page's hue. */
+private const val REVEAL_AT = 0.3f
+private const val REVEAL_WASH_ALPHA = 90
+private const val REVEAL_HOLD_MS = 700L
+private const val REVEAL_FADE_MS = 900L
 
 private const val OPEN_PAGE = "open_settings_page"
 
@@ -35,11 +44,15 @@ class SettingsPages(
     /** Told of the page coming up before its first frame: paint it, and name it in the bar. */
     private val onShown: (page: ViewGroup, title: String) -> Unit,
 ) {
-    private val pages = HashMap<Int, SettingsPage>()
+    // in the order their links are in, which a search lists its findings by
+    private val pages = LinkedHashMap<Int, SettingsPage>()
     private var open: SettingsPage? = null
 
     /** Where the first page was scrolled to, for coming back to it. */
     private var homeScroll = 0
+
+    /** A setting to point out once the page opening has been laid out. */
+    private var revealing: View? = null
 
     /** The links on the first page, each wearing the title and hue of the page it opens. */
     val links = home.descendants.filterIsInstance<SettingsLink>().toList()
@@ -60,7 +73,8 @@ class SettingsPages(
         }
     }
 
-    fun show(page: SettingsPage, animate: Boolean = true) {
+    /** Opens [page], and brings [reveal] - one of its settings - into view and points it out. */
+    fun show(page: SettingsPage, animate: Boolean = true, reveal: View? = null) {
         if (open === page) {
             return
         }
@@ -69,6 +83,7 @@ class SettingsPages(
             homeScroll = scroller.scrollY
         }
 
+        revealing = reveal
         switchTo(page, forward = true, animate)
     }
 
@@ -132,6 +147,41 @@ class SettingsPages(
         // swapped in has been measured, or the scroll is held to the one swapped out
         val target = if (page == null) homeScroll else 0
         scroller.scrollTo(0, target)
-        content.doOnNextLayout { scroller.scrollTo(0, target) }
+        content.doOnNextLayout {
+            scroller.scrollTo(0, target)
+            revealing?.let(::reveal)
+            revealing = null
+        }
+    }
+
+    /**
+     * Scrolls [row] a third of the way down what can be seen, and washes it in the page's hue as the
+     * page comes in, fading back out - a press's ripple was too faint a mark on a dark card.
+     */
+    private fun reveal(row: View) {
+        var top = 0
+        var view = row
+        while (view !== content) {
+            top += view.top
+            view = view.parent as? View ?: return
+        }
+
+        val visible = scroller.height - scroller.paddingTop - scroller.paddingBottom
+        scroller.smoothScrollTo(0, (top - visible * REVEAL_AT).toInt().coerceAtLeast(0))
+
+        val wash = (open?.iconColor ?: return).toDrawable().apply { alpha = REVEAL_WASH_ALPHA }
+        row.foreground = wash
+        ValueAnimator.ofInt(REVEAL_WASH_ALPHA, 0).apply {
+            startDelay = IN_MS + REVEAL_HOLD_MS
+            duration = REVEAL_FADE_MS
+            addUpdateListener { wash.alpha = it.animatedValue as Int }
+            doOnEnd {
+                if (row.foreground === wash) {
+                    row.foreground = null
+                }
+            }
+
+            start()
+        }
     }
 }

@@ -50,6 +50,8 @@
     <dimen name="settings_badge_padding">9dp</dimen>
     <dimen name="settings_badge_gap">16dp</dimen>
     <dimen name="settings_chevron_size">24dp</dimen>
+    <dimen name="settings_search_height">56dp</dimen>
+    <dimen name="settings_search_icon_gap">16dp</dimen>
 
     <!-- how far a page scrolls before its heading has handed over to the bar's title -->
     <dimen name="settings_title_fade_distance">48dp</dimen>
