@@ -220,6 +220,9 @@ class ViewPagerActivity :
     companion object {
         private const val REQUEST_VIEW_VIDEO = 1
         private const val SAVED_PATH = "current_path"
+
+        /** How long the thumbnail strip takes to step aside for a video, or back for a photo. */
+        private const val STRIP_SWAP_MS = 150L
     }
 
     private var mPath = ""
@@ -775,6 +778,7 @@ class ViewPagerActivity :
             binding.viewerThumbnailStrip.setMedia(media, mPos)
             // onPageSelected does not fire for the page the pager opens on
             flight.onPathChanged(getCurrentPath())
+            updateThumbnailStrip(animate = false)
         }
     }
 
@@ -1200,7 +1204,7 @@ class ViewPagerActivity :
             binding.bottomActions.root.beGone()
         }
 
-        binding.viewerThumbnailStrip.beVisibleIf(config.showThumbnailStrip)
+        updateThumbnailStrip(animate = false)
         binding.viewerThumbnailStrip.requestApplyInsets()
     }
 
@@ -1210,10 +1214,40 @@ class ViewPagerActivity :
      */
     private fun toggleThumbnailStrip() {
         config.showThumbnailStrip = !config.showThumbnailStrip
-        binding.viewerThumbnailStrip.beVisibleIf(config.showThumbnailStrip)
+        updateThumbnailStrip(animate = false)
         // the strip and the bottom actions share the space above the navigation bar
         binding.viewerThumbnailStrip.requestApplyInsets()
         refreshMenuItems()
+    }
+
+    /**
+     * The strip as its setting has it, except over a video played here, where it steps aside: the
+     * video's own frames stand in its place as the video's progress bar - see VideoFragment. Invisible
+     * rather than gone, so the buttons under it and the choosers over it stay where they are.
+     */
+    private fun updateThumbnailStrip(animate: Boolean = true) {
+        val strip = binding.viewerThumbnailStrip
+        if (!config.showThumbnailStrip) {
+            strip.animate().cancel()
+            strip.beGone()
+            return
+        }
+
+        val showsVideo = getCurrentMedium()?.isVideo() == true && !config.gestureVideoPlayer
+        val alpha = if (showsVideo) 0f else 1f
+        strip.animate().cancel()
+        if (!animate) {
+            strip.alpha = alpha
+            strip.visibility = if (showsVideo) View.INVISIBLE else View.VISIBLE
+            return
+        }
+
+        strip.beVisible()
+        strip.animate().alpha(alpha).setDuration(STRIP_SWAP_MS).withEndAction {
+            if (showsVideo) {
+                strip.visibility = View.INVISIBLE
+            }
+        }.start()
     }
 
     private fun setupThumbnailStrip() {
@@ -2067,6 +2101,7 @@ class ViewPagerActivity :
             updateHeader()
             refreshMenuItems()
             binding.viewerThumbnailStrip.setSelectedPosition(position)
+            updateThumbnailStrip()
             scheduleSwipe()
             flight.onPathChanged(getCurrentPath())
             // showing everything at once means the folder swiped to may not be the one swiped from,

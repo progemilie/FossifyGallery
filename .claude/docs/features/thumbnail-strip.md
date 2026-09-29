@@ -12,6 +12,7 @@ Read these before changing this feature — each can break silently if this one 
 - [peek-viewer](peek-viewer.md) — the peek draws its ticks on the strip.
 - [viewer-transition](viewer-transition.md) — the strip is centred on the opening photo before the flight lands.
 - [thumbnails](thumbnails.md) — the strip is the one thumbnail view that must be reloaded by hand after an edit.
+- [video-player](video-player.md) — a video's page puts the strip away for its own frame strip.
 
 ## Where it lives
 
@@ -46,3 +47,6 @@ placeholder of its own rather than black, which over a photo reads as a hole.
   [editing files in place](file-edits.md).
 - The peek viewer's ticks are written onto laid out children (`setSelection`), not through a rebind,
   which would restart every Glide load for a tick.
+- Its visibility goes through `ViewPagerActivity.updateThumbnailStrip()`, never straight from
+  `Config.showThumbnailStrip`: on a video's page the strip is put away (INVISIBLE, so it keeps its
+  place) and the [video's frame strip](video-player.md) stands there instead.

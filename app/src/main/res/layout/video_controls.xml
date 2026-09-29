@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The in-viewer video's controls along the foot of the screen: its time and its toggles, over a
+    strip of its own frames that stands where the viewer's thumbnail strip does for a photo. See
+    VideoFragment. The separate player screen keeps bottom_video_time_holder.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/video_time_holder"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/video_controls_scrim"
+    android:orientation="vertical"
+    android:paddingTop="@dimen/big_margin">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/video_controls_margin"
+        android:paddingEnd="@dimen/small_margin">
+
+        <TextView
+            android:id="@+id/video_curr_time"
+            style="@style/VideoTime"
+            android:textStyle="bold"
+            tools:text="0:03" />
+
+        <TextView
+            style="@style/VideoTime"
+            android:alpha="0.7"
+            android:text=" / "
+            tools:ignore="HardcodedText" />
+
+        <TextView
+            android:id="@+id/video_duration"
+            style="@style/VideoTime"
+            android:alpha="0.7"
+            tools:text="0:20" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/video_playback_speed"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/video_toggle_size"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:drawablePadding="@dimen/tiny_margin"
+            android:gravity="center"
+            android:paddingHorizontal="@dimen/medium_margin"
+            android:shadowColor="@color/default_background_color"
+            android:shadowRadius="2"
+            android:textColor="@android:color/white"
+            android:visibility="gone"
+            app:drawableStartCompat="@drawable/ic_playback_speed_vector"
+            tools:text="1x"
+            tools:visibility="visible" />
+
+        <ImageView
+            android:id="@+id/video_toggle_loop"
+            style="@style/VideoToggle"
+            android:contentDescription="@string/loop_videos"
+            android:src="@drawable/ic_video_repeat_vector"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <ImageView
+            android:id="@+id/video_toggle_mute"
+            style="@style/VideoToggle"
+            android:contentDescription="@string/video_sound"
+            android:src="@drawable/ic_vector_speaker_on"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+    </LinearLayout>
+
+    <org.fossify.gallery.views.VideoScrubber
+        android:id="@+id/video_seekbar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/video_scrubber_height"
+        android:paddingStart="@dimen/video_controls_margin"
+        android:paddingTop="@dimen/video_scrubber_padding"
+        android:paddingEnd="@dimen/video_controls_margin"
+        android:paddingBottom="@dimen/video_scrubber_padding" />
+
+</LinearLayout>

@@ -90,7 +90,10 @@ import org.fossify.gallery.helpers.MEDIUM
 import org.fossify.gallery.helpers.SHOULD_INIT_FRAGMENT
 import org.fossify.gallery.interfaces.PlaybackSpeedListener
 import org.fossify.gallery.models.Medium
+import org.fossify.gallery.views.ChromeAutoHide
 import org.fossify.gallery.views.MediaSideScroll
+import org.fossify.gallery.views.RewindScan
+import org.fossify.gallery.views.SeekHints
 import java.io.File
 import java.io.FileInputStream
 import java.text.DecimalFormat
@@ -104,6 +107,11 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         private const val TOUCH_HOLD_DURATION_MS = 500L
         private const val TOUCH_HOLD_SPEED_MULTIPLIER = 2.0f
         private const val TOUCH_SLOP_DIVIDER = 3
+        private const val SKIP_SECONDS = FAST_FORWARD_VIDEO_MS / 1000
+        private const val LOOP_OFF_ALPHA = 0.6f
+
+        /** A hold or a double tap this near either side of the video acts on that side: back on the left. */
+        private const val SIDE_ZONE = 1 / 3f
     }
 
     private var mIsFullscreen = false
@@ -133,12 +141,23 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     private var mHasAudio = true
 
     private val mTouchHoldRunnable = Runnable {
+        val player = mExoPlayer ?: return@Runnable
         mView.parent.requestDisallowInterceptTouchEvent(true)
         // This code runs after the delay, only if the user is still holding down.
         mIsLongPressActive = true
-        mOriginalPlaybackSpeed = mExoPlayer?.playbackParameters?.speed ?: mConfig.playbackSpeed
         mView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        updatePlaybackSpeed(TOUCH_HOLD_SPEED_MULTIPLIER)
+        // held on the left third it winds back, anywhere else it plays twice as fast
+        if (mHoldIsRewind) {
+            mWasPlayingBeforeRewind = mIsPlaying
+            player.playWhenReady = false
+            player.isScrubbingModeEnabled = true
+            mPlaybackSpeedPill.setText(R.string.playback_rewind_display_text)
+            mRewindScan.start(player.currentPosition)
+        } else {
+            mOriginalPlaybackSpeed = player.playbackParameters.speed
+            mPlaybackSpeedPill.setText(R.string.playback_speed_display_text)
+            updatePlaybackSpeed(TOUCH_HOLD_SPEED_MULTIPLIER)
+        }
 
         mPlaybackSpeedPill.fadeIn()
     }
@@ -159,6 +178,12 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     private var mInitialX = 0f
     private var mInitialY = 0f
 
+    private lateinit var mSeekHints: SeekHints
+    private lateinit var mRewindScan: RewindScan
+    private lateinit var mChromeAutoHide: ChromeAutoHide
+    private var mHoldIsRewind = false
+    private var mWasPlayingBeforeRewind = false
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -177,28 +202,48 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             bottomVideoTimeHolder.videoDuration.setOnClickListener { skip(true) }
             videoHolder.setOnClickListener { toggleFullscreen() }
             videoPreview.setOnClickListener { toggleFullscreen() }
-            bottomVideoTimeHolder.videoPlaybackSpeed.setOnClickListener { showPlaybackSpeedPicker() }
+            bottomVideoTimeHolder.videoPlaybackSpeed.setOnClickListener {
+                mChromeAutoHide.cancel()
+                showPlaybackSpeedPicker()
+            }
+
             bottomVideoTimeHolder.videoToggleMute.setOnClickListener {
                 mConfig.muteVideos = !mConfig.muteVideos
                 updatePlayerMuteState(showToast = true)
+                keepChromeUp()
+            }
+
+            bottomVideoTimeHolder.videoToggleLoop.setOnClickListener {
+                toggleLoop()
+                keepChromeUp()
             }
 
             videoSurfaceFrame.controller.settings.swallowDoubleTaps = true
 
-            videoPlayOutline.setOnClickListener {
+            // the middle of the video's controls, and until it is played the one control it has
+            mPlayPauseButton = videoPlayOutline
+            mPlayPauseButton.setOnClickListener {
                 if (mConfig.gestureVideoPlayer) activity.launchGesturePlayer(mMedium.path) else togglePlayPause()
             }
 
-            mPlayPauseButton = bottomVideoTimeHolder.videoTogglePlayPause
-            mPlayPauseButton.setOnClickListener {
-                togglePlayPause()
-            }
+            videoSkipBack.setOnClickListener { skipWithHint(false) }
+            videoSkipForward.setOnClickListener { skipWithHint(true) }
 
             mSeekBar = bottomVideoTimeHolder.videoSeekbar
+            bottomVideoTimeHolder.videoSeekbar.setVideo(mMedium.path, mMedium.getSignature())
             mPlaybackSpeedPill = playbackSpeedPill
             mSeekBar.setOnSeekBarChangeListener(this@VideoFragment)
             // adding an empty click listener just to avoid ripple animation at toggling fullscreen
             mSeekBar.setOnClickListener { }
+
+            mSeekHints = SeekHints(videoSeekHintBack, videoSeekHintForward)
+            mRewindScan = RewindScan(videoHolder) { setPosition(it) }
+            mChromeAutoHide = ChromeAutoHide(videoHolder) {
+                val canHide = mIsPlaying && mIsFragmentVisible && listener?.isSlideShowActive() == false
+                if (canHide && listener?.isFullScreen() == false) {
+                    listener?.fragmentClicked()
+                }
+            }
 
             mTimeHolder = bottomVideoTimeHolder.videoTimeHolder
             mCurrTimeView = bottomVideoTimeHolder.videoCurrTime
@@ -233,7 +278,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                     }
 
                     override fun onDoubleTap(e: MotionEvent): Boolean {
-                        handleDoubleTap(e.rawX)
+                        handleDoubleTap(e.x)
                         return true
                     }
                 })
@@ -329,7 +374,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                         }
                     },
                     doubleTap = { x, y ->
-                        doSkip(false)
+                        skipWithHint(false)
                     })
                 mVolumeSideScroll.initialize(
                     activity,
@@ -344,7 +389,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                         }
                     },
                     doubleTap = { x, y ->
-                        doSkip(true)
+                        skipWithHint(true)
                     })
 
                 videoSurface.onGlobalLayout {
@@ -566,13 +611,13 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                 binding.errorMessageHolder.errorMessage.apply {
                     if (error != null) {
                         binding.videoPreview.beGone()
-                        binding.videoPlayOutline.beGone()
+                        binding.videoTransport.beGone()
                         text = error.getFriendlyMessage(context)
                         setTextColor(if (context.config.blackBackground) Color.WHITE else context.getProperTextColor())
                         fadeIn()
                     } else {
                         beGone()
-                        binding.videoPlayOutline.beVisible()
+                        binding.videoTransport.beVisible()
                     }
                 }
             }
@@ -589,19 +634,67 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         listener?.fragmentClicked()
     }
 
+    // the same thirds as a hold: back on the left, forward on the right
     private fun handleDoubleTap(x: Float) {
-        val viewWidth = mView.width
-        val instantWidth = viewWidth / 7
+        val sideWidth = mView.width * SIDE_ZONE
         when {
-            x <= instantWidth -> doSkip(false)
-            x >= viewWidth - instantWidth -> doSkip(true)
+            x <= sideWidth -> skipWithHint(false)
+            x >= mView.width - sideWidth -> skipWithHint(true)
             else -> togglePlayPause()
         }
     }
 
+    /** Ten seconds either way, said on that side of the video - a double tap's, or a skip button's. */
+    private fun skipWithHint(forward: Boolean) {
+        if (mExoPlayer == null || mIsPanorama) {
+            return
+        }
+
+        doSkip(forward)
+        mSeekHints.show(forward, SKIP_SECONDS)
+        keepChromeUp()
+    }
+
+    /** A control was touched: a playing video keeps its chrome a while longer. */
+    private fun keepChromeUp() {
+        if (mIsPlaying) {
+            mChromeAutoHide.restart()
+        }
+    }
+
+    /** The same setting as the app's own, so a video looped here loops the next time too. */
+    private fun toggleLoop() {
+        mConfig.loopVideos = !mConfig.loopVideos
+        mExoPlayer?.repeatMode = if (mConfig.loopVideos) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+        updateLoopButton()
+    }
+
+    // on, it wears the looping arrows with a one in them; off, the plain ones, dimmed
+    private fun updateLoopButton() {
+        val isLooping = mConfig.loopVideos
+        val icon = if (isLooping) R.drawable.ic_video_repeat_one_vector else R.drawable.ic_video_repeat_vector
+        binding.bottomVideoTimeHolder.videoToggleLoop.apply {
+            setImageResource(icon)
+            alpha = if (isLooping) 1f else LOOP_OFF_ALPHA
+        }
+    }
+
+    private fun showPlaying(isPlaying: Boolean) {
+        mPlayPauseButton.apply {
+            setImageResource(if (isPlaying) R.drawable.ic_video_pause_vector else R.drawable.ic_video_play_vector)
+            contentDescription = getString(if (isPlaying) R.string.video_pause else R.string.video_play)
+        }
+    }
+
     private fun initTimeHolder() {
-        mTimeHolder.beGoneIf(mIsFullscreen)
-        mTimeHolder.alpha = if (mIsFullscreen) 0f else 1f
+        // a separate screen plays the video, so there is nothing here for the controls to drive
+        val showsControls = !mIsFullscreen && !mConfig.gestureVideoPlayer
+        mTimeHolder.beVisibleIf(showsControls)
+        mTimeHolder.alpha = if (showsControls) 1f else 0f
+        // a video not yet started keeps its play button whatever the chrome is doing: it is the way in
+        val showsTransport = !mIsFullscreen || !mWasVideoStarted
+        binding.videoTransport.beVisibleIf(showsTransport)
+        binding.videoTransport.alpha = if (showsTransport) 1f else 0f
         (activity as? BaseViewerActivity)?.applyProperHorizontalInsets(mTimeHolder)
     }
 
@@ -652,19 +745,34 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         arrayOf(
             binding.bottomVideoTimeHolder.videoCurrTime,
             binding.bottomVideoTimeHolder.videoDuration,
-            binding.bottomVideoTimeHolder.videoTogglePlayPause,
             binding.bottomVideoTimeHolder.videoPlaybackSpeed,
-            binding.bottomVideoTimeHolder.videoToggleMute
+            binding.bottomVideoTimeHolder.videoToggleMute,
+            binding.bottomVideoTimeHolder.videoToggleLoop,
+            binding.videoSkipBack,
+            binding.videoSkipForward
         ).forEach {
             it.isClickable = !mIsFullscreen
         }
 
         if (isFullscreen) {
-            mTimeHolder.fadeOut(DEFAULT_ANIMATION_DURATION)
+            mChromeAutoHide.cancel()
+            if (!mConfig.gestureVideoPlayer) {
+                mTimeHolder.fadeOut(DEFAULT_ANIMATION_DURATION)
+            }
+
+            if (mWasVideoStarted) {
+                binding.videoTransport.fadeOut(DEFAULT_ANIMATION_DURATION)
+            }
+
             binding.bottomActionsDummy.fadeOut(DEFAULT_ANIMATION_DURATION)
         } else {
             binding.bottomActionsDummy.beVisible()
-            mTimeHolder.fadeIn(DEFAULT_ANIMATION_DURATION)
+            if (!mConfig.gestureVideoPlayer) {
+                mTimeHolder.fadeIn(DEFAULT_ANIMATION_DURATION)
+            }
+
+            binding.videoTransport.fadeIn(DEFAULT_ANIMATION_DURATION)
+            keepChromeUp()
         }
     }
 
@@ -742,8 +850,11 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             return
         }
 
+        // or every seek of a drag cancels the last before it has drawn, and the picture stands still
+        mExoPlayer!!.isScrubbingModeEnabled = true
         mExoPlayer!!.playWhenReady = false
         mIsDragged = true
+        mChromeAutoHide.cancel()
     }
 
     override fun onStopTrackingTouch(seekBar: SeekBar) {
@@ -756,11 +867,13 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             return
         }
 
+        mExoPlayer!!.isScrubbingModeEnabled = false
         if (mIsPlaying) {
             mExoPlayer!!.playWhenReady = true
         }
 
         mIsDragged = false
+        keepChromeUp()
     }
 
     private fun togglePlayPause() {
@@ -814,13 +927,16 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
 
         if (!wasEnded || !mConfig.loopVideos) {
-            mPlayPauseButton.setImageResource(org.fossify.commons.R.drawable.ic_pause_outline_vector)
+            showPlaying(true)
         }
 
         if (!mWasVideoStarted) {
-            binding.videoPlayOutline.beGone()
-            mPlayPauseButton.beVisible()
+            // the rest of the controls come once there is a video running for them to drive
+            binding.videoSkipBack.beVisible()
+            binding.videoSkipForward.beVisible()
             binding.bottomVideoTimeHolder.videoToggleMute.beVisible()
+            binding.bottomVideoTimeHolder.videoToggleLoop.beVisible()
+            updateLoopButton()
             binding.bottomVideoTimeHolder.videoPlaybackSpeed.beVisible()
             binding.bottomVideoTimeHolder.videoPlaybackSpeed.text =
                 "${DecimalFormat("#.##").format(mConfig.playbackSpeed)}x"
@@ -832,6 +948,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
         mExoPlayer?.playWhenReady = true
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        mChromeAutoHide.restart()
     }
 
     private fun pauseVideo() {
@@ -844,7 +961,8 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             mExoPlayer?.playWhenReady = false
         }
 
-        mPlayPauseButton.setImageResource(org.fossify.commons.R.drawable.ic_play_outline_vector)
+        showPlaying(false)
+        mChromeAutoHide.cancel()
         activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         mPositionAtPause = mExoPlayer?.currentPosition ?: 0L
     }
@@ -917,11 +1035,17 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             mSeekBar.progress = mSeekBar.max
             mCurrTimeView.text = mDuration.getFormattedDuration()
             pauseVideo()
+            // the chrome went while it played, and a finished video is one to be done something with
+            if (mIsFragmentVisible && listener?.isSlideShowActive() == false && listener?.isFullScreen() == true) {
+                listener?.fragmentClicked()
+            }
         }
     }
 
     private fun cleanup() {
         pauseVideo()
+        mChromeAutoHide.cancel()
+        mRewindScan.stop()
         releaseExoPlayer()
 
         if (mWasFragmentInit) {
@@ -985,6 +1109,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                 if (mIsPlaying && event.pointerCount == 1) {
                     mInitialX = event.x
                     mInitialY = event.y
+                    mHoldIsRewind = event.x < mView.width * SIDE_ZONE
                     mTimerHandler.postDelayed(mTouchHoldRunnable, TOUCH_HOLD_DURATION_MS)
                 }
             }
@@ -1012,7 +1137,16 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
     private fun stopHoldSpeedMultiplierGesture() {
         if (mIsLongPressActive) {
-            updatePlaybackSpeed(mOriginalPlaybackSpeed)
+            if (mRewindScan.isRunning) {
+                mRewindScan.stop()
+                mExoPlayer?.isScrubbingModeEnabled = false
+                if (mWasPlayingBeforeRewind) {
+                    mExoPlayer?.playWhenReady = true
+                }
+            } else {
+                updatePlaybackSpeed(mOriginalPlaybackSpeed)
+            }
+
             mIsLongPressActive = false
             mPlaybackSpeedPill.fadeOut()
         }

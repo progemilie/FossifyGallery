@@ -117,6 +117,8 @@ The viewer
 - [The viewer's chrome](features/viewer-chrome.md) — the heading, extended details, zoom taking the
   chrome away.
 - [Thumbnail strip](features/thumbnail-strip.md) — the row of thumbnails under the photo.
+- [The video player](features/video-player.md) — the controls, the frame strip as progress bar, and
+  holding or double tapping either side.
 - [Bottom action bar](features/bottom-actions.md) — the one table behind the bar and its dialog.
 - [Choosers held open over a button](features/hold-choosers.md) — rating, copy/move and tabs.
 - [Metadata sheet](features/metadata-sheet.md) — reading every group, descriptions, and removing

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/video_holder"
     android:layout_width="match_parent"
@@ -55,13 +56,70 @@
         android:layout_width="@dimen/media_side_slider_width"
         android:layout_height="match_parent" />
 
-    <ImageView
-        android:id="@+id/video_play_outline"
-        android:layout_width="@dimen/play_outline_size_big"
-        android:layout_height="@dimen/play_outline_size_big"
+    <!-- play and pause, and ten seconds either way, in the middle of the video on discs of their
+         own; the skips only come once the video has been started -->
+    <LinearLayout
+        android:id="@+id/video_transport"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_centerInParent="true"
-        android:padding="20dp"
-        android:src="@drawable/ic_play_outline_vector" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/video_skip_back"
+            style="@style/VideoTransportButton"
+            android:layout_marginEnd="@dimen/video_skip_button_gap"
+            android:contentDescription="@string/video_back_10"
+            android:src="@drawable/ic_video_replay_10_vector"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <ImageView
+            android:id="@+id/video_play_outline"
+            android:layout_width="@dimen/video_play_button_size"
+            android:layout_height="@dimen/video_play_button_size"
+            android:background="@drawable/video_control_background"
+            android:contentDescription="@string/video_play"
+            android:padding="@dimen/video_play_button_padding"
+            android:src="@drawable/ic_video_play_vector" />
+
+        <ImageView
+            android:id="@+id/video_skip_forward"
+            style="@style/VideoTransportButton"
+            android:layout_marginStart="@dimen/video_skip_button_gap"
+            android:contentDescription="@string/video_forward_10"
+            android:src="@drawable/ic_video_forward_10_vector"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+    </LinearLayout>
+
+    <!-- the middle of the screen, which the transport cannot anchor the hints to as it can be gone -->
+    <Space
+        android:id="@+id/video_transport_anchor"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_centerInParent="true" />
+
+    <!-- how far a run of skips either way has gone, over the skip button on that side -->
+    <TextView
+        android:id="@+id/video_seek_hint_back"
+        style="@style/VideoSeekHint"
+        android:layout_above="@id/video_transport_anchor"
+        android:layout_marginEnd="@dimen/video_seek_hint_offset"
+        android:layout_toStartOf="@id/video_transport_anchor"
+        app:drawableTopCompat="@drawable/ic_video_fast_rewind_vector"
+        tools:text="- 10s" />
+
+    <TextView
+        android:id="@+id/video_seek_hint_forward"
+        style="@style/VideoSeekHint"
+        android:layout_above="@id/video_transport_anchor"
+        android:layout_marginStart="@dimen/video_seek_hint_offset"
+        android:layout_toEndOf="@id/video_transport_anchor"
+        app:drawableTopCompat="@drawable/ic_video_fast_forward_vector"
+        tools:text="+ 10s" />
 
     <include
         android:id="@+id/error_message_holder"
@@ -83,9 +141,10 @@
         android:layout_alignParentBottom="true"
         android:paddingTop="@dimen/normal_margin" />
 
+    <!-- where the viewer's thumbnail strip is for a photo, which the viewer puts away for a video -->
     <include
         android:id="@+id/bottom_video_time_holder"
-        layout="@layout/bottom_video_time_holder"
+        layout="@layout/video_controls"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignWithParentIfMissing="true"

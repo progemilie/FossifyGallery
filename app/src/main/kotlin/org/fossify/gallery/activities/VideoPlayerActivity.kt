@@ -121,7 +121,6 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
     private var mDragThreshold = 0f
     private var mTouchDownX = 0f
     private var mTouchDownY = 0f
-    private var mTouchDownTime = 0L
     private var mProgressAtDown = 0L
     private var mCloseDownThreshold = 100f
 
@@ -802,7 +801,6 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
             MotionEvent.ACTION_DOWN -> {
                 mTouchDownX = event.rawX
                 mTouchDownY = event.rawY
-                mTouchDownTime = System.currentTimeMillis()
                 mProgressAtDown = mExoPlayer!!.currentPosition
             }
 
@@ -843,7 +841,8 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
                 val diffX = mTouchDownX - event.rawX
                 val diffY = mTouchDownY - event.rawY
 
-                val downGestureDuration = System.currentTimeMillis() - mTouchDownTime
+                // the gesture's own clock: the wall clock when it is handled counts any wait for the main thread
+                val downGestureDuration = event.eventTime - event.downTime
                 if (config.allowDownGesture && !mIgnoreCloseDown && Math.abs(diffY) > Math.abs(diffX) && diffY < -mCloseDownThreshold &&
                     downGestureDuration < MAX_CLOSE_DOWN_GESTURE_DURATION &&
                     binding.videoSurfaceFrame.controller.state.zoom == 1f
