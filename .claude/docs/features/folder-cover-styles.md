@@ -8,7 +8,7 @@ optional folder size on the details line.
 
 Read these before changing this feature — each can break silently if this one changes without it.
 
-- [folder-groups](folder-groups.md) — every style has to hold a group's collage and badge.
+- [folder-groups](folder-groups.md) — every style has to hold a group's tray.
 - [thumbnails](thumbnails.md) — covers decode at the snapped column width less the style's inset, at its aspect ratio.
 
 ## Where it lives
@@ -38,7 +38,7 @@ proportions along ([thumbnails](thumbnails.md)).
 **Card** is rounded by the view's outline, not in the bitmap: its frosted band is the cover's own
 drawing replayed through a blur (`FrostPainter`), and a transparent corner would bleed into it. No
 second image request. **Stack** records the cover once, small and blurred, and draws that recording
-into both cards; behind a group collage or a padlock, and below Android 12, the cards are flat and
+into both cards; behind a group tray or a padlock, and below Android 12, the cards are flat and
 shaded from the theme.
 
 Covers other than Square, and stack cards, wear the [`LitEdge`](floating-chrome.md#outlines).

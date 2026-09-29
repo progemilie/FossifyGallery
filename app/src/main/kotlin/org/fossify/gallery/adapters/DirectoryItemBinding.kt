@@ -19,7 +19,6 @@ interface DirectoryItemBinding {
     val root: ViewGroup
     val dirThumbnail: MySquareImageView
     val dirGroupThumbnail: FolderGroupThumbnail
-    val dirGroupBadge: ImageView
     val dirPath: TextView?
     val dirCheck: ImageView
     val dirHolder: ViewGroup
@@ -38,7 +37,6 @@ class ListDirectoryItemBinding(val binding: DirectoryItemListBinding) : Director
     override val root: ViewGroup = binding.root
     override val dirThumbnail: MySquareImageView = binding.dirThumbnail
     override val dirGroupThumbnail: FolderGroupThumbnail = binding.dirGroupThumbnail
-    override val dirGroupBadge: ImageView = binding.dirGroupBadge
     override val dirPath: TextView = binding.dirPath
     override val dirCheck: ImageView = binding.dirCheck
     override val dirHolder: ViewGroup = binding.dirHolder
@@ -62,7 +60,6 @@ fun DirectoryItemListBinding.toItemBinding() = ListDirectoryItemBinding(this)
 class GridDirectoryItemBinding(override val root: ViewGroup) : DirectoryItemBinding {
     override val dirThumbnail: MySquareImageView = root.findViewById(R.id.dir_thumbnail)
     override val dirGroupThumbnail: FolderGroupThumbnail = root.findViewById(R.id.dir_group_thumbnail)
-    override val dirGroupBadge: ImageView = root.findViewById(R.id.dir_group_badge)
     override val dirPath: TextView? = null
     override val dirCheck: ImageView = root.findViewById(R.id.dir_check)
     override val dirHolder: ViewGroup = root

@@ -95,7 +95,6 @@ import org.fossify.gallery.helpers.FolderCoverStyle
 import org.fossify.gallery.helpers.FolderLabelPlacement
 import org.fossify.gallery.helpers.LOCATION_INTERNAL
 import org.fossify.gallery.helpers.LOCATION_SD
-import org.fossify.gallery.helpers.MAX_FOLDER_GROUP_COVERS
 import org.fossify.gallery.helpers.PaddedGridMoveCallback
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.RECYCLE_BIN
@@ -113,6 +112,7 @@ import org.fossify.gallery.helpers.folderDetailsLine
 import org.fossify.gallery.interfaces.DirectoryOperationsListener
 import org.fossify.gallery.models.AlbumCover
 import org.fossify.gallery.models.Directory
+import org.fossify.gallery.views.showGroupMark
 import java.io.File
 import java.util.Collections
 import kotlin.math.roundToInt
@@ -1015,7 +1015,7 @@ class DirectoryAdapter(
                 }
             }
 
-            bindThumbnail(this, directory, thumbnailType, isGroup, isSelected)
+            bindThumbnail(this, directory, thumbnailType, isGroup)
             markSelected(directory, isGroup, isSelected)
 
             dirPin.beVisibleIf(pinnedFolders.contains(directory.path))
@@ -1071,6 +1071,9 @@ class DirectoryAdapter(
                 dressFor(coverStyle, textColor)
             }
 
+            // after the colour, which the mark takes on
+            dirName.showGroupMark(isGroup)
+
             if (isListViewType) {
                 dirPath?.setTextColor(textColor)
                 dirPin.applyColorFilter(textColor)
@@ -1120,11 +1123,8 @@ class DirectoryAdapter(
         binding: DirectoryItemBinding,
         directory: Directory,
         thumbnailType: Int,
-        isGroup: Boolean,
-        isSelected: Boolean
+        isGroup: Boolean
     ) = binding.apply {
-        // the badge and the selection check share the corner, and the check has to win it
-        dirGroupBadge.beVisibleIf(isGroup && !isSelected)
         dirGroupThumbnail.beVisibleIf(isGroup)
         // a group's collage is edged in the accent colour already
         dirCoverBorder?.beVisibleIf(!isGroup)
@@ -1152,7 +1152,7 @@ class DirectoryAdapter(
         }
 
         if (isGroup) {
-            bindGroupThumbnail(this, directory, placeholder)
+            bindGroupThumbnail(this, directory)
             return@apply
         }
 
@@ -1181,22 +1181,18 @@ class DirectoryAdapter(
     }
 
     /**
-     * Draws a folder group's cover: its leading members' thumbnails, laid out by how many there
-     * are. The corners are cut by the collage clipping itself, so the cells are loaded plain.
+     * Draws a folder group's cover: a tray tinted with the accent, holding its leading members'
+     * thumbnails. The corners are cut by the cells clipping themselves, so they are loaded plain.
      */
-    private fun bindGroupThumbnail(
-        binding: DirectoryItemBinding,
-        directory: Directory,
-        placeholder: Int
-    ) {
-        val members = directory.groupMembers.take(MAX_FOLDER_GROUP_COVERS)
+    private fun bindGroupThumbnail(binding: DirectoryItemBinding, directory: Directory) {
+        val members = directory.groupMembers
         binding.dirGroupThumbnail.apply {
             setCornerRadius(thumbnailCornerRadius)
-            setBorderColor(properPrimaryColor)
+            setThemeColors(background = backgroundColor, accent = properPrimaryColor, text = textColor)
             // a rebind can drop cells the last one had going, and a request left in flight would
             // land in a cell this group never asked to fill
             clearCells { Glide.with(activity).clear(it) }
-            prepareCells(members.size, placeholder).forEachIndexed { index, cell ->
+            prepareCells(members.size).forEachIndexed { index, cell ->
                 val member = members[index]
                 activity.loadFolderGroupCell(member.tmb, cell, member.getKey())
             }

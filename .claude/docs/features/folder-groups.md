@@ -1,6 +1,6 @@
 # Folder groups
 
-Several folders drawn under one tile in the folder grid, with a collage cover. Nothing moves on disk.
+Several folders drawn under one tile in the folder grid, its cover a tray of theirs. Nothing moves on disk.
 Tapping the tile steps into the group; a selection can group, add to, rename or ungroup; a tile
 dragged and held over another groups the two, and dropped between tiles arranges the grid.
 
@@ -10,7 +10,7 @@ Read these before changing this feature — each can break silently if this one 
 
 - [selection](selection.md) — the drag replaces drag-to-select on this grid, and both rely on change animations being off.
 - [order-groups-export](order-groups-export.md) — groups travel by name, and tiles stand in the folder order under synthetic paths.
-- [folder-cover-styles](folder-cover-styles.md) — the collage and group badge sit inside every style's layout; stack cards go flat behind a collage.
+- [folder-cover-styles](folder-cover-styles.md) — the tray sits inside every style's layout, under an on-cover label; stack cards go flat behind a tray.
 - [two-grids-one-window](two-grids-one-window.md) — an open group changes the search bar (`updateTopBarForGroup`), which belongs to whichever pane is up.
 - [tabs](tabs.md) — a tab remembers the open group by id, one more reason ids are never reused.
 
@@ -24,7 +24,7 @@ Read these before changing this feature — each can break silently if this one 
 | `extensions/CustomFolderOrder.kt` | The folder grid's hand made order |
 | `adapters/FolderGroupActions.kt` | The action mode's group items, driving `DirectoryAdapter` from outside |
 | `adapters/FolderDragMode.kt` | The drag gestures, also driving `DirectoryAdapter` |
-| `views/FolderGroupThumbnail.kt` | The collage: 1, 2, 3 or 4 members |
+| `views/FolderGroupThumbnail.kt` | The tray, and `showGroupMark` for the name |
 | `dialogs/FolderGroupNameDialog.kt` | Naming and renaming |
 | `activities/MainActivity.kt` | `narrowToOpenGroup`, `sortGroupMembers`, `getCurrentlyDisplayedDirs`, `updateTopBarForGroup` |
 
@@ -46,7 +46,21 @@ would cost the user the group.
 
 While a group is open, the search pill carries its name and its magnifier becomes the way back out
 (`updateTopBarForGroup`). Sorting inside a group follows the root grid's rule: the chosen sorting
-applies, and sort-by-custom means the group's own order, which is also what its collage reads.
+applies, and sort-by-custom means the group's own order, which is also what its tray reads.
+
+## Looking like a group
+
+A group has to read as one at a glance, and an edge to edge collage did not: four covers butted
+together make one busy picture, taken for a folder's own. So a group's cover is a tray, the way a
+phone's home screen draws a folder of apps - the accent washed into the grid's background, a colour
+no photo comes in, edged in the accent - holding its leading folders' covers two by two, each rounded
+on its own with the tray showing between them. The tray always has four places: a group of fewer
+folders shows the rest empty, so every group has the one shape, and one of more says "+N" over its
+fourth cover. The name carries the group mark (`showGroupMark`), in the name's own colour, and the
+details line says how many folders are in it.
+
+An on-cover label (Square, Card) lies over the tray's bottom row on the style's usual shade rather
+than below it: every tile's label then reads the same way, in either theme.
 
 ## The folder grid's own order
 
