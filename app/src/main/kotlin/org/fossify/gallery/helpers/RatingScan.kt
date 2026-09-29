@@ -17,13 +17,19 @@ import java.util.Locale
  * read so the next scan does not have to.
  *
  * Reading the metadata is the one genuinely expensive thing a scan can do per item, so it only
- * happens at all when something - a thumbnail badge, a rating sort - is going to use the answer.
+ * happens at all when something - a thumbnail badge, sorting or grouping by rating - is going to use
+ * the answer. The all media grid is put together out of every folder's scan, so its own arrangement
+ * counts for every folder.
  *
  * One of these covers one pass over [folder]: ask it [of] per file and [persist] at the end.
+ * [everyFolder] is a pass over the whole of MediaStore at once, which serves whichever folder asks.
  */
-class RatingScan(private val context: Context, private val folder: String) {
-    private val wanted = context.config.showThumbnailRating ||
-        context.config.getFolderSorting(folder) and SORT_BY_RATING != 0
+class RatingScan(private val context: Context, private val folder: String, private val everyFolder: Boolean = false) {
+    private val wanted = context.config.showThumbnailRating || if (everyFolder) {
+        context.isAnythingArrangedByRating()
+    } else {
+        context.config.arrangesByRating(folder) || context.config.arrangesByRating(SHOW_ALL)
+    }
 
     private val known by lazy { if (wanted) loadKnown() else emptyMap() }
     private val fresh = ArrayList<MediaRating>()
@@ -66,7 +72,7 @@ class RatingScan(private val context: Context, private val folder: String) {
             // the favorites and recycle bin views collect files from all over, and the Android 11
             // query walks the whole of MediaStore - none of them has one parent path to narrow the
             // lookup down to
-            val rows = if (folder == FAVORITES || folder == RECYCLE_BIN) {
+            val rows = if (everyFolder || folder == FAVORITES || folder == RECYCLE_BIN) {
                 context.mediaRatingsDB.getAll()
             } else {
                 context.mediaRatingsDB.getFolderRatings(folder.lowercase(Locale.getDefault()))

@@ -102,6 +102,7 @@ import org.fossify.gallery.helpers.ROUNDED_CORNERS_BIG
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_NONE
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_SMALL
 import org.fossify.gallery.helpers.SHOW_ALL
+import org.fossify.gallery.helpers.SORT_BY_RATING
 import org.fossify.gallery.helpers.THUMBNAIL_FADE_DURATION_MS
 import org.fossify.gallery.helpers.ThumbnailPrefetcher
 import org.fossify.gallery.helpers.ThumbnailSource
@@ -1502,6 +1503,8 @@ fun Context.updateDirectoryPath(path: String) {
     val grouping = config.getFolderGrouping(path)
     val getProperDateTaken = config.directorySorting and SORT_BY_DATE_TAKEN != 0
             || sorting and SORT_BY_DATE_TAKEN != 0
+            // media rated alike fall back to the date taken
+            || sorting and SORT_BY_RATING != 0
             || grouping and GROUP_BY_DATE_TAKEN_DAILY != 0
             || grouping and GROUP_BY_DATE_TAKEN_MONTHLY != 0
 

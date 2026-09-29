@@ -6,6 +6,9 @@ Notable fork-only changes.
 ### Added
 - **Zooming into a photo takes the chrome away**, and letting it back out brings it back.
 - Holding a picked picture and dragging unpicks the pictures the finger passes over.
+- **Group by rating.** Sorting by rating works like any other sorting now, so it can be combined
+  with any grouping — rating inside each month, say. Anything already sorted by rating keeps its
+  rating headers.
 - **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with
   adjustable spacing and an optional folder size on the details line.
 ### Changed
@@ -33,6 +36,7 @@ Notable fork-only changes.
   shrinking back into its thumbnail.
 - Fixed the Settings title, back arrow, status bar icons and last card's shadow on a light theme.
 - Fixed a renamed photo losing its place in a folder arranged by hand.
+- Fixed photos with the same rating not being in date taken order when sorting by rating.
 - Fixed removing metadata from an unusually built file possibly saving only part of the photo. Files that cannot be read to the end are now left untouched.
 
 ## [v1.19.0] - 2026.09.01 — UI

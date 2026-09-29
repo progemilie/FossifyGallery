@@ -275,8 +275,6 @@ const val GROUP_BY_FOLDER = 32
 const val GROUP_BY_LAST_MODIFIED_MONTHLY = 64
 const val GROUP_BY_DATE_TAKEN_MONTHLY = 128
 
-// not offered in the Group by dialog: sorting by rating brings its own headers, so this is only
-// ever set by MediaFetcher.groupMedia off the back of SORT_BY_RATING
 const val GROUP_BY_RATING = 256
 const val GROUP_DESCENDING = 1024
 const val GROUP_SHOW_FILE_COUNT = 2048
