@@ -141,18 +141,19 @@ class TileFlight(
                 return@doOnLayout
             }
 
+            // flicked away on the grid before this window could be told. Checked before anything is
+            // flown, so the viewer goes at once rather than turning round a flight still on the tile
+            if (ViewerOpening.takeCloseAsked()) {
+                activity.finish()
+                return@doOnLayout
+            }
+
             // a tile drawn cropped has to start cropped and unfold as it flies; one that has not
             // been handed the photo's own picture yet has nothing to unfold, so it holds its crop
             // until the picture turns up and unfolds over whatever is left of the flight
             val tileCrop = tile.crop()
             val endCrop = if (awaitingPicture) tileCrop else 0f
             overlay.fly(flying, tile.frame, landing(), tileCrop, endCrop)
-
-            // flicked away on the grid before this window could be told
-            if (ViewerOpening.takeCloseAsked()) {
-                activity.finish()
-                return@doOnLayout
-            }
 
             animate(from = 0f, to = 1f, duration = FLIGHT_GROW_MS, interpolator = GROW) { t ->
                 pickUpPicture(path)

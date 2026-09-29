@@ -76,9 +76,13 @@ to the grid's window underneath. Both ends watch for it:
 - `ViewerOpening.watchGrid` sits ahead of the dispatch of every screen that opens a flight
   (`MainActivity`, `MediaActivity`, `SearchActivity`). From `beginFlight` until the viewer has the
   screen, a gesture on the grid is kept from it — it would scroll the grid under the flight — and a
-  flick down closes the viewer, or has it close as soon as it is up (`takeCloseAsked`).
+  flick down closes the viewer, or has it close as soon as it is up (`takeCloseAsked`, checked before
+  anything is flown, so that viewer goes at once).
 - `ViewerOpening.watchViewer` does the same in the viewer's own window until the stage is
   revealed; from then on the fragment's own flick handling takes over.
+
+`began()` forgets the last viewer's closer. That viewer is already closing but is only destroyed
+once the grid has gone idle, so a flick made before the next one is up would be sent to it and lost.
 
 Every flick is timed by its events' own clock (`eventTime - downTime`), never by when the app gets
 round to an event: a viewer setting up can hold an ACTION_UP back for half a second, and a flick
@@ -99,7 +103,9 @@ for as long as it takes. So a close has the viewer do nothing more (`stopStage()
   has scheduled.
 - `gotMedia` drops a list read in while `flight.isClosing`, and holds back one read in under a finger
   until the finger lifts: a pager rebuilt half way through a flick loses the flick, and one rebuilt
-  just before a close is what the shrink's first frame waits on.
+  just before a close is what the shrink's first frame waits on. Only a rebuild waits: held back,
+  the first build left the flight to give up and land on an empty pager, and the photo vanished
+  until the finger lifted.
 
 The shrink also runs on the clock, so a slow frame skips it ahead: at 180ms the emulator skipped the
 end of a quarter of the shrinks made while a photo was still opening, against one in thirty at 220 —

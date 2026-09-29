@@ -68,6 +68,9 @@ object ViewerOpening {
     fun began() {
         openedAt = SystemClock.uptimeMillis()
         closeAsked = false
+        // the last viewer is already closing, but only destroyed once the grid has gone idle - a
+        // flick before the new one is up would be sent to it and lost
+        closer = null
     }
 
     /** The viewer has taken the screen over, or gone again: new gestures are the grid's own. */
@@ -78,8 +81,9 @@ object ViewerOpening {
 
     /**
      * Has a flick made on the grid close [activity], the viewer opening over it - see [TileFlight].
-     * Held until the viewer is destroyed rather than until it has landed: a gesture that began on the
-     * grid stays the grid's to its end, however soon after its start the viewer is up.
+     * Held until the viewer is destroyed or the next one opens, rather than until it has landed: a
+     * gesture that began on the grid stays the grid's to its end, however soon after its start the
+     * viewer is up.
      */
     fun closeOnFlick(activity: Activity) {
         val close = { activity.finish() }

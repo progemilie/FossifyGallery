@@ -1862,8 +1862,9 @@ class ViewPagerActivity :
             return
         }
 
-        // nor under a finger, where it would take the gesture's page away half way through it
-        if (mIsTouched) {
+        // nor under a finger, where it would take the gesture's page away half way through it. Not the
+        // first build: there is no page to take, and the flight would land on an empty pager
+        if (mIsTouched && binding.viewPager.adapter != null) {
             mMediaHeldBack = { gotMedia(thumbnailItems, ignorePlayingVideos, refetchViewPagerPosition) }
             return
         }
