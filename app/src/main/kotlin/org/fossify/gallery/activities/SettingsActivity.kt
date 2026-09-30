@@ -27,7 +27,9 @@ import org.fossify.gallery.extensions.*
 import org.fossify.gallery.helpers.*
 import org.fossify.gallery.models.AlbumCover
 import org.fossify.gallery.views.SettingsGroup
+import org.fossify.gallery.views.SettingsPage
 import org.fossify.gallery.views.explains
+import org.fossify.gallery.views.settingsCardColor
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -41,6 +43,7 @@ class SettingsActivity : SimpleActivity() {
         private const val SELECT_IMPORT_FAVORITES_FILE_INTENT = 3
         private const val SELECT_EXPORT_ORDER_GROUPS_FILE_INTENT = 4
         private const val SELECT_IMPORT_ORDER_GROUPS_FILE_INTENT = 5
+        private const val OPAQUE = 255
     }
 
     private var mRecycleBinContentSize = 0L
@@ -117,7 +120,9 @@ class SettingsActivity : SimpleActivity() {
      * which only the running app knows - hence the layout listener above rather than a dimen.
      */
     private fun makeTopBarFloating() {
-        binding.settingsAppbar.setBackgroundColor(Color.TRANSPARENT)
+        // laid once and faded in by updateTitleFade: AppBarLayout wraps every colour it is given in a
+        // new drawable, too dear to do on every frame of a scroll
+        binding.settingsAppbar.setBackgroundColor(getProperBackgroundColor())
         binding.settingsAppbar.stateListAnimator = null
         binding.settingsAppbar.elevation = 0f
         binding.settingsToolbar.setBackgroundColor(Color.TRANSPARENT)
@@ -147,7 +152,7 @@ class SettingsActivity : SimpleActivity() {
         val handover = ((scrollY - heading.height / 2f) / distance).coerceIn(0f, 1f)
         toolbarTitleView()?.alpha = handover
         heading.alpha = 1f - handover
-        binding.settingsAppbar.setBackgroundColor(getProperBackgroundColor().adjustAlpha(handover))
+        binding.settingsAppbar.background?.alpha = (handover * OPAQUE).toInt()
     }
 
     /**
@@ -236,28 +241,36 @@ class SettingsActivity : SimpleActivity() {
      * Re-reads the theme onto every page, which is only colours, after the setup above has decided
      * which rows this device offers - a group left with none goes with them. The page that is up is
      * painted again too, the theme having maybe changed while the screen was away.
+     *
+     * The colours are read once and handed down, since every reading builds commons a new BaseConfig.
      */
     private fun setupPages() {
         val textColor = getProperTextColor()
-        binding.settingsHome.descendants.filterIsInstance<SettingsGroup>().forEach { it.updateColors() }
+        val cardColor = settingsCardColor(this)
+        binding.settingsHome.descendants.filterIsInstance<SettingsGroup>()
+            .forEach { it.updateColors(cardColor, textColor) }
         pages.links.forEach { it.updateColors(textColor) }
         pages.all.forEach {
             it.refreshGroups()
-            it.updateColors()
+            it.updateColors(cardColor, textColor)
         }
 
+        updateTextColors(binding.settingsPurchaseThankYouHolder)
         pageShown(pages.shown, pages.title)
         // after the pages, whose rows and colours its findings are drawn from
-        search.updateColors(textColor)
+        search.updateColors(cardColor, textColor)
     }
 
     /**
      * A page coming up, painted before the frame it first draws in and named in the bar.
-     * [updateTextColors] walks whatever it is handed, and handing it every page repainted two hundred
-     * views for the dozen showing - two thirds of the time this screen took to come up.
+     * [updateTextColors] reads the theme again for every layout it descends into, so it is handed only
+     * the rows of the page that is up - the first page's own views colour themselves in [setupPages].
      */
     private fun pageShown(page: ViewGroup, title: String) {
-        updateTextColors(page)
+        if (page is SettingsPage) {
+            updateTextColors(page)
+        }
+
         binding.settingsPageTitle.setTextColor(getProperTextColor())
         binding.settingsToolbar.title = title
         updateTitleFade(binding.settingsNestedScrollview.scrollY)

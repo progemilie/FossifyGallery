@@ -48,12 +48,12 @@ class SettingsPage @JvmOverloads constructor(
         private set
 
     /**
-     * Re-reads the theme. The hue its icons and headings wear is carried as far towards white on a
-     * dark theme, or black on a light one, as it has to be to read on the cards.
+     * Takes the theme's colours. The hue its icons and headings wear is carried as far towards white
+     * on a dark theme, or black on a light one, as it has to be to read on the cards.
      */
-    fun updateColors() {
-        iconColor = readableOn(settingsCardColor(context), hue)
-        groups.forEach { it.updateColors(iconColor) }
+    fun updateColors(cardColor: Int, textColor: Int) {
+        iconColor = readableOn(cardColor, hue)
+        groups.forEach { it.updateColors(cardColor, textColor, iconColor) }
     }
 
     /** Hides whichever groups have been left with nothing to show. */
@@ -108,6 +108,8 @@ class SettingsLink @JvmOverloads constructor(
     }
 
     fun updateColors(textColor: Int) {
+        binding.settingsLinkTitle.setTextColor(textColor)
+        binding.settingsLinkSummary.setTextColor(textColor)
         binding.settingsLinkChevron.applyColorFilter(textColor)
     }
 

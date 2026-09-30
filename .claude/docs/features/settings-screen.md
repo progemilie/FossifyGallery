@@ -60,9 +60,15 @@ page's hue for a moment. Back closes a page first, then the search, then the scr
 
 ## What breaks silently
 
-- **Only the page that can be seen is painted.** `updateTextColors` walks whatever it is handed,
-  and handing it the whole screen was 22ms of the 34ms the screen took to come up. A page is painted
-  as it comes up (`pageShown`); everything else only has its colours re-read on resume.
+- **Theme colours are read as seldom as possible.** Every `getProperTextColor()` and its kind builds
+  commons a new `BaseConfig`, and `updateTextColors` reads all three again for every layout it
+  descends into. So `setupPages` reads the colours once and hands them to every page and group, the
+  first page's own views colour themselves, and `updateTextColors` is handed only the rows of the
+  page coming up (`pageShown`). Reading them per group and painting the first page through commons
+  had `onResume` at 26ms against the cards' 14ms; it is 10ms this way.
+- **The bar's fill is laid once and faded** (`makeTopBarFloating`, `updateTitleFade`).
+  `AppBarLayout` wraps every colour it is given in a new drawable, which every frame of a scroll
+  was paying for.
 - **A group whose every row is hidden disappears with them** (`refreshGroups`), which only happens
   after the setup functions have decided what this platform offers - so `setupPages` runs last.
 - A row added to the layout wants its setup in `SettingsActivity` and nothing else, but a row added

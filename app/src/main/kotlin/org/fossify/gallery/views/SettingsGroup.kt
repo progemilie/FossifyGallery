@@ -18,8 +18,6 @@ import androidx.core.view.children
 import androidx.core.view.isVisible
 import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.getProperBackgroundColor
-import org.fossify.commons.extensions.getProperPrimaryColor
-import org.fossify.commons.extensions.getProperTextColor
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.Glass
 
@@ -89,11 +87,12 @@ class SettingsGroup @JvmOverloads constructor(
         addView(rows, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
     }
 
-    /** Re-reads the theme, and colours the heading and the row icons [hue] - none on a page of links. */
-    fun updateColors(hue: Int? = null) {
-        rows.cardColor = settingsCardColor(context)
-        rows.lineColor = context.getProperTextColor().adjustAlpha(DIVIDER_ALPHA)
-        heading.setTextColor(hue ?: context.getProperPrimaryColor())
+    /** Takes the theme's colours, and colours the heading and the row icons [hue] - none on a page of links. */
+    fun updateColors(cardColor: Int, textColor: Int, hue: Int? = null) {
+        rows.cardColor = cardColor
+        rows.lineColor = textColor.adjustAlpha(DIVIDER_ALPHA)
+        // only a page's groups have a heading, and every page has a hue
+        heading.setTextColor(hue ?: textColor)
         if (hue != null) {
             rows.children.forEach { row ->
                 ((row as? ViewGroup)?.getChildAt(0) as? ImageView)?.setColorFilter(hue)

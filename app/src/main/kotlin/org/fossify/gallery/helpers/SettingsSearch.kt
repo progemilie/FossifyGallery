@@ -16,10 +16,10 @@ import androidx.core.widget.doAfterTextChanged
 import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.commons.extensions.normalizeString
+import org.fossify.commons.extensions.updateTextColors
 import org.fossify.gallery.databinding.SettingsSearchResultBinding
 import org.fossify.gallery.views.SettingsGroup
 import org.fossify.gallery.views.SettingsPage
-import org.fossify.gallery.views.settingsCardColor
 import java.util.Locale
 
 /** Between a page's title and its heading, under a setting a search has found. */
@@ -38,13 +38,13 @@ private const val ICON_ALPHA = 0.7f
  * hidden, or retitled, is found or not found as it currently is.
  */
 class SettingsSearch(
-    private val holder: View,
+    private val holder: ViewGroup,
     private val field: EditText,
     private val clear: ImageView,
     /** What the findings stand in for while there is anything typed. */
     private val links: View,
     private val results: SettingsGroup,
-    private val empty: View,
+    private val empty: TextView,
     private val pages: SettingsPages,
 ) {
     private val context = field.context
@@ -73,14 +73,16 @@ class SettingsSearch(
         return true
     }
 
-    /** Re-reads the theme onto the field, and redraws whatever it has found in it. */
-    fun updateColors(textColor: Int) {
+    /** Takes the theme's colours onto the field, and redraws whatever it has found in it. */
+    fun updateColors(cardColor: Int, textColor: Int) {
         this.textColor = textColor
         holder.background = GradientDrawable().apply {
             cornerRadius = holder.layoutParams.height / 2f
-            setColor(settingsCardColor(context))
+            setColor(cardColor)
         }
 
+        context.updateTextColors(holder)
+        empty.setTextColor(textColor)
         holder.findViewById<ImageView>(org.fossify.gallery.R.id.settings_search_icon)
             .applyColorFilter(textColor.adjustAlpha(ICON_ALPHA))
         clear.applyColorFilter(textColor)
