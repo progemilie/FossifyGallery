@@ -3,6 +3,7 @@ package org.fossify.gallery.activities
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.graphics.drawable.toDrawable
@@ -28,6 +29,7 @@ import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.showSystemUI
 import org.fossify.gallery.fragments.ViewPagerFragment
 import org.fossify.gallery.helpers.TileFlight
+import org.fossify.gallery.helpers.ViewerOpening
 import org.fossify.gallery.helpers.Glass
 import org.fossify.gallery.helpers.PATH
 import org.fossify.gallery.helpers.PeekSession
@@ -111,6 +113,12 @@ class PeekViewerActivity :
     override fun onResume() {
         super.onResume()
         originalBrightness = window.updateBrightness(config.maxBrightness, originalBrightness)
+    }
+
+    // the pager is only built once the opening flight lands, and a flick before then has nothing to take it
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        ViewerOpening.watchViewer(this, ev, flight)
+        return super.dispatchTouchEvent(ev)
     }
 
     /** The grid takes the selection off [PeekSession]; the path is what it scrolls back to. */

@@ -30,7 +30,7 @@ itself after commons repaints (`FloatingTopBar.makeFloating` runs after every `u
 | `MediaActivity` | A `MediaGridPane` in a window of its own: a folder, favourites, the recycle bin, or another app's picker. |
 | `ViewPagerActivity` | The fullscreen viewer. `PhotoVideoActivity` (a file opened from outside) and `VideoPlayerActivity` share `BaseViewerActivity` with it. |
 | `PeekViewerActivity` | A stripped-down viewer opened while selecting. See [peek](features/peek-viewer.md). |
-| `SettingsActivity` | Settings as collapsible cards. See [settings](features/settings-screen.md). |
+| `SettingsActivity` | Settings as a first page of categories, each opening a page of its own. See [settings](features/settings-screen.md). |
 
 `MediaGridPane` is the media grid itself — everything ever done to it — and the activities around it
 are only the window and the chrome floating over it. `interfaces/GridPane.kt` is what a screen asks
@@ -133,4 +133,4 @@ Look & feel
 - [Floating chrome and glass](features/floating-chrome.md) — the search pill, glass panels, their
   motion, outlines.
 - [The three dots' drop-down](features/glass-menu.md) — `GlassMenu` and `MenuSpec`.
-- [Settings screen](features/settings-screen.md) — one card per section.
+- [Settings screen](features/settings-screen.md) — a page per category, and searching them.

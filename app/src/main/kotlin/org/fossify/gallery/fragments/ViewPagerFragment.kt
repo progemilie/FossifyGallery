@@ -11,7 +11,6 @@ import kotlin.math.abs
 abstract class ViewPagerFragment : Fragment() {
     var listener: FragmentListener? = null
 
-    private var mTouchDownTime = 0L
     private var mTouchDownX = 0f
     private var mTouchDownY = 0f
     private var mCloseDownThreshold = 100f
@@ -84,6 +83,12 @@ abstract class ViewPagerFragment : Fragment() {
     open fun displayedMedia(): DisplayedMedia? = null
 
     /**
+     * The viewer is shrinking back into the grid, and anything the fragment starts loading from now
+     * on would only land in the frames of that shrink. See [org.fossify.gallery.helpers.TileFlight].
+     */
+    open fun onViewerClosing() {}
+
+    /**
      * Runs the flick detection over an event the fragment's own views did not get to see, which the
      * viewer feeds in from [android.app.Activity.dispatchTouchEvent].
      *
@@ -106,7 +111,6 @@ abstract class ViewPagerFragment : Fragment() {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 mTrackingGesture = isEligible()
-                mTouchDownTime = System.currentTimeMillis()
                 mTouchDownX = event.rawX
                 mTouchDownY = event.rawY
             }
@@ -119,7 +123,9 @@ abstract class ViewPagerFragment : Fragment() {
                 val diffX = mTouchDownX - event.rawX
                 val diffY = mTouchDownY - event.rawY
 
-                val downGestureDuration = System.currentTimeMillis() - mTouchDownTime
+                // by the events' own clock: a viewer still setting up can take a good while to get
+                // round to an ACTION_UP, and a flick timed by that was read as a slow drag and dropped
+                val downGestureDuration = event.eventTime - event.downTime
                 val isFlick = wasTracking &&
                     !mIgnoreCloseDown &&
                     abs(diffY) > abs(diffX) &&

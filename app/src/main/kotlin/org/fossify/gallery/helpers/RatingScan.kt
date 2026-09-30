@@ -17,20 +17,35 @@ import java.util.Locale
  * read so the next scan does not have to.
  *
  * Reading the metadata is the one genuinely expensive thing a scan can do per item, so it only
- * happens at all when something - a thumbnail badge, a rating sort - is going to use the answer.
+ * happens at all when something - a thumbnail badge, sorting or grouping by rating - is going to use
+ * the answer. The all media grid is put together out of every folder's scan, so its own arrangement
+ * counts for every folder.
  *
- * One of these covers one pass over [folder]: ask it [of] per file and [persist] at the end.
+ * One of these covers one pass over [folder]: ask it [of] per file and [persist] at the end. A null
+ * [folder] is a pass over the whole of MediaStore at once, which reads ratings only in the folders
+ * that use them.
  */
-class RatingScan(private val context: Context, private val folder: String) {
-    private val wanted = context.config.showThumbnailRating ||
-        context.config.getFolderSorting(folder) and SORT_BY_RATING != 0
+class RatingScan(private val context: Context, private val folder: String?) {
+    private val wantedEverywhere = context.config.showThumbnailRating ||
+        context.config.arrangesByRating(SHOW_ALL) ||
+        folder != null && context.config.arrangesByRating(folder)
 
-    private val known by lazy { if (wanted) loadKnown() else emptyMap() }
+    // a pass over the whole of MediaStore looks each folder's settings up once, by parent path
+    private val wantedIn = HashMap<String, Boolean>()
+
+    private val known by lazy { loadKnown() }
     private val fresh = ArrayList<MediaRating>()
+
+    private fun wanted(file: File): Boolean {
+        if (wantedEverywhere) return true
+        if (folder != null) return false
+        val parent = file.parent ?: return false
+        return wantedIn.getOrPut(parent) { context.config.arrangesByRating(parent) }
+    }
 
     fun of(file: File): Int {
         val path = file.absolutePath
-        if (!wanted || !path.canBeRated()) {
+        if (!wanted(file) || !path.canBeRated()) {
             return 0
         }
 
@@ -66,7 +81,7 @@ class RatingScan(private val context: Context, private val folder: String) {
             // the favorites and recycle bin views collect files from all over, and the Android 11
             // query walks the whole of MediaStore - none of them has one parent path to narrow the
             // lookup down to
-            val rows = if (folder == FAVORITES || folder == RECYCLE_BIN) {
+            val rows = if (folder == null || folder == FAVORITES || folder == RECYCLE_BIN) {
                 context.mediaRatingsDB.getAll()
             } else {
                 context.mediaRatingsDB.getFolderRatings(folder.lowercase(Locale.getDefault()))

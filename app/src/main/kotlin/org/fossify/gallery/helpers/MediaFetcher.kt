@@ -457,7 +457,7 @@ class MediaFetcher(val context: Context) {
         // hashed once instead of scanning the list again for every MediaStore row below
         val favorites = favoritePaths.toHashSet()
 
-        val ratings = RatingScan(context, FAVORITES)
+        val ratings = RatingScan(context, folder = null)
 
         val projection = arrayOf(
             Images.Media._ID,
@@ -793,9 +793,9 @@ class MediaFetcher(val context: Context) {
         }
 
         // a rating on its own leaves whole blocks of items tied - every five star photo compares
-        // equal to every other - so fall back to newest first within each rating, the way Aves
-        // does. after the sign flip, so reversing the ratings does not also flip the dates inside
-        // them
+        // equal to every other - so fall back to the date taken, newest first, within each rating,
+        // the way Aves does. A scan sorting by rating reads the real date taken for this. After the
+        // sign flip, so reversing the ratings does not also flip the dates inside them
         if (result == 0 && sorting and SORT_BY_RATING != 0) {
             result = o2.taken.compareTo(o1.taken)
         }
@@ -858,19 +858,7 @@ class MediaFetcher(val context: Context) {
     fun groupMedia(media: ArrayList<Medium>, path: String): ArrayList<ThumbnailItem> {
         val pathToCheck = if (path.isEmpty()) SHOW_ALL else path
         val sorting = context.config.getFolderSorting(pathToCheck)
-        val savedGrouping = context.config.getFolderGrouping(pathToCheck)
-
-        // sorting by rating carries its own headers - a run of five star photos followed by a run
-        // of four star ones is already grouped, all it is missing is the labels - so it overrides
-        // whatever grouping the folder is otherwise set to, keeping only the file count preference
-        val isRatingSorting = sorting and SORT_BY_RATING != 0
-        val currentGrouping = if (isRatingSorting) {
-            GROUP_BY_RATING or
-                (savedGrouping and GROUP_SHOW_FILE_COUNT) or
-                (if (sorting and SORT_DESCENDING != 0) GROUP_DESCENDING else 0)
-        } else {
-            savedGrouping
-        }
+        val currentGrouping = context.config.getFolderGrouping(pathToCheck)
 
         // a hand made order cuts across whatever groups would be formed, show it as the flat list it is
         val isCustomSorting = sorting and SORT_BY_CUSTOM != 0

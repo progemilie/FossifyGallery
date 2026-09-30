@@ -11,6 +11,7 @@ import android.provider.MediaStore
 import android.provider.MediaStore.Images
 import android.provider.MediaStore.Video
 import android.view.Menu
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
@@ -163,6 +164,7 @@ import org.fossify.gallery.helpers.SET_WALLPAPER_INTENT
 import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_TEMP_HIDDEN_DURATION
 import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
+import org.fossify.gallery.helpers.SORT_BY_RATING
 import org.fossify.gallery.helpers.SelectionChrome
 import org.fossify.gallery.helpers.TAB_SCROLL_OFFSET
 import org.fossify.gallery.helpers.TAB_SCROLL_PATH
@@ -172,6 +174,7 @@ import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.TYPE_VIDEOS
 import org.fossify.gallery.helpers.TabSwitcher
+import org.fossify.gallery.helpers.ViewerOpening
 import org.fossify.gallery.helpers.getDefaultFileFilter
 import org.fossify.gallery.helpers.getPermissionToRequest
 import org.fossify.gallery.helpers.getPermissionsToRequest
@@ -431,6 +434,9 @@ class MainActivity :
         super.onStart()
         mTempShowHiddenHandler.removeCallbacksAndMessages(null)
     }
+
+    // a gesture made while a tapped photo is still opening over the grid is the photo's, see ViewerOpening
+    override fun dispatchTouchEvent(ev: MotionEvent) = ViewerOpening.watchGrid(this, ev) || super.dispatchTouchEvent(ev)
 
     override fun onResume() {
         super.onResume()
@@ -1881,6 +1887,8 @@ class MainActivity :
                 val grouping = config.getFolderGrouping(directory.path)
                 val getProperDateTaken = config.directorySorting and SORT_BY_DATE_TAKEN != 0
                         || sorting and SORT_BY_DATE_TAKEN != 0
+                        // media rated alike fall back to the date taken
+                        || sorting and SORT_BY_RATING != 0
                         || grouping and GROUP_BY_DATE_TAKEN_DAILY != 0
                         || grouping and GROUP_BY_DATE_TAKEN_MONTHLY != 0
 
@@ -2007,6 +2015,8 @@ class MainActivity :
             val grouping = config.getFolderGrouping(folder)
             val getProperDateTaken = config.directorySorting and SORT_BY_DATE_TAKEN != 0
                     || sorting and SORT_BY_DATE_TAKEN != 0
+                    // media rated alike fall back to the date taken
+                    || sorting and SORT_BY_RATING != 0
                     || grouping and GROUP_BY_DATE_TAKEN_DAILY != 0
                     || grouping and GROUP_BY_DATE_TAKEN_MONTHLY != 0
 

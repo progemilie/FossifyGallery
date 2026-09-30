@@ -6,10 +6,12 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.text.TextUtils
+import android.view.ViewGroup
 import android.widget.RelativeLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.view.children
+import androidx.core.view.descendants
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import com.google.gson.Gson
@@ -24,9 +26,10 @@ import org.fossify.gallery.dialogs.*
 import org.fossify.gallery.extensions.*
 import org.fossify.gallery.helpers.*
 import org.fossify.gallery.models.AlbumCover
-import org.fossify.gallery.views.SettingsCard
+import org.fossify.gallery.views.SettingsGroup
+import org.fossify.gallery.views.SettingsPage
 import org.fossify.gallery.views.explains
-import org.fossify.gallery.views.makeAccordion
+import org.fossify.gallery.views.settingsCardColor
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -40,10 +43,13 @@ class SettingsActivity : SimpleActivity() {
         private const val SELECT_IMPORT_FAVORITES_FILE_INTENT = 3
         private const val SELECT_EXPORT_ORDER_GROUPS_FILE_INTENT = 4
         private const val SELECT_IMPORT_ORDER_GROUPS_FILE_INTENT = 5
+        private const val OPAQUE = 255
     }
 
     private var mRecycleBinContentSize = 0L
     private val binding by viewBinding(ActivitySettingsBinding::inflate)
+    private lateinit var pages: SettingsPages
+    private lateinit var search: SettingsSearch
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,7 +57,7 @@ class SettingsActivity : SimpleActivity() {
 
         setupEdgeToEdge(
             padTopSystem = listOf(binding.settingsAppbar),
-            padBottomSystem = listOf(binding.settingsNestedScrollview)
+            padBottomSystem = listOf(binding.settingsNestedScrollview, binding.settingsPagesScroller)
         )
 
         // no setupMaterialScrollListener: what it does is fade a band of colour in under the bar
@@ -62,9 +68,34 @@ class SettingsActivity : SimpleActivity() {
             }
         }
 
-        binding.settingsNestedScrollview.setOnScrollChangeListener { _, _, scrollY, _, _ ->
-            updateTitleFade(scrollY)
+        pages = SettingsPages(
+            homeScroller = binding.settingsNestedScrollview,
+            homeHeading = binding.settingsHomeTitle,
+            home = binding.settingsHome,
+            pageScroller = binding.settingsPagesScroller,
+            pageHeading = binding.settingsPageTitle,
+            onShown = ::pageShown
+        )
+        pages.restoreState(savedInstanceState)
+
+        // the bar follows only the scroller that is up
+        for (scroller in listOf(binding.settingsNestedScrollview, binding.settingsPagesScroller)) {
+            scroller.setOnScrollChangeListener { view, _, scrollY, _, _ ->
+                if (view === pages.scroller) {
+                    updateTitleFade(scrollY)
+                }
+            }
         }
+
+        search = SettingsSearch(
+            holder = binding.settingsSearchHolder,
+            field = binding.settingsSearch,
+            clear = binding.settingsSearchClear,
+            links = binding.settingsHomeLinks,
+            results = binding.settingsSearchResults,
+            empty = binding.settingsSearchEmpty,
+            pages = pages
+        )
     }
 
     override fun onResume() {
@@ -72,10 +103,20 @@ class SettingsActivity : SimpleActivity() {
         // the status bar icons are picked against the colour named here, and left to itself commons
         // names the accent - white icons, invisible over a light theme's background
         setupTopAppBar(binding.settingsAppbar, NavigationIcon.Arrow, getProperBackgroundColor())
+        // the arrow goes back a page before it leaves the screen
+        binding.settingsToolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
         // behind setupTopAppBar, which is what paints the bar back onto its band of colour
         makeTopBarFloating()
         updateEdgeFades()
         setupSettingItems()
+    }
+
+    // a page closes first, then whatever was being searched for, then the screen
+    override fun onBackPressedCompat() = pages.goHome() || search.clear()
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        pages.saveState(outState)
     }
 
     /**
@@ -84,7 +125,9 @@ class SettingsActivity : SimpleActivity() {
      * which only the running app knows - hence the layout listener above rather than a dimen.
      */
     private fun makeTopBarFloating() {
-        binding.settingsAppbar.setBackgroundColor(Color.TRANSPARENT)
+        // laid once and faded in by updateTitleFade: AppBarLayout wraps every colour it is given in a
+        // new drawable, too dear to do on every frame of a scroll
+        binding.settingsAppbar.setBackgroundColor(getProperBackgroundColor())
         binding.settingsAppbar.stateListAnimator = null
         binding.settingsAppbar.elevation = 0f
         binding.settingsToolbar.setBackgroundColor(Color.TRANSPARENT)
@@ -95,21 +138,28 @@ class SettingsActivity : SimpleActivity() {
         binding.settingsToolbar.setTitleTextColor(onBackground)
         binding.settingsToolbar.navigationIcon?.mutate()?.applyColorFilter(onBackground)
         keepCardsClearOfTopBar()
-        updateTitleFade(binding.settingsNestedScrollview.scrollY)
+        updateTitleFade(pages.scroller.scrollY)
     }
 
     private fun keepCardsClearOfTopBar() {
-        binding.settingsNestedScrollview.updatePadding(top = binding.settingsAppbar.height)
+        val barHeight = binding.settingsAppbar.height
+        binding.settingsNestedScrollview.updatePadding(top = barHeight)
+        binding.settingsPagesScroller.updatePadding(top = barHeight)
     }
 
     /**
-     * The heading goes as soon as the screen is scrolled - it names a screen the user is already
-     * looking at, and over the cards passing under it there is nothing for it to sit against. The
-     * arrow beside it stays: that is the way out.
+     * The open page's heading hands over to the bar's title as it scrolls under the bar, the way One
+     * UI's pages do, so the page is named however far down it is - and the bar fills in behind the
+     * title as it comes, or the settings scrolling under it would run through it. The arrow stays
+     * throughout: that is the way back.
      */
     private fun updateTitleFade(scrollY: Int) {
+        val heading = pages.heading
         val distance = resources.getDimension(R.dimen.settings_title_fade_distance)
-        toolbarTitleView()?.alpha = 1f - (scrollY / distance).coerceIn(0f, 1f)
+        val handover = ((scrollY - heading.height / 2f) / distance).coerceIn(0f, 1f)
+        toolbarTitleView()?.alpha = handover
+        heading.alpha = 1f - handover
+        binding.settingsAppbar.background?.alpha = (handover * OPAQUE).toInt()
     }
 
     /**
@@ -191,48 +241,47 @@ class SettingsActivity : SimpleActivity() {
         setupExportSettings()
         setupImportSettings()
 
-        setupCards()
+        setupPages()
     }
 
     /**
-     * The sections, each shut down to its title and a line saying what is inside, and only one of
-     * them open at a time. Found by walking the holder rather than named one by one: the layout is
-     * where the sections are decided, and a card added there wants nothing here to go with it.
+     * Re-reads the theme onto every page, which is only colours, after the setup above has decided
+     * which rows this device offers - a group left with none goes with them. The page that is up is
+     * painted again too, the theme having maybe changed while the screen was away.
+     *
+     * The colours are read once and handed down, since every reading builds commons a new BaseConfig.
      */
-    private fun setupCards() {
-        val cards = binding.settingsHolder.children.filterIsInstance<SettingsCard>().toList()
-        cards.forEach {
-            it.updateColors()
-            it.onOpenSettled = ::revealCard
+    private fun setupPages() {
+        val textColor = getProperTextColor()
+        val cardColor = settingsCardColor(this)
+        binding.settingsHome.descendants.filterIsInstance<SettingsGroup>()
+            .forEach { it.updateColors(cardColor, textColor) }
+        pages.links.forEach { it.updateColors(textColor) }
+        pages.all.forEach {
+            it.refreshGroups()
+            it.updateColors(cardColor, textColor)
         }
 
-        cards.makeAccordion(::paintSettings)
-        // the theme can have changed while the screen was away, so whatever is open is painted again
-        cards.firstOrNull { it.isOpen }?.let(::paintSettings)
+        binding.settingsHomeTitle.setTextColor(textColor)
+        binding.settingsPageTitle.setTextColor(textColor)
+        updateTextColors(binding.settingsPurchaseThankYouHolder)
+        pageShown(pages.shown, pages.title)
+        // after the pages, whose rows and colours its findings are drawn from
+        search.updateColors(cardColor, textColor)
     }
 
     /**
-     * Paints one card's settings, as it opens and so before the frame it first draws in.
-     * [updateTextColors] walks whatever it is handed, and handing it the whole screen repainted two
-     * hundred views for the dozen showing - two thirds of the time this screen took to come up.
+     * A page coming up, painted before the frame it first draws in and named in the bar.
+     * [updateTextColors] reads the theme again for every layout it descends into, so it is handed only
+     * the rows of the page that is up - the first page's own views colour themselves in [setupPages].
      */
-    private fun paintSettings(card: SettingsCard) = updateTextColors(card.settings)
-
-    /**
-     * Brings a card that has just grown past the foot of the screen back into view, by the least
-     * that will do it: a card already showing in full is not moved at all, and one too tall to fit
-     * is brought no further than its own title, which would otherwise be the first thing to go.
-     */
-    private fun revealCard(card: SettingsCard) {
-        val scroller = binding.settingsNestedScrollview
-        // the holder starts at the scroller's top padding, which is the room made for the bar
-        val hidden = scroller.paddingTop + card.bottom -
-                (scroller.scrollY + scroller.height - scroller.paddingBottom)
-        val roomAboveIt = card.top - scroller.scrollY
-        val scrollBy = minOf(hidden, roomAboveIt)
-        if (scrollBy > 0) {
-            scroller.smoothScrollBy(0, scrollBy)
+    private fun pageShown(page: ViewGroup, title: String) {
+        if (page is SettingsPage) {
+            updateTextColors(page)
         }
+
+        binding.settingsToolbar.title = title
+        updateTitleFade(pages.scroller.scrollY)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {

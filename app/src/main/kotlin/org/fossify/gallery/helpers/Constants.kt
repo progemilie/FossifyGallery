@@ -179,7 +179,7 @@ const val GO_TO_PREV_ITEM = "go_to_prev_item"
 const val SHOW_TEMP_HIDDEN_DURATION = 300000L
 const val CLICK_MAX_DURATION = 150
 const val CLICK_MAX_DISTANCE = 100
-const val MAX_CLOSE_DOWN_GESTURE_DURATION = 300
+const val MAX_CLOSE_DOWN_GESTURE_DURATION = 450
 const val MAX_ZOOM_EQUALITY_TOLERANCE = 0.01
 const val DRAG_THRESHOLD = 8
 const val MONTH_MILLISECONDS = MONTH_SECONDS * 1000L
@@ -275,8 +275,6 @@ const val GROUP_BY_FOLDER = 32
 const val GROUP_BY_LAST_MODIFIED_MONTHLY = 64
 const val GROUP_BY_DATE_TAKEN_MONTHLY = 128
 
-// not offered in the Group by dialog: sorting by rating brings its own headers, so this is only
-// ever set by MediaFetcher.groupMedia off the back of SORT_BY_RATING
 const val GROUP_BY_RATING = 256
 const val GROUP_DESCENDING = 1024
 const val GROUP_SHOW_FILE_COUNT = 2048
@@ -360,19 +358,25 @@ const val FOLDER_FLY_IN_SCALE = 0.15f
 const val FOLDER_FLASH_DURATION_MS = 90L
 const val FOLDER_FLASH_BLINKS = 3
 
-// the flight between a grid tile and the fullscreen viewer, see TileFlight and ViewerTransition
-const val FLIGHT_DURATION_MS = 220L
+/**
+ * How long a photo takes to shrink back into its tile, see TileFlight and ViewerTransition.
+ *
+ * It runs on the clock, so a slow frame skips it ahead. A photo flicked away while it is still
+ * opening is shrunk over a viewer busy setting up: at 180ms the emulator skipped the end of a
+ * quarter of those shrinks, against one in thirty at 220.
+ */
+const val FLIGHT_SHRINK_MS = 220L
 
 /**
- * How long a tile takes to grow into the photo, against [FLIGHT_DURATION_MS] for the shrink back.
+ * How long a tile takes to grow into the photo, against [FLIGHT_SHRINK_MS] for the shrink back.
  *
- * Longer because the two are not given the same frames. A shrink runs on a viewer that has been up
- * for a while and is drawn every 16ms; a grow is drawn while its window is still being brought up,
- * where the frames come 40 to 60ms apart. Measured over the same flight, 220ms of that is five or
- * six frames and steps as much as 0.7 of the way across in one of them, against a quarter at worst
- * once there is enough of it for eight.
+ * The two are not given the same frames. A shrink runs on a viewer that has been up for a while
+ * and is drawn every 16ms; a grow is drawn while its window is still being brought up, where the
+ * frames come 40 to 60ms apart. Measured over the same flight, 220ms of that is five or six frames
+ * and steps as much as 0.7 of the way across in one of them, against a quarter at worst at 250ms -
+ * traded for the quicker open.
  */
-const val FLIGHT_GROW_MS = 250L
+const val FLIGHT_GROW_MS = 220L
 
 /**
  * How much of a flight has run before the chrome starts fading in behind it, and all of a shrink
@@ -384,7 +388,10 @@ const val FLIGHT_CHROME_IN = 0.35f
 const val FLIGHT_SETTLE_WAIT_MS = 900L
 
 /** How long the last correction onto a photo that landed somewhere unexpected is given. */
-const val FLIGHT_SETTLE_MS = 120L
+const val FLIGHT_SETTLE_MS = 100L
+
+/** How far a finger has to travel down, in dp, for a flick made while a photo is opening to close it. */
+const val OPENING_FLICK_DP = 40
 
 /** The small first pass at a fullscreen photo, which is also the picture a flight is drawn with. */
 const val LOW_RES_IMAGE_SIZE = 320

@@ -8,6 +8,7 @@ Notable fork-only changes.
 - Holding a picked picture and dragging unpicks the pictures the finger passes over.
 - **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with
   adjustable spacing and an optional folder size on the details line.
+- **Settings can be searched**: type a setting's name to find it and jump straight to it.
 - **A redesigned video player**: the video's own frames make its progress bar, in place of the
   thumbnail strip, with buttons to skip ten seconds and to loop, and holding the left side rewinds.
   The controls get out of the way while it plays.
@@ -18,7 +19,10 @@ Notable fork-only changes.
 - Updated the style and opening animation of the copy and move chooser.
 - The rating chooser is smaller, and opens in the middle of the screen.
 - Clearing the cache asks first.
+- **Settings are redesigned** like a phone's own settings app: a first page of categories, each
+  opening a page of its own, with every setting grouped and given an icon.
 - The thumbnail you come back to from a photo no longer pops in.
+- **Opening a photo is quicker**, and a photo can be swiped away the moment it starts opening.
 - **Custom order mode is restyled** to match the rest of the app.
 - Outlines on folder covers and in custom order mode are finer, and fade towards the bottom.
 - The menu opened from a pill at the bottom opens in the middle of the screen.
@@ -26,6 +30,7 @@ Notable fork-only changes.
 - The metadata sheet no longer shows a date created, which only ever repeated another date.
 - The folder grid offers only as many columns as fit the screen — five on a phone — rather than
   up to twenty.
+- Sorting and grouping by rating works like any other sorting now.
 ### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.
@@ -33,10 +38,15 @@ Notable fork-only changes.
 - Fixed a quick swipe down on a video opened on its own screen sometimes being ignored.
 - Fixed holding and dragging to select more pictures not working when the hold started on a peek button.
 - Fixed two photos opening on top of each other when two thumbnails were tapped at once.
+- Fixed a quick swipe down on a photo sometimes being ignored while it was still loading.
+- Fixed a photo swiped away straight after opening stuttering as it shrank back into its thumbnail.
+- Fixed the grid jumping to a photo near the top or bottom of the screen that was closed straight
+  after opening it.
 - Fixed a photo closed while it was still opening dropping off the bottom of the screen, rather than
   shrinking back into its thumbnail.
 - Fixed the Settings title, back arrow, status bar icons and last card's shadow on a light theme.
 - Fixed a renamed photo losing its place in a folder arranged by hand.
+- Fixed photos with the same rating not being in date taken order when sorting by rating.
 - Fixed removing metadata from an unusually built file possibly saving only part of the photo. Files that cannot be read to the end are now left untouched.
 
 ## [v1.19.0] - 2026.09.01 — UI
