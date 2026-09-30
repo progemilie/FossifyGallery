@@ -8,6 +8,7 @@ Notable fork-only changes.
 - Holding a picked picture and dragging unpicks the pictures the finger passes over.
 - **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with
   adjustable spacing and an optional folder size on the details line.
+- **Settings can be searched**: type a setting's name to find it and jump straight to it.
 ### Changed
 - Pinching the photo grid zooms smoothly.
 - The details at the top of a photo are more compact.

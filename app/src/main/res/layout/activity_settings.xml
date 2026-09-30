@@ -768,7 +768,7 @@
                         <ImageView
                             style="@style/SettingsRowIcon"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_rotation_vector" />
+                            android:src="@drawable/ic_orientation_auto_vector" />
 
                         <LinearLayout style="@style/SettingsRowTexts">
 
@@ -938,7 +938,7 @@
                         <ImageView
                             style="@style/SettingsRowIcon"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_swipe_down_vector" />
+                            android:src="@drawable/ic_arrow_down_vector" />
 
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_allow_down_gesture"

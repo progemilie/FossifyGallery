@@ -108,7 +108,7 @@ class SettingsSearch(
     }
 
     private fun rowFor(found: Found): View {
-        val binding =SettingsSearchResultBinding.inflate(LayoutInflater.from(context), results.settings, false)
+        val binding = SettingsSearchResultBinding.inflate(LayoutInflater.from(context), results.settings, false)
         binding.settingsResultTitle.text = titleOf(found.row)
         binding.settingsResultTitle.setTextColor(textColor)
         binding.settingsResultPath.text = listOf(found.page.title, found.heading)
