@@ -372,13 +372,13 @@ const val FLIGHT_SHRINK_MS = 220L
 /**
  * How long a tile takes to grow into the photo, against [FLIGHT_SHRINK_MS] for the shrink back.
  *
- * Longer because the two are not given the same frames. A shrink runs on a viewer that has been up
- * for a while and is drawn every 16ms; a grow is drawn while its window is still being brought up,
- * where the frames come 40 to 60ms apart. Measured over the same flight, 220ms of that is five or
- * six frames and steps as much as 0.7 of the way across in one of them, against a quarter at worst
- * once there is enough of it for eight.
+ * The two are not given the same frames. A shrink runs on a viewer that has been up for a while
+ * and is drawn every 16ms; a grow is drawn while its window is still being brought up, where the
+ * frames come 40 to 60ms apart. Measured over the same flight, 220ms of that is five or six frames
+ * and steps as much as 0.7 of the way across in one of them, against a quarter at worst at 250ms -
+ * traded for the quicker open.
  */
-const val FLIGHT_GROW_MS = 250L
+const val FLIGHT_GROW_MS = 220L
 
 /**
  * How much of a flight has run before the chrome starts fading in behind it, and all of a shrink

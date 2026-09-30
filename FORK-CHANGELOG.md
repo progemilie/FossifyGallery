@@ -16,7 +16,7 @@ Notable fork-only changes.
 - The rating chooser is smaller, and opens in the middle of the screen.
 - Clearing the cache asks first.
 - The thumbnail you come back to from a photo no longer pops in.
-- A photo can be swiped away the moment it starts opening.
+- **Opening a photo is quicker**, and a photo can be swiped away the moment it starts opening.
 - **Custom order mode is restyled** to match the rest of the app.
 - Outlines on folder covers and in custom order mode are finer, and fade towards the bottom.
 - The menu opened from a pill at the bottom opens in the middle of the screen.
