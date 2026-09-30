@@ -99,6 +99,10 @@ goes unnoticed, and the strip shows one keyframe in several cells out of order.
 - **The controls' visibility goes through `updateControls()`**, which knows the chrome, whether the
   video has started, and the player's error: shown anywhere else, the play button in the middle
   comes back over a playing video or an error message.
+- **Hidden controls are `INVISIBLE`, never `GONE`.** The volume and brightness readout
+  (`slide_info`) is laid out above them, and a RelativeLayout rule naming a gone view is dropped:
+  with the chrome away, the readout sat at the top of the page. Still laid out, a page first shown
+  with the chrome away reads its frames at once rather than when the chrome comes back.
 - **The frames are placed from dimensions, not from the viewer's layout.** `thumbnailStripBottom()`
   repeats how tall `bottom_actions.xml` lays out and `viewer_strip_drop_into_actions`; a change to
   either moves the thumbnail strip, and the frames sit off it until the function follows.

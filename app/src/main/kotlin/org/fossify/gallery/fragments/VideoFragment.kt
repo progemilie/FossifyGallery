@@ -51,6 +51,8 @@ import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import com.bumptech.glide.Glide
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beGoneIf
+import org.fossify.commons.extensions.beInvisible
+import org.fossify.commons.extensions.beInvisibleIf
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.fadeIn
@@ -691,13 +693,17 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         binding.videoPlayOutline.showIf(!mWasVideoStarted && mExoPlayer?.playerError == null, animate)
     }
 
+    // hidden rather than gone: the volume and brightness readout is laid out above the controls, and a
+    // RelativeLayout rule naming a gone view is dropped, which left the readout at the top of the page
     private fun View.showIf(show: Boolean, animate: Boolean) {
         when {
             animate && show -> fadeIn(DEFAULT_ANIMATION_DURATION)
-            animate -> fadeOut(DEFAULT_ANIMATION_DURATION)
+            animate -> animate().alpha(0f).setDuration(DEFAULT_ANIMATION_DURATION)
+                .withEndAction { beInvisible() }
+                .start()
             else -> {
                 animate().cancel()
-                beVisibleIf(show)
+                beInvisibleIf(!show)
                 alpha = if (show) 1f else 0f
             }
         }

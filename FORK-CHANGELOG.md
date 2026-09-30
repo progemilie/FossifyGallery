@@ -45,6 +45,8 @@ Notable fork-only changes.
   gestures are on.
 - Fixed a swipe down on a video not yet started not closing it when the swipe began on the play
   button, or at the screen's edges while volume and brightness gestures are on.
+- Fixed the volume and brightness readout on a video jumping to the top of the screen while the
+  controls were hidden.
 - Fixed holding and dragging to select more pictures not working when the hold started on a peek button.
 - Fixed two photos opening on top of each other when two thumbnails were tapped at once.
 - Fixed a quick swipe down on a photo sometimes being ignored while it was still loading.
