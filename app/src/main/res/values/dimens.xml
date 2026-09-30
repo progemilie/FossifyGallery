@@ -165,10 +165,9 @@
     <dimen name="viewer_strip_thumbnail_width">35dp</dimen>
     <dimen name="viewer_strip_thumbnail_height">40dp</dimen>
     <dimen name="viewer_strip_thumbnail_radius">5dp</dimen>
-    <!-- the thumbnail plus the widest gap, which is the one beside the middle thumbnail; the gaps
-         close towards viewer_strip_gap_tight from there outwards. See ViewerThumbnailStrip -->
-    <dimen name="viewer_strip_item_width">41dp</dimen>
-    <dimen name="viewer_strip_gap_tight">1dp</dimen>
+    <!-- the step from one thumbnail to the next: laid out edge to edge, the gaps between them are
+         what drawing the ones off the middle a little smaller leaves. See ViewerThumbnailStrip -->
+    <dimen name="viewer_strip_item_width">@dimen/viewer_strip_thumbnail_width</dimen>
     <dimen name="viewer_strip_padding_top">10dp</dimen>
     <dimen name="viewer_strip_padding_bottom">2dp</dimen>
     <dimen name="viewer_strip_height">50dp</dimen>

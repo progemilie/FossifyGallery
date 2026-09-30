@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The little play triangle a video's thumbnail wears in the viewer's strip. The dark rim round it
+     keeps it readable over a white photo. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="8dp"
+    android:height="8dp"
+    android:viewportWidth="10"
+    android:viewportHeight="10">
+
+    <path
+        android:pathData="M2.5,1.5L8.5,5L2.5,8.5Z"
+        android:strokeWidth="2.2"
+        android:strokeColor="#66000000"
+        android:strokeLineJoin="round" />
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M2.5,1.5L8.5,5L2.5,8.5Z"
+        android:strokeWidth="0.8"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineJoin="round" />
+</vector>

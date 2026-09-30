@@ -28,6 +28,18 @@
             android:scaleType="centerCrop"
             tools:src="@mipmap/ic_launcher" />
 
+        <!-- under the shade, so it dims with its thumbnail -->
+        <ImageView
+            android:id="@+id/viewer_thumbnail_video"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="@dimen/tiny_margin"
+            android:contentDescription="@null"
+            android:src="@drawable/viewer_strip_video_mark"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
         <View
             android:id="@+id/viewer_thumbnail_shade"
             android:layout_width="match_parent"

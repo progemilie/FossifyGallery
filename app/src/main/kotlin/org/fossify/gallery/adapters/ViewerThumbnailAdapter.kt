@@ -22,9 +22,9 @@ import org.fossify.gallery.models.Medium
 import org.fossify.gallery.svg.SvgSoftwareLayerSetter
 
 /**
- * The thumbnails of [org.fossify.gallery.views.ViewerThumbnailStrip]. Loading them is all this does:
- * how big and how shaded each one is drawn depends on where the strip has scrolled to, so the strip
- * sets that on the children itself rather than going through a binding for it.
+ * The thumbnails of [org.fossify.gallery.views.ViewerThumbnailStrip]. Loading and marking them is all
+ * this does: how big and how shaded each one is drawn depends on where the strip has scrolled to, so
+ * the strip sets that on the children itself rather than going through a binding for it.
  */
 class ViewerThumbnailAdapter(
     private val thumbnailWidth: Int,
@@ -81,8 +81,10 @@ class ViewerThumbnailAdapter(
     }
 
     override fun onBindViewHolder(holder: ThumbnailViewHolder, position: Int) {
-        loadThumbnail(holder.binding.viewerThumbnailImage, media[position])
-        markSelected(holder.binding, media[position])
+        val medium = media[position]
+        loadThumbnail(holder.binding.viewerThumbnailImage, medium)
+        holder.binding.viewerThumbnailVideo.beVisibleIf(medium.isVideo())
+        markSelected(holder.binding, medium)
     }
 
     /**

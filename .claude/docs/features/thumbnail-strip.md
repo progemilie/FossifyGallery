@@ -16,8 +16,8 @@ Read these before changing this feature — each can break silently if this one 
 
 ## Where it lives
 
-- `views/ViewerThumbnailStrip.kt` — the strip: layout manager, snapping, per-frame decoration.
-- `adapters/ViewerThumbnailAdapter.kt` — loads thumbnails and nothing else.
+- `views/ViewerThumbnailStrip.kt` — the strip: snapping, centring, per-frame decoration.
+- `adapters/ViewerThumbnailAdapter.kt` — loads thumbnails and marks them: a video's triangle, the peek's tick.
 - `Config.showThumbnailStrip` — toggled in settings and from the viewer's drop-down.
 
 ## How it works
@@ -29,16 +29,15 @@ only once it settles, and swiping the photo scrolls the strip back with a `Cente
 a glide the eye can follow. A fling keeps four fifths of its velocity and lands on an item, the way
 Aves' `KnownExtentScrollPhysics` does.
 
-**Size, shade and gaps are drawn, not laid out.** `updateChildDecorations()` sets each child's scale
-and shade from its own distance to the middle on every scroll frame, and pulls it towards the middle
-by however much of the gaps between has closed. Through the adapter, the highlight landed a frame late
-and trailed the thumbnails. Cells stay evenly spaced where they were laid out, so snapping and
-`centeredPosition()` are untouched; `StripLayoutManager` lays out past both ends by as far as the end
-thumbnail is pulled in, settled against itself over `EDGE_SETTLING_PASSES`.
+**Size and shade are drawn, not laid out.** `updateChildDecorations()` sets each child's scale and
+shade from its own distance to the middle on every scroll frame; through the adapter, the highlight
+landed a frame late and trailed the thumbnails. The cells are laid out edge to edge, so the gaps
+between thumbnails are what drawing the ones off the middle smaller (`OFF_CENTRE_SCALE`) leaves.
 
 Thumbnails decode at strip size in RGB_565, with their corners cut by an outline clip on the holder
 rather than by Glide's `RoundedCorners`, which would need transparency. An unloaded cell shows a
-placeholder of its own rather than black, which over a photo reads as a hole.
+placeholder of its own rather than black, which over a photo reads as a hole. A video's thumbnail
+wears a small play triangle in its bottom right corner, under the shade so it dims with the rest.
 
 ## What breaks silently
 
