@@ -1,6 +1,5 @@
 package org.fossify.gallery.views
 
-import android.os.SystemClock
 import android.view.MotionEvent
 import android.view.View
 import android.widget.TextView
@@ -10,10 +9,6 @@ import org.fossify.gallery.R
 private const val SEEK_HINT_MS = 700L
 private const val SEEK_HINT_FADE_MS = 150L
 private const val SEEK_HINT_POP = 0.85f
-
-/** A held rewind winds back twice as fast as the video plays, asking for a new frame this often. */
-private const val REWIND_SPEED = 2
-private const val REWIND_INTERVAL_MS = 100L
 
 /** How long a playing video is left alone before the chrome goes. */
 private const val CHROME_AUTO_HIDE_MS = 5000L
@@ -51,37 +46,6 @@ class SeekHints(private val back: TextView, private val forward: TextView) {
 
         hint.removeCallbacks(hide)
         hint.postDelayed(hide, SEEK_HINT_MS)
-    }
-}
-
-/**
- * Winds a video back for as long as a finger is held on its left side. ExoPlayer plays nothing
- * backwards, so it seeks, each time to wherever the clock says the wind has got to: a decoder too
- * slow to show every step still winds back at the same speed, only in fewer frames.
- */
-class RewindScan(private val view: View, private val seekTo: (ms: Long) -> Unit) {
-    private var from = 0L
-    private var startedAt = 0L
-
-    private val step = object : Runnable {
-        override fun run() {
-            val position = (from - (SystemClock.uptimeMillis() - startedAt) * REWIND_SPEED).coerceAtLeast(0L)
-            seekTo(position)
-            if (position > 0L) {
-                view.postDelayed(this, REWIND_INTERVAL_MS)
-            }
-        }
-    }
-
-    fun start(from: Long) {
-        this.from = from
-        startedAt = SystemClock.uptimeMillis()
-        view.removeCallbacks(step)
-        view.post(step)
-    }
-
-    fun stop() {
-        view.removeCallbacks(step)
     }
 }
 

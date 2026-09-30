@@ -90,7 +90,6 @@ import org.fossify.gallery.helpers.SHOULD_INIT_FRAGMENT
 import org.fossify.gallery.interfaces.PlaybackSpeedListener
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.views.MediaSideScroll
-import org.fossify.gallery.views.RewindScan
 import org.fossify.gallery.views.SeekHints
 import java.io.File
 import java.io.FileInputStream
@@ -104,11 +103,12 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         private const val UPDATE_INTERVAL_MS = 250L
         private const val TOUCH_HOLD_DURATION_MS = 500L
         private const val TOUCH_HOLD_SPEED_MULTIPLIER = 2.0f
+        private const val TOUCH_HOLD_SLOW_SPEED_MULTIPLIER = 0.5f
         private const val TOUCH_SLOP_DIVIDER = 3
         private const val SKIP_SECONDS = FAST_FORWARD_VIDEO_MS / 1000
         private const val LOOP_OFF_ALPHA = 0.6f
 
-        /** A hold or a double tap this near either side of the video acts on that side: back on the left. */
+        /** A hold or a double tap this near either side of the video acts on that side: slower or back on the left. */
         private const val SIDE_ZONE = 1 / 3f
     }
 
@@ -144,17 +144,16 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         // This code runs after the delay, only if the user is still holding down.
         mIsLongPressActive = true
         mView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        // held on the left third it winds back, anywhere else it plays twice as fast
-        if (mHoldIsRewind) {
-            startScrubbing()
-            mPlaybackSpeedPill.setText(R.string.playback_rewind_display_text)
-            mRewindScan.start(player.currentPosition)
+        mOriginalPlaybackSpeed = player.playbackParameters.speed
+        // held on the left third it plays at half speed, anywhere else twice as fast
+        val (speed, label) = if (mHoldIsSlow) {
+            TOUCH_HOLD_SLOW_SPEED_MULTIPLIER to R.string.playback_slow_display_text
         } else {
-            mOriginalPlaybackSpeed = player.playbackParameters.speed
-            mPlaybackSpeedPill.setText(R.string.playback_speed_display_text)
-            updatePlaybackSpeed(TOUCH_HOLD_SPEED_MULTIPLIER)
+            TOUCH_HOLD_SPEED_MULTIPLIER to R.string.playback_speed_display_text
         }
 
+        updatePlaybackSpeed(speed)
+        mPlaybackSpeedPill.setText(label)
         mPlaybackSpeedPill.fadeIn()
     }
 
@@ -175,8 +174,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     private var mInitialY = 0f
 
     private lateinit var mSeekHints: SeekHints
-    private lateinit var mRewindScan: RewindScan
-    private var mHoldIsRewind = false
+    private var mHoldIsSlow = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -222,7 +220,6 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             mSeekBar.setOnClickListener { }
 
             mSeekHints = SeekHints(videoSeekHintBack, videoSeekHintForward)
-            mRewindScan = RewindScan(videoHolder) { setPosition(it) }
 
             mTimeHolder = bottomVideoTimeHolder.videoTimeHolder
             mCurrTimeView = bottomVideoTimeHolder.videoCurrTime
@@ -859,7 +856,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         mIsDragged = false
     }
 
-    /** A drag along the scrubber or a held rewind: playback waits while the seeks come in quick succession. */
+    /** A drag along the scrubber: playback waits while the seeks come in quick succession. */
     private fun startScrubbing() {
         mExoPlayer?.apply {
             playWhenReady = false
@@ -1047,7 +1044,6 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             mCurrTimeView.text = 0.getFormattedDuration()
             mSeekBar.progress = 0
             mTimerHandler.removeCallbacksAndMessages(null)
-            mRewindScan.stop()
         }
     }
 
@@ -1105,7 +1101,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                 if (mIsPlaying && event.pointerCount == 1) {
                     mInitialX = event.x
                     mInitialY = event.y
-                    mHoldIsRewind = event.x < mView.width * SIDE_ZONE
+                    mHoldIsSlow = event.x < mView.width * SIDE_ZONE
                     mTimerHandler.postDelayed(mTouchHoldRunnable, TOUCH_HOLD_DURATION_MS)
                 }
             }
@@ -1133,13 +1129,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
     private fun stopHoldSpeedMultiplierGesture() {
         if (mIsLongPressActive) {
-            if (mHoldIsRewind) {
-                mRewindScan.stop()
-                stopScrubbing()
-            } else {
-                updatePlaybackSpeed(mOriginalPlaybackSpeed)
-            }
-
+            updatePlaybackSpeed(mOriginalPlaybackSpeed)
             mIsLongPressActive = false
             mPlaybackSpeedPill.fadeOut()
         }

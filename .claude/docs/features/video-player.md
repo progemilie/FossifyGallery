@@ -23,20 +23,17 @@ Read these before changing this feature — each can break silently if this one 
 | `fragments/VideoFragment.kt` | The player: ExoPlayer, the gestures, the controls' wiring |
 | `views/VideoScrubber.kt` | The progress bar as a strip of frames, a `SeekBar` underneath |
 | `views/VideoScrubberFrames.kt` | Reads the scrubber's frames, one load at a time, and caches them |
-| `views/VideoPlayerParts.kt` | `SeekHints` (the "+ 20s"), `RewindScan` (a held rewind), `ChromeAutoHide` |
+| `views/VideoPlayerParts.kt` | `SeekHints` (the "+ 20s"), `ChromeAutoHide` |
 | `layout/video_controls.xml` | Time, play and pause, toggles and scrubber; `VideoPlayerActivity` keeps `bottom_video_time_holder.xml` |
 | `layout/pager_video_item.xml` | The play button in the middle, the seek hints either side of it |
 | `ViewPagerActivity` | `updateThumbnailStrip()` puts the strip away on a video's page; owns `ChromeAutoHide` |
 
 ## Gestures
 
-The video is taken in thirds. A hold on the left third winds back at twice the speed it plays, a
-hold anywhere else plays at 2x (upstream's). A double tap on a side third skips ten seconds that
-way, and in the middle plays or pauses. A run of skips counts up in a hint on that side of the
-middle. Holds start only on a playing video, as upstream's 2x hold did.
-
-ExoPlayer plays nothing backwards, so `RewindScan` seeks, every 100 ms, to wherever the clock says
-the rewind has got to: a slow decoder shows fewer frames rather than a slower rewind.
+The video is taken in thirds. A hold on the left third plays at half speed, a hold anywhere else
+at 2x (upstream's). A double tap on a side third skips ten seconds that way, and in the middle
+plays or pauses. A run of skips counts up in a hint on that side of the middle. Holds start only on
+a playing video, as upstream's 2x hold did.
 
 ## The chrome going by itself
 
@@ -76,7 +73,7 @@ goes unnoticed, and the strip shows one keyframe in several cells out of order.
 
 ## What breaks silently
 
-- **Seeks in a stream need scrubbing mode.** A drag and a held rewind turn on
+- **Seeks in a stream need scrubbing mode.** A drag along the scrubber turns on
   `ExoPlayer.isScrubbingModeEnabled` through `startScrubbing()`/`stopScrubbing()`; without it each
   seek cancels the last before it has drawn, and on a video with keyframes far apart the picture
   stands still until the finger lifts. Left on, it keeps playback suppressed. Playback resumes after
