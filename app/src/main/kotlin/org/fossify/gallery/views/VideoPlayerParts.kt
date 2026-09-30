@@ -19,8 +19,8 @@ private const val REWIND_INTERVAL_MS = 100L
 private const val CHROME_AUTO_HIDE_MS = 3000L
 
 /**
- * What a run of double taps or skips has added up to, over the side it went: "- 10s", then "- 20s"
- * while the taps keep coming.
+ * What a run of double taps has added up to, on the side it went: "- 10s", then "- 20s" while the
+ * taps keep coming.
  */
 class SeekHints(private val back: TextView, private val forward: TextView) {
     private var shownForward: Boolean? = null

@@ -12,7 +12,7 @@ Read these before changing this feature — each can break silently if this one 
 - [peek-viewer](peek-viewer.md) — the peek draws its ticks on the strip.
 - [viewer-transition](viewer-transition.md) — the strip is centred on the opening photo before the flight lands.
 - [thumbnails](thumbnails.md) — the strip is the one thumbnail view that must be reloaded by hand after an edit.
-- [video-player](video-player.md) — a video's page puts the strip away for its own frame strip.
+- [video-player](video-player.md) — a video's page puts the strip away for its own frame strip, lined up with it from `viewer_strip_drop_into_actions` and the bottom actions' height.
 
 ## Where it lives
 

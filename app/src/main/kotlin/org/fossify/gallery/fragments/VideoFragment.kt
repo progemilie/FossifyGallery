@@ -76,7 +76,6 @@ import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.screenRect
 import org.fossify.gallery.extensions.displayedImageRect
 import org.fossify.gallery.extensions.getActionBarHeight
-import org.fossify.gallery.extensions.getBottomActionsHeight
 import org.fossify.gallery.extensions.getFormattedDuration
 import org.fossify.gallery.extensions.getFriendlyMessage
 import org.fossify.gallery.extensions.launchGesturePlayer
@@ -207,14 +206,13 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
             videoSurfaceFrame.controller.settings.swallowDoubleTaps = true
 
-            // the middle of the video's controls, and until it is played the one control it has
-            mPlayPauseButton = videoPlayOutline
-            mPlayPauseButton.setOnClickListener {
+            // until the video is played, the one control it has
+            videoPlayOutline.setOnClickListener {
                 if (mConfig.gestureVideoPlayer) activity.launchGesturePlayer(mMedium.path) else togglePlayPause()
             }
 
-            videoSkipBack.setOnClickListener { skipWithHint(false) }
-            videoSkipForward.setOnClickListener { skipWithHint(true) }
+            mPlayPauseButton = bottomVideoTimeHolder.videoTogglePlay
+            mPlayPauseButton.setOnClickListener { togglePlayPause() }
 
             mSeekBar = bottomVideoTimeHolder.videoSeekbar
             bottomVideoTimeHolder.videoSeekbar.setVideo(mMedium.path, mMedium.getSignature())
@@ -292,8 +290,9 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                 )
             }
 
-            binding.bottomActionsDummy.updateLayoutParams<ViewGroup.LayoutParams> {
-                height = resources.getBottomActionsHeight() + system.bottom
+            // the frames end where the thumbnail strip's do, the room under them for the playhead hanging below
+            binding.bottomVideoTimeHolder.root.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = system.bottom + thumbnailStripBottom() - mSeekBar.paddingBottom
             }
             insets
         }
@@ -635,7 +634,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
     }
 
-    /** Ten seconds either way, a double tap's or a skip button's, with the run of them added up on that side. */
+    /** Ten seconds either way for a double tap, with the run of them added up on that side. */
     private fun skipWithHint(forward: Boolean) {
         if (mExoPlayer == null || mIsPanorama) {
             return
@@ -657,11 +656,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         val isLooping = mConfig.loopVideos
         val loopsHere = isLooping && listener?.isSlideShowActive() == false
         mExoPlayer?.repeatMode = if (loopsHere) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
-        val icon = if (isLooping) R.drawable.ic_video_repeat_one_vector else R.drawable.ic_video_repeat_vector
-        binding.bottomVideoTimeHolder.videoToggleLoop.apply {
-            setImageResource(icon)
-            alpha = if (isLooping) 1f else LOOP_OFF_ALPHA
-        }
+        binding.bottomVideoTimeHolder.videoToggleLoop.alpha = if (isLooping) 1f else LOOP_OFF_ALPHA
     }
 
     private fun showPlaying(isPlaying: Boolean) {
@@ -677,14 +672,28 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     }
 
     /**
-     * The controls go with the chrome, except the play button of a video not yet started, which is the
-     * way in - and that gives way to an error, which stands where it would.
+     * How far above the navigation bar the viewer's thumbnail strip ends, which the frames line up with:
+     * let down into the top of the bottom actions, a row of touch targets between two margins (see
+     * ViewPagerActivity.setupThumbnailStrip), or on the navigation bar where there are none.
+     */
+    private fun thumbnailStripBottom(): Int {
+        if (!mConfig.bottomActions) {
+            return 0
+        }
+
+        val bottomActionsHeight = resources.getDimensionPixelSize(org.fossify.commons.R.dimen.list_touch_target_min) +
+            2 * resources.getDimensionPixelSize(org.fossify.commons.R.dimen.normal_margin)
+        return bottomActionsHeight - resources.getDimensionPixelSize(R.dimen.viewer_strip_drop_into_actions)
+    }
+
+    /**
+     * The controls go with the chrome. The play button in the middle is the way into a video not yet
+     * started, whatever the chrome - and that gives way to an error, which stands where it would.
      */
     private fun updateControls(animate: Boolean) {
         // a separate screen plays the video, so there is nothing here for the controls to drive
         mTimeHolder.showIf(!mIsFullscreen && !mConfig.gestureVideoPlayer, animate)
-        val showsTransport = (!mIsFullscreen || !mWasVideoStarted) && mExoPlayer?.playerError == null
-        binding.videoTransport.showIf(showsTransport, animate)
+        binding.videoPlayOutline.showIf(!mWasVideoStarted && mExoPlayer?.playerError == null, animate)
     }
 
     private fun View.showIf(show: Boolean, animate: Boolean) {
@@ -750,24 +759,12 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         mIsFullscreen = isFullscreen
 
         mSeekBar.setOnSeekBarChangeListener(if (mIsFullscreen) null else this)
-        arrayOf(
-            binding.bottomVideoTimeHolder.videoCurrTime,
-            binding.bottomVideoTimeHolder.videoDuration,
-            binding.bottomVideoTimeHolder.videoPlaybackSpeed,
-            binding.bottomVideoTimeHolder.videoToggleMute,
-            binding.bottomVideoTimeHolder.videoToggleLoop,
-            binding.videoSkipBack,
-            binding.videoSkipForward
-        ).forEach {
-            it.isClickable = !mIsFullscreen
+        binding.bottomVideoTimeHolder.apply {
+            arrayOf(videoCurrTime, videoDuration, videoTogglePlay, videoPlaybackSpeed, videoToggleMute, videoToggleLoop)
+                .forEach { it.isClickable = !mIsFullscreen }
         }
 
         updateControls(animate = true)
-        if (isFullscreen) {
-            binding.bottomActionsDummy.fadeOut(DEFAULT_ANIMATION_DURATION)
-        } else {
-            binding.bottomActionsDummy.beVisible()
-        }
     }
 
     private fun showPlaybackSpeedPicker() {
@@ -936,17 +933,18 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
 
         if (!mWasVideoStarted) {
-            // the rest of the controls come once there is a video running for them to drive
-            binding.videoSkipBack.beVisible()
-            binding.videoSkipForward.beVisible()
-            binding.bottomVideoTimeHolder.videoToggleMute.beVisible()
-            binding.bottomVideoTimeHolder.videoToggleLoop.beVisible()
-            binding.bottomVideoTimeHolder.videoPlaybackSpeed.beVisible()
-            binding.bottomVideoTimeHolder.videoPlaybackSpeed.text =
-                "${DecimalFormat("#.##").format(mConfig.playbackSpeed)}x"
+            mWasVideoStarted = true
+            // the rest of the controls come once there is a video running for them to drive, and the way in goes
+            binding.bottomVideoTimeHolder.apply {
+                videoTogglePlay.beVisible()
+                videoToggleMute.beVisible()
+                videoToggleLoop.beVisible()
+                videoPlaybackSpeed.beVisible()
+                videoPlaybackSpeed.text = "${DecimalFormat("#.##").format(mConfig.playbackSpeed)}x"
+            }
+            updateControls(animate = true)
         }
 
-        mWasVideoStarted = true
         if (mIsPlayerPrepared) {
             mIsPlaying = true
         }

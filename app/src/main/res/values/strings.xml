@@ -414,8 +414,6 @@
     <string name="show_fewer_options">Show fewer options</string>
     <string name="video_play">Play</string>
     <string name="video_pause">Pause</string>
-    <string name="video_back_10">Back 10 seconds</string>
-    <string name="video_forward_10">Forward 10 seconds</string>
     <string name="video_sound">Sound</string>
     <!-- Bottom navigation -->
     <string name="nav_pictures">Pictures</string>

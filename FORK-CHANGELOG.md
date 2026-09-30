@@ -10,8 +10,8 @@ Notable fork-only changes.
   adjustable spacing and an optional folder size on the details line.
 - **Settings can be searched**: type a setting's name to find it and jump straight to it.
 - **A redesigned video player**: the video's own frames make its progress bar, in place of the
-  thumbnail strip, with buttons to skip ten seconds and to loop, and holding the left side rewinds.
-  The controls get out of the way while it plays.
+  thumbnail strip, with play and pause and a button to loop just above them, and holding the left
+  side rewinds. The controls get out of the way while it plays.
 ### Changed
 - Pinching the photo grid zooms smoothly.
 - The details at the top of a photo are more compact.
