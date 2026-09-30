@@ -361,16 +361,16 @@ const val FOLDER_FLASH_DURATION_MS = 90L
 const val FOLDER_FLASH_BLINKS = 3
 
 /**
- * The flight between a grid tile and the fullscreen viewer, see TileFlight and ViewerTransition.
+ * How long a photo takes to shrink back into its tile, see TileFlight and ViewerTransition.
  *
  * It runs on the clock, so a slow frame skips it ahead. A photo flicked away while it is still
  * opening is shrunk over a viewer busy setting up: at 180ms the emulator skipped the end of a
  * quarter of those shrinks, against one in thirty at 220.
  */
-const val FLIGHT_DURATION_MS = 220L
+const val FLIGHT_SHRINK_MS = 220L
 
 /**
- * How long a tile takes to grow into the photo, against [FLIGHT_DURATION_MS] for the shrink back.
+ * How long a tile takes to grow into the photo, against [FLIGHT_SHRINK_MS] for the shrink back.
  *
  * Longer because the two are not given the same frames. A shrink runs on a viewer that has been up
  * for a while and is drawn every 16ms; a grow is drawn while its window is still being brought up,

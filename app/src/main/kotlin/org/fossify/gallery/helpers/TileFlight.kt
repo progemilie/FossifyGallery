@@ -323,7 +323,7 @@ class TileFlight(
 
         val backdropFrom = scrim.backdrop
         val chromeFrom = scrim.chromeAlpha
-        animate(from = 0f, to = 1f) { t ->
+        animate(from = 0f, to = 1f, duration = FLIGHT_SHRINK_MS) { t ->
             overlay.progress = t
             scrim.backdrop = backdropFrom * (1f - t)
             scrim.chromeAlpha = chromeFrom * (1f - ramp(t, 0f, FLIGHT_CHROME_IN))
@@ -335,7 +335,7 @@ class TileFlight(
     private fun animate(
         from: Float,
         to: Float,
-        duration: Long = FLIGHT_DURATION_MS,
+        duration: Long,
         interpolator: TimeInterpolator = DecelerateInterpolator(),
         onFrame: (Float) -> Unit
     ): ValueAnimator {

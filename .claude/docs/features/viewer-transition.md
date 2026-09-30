@@ -27,7 +27,7 @@ Read these before changing this feature — each can break silently if this one 
 | `extensions/Glide.kt` | `lowResPhotoRequest()` / `fullPhotoRequest()` — what the viewer paints with |
 | `res/anim/viewer_hold.xml`, `ViewerTheme` | The no-motion window animation, the translucent theme |
 
-Constants: `FLIGHT_GROW_MS` (250), `FLIGHT_DURATION_MS` (the shrink, 220), `FLIGHT_CHROME_IN`,
+Constants: `FLIGHT_GROW_MS` (250), `FLIGHT_SHRINK_MS` (220), `FLIGHT_CHROME_IN`,
 `FLIGHT_SETTLE_*`, `OPENING_FLICK_DP` in `Constants.kt`.
 
 ## The picture
@@ -109,7 +109,7 @@ for as long as it takes. So a close has the viewer do nothing more (`stopStage()
 
 The shrink also runs on the clock, so a slow frame skips it ahead: at 180ms the emulator skipped the
 end of a quarter of the shrinks made while a photo was still opening, against one in thirty at 220 —
-which is what keeps `FLIGHT_DURATION_MS` there.
+which is what keeps `FLIGHT_SHRINK_MS` there.
 
 ## What breaks silently
 
