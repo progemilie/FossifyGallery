@@ -126,14 +126,11 @@ of which silently leaves the photo growing out of a black screen if it is missed
   `overrideActivityTransition` in `holdWindowStill()`. A close with no tile to shrink into names a
   slide of its own the same way.
 - **The exit tile looked up on every page change**: the grid has to scroll and lay out to answer
-  (`Anchor` is asynchronous), and a finger already lifted cannot wait a frame for it. A photo
-  closed in the frame its first answer takes turns back to where the tile was, and is sent on to
-  where it went once the answer lands.
-- **The grid only moves while the viewer covers it.** Asking for the exit tile centres one that is
-  not fully on screen, out of sight behind the viewer; a viewer closed before it has asked (still
-  opening) lands in the tile where it was. Once a photo has shrunk back into a tile
-  (`ViewerTransition.hasFlownBack`), `ViewerReturn` leaves the grid where it is — scrolling it then
-  is a jump seen on the way back.
+  (`Anchor` is asynchronous), and a finger already lifted cannot wait a frame for it.
+- **The grid only moves while the viewer covers it.** Asking for the exit tile centres it out of
+  sight; a viewer closed while still opening has not asked yet, so its photo lands in the tile
+  where it was. Once a photo has shrunk back into a tile (`ViewerTransition.hasFlownBack`),
+  `ViewerReturn` leaves the grid where it is — scrolling it then is a jump seen on the way back.
 
 And:
 
