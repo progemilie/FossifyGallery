@@ -18,7 +18,9 @@ import androidx.core.animation.doOnEnd
 import androidx.core.view.doOnLayout
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
+import androidx.fragment.app.FragmentActivity
 import org.fossify.gallery.extensions.screenRect
+import org.fossify.gallery.fragments.ViewPagerFragment
 import org.fossify.gallery.views.FlightOverlay
 import org.fossify.commons.R as commonsR
 
@@ -65,8 +67,12 @@ class TileFlight(
     private var exitTile: ViewerTransition.Tile? = null
     private var exitPath = ""
 
-    /** Set once the viewer is on its way out, so nothing left running puts the chrome back. */
-    private var isClosing = false
+    /**
+     * Set once the viewer is on its way out, so nothing left running puts the chrome back, and so the
+     * screen can turn away whatever it is still loading - see [stopStage].
+     */
+    var isClosing = false
+        private set
 
     /** The proportions of the picture in flight, which is what a landing rect is measured from. */
     private var flightAspect = 1f
@@ -85,6 +91,12 @@ class TileFlight(
 
     /** The tile a grow set off from, until the viewer has taken the screen over from the flight. */
     private var growTile: ViewerTransition.Tile? = null
+
+    /**
+     * Whether the viewer is still opening: the tile growing, or its photo not yet handed over, with
+     * nothing under the flight able to take a gesture - see [ViewerOpening.watchViewer].
+     */
+    val isOpening get() = growTile != null && !isClosing
 
     /**
      * Grows the tapped tile into the photo, and runs [buildContent] - the screen's own setup, the
@@ -112,6 +124,7 @@ class TileFlight(
 
         pendingContent = buildContent
         growTile = tile
+        ViewerOpening.closeOnFlick(activity)
 
         activity.letGridShowThrough(true)
         scrim.backdrop = 0f
@@ -125,6 +138,13 @@ class TileFlight(
         overlay.doOnLayout {
             // closed before there was anything to fly - see close()
             if (isClosing) {
+                return@doOnLayout
+            }
+
+            // flicked away on the grid before this window could be told. Checked before anything is
+            // flown, so the viewer goes at once rather than turning round a flight still on the tile
+            if (ViewerOpening.takeCloseAsked()) {
+                activity.finish()
                 return@doOnLayout
             }
 
@@ -226,6 +246,7 @@ class TileFlight(
     }
 
     private fun revealStage() {
+        ViewerOpening.ended()
         growTile = null
         stage.alpha = 1f
         overlay.clear()
@@ -279,8 +300,13 @@ class TileFlight(
         }
 
         isClosing = true
+        // the grid's next gesture is its own, the viewer being on its way out
+        ViewerOpening.ended()
+        // lands in the tile wherever the grid has it, and the grid is to stay put under it
+        ViewerTransition.hasFlownBack = true
         // nothing is built behind a flight that has turned round
         pendingContent = null
+        activity.stopStage(stage)
         animator?.dropWithoutLanding()
         animator = null
         if (shown != null && picture != null) {
@@ -297,7 +323,7 @@ class TileFlight(
 
         val backdropFrom = scrim.backdrop
         val chromeFrom = scrim.chromeAlpha
-        animate(from = 0f, to = 1f) { t ->
+        animate(from = 0f, to = 1f, duration = FLIGHT_SHRINK_MS) { t ->
             overlay.progress = t
             scrim.backdrop = backdropFrom * (1f - t)
             scrim.chromeAlpha = chromeFrom * (1f - ramp(t, 0f, FLIGHT_CHROME_IN))
@@ -309,7 +335,7 @@ class TileFlight(
     private fun animate(
         from: Float,
         to: Float,
-        duration: Long = FLIGHT_DURATION_MS,
+        duration: Long,
         interpolator: TimeInterpolator = DecelerateInterpolator(),
         onFrame: (Float) -> Unit
     ): ValueAnimator {
@@ -420,6 +446,20 @@ fun Activity.holdWindowStill() {
 private fun Activity.letGridShowThrough(letThrough: Boolean) {
     if (ViewerTransition.isSupported) {
         window.setFormat(if (letThrough) PixelFormat.TRANSLUCENT else PixelFormat.OPAQUE)
+    }
+}
+
+/**
+ * Has the screen behind a shrink do nothing more. Whatever it is still setting up - the pages either
+ * side, the zoomable layer, the media list being read back in - would land in the frames of the
+ * shrink, the motion made most in the app. The stage is hidden rather than left faded out, as a faded
+ * view still uploads every picture that finishes decoding in it, to be drawn at nothing; not gone,
+ * which would lay the whole screen out again in the shrink's first frame.
+ */
+private fun Activity.stopStage(stage: View) {
+    stage.isInvisible = true
+    (this as? FragmentActivity)?.supportFragmentManager?.fragments?.forEach {
+        (it as? ViewPagerFragment)?.onViewerClosing()
     }
 }
 

@@ -88,6 +88,12 @@ object ViewerTransition {
     fun takeFlightPicture(path: String): Bitmap? =
         flightPicture.takeIf { flightPath == path }
 
+    /**
+     * Set as a viewer shrinks back into its tile, which leaves the grid exactly where the photo
+     * landed - see [ViewerReturn].
+     */
+    var hasFlownBack = false
+
     /** The grid holds this for as long as the viewer it opened is up, and no longer. */
     private fun setAnchor(anchor: Anchor?) {
         this.anchor = anchor
@@ -135,6 +141,7 @@ object ViewerTransition {
         setAnchor(flightAnchor)
         fetchFlightPictures(context, medium)
         dropWhenDestroyed(context, flightAnchor)
+        ViewerOpening.began()
         return true
     }
 

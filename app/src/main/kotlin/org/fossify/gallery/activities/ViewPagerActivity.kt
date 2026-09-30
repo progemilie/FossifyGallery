@@ -160,6 +160,7 @@ import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_FAVORITE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_VISIBILITY
 import org.fossify.gallery.helpers.ColorModeHelper
 import org.fossify.gallery.helpers.TileFlight
+import org.fossify.gallery.helpers.ViewerOpening
 import org.fossify.gallery.helpers.DefaultPageTransformer
 import org.fossify.gallery.helpers.TabSwitcher
 import org.fossify.gallery.helpers.applyBottomActionsOrder
@@ -234,6 +235,10 @@ class ViewPagerActivity :
 
     /** Whether the gesture in progress began while the pager was still moving; see [dispatchTouchEvent]. */
     private var mPagerTookGesture = false
+
+    /** Whether a finger is on the screen, and the media list read in while it was - see [gotMedia]. */
+    private var mIsTouched = false
+    private var mMediaHeldBack: (() -> Unit)? = null
 
     private var mSlideshowHandler = Handler()
     private var mSlideshowInterval = SLIDESHOW_DEFAULT_INTERVAL
@@ -318,6 +323,9 @@ class ViewPagerActivity :
      * brightness slider - has no beginning on record and so is not finished here either.
      */
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        // before any of this exists: the pager is only built once the opening flight lands
+        ViewerOpening.watchViewer(this, ev, flight)
+
         if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
             mPagerTookGesture = mPagerScrollState != ViewPager.SCROLL_STATE_IDLE
         }
@@ -330,6 +338,17 @@ class ViewPagerActivity :
 
         if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) {
             getCurrentFragment()?.handleViewerEvent(ev)
+        }
+
+        // after the gesture has had its say, so a list held back through a flick that closes the
+        // viewer finds it closing
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
+            mIsTouched = true
+        } else if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) {
+            mIsTouched = false
+            val heldBack = mMediaHeldBack
+            mMediaHeldBack = null
+            heldBack?.invoke()
         }
 
         return handled
@@ -1838,6 +1857,18 @@ class ViewPagerActivity :
     }
 
     private fun gotMedia(thumbnailItems: ArrayList<ThumbnailItem>, ignorePlayingVideos: Boolean = false, refetchViewPagerPosition: Boolean = false) {
+        // read in while the photo shrinks away, it would rebuild the pager in the frames of the shrink
+        if (flight.isClosing) {
+            return
+        }
+
+        // nor under a finger, where it would take the gesture's page away half way through it. Not the
+        // first build: there is no page to take, and the flight would land on an empty pager
+        if (mIsTouched && binding.viewPager.adapter != null) {
+            mMediaHeldBack = { gotMedia(thumbnailItems, ignorePlayingVideos, refetchViewPagerPosition) }
+            return
+        }
+
         val media = thumbnailItems.asSequence().filter {
             it is Medium && !mIgnoredPaths.contains(it.path)
         }.map { it as Medium }.toMutableList() as ArrayList<Medium>

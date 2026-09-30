@@ -2,6 +2,7 @@ package org.fossify.gallery.activities
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.ViewGroup
 import android.widget.RelativeLayout
 import androidx.recyclerview.widget.GridLayoutManager
@@ -24,6 +25,7 @@ import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.VIDEO_PLAYER_APP
 import org.fossify.gallery.helpers.VIDEO_PLAYER_SYSTEM
 import org.fossify.gallery.helpers.ViewerLaunchGuard
+import org.fossify.gallery.helpers.ViewerOpening
 import org.fossify.gallery.helpers.ViewerReturn
 import org.fossify.gallery.helpers.ViewerTransition
 import org.fossify.gallery.interfaces.MediaOperationsListener
@@ -62,6 +64,9 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
         updateMenuColors()
         viewerReturn.reveal(getMediaAdapter()?.gridNavigator)
     }
+
+    // a gesture made while a tapped photo is still opening over the grid is the photo's, see ViewerOpening
+    override fun dispatchTouchEvent(ev: MotionEvent) = ViewerOpening.watchGrid(this, ev) || super.dispatchTouchEvent(ev)
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
         if (requestCode == ViewerReturn.REQUEST_CODE) {

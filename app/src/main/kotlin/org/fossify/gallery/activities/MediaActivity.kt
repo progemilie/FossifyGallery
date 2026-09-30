@@ -3,6 +3,7 @@ package org.fossify.gallery.activities
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
+import android.view.MotionEvent
 import androidx.appcompat.view.ActionMode
 import androidx.core.view.updatePadding
 import org.fossify.commons.extensions.appLockManager
@@ -26,6 +27,7 @@ import org.fossify.gallery.helpers.SelectionChrome
 import org.fossify.gallery.helpers.TAB_SCROLL_OFFSET
 import org.fossify.gallery.helpers.TAB_SCROLL_PATH
 import org.fossify.gallery.helpers.TabSwitcher
+import org.fossify.gallery.helpers.ViewerOpening
 import org.fossify.gallery.models.TabLocation
 import org.fossify.gallery.models.TabScreen
 import org.fossify.gallery.models.ThumbnailItem
@@ -142,6 +144,9 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
         super.onStart()
         mTempShowHiddenHandler.removeCallbacksAndMessages(null)
     }
+
+    // a gesture made while a tapped photo is still opening over the grid is the photo's, see ViewerOpening
+    override fun dispatchTouchEvent(ev: MotionEvent) = ViewerOpening.watchGrid(this, ev) || super.dispatchTouchEvent(ev)
 
     override fun onResume() {
         super.onResume()

@@ -11,6 +11,7 @@ import android.provider.MediaStore
 import android.provider.MediaStore.Images
 import android.provider.MediaStore.Video
 import android.view.Menu
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
@@ -173,6 +174,7 @@ import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.TYPE_VIDEOS
 import org.fossify.gallery.helpers.TabSwitcher
+import org.fossify.gallery.helpers.ViewerOpening
 import org.fossify.gallery.helpers.getDefaultFileFilter
 import org.fossify.gallery.helpers.getPermissionToRequest
 import org.fossify.gallery.helpers.getPermissionsToRequest
@@ -432,6 +434,9 @@ class MainActivity :
         super.onStart()
         mTempShowHiddenHandler.removeCallbacksAndMessages(null)
     }
+
+    // a gesture made while a tapped photo is still opening over the grid is the photo's, see ViewerOpening
+    override fun dispatchTouchEvent(ev: MotionEvent) = ViewerOpening.watchGrid(this, ev) || super.dispatchTouchEvent(ev)
 
     override fun onResume() {
         super.onResume()
