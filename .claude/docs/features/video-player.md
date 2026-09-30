@@ -32,17 +32,16 @@ Read these before changing this feature — each can break silently if this one 
 
 The video is taken in thirds. A hold on the left third plays at half speed, a hold anywhere else
 at 2x (upstream's). A double tap on a side third skips ten seconds that way, five in a video under
-a minute (`skipLengthMs()`, which the time labels skip by too), and in the middle plays or pauses. A run of skips counts up in a hint on that side of the middle. Holds start only on
-a playing video, as upstream's 2x hold did.
+a minute (`skipLengthMs()`, which the time labels skip by too), and in the middle plays or pauses.
+A run of skips counts up in a hint on that side of the middle. Holds start only on a playing video,
+as upstream's 2x hold did.
 
-The strips are there only with volume and brightness gestures on, which is off by default for a new
-install; an install from before that default changed keeps them on
-(`Config.keepVideoGesturesOnEarlierInstalls()`, from `App.onCreate`).
-
-The volume and brightness strips lie over the video's edges, so a touch listener hands their
-gestures to `handleTouchHoldEvent()` too, ahead of their own handling. Once a hold has begun it
-takes the rest of its gesture, the lift included: a drag then changes neither volume nor
-brightness, and the lift is read as no tap by the strips or the video.
+With volume and brightness gestures on, a strip lies over each of the video's edges to take a
+vertical drag. A touch listener hands their gestures to `handleTouchHoldEvent()` too, ahead of
+their own handling, and once a hold has begun it takes the rest of its gesture, the lift included:
+a drag then changes neither volume nor brightness, and the lift is read as no tap by the strips or
+the video. The setting is off by default for a new install; an install from before that default
+changed keeps it on (`Config.keepVideoGesturesOnEarlierInstalls()`, from `App.onCreate`).
 
 Until the video has started, a flick is the viewer's wherever it begins. The strips come only once
 it has (`updateSideScrolls()`), and a flick begun on the play button goes to the flick handling
