@@ -14,11 +14,11 @@ None known.
 | File | Job |
 |---|---|
 | `activities/SettingsActivity.kt` | The screen: every setting's setup, `setupPages`, `pageShown` |
-| `helpers/SettingsPages.kt` | Which page is up, the links to them, the slide between them, back |
+| `helpers/SettingsPages.kt` | Which page is up, the links to them, the push between them, back |
 | `helpers/SettingsSearch.kt` | The search at the top of the first page, and what it finds |
 | `views/SettingsPage.kt` | `SettingsPage` (a category's title and hue) and `SettingsLink` (a row opening one) |
 | `views/SettingsGroup.kt` | A heading over a rounded card of rows, with hairlines between them |
-| `layout/activity_settings.xml` | Every page at once; `layout/settings_link.xml` for a link |
+| `layout/activity_settings.xml` | Every page at once, in two scrollers; `layout/settings_link.xml` for a link |
 | `views/InfoPopup.kt` | The (i) note beside a setting (`View.explains(text)`), used by Tabs |
 
 The pages: Look & feel, General, Thumbnails, Folders, Fullscreen media, Gestures & zoom, Videos,
@@ -37,16 +37,19 @@ sunk a shade below a light one (`settingsCardColor`), where there is nothing to 
 children in the layout - `onFinishInflate` moves them onto its card.
 
 A `SettingsLink` names its page in `app:opens` and takes that page's title and hue, so the two
-cannot disagree; `SettingsPages` finds the links and wires them. Opening a page fades and slides the
-content the way the link points, and back - the arrow, or the system's - returns to the first page
-where it was left scrolled. The open page survives a rotation.
+cannot disagree; `SettingsPages` finds the links and wires them. A page only ever opens from the
+first page and goes back to it, so the first page has a scroller of its own and the others share a
+second: opening a page pushes the two across the whole width side by side, the way One UI's pages
+move, both drawn for real, and a push that is turned back part way returns from where it got to. The
+page coming in is painted and laid out before either moves. Back - the arrow, or the system's -
+returns to the first page as it was left scrolled. The open page survives a rotation.
 
 A row's first child, where it is an image, is its icon, and its group tints it. Rows are
 LinearLayouts of icon, then texts or a switch; the Tabs row keeps a RelativeLayout around its switch
 for the (i), which is placed at runtime just past the label.
 
-The heading at the top of the content is the open page's name, and hands over to the bar's title as
-it scrolls under the bar, which fills in behind it. The bar floats over the pages, softened by the
+Each scroller starts with its page's name, which hands over to the bar's title as it scrolls under
+the bar, which fills in behind it. The bar floats over the pages, softened by the
 same edge fades the grids use.
 
 ## Search
@@ -69,6 +72,9 @@ page's hue for a moment. Back closes a page first, then the search, then the scr
 - **The bar's fill is laid once and faded** (`makeTopBarFloating`, `updateTitleFade`).
   `AppBarLayout` wraps every colour it is given in a new drawable, which every frame of a scroll
   was paying for.
+- **There are two scrollers.** Anything done to the one upstream knows, `settings_nested_scrollview`
+  (insets, the bar's room, a scroll listener), wants doing to `settings_pages_scroller` too, or only
+  the first page gets it; the bar follows `SettingsPages.scroller`, whichever is up.
 - **A group whose every row is hidden disappears with them** (`refreshGroups`), which only happens
   after the setup functions have decided what this platform offers - so `setupPages` runs last.
 - A row added to the layout wants its setup in `SettingsActivity` and nothing else, but a row added

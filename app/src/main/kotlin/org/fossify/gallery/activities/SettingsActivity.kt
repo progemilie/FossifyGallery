@@ -57,7 +57,7 @@ class SettingsActivity : SimpleActivity() {
 
         setupEdgeToEdge(
             padTopSystem = listOf(binding.settingsAppbar),
-            padBottomSystem = listOf(binding.settingsNestedScrollview)
+            padBottomSystem = listOf(binding.settingsNestedScrollview, binding.settingsPagesScroller)
         )
 
         // no setupMaterialScrollListener: what it does is fade a band of colour in under the bar
@@ -68,19 +68,24 @@ class SettingsActivity : SimpleActivity() {
             }
         }
 
-        binding.settingsNestedScrollview.setOnScrollChangeListener { _, _, scrollY, _, _ ->
-            updateTitleFade(scrollY)
-        }
-
         pages = SettingsPages(
-            scroller = binding.settingsNestedScrollview,
-            content = binding.settingsHolder,
-            heading = binding.settingsPageTitle,
+            homeScroller = binding.settingsNestedScrollview,
+            homeHeading = binding.settingsHomeTitle,
             home = binding.settingsHome,
-            homeTitle = getString(org.fossify.commons.R.string.settings),
+            pageScroller = binding.settingsPagesScroller,
+            pageHeading = binding.settingsPageTitle,
             onShown = ::pageShown
         )
         pages.restoreState(savedInstanceState)
+
+        // the bar follows only the scroller that is up
+        for (scroller in listOf(binding.settingsNestedScrollview, binding.settingsPagesScroller)) {
+            scroller.setOnScrollChangeListener { view, _, scrollY, _, _ ->
+                if (view === pages.scroller) {
+                    updateTitleFade(scrollY)
+                }
+            }
+        }
 
         search = SettingsSearch(
             holder = binding.settingsSearchHolder,
@@ -133,11 +138,13 @@ class SettingsActivity : SimpleActivity() {
         binding.settingsToolbar.setTitleTextColor(onBackground)
         binding.settingsToolbar.navigationIcon?.mutate()?.applyColorFilter(onBackground)
         keepCardsClearOfTopBar()
-        updateTitleFade(binding.settingsNestedScrollview.scrollY)
+        updateTitleFade(pages.scroller.scrollY)
     }
 
     private fun keepCardsClearOfTopBar() {
-        binding.settingsNestedScrollview.updatePadding(top = binding.settingsAppbar.height)
+        val barHeight = binding.settingsAppbar.height
+        binding.settingsNestedScrollview.updatePadding(top = barHeight)
+        binding.settingsPagesScroller.updatePadding(top = barHeight)
     }
 
     /**
@@ -147,7 +154,7 @@ class SettingsActivity : SimpleActivity() {
      * throughout: that is the way back.
      */
     private fun updateTitleFade(scrollY: Int) {
-        val heading = binding.settingsPageTitle
+        val heading = pages.heading
         val distance = resources.getDimension(R.dimen.settings_title_fade_distance)
         val handover = ((scrollY - heading.height / 2f) / distance).coerceIn(0f, 1f)
         toolbarTitleView()?.alpha = handover
@@ -255,6 +262,8 @@ class SettingsActivity : SimpleActivity() {
             it.updateColors(cardColor, textColor)
         }
 
+        binding.settingsHomeTitle.setTextColor(textColor)
+        binding.settingsPageTitle.setTextColor(textColor)
         updateTextColors(binding.settingsPurchaseThankYouHolder)
         pageShown(pages.shown, pages.title)
         // after the pages, whose rows and colours its findings are drawn from
@@ -271,9 +280,8 @@ class SettingsActivity : SimpleActivity() {
             updateTextColors(page)
         }
 
-        binding.settingsPageTitle.setTextColor(getProperTextColor())
         binding.settingsToolbar.title = title
-        updateTitleFade(binding.settingsNestedScrollview.scrollY)
+        updateTitleFade(pages.scroller.scrollY)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {

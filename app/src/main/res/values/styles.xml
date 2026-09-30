@@ -3,6 +3,21 @@
     <style name="AppTheme" parent="AppTheme.Base" />
 
     <!-- the settings screen: pages of rounded groups of rows, see org.fossify.gallery.views.SettingsGroup -->
+    <!-- the first page's scroller, and the one the other pages share; see SettingsPages -->
+    <style name="SettingsScroller">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:clipToPadding">false</item>
+        <item name="android:fillViewport">true</item>
+        <item name="android:scrollbars">none</item>
+    </style>
+
+    <!-- what a scroller scrolls: a page's name, then the page -->
+    <style name="SettingsScrollerContent" parent="SettingsPage">
+        <item name="android:clipToPadding">false</item>
+        <item name="android:paddingBottom">@dimen/bottom_fade_height</item>
+    </style>
+
     <style name="SettingsPage">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
