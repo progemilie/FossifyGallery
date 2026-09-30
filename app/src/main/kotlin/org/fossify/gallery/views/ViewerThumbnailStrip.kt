@@ -94,6 +94,9 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
     /** Called with the position now in the middle of the strip, so the pager can follow it. */
     var onMediumPicked: ((position: Int) -> Unit)? = null
 
+    /** Called once a scroll the user made, and the fling it left, has come to rest. */
+    var onUserScrollEnded: (() -> Unit)? = null
+
     // eases out harder than the scroller's own interpolator, so the glide leaves promptly and
     // arrives gently rather than stopping dead on the beat
     private val centeringInterpolator = DecelerateInterpolator(CENTERING_DECELERATION)
@@ -122,7 +125,10 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
     // what the pager has been told to show. It only parts ways with the middle of the strip for the
     // one frame between the middle changing and the pager being told
     private var committedPosition = NO_POSITION
-    private var isUserScrolling = false
+
+    /** Whether a finger, or the fling it left, is moving the strip. */
+    var isUserScrolling = false
+        private set
 
     init {
         layoutManager = StripLayoutManager()
@@ -143,6 +149,7 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
                     isUserScrolling = false
                     // the snap may have moved the middle on by one after the fling ran out
                     commitCentre()
+                    onUserScrollEnded?.invoke()
                 }
             }
 

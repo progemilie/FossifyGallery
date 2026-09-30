@@ -1,6 +1,7 @@
 package org.fossify.gallery.views
 
 import android.os.SystemClock
+import android.view.MotionEvent
 import android.view.View
 import android.widget.TextView
 import org.fossify.gallery.R
@@ -14,12 +15,12 @@ private const val SEEK_HINT_POP = 0.85f
 private const val REWIND_SPEED = 2
 private const val REWIND_INTERVAL_MS = 100L
 
-/** How long a playing video is left alone before its chrome goes. */
+/** How long a playing video is left alone before the chrome goes. */
 private const val CHROME_AUTO_HIDE_MS = 3000L
 
 /**
- * What a double tap on either side of a video has skipped, on that side: "- 10s", then "- 20s" if the
- * taps keep coming, the way the players people know count a run of them up.
+ * What a run of double taps or skips has added up to, over the side it went: "- 10s", then "- 20s"
+ * while the taps keep coming.
  */
 class SeekHints(private val back: TextView, private val forward: TextView) {
     private var shownForward: Boolean? = null
@@ -56,13 +57,9 @@ class SeekHints(private val back: TextView, private val forward: TextView) {
 /**
  * Winds a video back for as long as a finger is held on its left side. ExoPlayer plays nothing
  * backwards, so it seeks, each time to wherever the clock says the wind has got to: a decoder too
- * slow to show every step still winds back at the same speed, only in fewer frames. The player
- * should be in scrubbing mode meanwhile, or each seek cancels the last before it has drawn.
+ * slow to show every step still winds back at the same speed, only in fewer frames.
  */
 class RewindScan(private val view: View, private val seekTo: (ms: Long) -> Unit) {
-    var isRunning = false
-        private set
-
     private var from = 0L
     private var startedAt = 0L
 
@@ -79,30 +76,35 @@ class RewindScan(private val view: View, private val seekTo: (ms: Long) -> Unit)
     fun start(from: Long) {
         this.from = from
         startedAt = SystemClock.uptimeMillis()
-        isRunning = true
         view.removeCallbacks(step)
         view.post(step)
     }
 
     fun stop() {
-        isRunning = false
         view.removeCallbacks(step)
     }
 }
 
 /**
- * Takes the chrome away from a playing video once it has been left alone for a moment, the way a
- * phone's own player does: every touch of a control starts the wait again, and pausing ends it.
+ * Takes the viewer's chrome away from a playing video once nobody has touched the screen for a moment,
+ * the way a phone's own player does. A finger down stops the wait and lifting it starts it over, so a
+ * drag, a hold or a chooser held open never has the chrome go from under it. [hideIfIdle] is called
+ * when the wait runs out, and it is for the host to say whether a video still plays and whether any of
+ * its chrome is in use.
  */
-class ChromeAutoHide(private val view: View, hide: () -> Unit) {
-    private val run = Runnable(hide)
+class ChromeAutoHide(private val view: View, hideIfIdle: () -> Unit) {
+    private val run = Runnable(hideIfIdle)
+
+    /** Every touch anywhere on the screen, as the host dispatches it. */
+    fun onTouchEvent(event: MotionEvent) {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> view.removeCallbacks(run)
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> restart()
+        }
+    }
 
     fun restart() {
         view.removeCallbacks(run)
         view.postDelayed(run, CHROME_AUTO_HIDE_MS)
-    }
-
-    fun cancel() {
-        view.removeCallbacks(run)
     }
 }

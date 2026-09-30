@@ -90,7 +90,6 @@ import org.fossify.gallery.helpers.MEDIUM
 import org.fossify.gallery.helpers.SHOULD_INIT_FRAGMENT
 import org.fossify.gallery.interfaces.PlaybackSpeedListener
 import org.fossify.gallery.models.Medium
-import org.fossify.gallery.views.ChromeAutoHide
 import org.fossify.gallery.views.MediaSideScroll
 import org.fossify.gallery.views.RewindScan
 import org.fossify.gallery.views.SeekHints
@@ -148,9 +147,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         mView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         // held on the left third it winds back, anywhere else it plays twice as fast
         if (mHoldIsRewind) {
-            mWasPlayingBeforeRewind = mIsPlaying
-            player.playWhenReady = false
-            player.isScrubbingModeEnabled = true
+            startScrubbing()
             mPlaybackSpeedPill.setText(R.string.playback_rewind_display_text)
             mRewindScan.start(player.currentPosition)
         } else {
@@ -180,9 +177,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
     private lateinit var mSeekHints: SeekHints
     private lateinit var mRewindScan: RewindScan
-    private lateinit var mChromeAutoHide: ChromeAutoHide
     private var mHoldIsRewind = false
-    private var mWasPlayingBeforeRewind = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -202,21 +197,13 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             bottomVideoTimeHolder.videoDuration.setOnClickListener { skip(true) }
             videoHolder.setOnClickListener { toggleFullscreen() }
             videoPreview.setOnClickListener { toggleFullscreen() }
-            bottomVideoTimeHolder.videoPlaybackSpeed.setOnClickListener {
-                mChromeAutoHide.cancel()
-                showPlaybackSpeedPicker()
-            }
-
+            bottomVideoTimeHolder.videoPlaybackSpeed.setOnClickListener { showPlaybackSpeedPicker() }
             bottomVideoTimeHolder.videoToggleMute.setOnClickListener {
                 mConfig.muteVideos = !mConfig.muteVideos
                 updatePlayerMuteState(showToast = true)
-                keepChromeUp()
             }
 
-            bottomVideoTimeHolder.videoToggleLoop.setOnClickListener {
-                toggleLoop()
-                keepChromeUp()
-            }
+            bottomVideoTimeHolder.videoToggleLoop.setOnClickListener { toggleLoop() }
 
             videoSurfaceFrame.controller.settings.swallowDoubleTaps = true
 
@@ -238,12 +225,6 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
             mSeekHints = SeekHints(videoSeekHintBack, videoSeekHintForward)
             mRewindScan = RewindScan(videoHolder) { setPosition(it) }
-            mChromeAutoHide = ChromeAutoHide(videoHolder) {
-                val canHide = mIsPlaying && mIsFragmentVisible && listener?.isSlideShowActive() == false
-                if (canHide && listener?.isFullScreen() == false) {
-                    listener?.fragmentClicked()
-                }
-            }
 
             mTimeHolder = bottomVideoTimeHolder.videoTimeHolder
             mCurrTimeView = bottomVideoTimeHolder.videoCurrTime
@@ -358,6 +339,8 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             }
 
             mWasFragmentInit = true
+            // the pager may have said which page is on screen before this one had a view
+            binding.bottomVideoTimeHolder.videoSeekbar.isOnScreen = mIsFragmentVisible
             setVideoSize()
 
             binding.apply {
@@ -421,6 +404,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         mBrightnessSideScroll.beVisibleIf(allowVideoGestures && !mIsPanorama)
 
         initTimeHolder()
+        updateLoop()
         storeStateVariables()
     }
 
@@ -447,6 +431,13 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
 
         mIsFragmentVisible = menuVisible
+        if (mWasFragmentInit) {
+            binding.bottomVideoTimeHolder.videoSeekbar.isOnScreen = menuVisible
+            if (menuVisible) {
+                updateLoop()
+            }
+        }
+
         val shouldPlayVideo = mWasFragmentInit && menuVisible && mConfig.autoplayVideos && !mConfig.gestureVideoPlayer
         if (shouldPlayVideo) playVideo()
     }
@@ -611,15 +602,15 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                 binding.errorMessageHolder.errorMessage.apply {
                     if (error != null) {
                         binding.videoPreview.beGone()
-                        binding.videoTransport.beGone()
                         text = error.getFriendlyMessage(context)
                         setTextColor(if (context.config.blackBackground) Color.WHITE else context.getProperTextColor())
                         fadeIn()
                     } else {
                         beGone()
-                        binding.videoTransport.beVisible()
                     }
                 }
+
+                updateControls(animate = false)
             }
 
             override fun onTracksChanged(tracks: Tracks) {
@@ -644,7 +635,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
     }
 
-    /** Ten seconds either way, said on that side of the video - a double tap's, or a skip button's. */
+    /** Ten seconds either way, a double tap's or a skip button's, with the run of them added up on that side. */
     private fun skipWithHint(forward: Boolean) {
         if (mExoPlayer == null || mIsPanorama) {
             return
@@ -652,26 +643,20 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
         doSkip(forward)
         mSeekHints.show(forward, SKIP_SECONDS)
-        keepChromeUp()
-    }
-
-    /** A control was touched: a playing video keeps its chrome a while longer. */
-    private fun keepChromeUp() {
-        if (mIsPlaying) {
-            mChromeAutoHide.restart()
-        }
     }
 
     /** The same setting as the app's own, so a video looped here loops the next time too. */
     private fun toggleLoop() {
         mConfig.loopVideos = !mConfig.loopVideos
-        mExoPlayer?.repeatMode = if (mConfig.loopVideos) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
-        updateLoopButton()
+        updateLoop()
     }
 
-    // on, it wears the looping arrows with a one in them; off, the plain ones, dimmed
-    private fun updateLoopButton() {
+    // as the setting has it, which may have been changed on another page meanwhile; never in a slideshow,
+    // which moves on when the video ends
+    private fun updateLoop() {
         val isLooping = mConfig.loopVideos
+        val loopsHere = isLooping && listener?.isSlideShowActive() == false
+        mExoPlayer?.repeatMode = if (loopsHere) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
         val icon = if (isLooping) R.drawable.ic_video_repeat_one_vector else R.drawable.ic_video_repeat_vector
         binding.bottomVideoTimeHolder.videoToggleLoop.apply {
             setImageResource(icon)
@@ -687,15 +672,31 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     }
 
     private fun initTimeHolder() {
-        // a separate screen plays the video, so there is nothing here for the controls to drive
-        val showsControls = !mIsFullscreen && !mConfig.gestureVideoPlayer
-        mTimeHolder.beVisibleIf(showsControls)
-        mTimeHolder.alpha = if (showsControls) 1f else 0f
-        // a video not yet started keeps its play button whatever the chrome is doing: it is the way in
-        val showsTransport = !mIsFullscreen || !mWasVideoStarted
-        binding.videoTransport.beVisibleIf(showsTransport)
-        binding.videoTransport.alpha = if (showsTransport) 1f else 0f
+        updateControls(animate = false)
         (activity as? BaseViewerActivity)?.applyProperHorizontalInsets(mTimeHolder)
+    }
+
+    /**
+     * The controls go with the chrome, except the play button of a video not yet started, which is the
+     * way in - and that gives way to an error, which stands where it would.
+     */
+    private fun updateControls(animate: Boolean) {
+        // a separate screen plays the video, so there is nothing here for the controls to drive
+        mTimeHolder.showIf(!mIsFullscreen && !mConfig.gestureVideoPlayer, animate)
+        val showsTransport = (!mIsFullscreen || !mWasVideoStarted) && mExoPlayer?.playerError == null
+        binding.videoTransport.showIf(showsTransport, animate)
+    }
+
+    private fun View.showIf(show: Boolean, animate: Boolean) {
+        when {
+            animate && show -> fadeIn(DEFAULT_ANIMATION_DURATION)
+            animate -> fadeOut(DEFAULT_ANIMATION_DURATION)
+            else -> {
+                animate().cancel()
+                beVisibleIf(show)
+                alpha = if (show) 1f else 0f
+            }
+        }
     }
 
     private fun checkIfPanorama() {
@@ -754,25 +755,11 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             it.isClickable = !mIsFullscreen
         }
 
+        updateControls(animate = true)
         if (isFullscreen) {
-            mChromeAutoHide.cancel()
-            if (!mConfig.gestureVideoPlayer) {
-                mTimeHolder.fadeOut(DEFAULT_ANIMATION_DURATION)
-            }
-
-            if (mWasVideoStarted) {
-                binding.videoTransport.fadeOut(DEFAULT_ANIMATION_DURATION)
-            }
-
             binding.bottomActionsDummy.fadeOut(DEFAULT_ANIMATION_DURATION)
         } else {
             binding.bottomActionsDummy.beVisible()
-            if (!mConfig.gestureVideoPlayer) {
-                mTimeHolder.fadeIn(DEFAULT_ANIMATION_DURATION)
-            }
-
-            binding.videoTransport.fadeIn(DEFAULT_ANIMATION_DURATION)
-            keepChromeUp()
         }
     }
 
@@ -850,11 +837,8 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             return
         }
 
-        // or every seek of a drag cancels the last before it has drawn, and the picture stands still
-        mExoPlayer!!.isScrubbingModeEnabled = true
-        mExoPlayer!!.playWhenReady = false
+        startScrubbing()
         mIsDragged = true
-        mChromeAutoHide.cancel()
     }
 
     override fun onStopTrackingTouch(seekBar: SeekBar) {
@@ -867,13 +851,27 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             return
         }
 
-        mExoPlayer!!.isScrubbingModeEnabled = false
-        if (mIsPlaying) {
-            mExoPlayer!!.playWhenReady = true
-        }
-
+        stopScrubbing()
         mIsDragged = false
-        keepChromeUp()
+    }
+
+    /** A drag along the scrubber or a held rewind: playback waits while the seeks come in quick succession. */
+    private fun startScrubbing() {
+        mExoPlayer?.apply {
+            playWhenReady = false
+            // or every seek cancels the last before it has drawn, and the picture stands still
+            isScrubbingModeEnabled = true
+        }
+    }
+
+    // a video paused meanwhile, by the screen going off under the finger, stays paused
+    private fun stopScrubbing() {
+        mExoPlayer?.apply {
+            isScrubbingModeEnabled = false
+            if (mIsPlaying) {
+                playWhenReady = true
+            }
+        }
     }
 
     private fun togglePlayPause() {
@@ -936,7 +934,6 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             binding.videoSkipForward.beVisible()
             binding.bottomVideoTimeHolder.videoToggleMute.beVisible()
             binding.bottomVideoTimeHolder.videoToggleLoop.beVisible()
-            updateLoopButton()
             binding.bottomVideoTimeHolder.videoPlaybackSpeed.beVisible()
             binding.bottomVideoTimeHolder.videoPlaybackSpeed.text =
                 "${DecimalFormat("#.##").format(mConfig.playbackSpeed)}x"
@@ -948,7 +945,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
         mExoPlayer?.playWhenReady = true
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        mChromeAutoHide.restart()
+        listener?.videoStarted()
     }
 
     private fun pauseVideo() {
@@ -962,7 +959,6 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
 
         showPlaying(false)
-        mChromeAutoHide.cancel()
         activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         mPositionAtPause = mExoPlayer?.currentPosition ?: 0L
     }
@@ -1035,23 +1031,18 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             mSeekBar.progress = mSeekBar.max
             mCurrTimeView.text = mDuration.getFormattedDuration()
             pauseVideo()
-            // the chrome went while it played, and a finished video is one to be done something with
-            if (mIsFragmentVisible && listener?.isSlideShowActive() == false && listener?.isFullScreen() == true) {
-                listener?.fragmentClicked()
-            }
         }
     }
 
     private fun cleanup() {
         pauseVideo()
-        mChromeAutoHide.cancel()
-        mRewindScan.stop()
         releaseExoPlayer()
 
         if (mWasFragmentInit) {
             mCurrTimeView.text = 0.getFormattedDuration()
             mSeekBar.progress = 0
             mTimerHandler.removeCallbacksAndMessages(null)
+            mRewindScan.stop()
         }
     }
 
@@ -1137,12 +1128,9 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
     private fun stopHoldSpeedMultiplierGesture() {
         if (mIsLongPressActive) {
-            if (mRewindScan.isRunning) {
+            if (mHoldIsRewind) {
                 mRewindScan.stop()
-                mExoPlayer?.isScrubbingModeEnabled = false
-                if (mWasPlayingBeforeRewind) {
-                    mExoPlayer?.playWhenReady = true
-                }
+                stopScrubbing()
             } else {
                 updatePlaybackSpeed(mOriginalPlaybackSpeed)
             }

@@ -202,6 +202,7 @@ import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.TabLocation
 import org.fossify.gallery.models.TabScreen
 import org.fossify.gallery.models.ThumbnailItem
+import org.fossify.gallery.views.ChromeAutoHide
 import org.fossify.gallery.views.GlassMenu
 import org.fossify.gallery.views.MetadataSheet
 import org.fossify.gallery.views.QuickFolder
@@ -267,6 +268,8 @@ class ViewPagerActivity :
     private val metadataSheet: MetadataSheet
         get() = binding.metadataSheetHolder.metadataSheet
 
+    private val chromeAutoHide by lazy { ChromeAutoHide(binding.fragmentHolder) { hideChromeOverVideo() } }
+
     /**
      * The tile this screen grew out of, and the tile it shrinks back into. Everything it fades is
      * named here because only this screen knows what it has painted over the grid.
@@ -321,6 +324,7 @@ class ViewPagerActivity :
      * brightness slider - has no beginning on record and so is not finished here either.
      */
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        chromeAutoHide.onTouchEvent(ev)
         if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
             mPagerTookGesture = mPagerScrollState != ViewPager.SCROLL_STATE_IDLE
         }
@@ -1223,7 +1227,8 @@ class ViewPagerActivity :
     /**
      * The strip as its setting has it, except over a video played here, where it steps aside: the
      * video's own frames stand in its place as the video's progress bar - see VideoFragment. Invisible
-     * rather than gone, so the buttons under it and the choosers over it stay where they are.
+     * rather than gone, so the buttons under it and the choosers over it stay where they are. A strip
+     * being scrolled stays under the finger whatever passes its middle, and steps aside once it settles.
      */
     private fun updateThumbnailStrip(animate: Boolean = true) {
         val strip = binding.viewerThumbnailStrip
@@ -1233,7 +1238,7 @@ class ViewPagerActivity :
             return
         }
 
-        val showsVideo = getCurrentMedium()?.isVideo() == true && !config.gestureVideoPlayer
+        val showsVideo = getCurrentMedium()?.isVideo() == true && !config.gestureVideoPlayer && !strip.isUserScrolling
         val alpha = if (showsVideo) 0f else 1f
         strip.animate().cancel()
         if (!animate) {
@@ -1256,6 +1261,8 @@ class ViewPagerActivity :
                 binding.viewPager.setCurrentItem(position, false)
             }
         }
+
+        binding.viewerThumbnailStrip.onUserScrollEnded = { updateThumbnailStrip() }
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.viewerThumbnailStrip) { view, insets ->
             val systemBottom = insets.getInsetsIgnoringVisibility(Type.systemBars()).bottom
@@ -1976,6 +1983,24 @@ class ViewPagerActivity :
 
     override fun zoomChanged(isZoomedIn: Boolean) = setFullScreen(isZoomedIn)
 
+    override fun videoStarted() = chromeAutoHide.restart()
+
+    // not while any of the chrome is in use: the metadata sheet, or the menu or a dialog over the window
+    private fun hideChromeOverVideo() {
+        val isPlaying = (getCurrentFragment() as? VideoFragment)?.mIsPlaying == true
+        if (isPlaying && !metadataSheet.isSheetVisible && hasWindowFocus()) {
+            setFullScreen(true)
+        }
+    }
+
+    // the menu or a dialog closing hands the window back with no touch of ours to start the wait over
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            chromeAutoHide.restart()
+        }
+    }
+
     private fun setFullScreen(fullScreen: Boolean) {
         if (mIsFullScreen == fullScreen) {
             return
@@ -1989,6 +2014,9 @@ class ViewPagerActivity :
     override fun videoEnded(): Boolean {
         if (mIsSlideshowActive) {
             swipeToNextMedium()
+        } else {
+            // the chrome may have gone while it played, and a finished video is one to be done something with
+            setFullScreen(false)
         }
         return mIsSlideshowActive
     }

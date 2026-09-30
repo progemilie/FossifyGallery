@@ -10,6 +10,7 @@ into it, takes all of that away.
 Read these before changing this feature — each can break silently if this one changes without it.
 
 - [viewer-transition](viewer-transition.md) — the chrome rides in with the flight, dressed before the pager exists.
+- [video-player](video-player.md) — a playing video has the chrome go by itself, through `setFullScreen()`.
 
 ## Where it lives
 

@@ -8,51 +8,25 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.RectF
-import android.media.MediaMetadataRetriever
-import android.media.MediaMetadataRetriever.METADATA_KEY_DURATION
-import android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT
-import android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION
-import android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH
-import android.media.MediaMetadataRetriever.OPTION_CLOSEST
-import android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC
-import android.os.Build
 import android.os.SystemClock
 import android.util.AttributeSet
-import android.util.LruCache
-import androidx.annotation.WorkerThread
 import androidx.appcompat.widget.AppCompatSeekBar
 import androidx.core.graphics.ColorUtils
-import androidx.core.graphics.scale
 import androidx.core.graphics.withClip
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.gallery.R
-import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 /** How dark the frames still to be played are kept, against the ones already played. */
 private const val UNPLAYED_SHADE_ALPHA = 110
-
-/** A frame's width against its height, held to this range whatever the video's own shape. */
-private const val MIN_FRAME_ASPECT = 0.5f
-private const val MAX_FRAME_ASPECT = 1.8f
-private const val MAX_FRAMES = 24
-
-/** A video turned a quarter either way is shown with its width and height the other way round. */
-private const val QUARTER_TURN = 90
-
-private const val US_PER_MS = 1000L
-private const val FRAMES_CACHE_BYTES = 6 * 1024 * 1024
 private const val FRAME_FADE_MS = 180L
 private const val OPAQUE = 255
 
 /**
  * A video's progress bar drawn as a strip of its own frames, which stands where the viewer's
- * thumbnail strip does for a photo - the way a phone's own gallery scrubs a video. A SeekBar
- * underneath, so a drag, a tap, a keyboard and TalkBack move it as they move any other: only its
- * look is its own, the frames darkened ahead of the playhead, and the playhead itself.
- *
- * The frames are read off the file on a background thread, each shown as it comes, and kept for
- * the next time the same video comes round at the same size.
+ * thumbnail strip does for a photo. A SeekBar underneath, so a drag, a tap, a keyboard and TalkBack
+ * move it as they move any other: only its look is its own, the frames darkened ahead of the
+ * playhead, and the playhead itself. The frames come from [VideoScrubberFrames], each shown as it is
+ * read.
  */
 class VideoScrubber @JvmOverloads constructor(
     context: Context,
@@ -90,6 +64,17 @@ class VideoScrubber @JvmOverloads constructor(
     @Volatile
     private var loadId = 0
 
+    /**
+     * Whether the page is the one on screen. Only that one reads frames - a page swiped away gives up
+     * what it had not finished - so the video playing shares the decoders with a single load, and the
+     * pages the pager keeps ready either side do not hold up the one being looked at.
+     */
+    var isOnScreen = false
+        set(value) {
+            field = value
+            if (value) showFrames() else stopLoading()
+        }
+
     init {
         // the frames are the track, and the playhead is drawn here too
         progressDrawable = null
@@ -117,12 +102,11 @@ class VideoScrubber @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        // a page gone before its frames came has no use for the rest of them
-        framesKey = ""
-        loadId++
+        stopLoading()
     }
 
-    // a track of another size wants as many frames as fill it, and the ones up stay until those start coming
+    // a track of another size wants as many frames as fill it, and the ones up stay until those start coming.
+    // Frames already read show on any page, so one sliding in is not bare
     private fun showFrames() {
         val trackWidth = width - paddingLeft - paddingRight
         val trackHeight = height - paddingTop - paddingBottom
@@ -131,14 +115,14 @@ class VideoScrubber @JvmOverloads constructor(
         }
 
         val key = "$video|${trackWidth}x$trackHeight"
-        if (key == framesKey) {
+        val cached = VideoScrubberFrames.cached(key)
+        if (key == framesKey || cached == null && !isOnScreen) {
             return
         }
 
         val sameVideo = framesKey.startsWith("$video|")
         framesKey = key
         loadId++
-        val cached = cache.get(key)
         if (cached != null) {
             frames = cached.copyOf()
             arrivals = LongArray(cached.size)
@@ -231,110 +215,31 @@ class VideoScrubber @JvmOverloads constructor(
         }
     }
 
-    private fun loadFrames(key: String, trackWidth: Int, trackHeight: Int) {
-        val path = path
-        val id = loadId
-        ensureBackgroundThread {
-            readFrames(path, id, trackWidth, trackHeight)?.let { cache.put(key, it) }
-        }
+    // what a load had not finished is not kept, and is read again when the frames are next wanted
+    private fun stopLoading() {
+        framesKey = ""
+        loadId++
     }
 
-    /**
-     * Reads as many frames as fill the track at the video's own proportions, spread over its length,
-     * handing each to the main thread as it comes. Blocking, call it off the main thread. Null if load
-     * [id] stopped being the latest, or no frame could be read.
-     */
-    // a file the retriever cannot read leaves the placeholder, whatever the reason
-    @Suppress("TooGenericExceptionCaught")
-    @WorkerThread
-    private fun readFrames(path: String, id: Int, trackWidth: Int, trackHeight: Int): Array<Bitmap?>? {
-        val retriever = MediaMetadataRetriever()
-        return try {
-            retriever.setDataSource(path)
-            val duration = retriever.extractMetadata(METADATA_KEY_DURATION)?.toLongOrNull()
-                ?: return null
-            val count = ceil(trackWidth / (trackHeight * retriever.frameAspect())).toInt().coerceIn(1, MAX_FRAMES)
-            val frameWidth = (trackWidth / count).coerceAtLeast(1)
+    private fun loadFrames(key: String, trackWidth: Int, trackHeight: Int) {
+        val id = loadId
+        val isWanted = { loadId == id }
+        VideoScrubberFrames.load(context, path, key, trackWidth, trackHeight, isWanted) { index, count, frame ->
             post {
                 if (loadId == id) {
-                    frames = arrayOfNulls(count)
-                    arrivals = LongArray(count)
+                    // a load for a track of another size brings cells of its own with its first frame
+                    if (frames.size != count) {
+                        frames = arrayOfNulls(count)
+                        arrivals = LongArray(count)
+                    }
+
+                    frames[index] = frame
+                    arrivals[index] = SystemClock.uptimeMillis()
                     invalidate()
                 }
             }
-
-            val read = arrayOfNulls<Bitmap>(count)
-            for (index in 0 until count) {
-                if (loadId != id) {
-                    return null
-                }
-
-                // the middle of each stretch of the video its cell stands for, as the nearest keyframe: a phone
-                // puts one in every second or so, and decoding on from one to the exact frame is most of the
-                // cost. Only keyframes further apart than the cells, which would repeat, are decoded on from.
-                val timeUs = duration * US_PER_MS * (2 * index + 1) / (2 * count)
-                val previous = read.getOrNull(index - 1)
-                var frame = retriever.frameAt(timeUs, OPTION_CLOSEST_SYNC, frameWidth, trackHeight)
-                if (frame == null || (previous != null && frame.sameAs(previous))) {
-                    frame = retriever.frameAt(timeUs, OPTION_CLOSEST, frameWidth, trackHeight)
-                }
-
-                // one that cannot be read at all repeats the last
-                val shown = frame ?: previous ?: continue
-                read[index] = shown
-                post {
-                    if (loadId == id) {
-                        frames[index] = shown
-                        arrivals[index] = SystemClock.uptimeMillis()
-                        invalidate()
-                    }
-                }
-            }
-
-            read.takeIf { frames -> frames.any { it != null } }
-        } catch (ignored: Exception) {
-            null
-        } finally {
-            retriever.release()
-        }
-    }
-
-    private companion object {
-        val cache = object : LruCache<String, Array<Bitmap?>>(FRAMES_CACHE_BYTES) {
-            // a frame repeated in a cell after it is counted once
-            override fun sizeOf(key: String, value: Array<Bitmap?>) =
-                value.distinct().sumOf { it?.allocationByteCount ?: 0 }
         }
     }
 }
 
 private fun withShadeAlpha(color: Int) = ColorUtils.setAlphaComponent(color, UNPLAYED_SHADE_ALPHA)
-
-/** The video's width over its height as it is shown, turned or not, held to the range a cell can have. */
-private fun MediaMetadataRetriever.frameAspect(): Float {
-    val width = extractMetadata(METADATA_KEY_VIDEO_WIDTH)?.toFloatOrNull()?.takeIf { it > 0f } ?: return 1f
-    val height = extractMetadata(METADATA_KEY_VIDEO_HEIGHT)?.toFloatOrNull()?.takeIf { it > 0f } ?: return 1f
-    val rotation = extractMetadata(METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
-    val isSideways = rotation / QUARTER_TURN % 2 == 1
-    val aspect = if (isSideways) height / width else width / height
-    return aspect.coerceIn(MIN_FRAME_ASPECT, MAX_FRAME_ASPECT)
-}
-
-/**
- * A frame no smaller than [width] by [height], and not much bigger: API 27 scales it while decoding,
- * before that it is scaled once decoded.
- */
-private fun MediaMetadataRetriever.frameAt(timeUs: Long, option: Int, width: Int, height: Int): Bitmap? {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-        return getScaledFrameAtTime(timeUs, option, width * 2, height * 2)
-    }
-
-    val frame = getFrameAtTime(timeUs, option) ?: return null
-    val scale = maxOf(width * 2f / frame.width, height * 2f / frame.height).coerceAtMost(1f)
-    return if (scale >= 1f) {
-        frame
-    } else {
-        frame.scale((frame.width * scale).roundToInt(), (frame.height * scale).roundToInt())
-            .also { if (it !== frame) frame.recycle() }
-    }
-}

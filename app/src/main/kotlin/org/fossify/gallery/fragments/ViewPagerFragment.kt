@@ -27,6 +27,9 @@ abstract class ViewPagerFragment : Fragment() {
     interface FragmentListener {
         fun fragmentClicked()
 
+        /** A video on the page started playing, which the host may take its chrome away from. */
+        fun videoStarted() {}
+
         fun videoEnded(): Boolean
 
         fun goToPrevItem()

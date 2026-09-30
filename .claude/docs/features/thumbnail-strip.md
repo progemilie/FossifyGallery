@@ -49,4 +49,6 @@ placeholder of its own rather than black, which over a photo reads as a hole.
   which would restart every Glide load for a tick.
 - Its visibility goes through `ViewPagerActivity.updateThumbnailStrip()`, never straight from
   `Config.showThumbnailStrip`: on a video's page the strip is put away (INVISIBLE, so it keeps its
-  place) and the [video's frame strip](video-player.md) stands there instead.
+  place) and the [video's frame strip](video-player.md) stands there instead. Not while the user is
+  scrolling it (`isUserScrolling`) — the pager follows the strip, and a video passing its middle
+  would take it from under the finger — but once it settles (`onUserScrollEnded`).
