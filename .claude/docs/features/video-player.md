@@ -40,6 +40,10 @@ gestures to `handleTouchHoldEvent()` too, ahead of their own handling. Once a ho
 takes the rest of its gesture, the lift included: a drag then changes neither volume nor
 brightness, and the lift is read as no tap by the strips or the video.
 
+Until the video has started, a flick is the viewer's wherever it begins. The strips come only once
+it has (`updateSideScrolls()`), and a flick begun on the play button goes to the flick handling
+(`letFlicksThrough()`), which sends the button a cancel so it neither plays nor stays pressed.
+
 ## The chrome going by itself
 
 The viewer owns it, not the video: `ViewPagerActivity` sees every touch on the screen, where the
@@ -94,6 +98,8 @@ goes unnoticed, and the strip shows one keyframe in several cells out of order.
 - **The frames are placed from dimensions, not from the viewer's layout.** `thumbnailStripBottom()`
   repeats how tall `bottom_actions.xml` lays out and `viewer_strip_drop_into_actions`; a change to
   either moves the thumbnail strip, and the frames sit off it until the function follows.
+- **The strips' visibility goes through `updateSideScrolls()`**, which knows the setting and whether
+  the video has started: shown on a video not yet started, they take the flick down that closes it.
 - **Loop is the app's own setting**, so a page already started reads it again whenever it is shown
   (`updateLoop()`): toggled on one page, another would keep its old state and repeat mode.
 - **The hints hang off `video_seek_hint_anchor`**, a zero-size view in the middle, not off the play

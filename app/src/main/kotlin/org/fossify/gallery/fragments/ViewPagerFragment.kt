@@ -99,7 +99,8 @@ abstract class ViewPagerFragment : Fragment() {
     fun handleViewerEvent(event: MotionEvent) = handleEvent(event) { isFlickEligible() }
 
     /**
-     * Turns a vertical flick over the media into a metadata panel or a closed viewer.
+     * Turns a vertical flick over the media into a metadata panel or a closed viewer, answering true
+     * on the ACTION_UP of a flick that did either.
      *
      * [isEligible] - "is the media sitting still rather than zoomed or panned" - is asked once per
      * gesture, at its ACTION_DOWN, and that answer holds until the finger lifts. Asking it per event
@@ -107,7 +108,7 @@ abstract class ViewPagerFragment : Fragment() {
      * decoding has its ACTION_DOWN dropped and its ACTION_UP let through, and is then measured
      * against a touch-down that never happened.
      */
-    protected fun handleEvent(event: MotionEvent, isEligible: () -> Boolean = { true }) {
+    protected fun handleEvent(event: MotionEvent, isEligible: () -> Boolean = { true }): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 mTrackingGesture = isEligible()
@@ -131,31 +132,40 @@ abstract class ViewPagerFragment : Fragment() {
                     abs(diffY) > abs(diffX) &&
                     downGestureDuration < MAX_CLOSE_DOWN_GESTURE_DURATION
 
-                if (isFlick) {
-                    // diffY is the distance back towards the top of the screen, so a negative one
-                    // is a finger that travelled downwards
-                    val flickedDown = diffY < -mCloseDownThreshold
-                    val metadataVisible = listener?.isMetadataVisible() == true
-
-                    when {
-                        // with the panel up, a flick down asks to be rid of the panel rather than
-                        // of the viewer - the thing that came in last is the thing that goes first
-                        flickedDown && metadataVisible -> listener?.hideMetadata()
-
-                        // how the screen leaves is the screen's own business: the viewers shrink
-                        // the photo back into its grid tile from here, and fall back to sliding it
-                        // away where there is no tile to shrink into
-                        flickedDown && context?.config?.allowDownGesture == true ->
-                            activity?.finish()
-
-                        // not tied to the down gesture setting: that one is about closing the
-                        // viewer by accident, which pulling up a panel cannot do
-                        diffY > mCloseDownThreshold -> listener?.showMetadata()
-                    }
-                }
-
+                val tookFlick = isFlick && actOnFlick(diffY)
                 mIgnoreCloseDown = false
+                return tookFlick
             }
         }
+
+        return false
+    }
+
+    /** Does what a flick [diffY] back towards the top of the screen asks for, answering false for nothing. */
+    private fun actOnFlick(diffY: Float): Boolean {
+        // diffY is the distance back towards the top of the screen, so a negative one
+        // is a finger that travelled downwards
+        val flickedDown = diffY < -mCloseDownThreshold
+        val metadataVisible = listener?.isMetadataVisible() == true
+
+        when {
+            // with the panel up, a flick down asks to be rid of the panel rather than
+            // of the viewer - the thing that came in last is the thing that goes first
+            flickedDown && metadataVisible -> listener?.hideMetadata()
+
+            // how the screen leaves is the screen's own business: the viewers shrink
+            // the photo back into its grid tile from here, and fall back to sliding it
+            // away where there is no tile to shrink into
+            flickedDown && context?.config?.allowDownGesture == true ->
+                activity?.finish()
+
+            // not tied to the down gesture setting: that one is about closing the
+            // viewer by accident, which pulling up a panel cannot do
+            diffY > mCloseDownThreshold -> listener?.showMetadata()
+
+            else -> return false
+        }
+
+        return true
     }
 }

@@ -212,6 +212,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             videoPlayOutline.setOnClickListener {
                 if (mConfig.gestureVideoPlayer) activity.launchGesturePlayer(mMedium.path) else togglePlayPause()
             }
+            letFlicksThrough(videoPlayOutline)
 
             mPlayPauseButton = bottomVideoTimeHolder.videoTogglePlay
             mPlayPauseButton.setOnClickListener { togglePlayPause() }
@@ -390,13 +391,10 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         mConfig =
             requireContext().config      // make sure we get a new config, in case the user changed something in the app settings
         requireActivity().updateTextColors(binding.videoHolder)
-        val allowVideoGestures = mConfig.allowVideoGestures
         mTextureView.beGoneIf(mConfig.gestureVideoPlayer || mIsPanorama)
         binding.videoSurfaceFrame.beGoneIf(mTextureView.isGone())
 
-        mVolumeSideScroll.beVisibleIf(allowVideoGestures && !mIsPanorama)
-        mBrightnessSideScroll.beVisibleIf(allowVideoGestures && !mIsPanorama)
-
+        updateSideScrolls()
         initTimeHolder()
         updateLoop()
         storeStateVariables()
@@ -705,6 +703,16 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
     }
 
+    /**
+     * The volume and brightness strips take a vertical drag wherever it starts over the video's edges,
+     * so they come only once the video has started: until then a flick down there closes the viewer.
+     */
+    private fun updateSideScrolls() {
+        val show = mConfig.allowVideoGestures && !mIsPanorama && mWasVideoStarted
+        mVolumeSideScroll.beVisibleIf(show)
+        mBrightnessSideScroll.beVisibleIf(show)
+    }
+
     private fun checkIfPanorama() {
         try {
             val fis = FileInputStream(File(mMedium.path))
@@ -939,6 +947,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                 videoPlaybackSpeed.text = "${DecimalFormat("#.##").format(mConfig.playbackSpeed)}x"
             }
             updateControls(animate = true)
+            updateSideScrolls()
         }
 
         if (mIsPlayerPrepared) {
@@ -1093,6 +1102,25 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     }
 
     override fun isFlickEligible() = binding.videoSurfaceFrame.controller.state.zoom == 1f
+
+    /**
+     * A flick begun on [button] is the viewer's, as anywhere else on the video: it closes the viewer or
+     * brings up the details. The button is then told its gesture was cancelled rather than handed the
+     * lift, so it neither takes a click nor stays pressed. Its own clicks still come from its onTouchEvent.
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    private fun letFlicksThrough(button: View) {
+        button.setOnTouchListener { view, event ->
+            val tookFlick = handleEvent(event) { isFlickEligible() }
+            if (tookFlick) {
+                val cancel = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
+                view.onTouchEvent(cancel)
+                cancel.recycle()
+            }
+
+            tookFlick
+        }
+    }
 
     // no click is detected here: a tap on a strip is still the strip's own
     @SuppressLint("ClickableViewAccessibility")
