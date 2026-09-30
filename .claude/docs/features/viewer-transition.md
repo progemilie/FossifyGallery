@@ -12,6 +12,7 @@ Read these before changing this feature — each can break silently if this one 
 - [viewer-chrome](viewer-chrome.md) — the chrome is dressed from the medium named before the flight (`aimAtOpeningMedium`).
 - [peek-viewer](peek-viewer.md) — the peek flies the same way.
 - [thumbnail-strip](thumbnail-strip.md) — the strip is dressed before the flight lands.
+- [video-player](video-player.md) — a video's frame strip stops reading in `onViewerClosing()`.
 
 ## Where it lives
 
@@ -100,7 +101,7 @@ for as long as it takes. So a close has the viewer do nothing more (`stopStage()
   every picture that finishes decoding in it. Not `GONE`, which would lay the whole screen out again
   in the shrink's first frame.
 - Every `ViewPagerFragment` is told (`onViewerClosing()`); `PhotoFragment` drops the zoomable layer it
-  has scheduled.
+  has scheduled, and `VideoFragment` the frames its strip had still to read.
 - `gotMedia` drops a list read in while `flight.isClosing`, and holds back one read in under a finger
   until the finger lifts: a pager rebuilt half way through a flick loses the flick, and one rebuilt
   just before a close is what the shrink's first frame waits on. Only a rebuild waits: held back,

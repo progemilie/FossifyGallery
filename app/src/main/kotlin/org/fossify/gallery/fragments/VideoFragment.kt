@@ -739,6 +739,13 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         return DisplayedMedia(mTextureView.screenRect(), runCatching { mTextureView.bitmap }.getOrNull())
     }
 
+    // the frames still to come would only be decoded in the frames of the shrink
+    override fun onViewerClosing() {
+        if (mWasFragmentInit) {
+            binding.bottomVideoTimeHolder.videoSeekbar.isOnScreen = false
+        }
+    }
+
     override fun fullscreenToggled(isFullscreen: Boolean) {
         mIsFullscreen = isFullscreen
 

@@ -14,6 +14,7 @@ Read these before changing this feature — each can break silently if this one 
 
 - [thumbnail-strip](thumbnail-strip.md) — the strip steps aside on a video's page, and the scrubber takes its place.
 - [viewer-chrome](viewer-chrome.md) — the chrome going by itself is the viewer's, asked for by the video.
+- [viewer-transition](viewer-transition.md) — a close stops the frame strip reading (`onViewerClosing()`), or it decodes through the shrink.
 
 ## Where it lives
 
@@ -62,7 +63,8 @@ Only the page on screen reads frames (`VideoScrubber.isOnScreen`, which the frag
 `mIsFragmentVisible`), one load at a time on a thread of its own. The pager keeps two pages ready either
 side; reading theirs too put up to five decoders to work beside the playing video, and left the page
 being looked at waiting behind its neighbours. A page swiped away gives up what it had not finished,
-and frames already cached show on any page, so one sliding in is not bare.
+as does every page once the viewer starts shrinking back into the grid; frames already cached show on
+any page, so one sliding in is not bare.
 
 A cell's frame is the keyframe before its time — cheap, and within a second of the exact one in a
 phone's video. Where keyframes lie further apart than the cells, as in a screen recording, the last
