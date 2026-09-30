@@ -8,6 +8,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.util.TypedValue
+import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -111,18 +112,19 @@ class SettingsGroup @JvmOverloads constructor(
 
 /**
  * The card a group's rows sit on, with a hairline between two rows. Drawn rather than laid out, so a
- * row hidden by its setup takes its rule with it; inset to where the labels start, past the icons.
+ * row hidden by its setup takes its rule with it; inset to where the labels start, past an icon
+ * where either row has one.
  */
 private class GroupRows(context: Context) : LinearLayout(context) {
     private val card = GradientDrawable().apply {
         cornerRadius = resources.getDimension(R.dimen.settings_group_corner_radius)
     }
 
-    private val inset = resources.getDimension(R.dimen.settings_row_padding_horizontal) +
+    private val padding = resources.getDimension(R.dimen.settings_row_padding_horizontal)
+
+    private val iconInset = padding +
         resources.getDimension(R.dimen.settings_row_icon_size) +
         resources.getDimension(R.dimen.settings_row_icon_gap)
-
-    private val endInset = resources.getDimension(R.dimen.settings_row_padding_horizontal)
 
     private val paint = Paint().apply {
         strokeWidth = resources.getDimension(R.dimen.settings_divider_thickness)
@@ -155,10 +157,17 @@ private class GroupRows(context: Context) : LinearLayout(context) {
         // would fall outside the last row and be clipped away with it
         val half = paint.strokeWidth / 2f
         val rtl = layoutDirection == LAYOUT_DIRECTION_RTL
-        val start = if (rtl) endInset else inset
-        val end = width - if (rtl) inset else endInset
-        shown.dropLast(1).forEach {
-            canvas.drawLine(start, it.bottom - half, end, it.bottom - half, paint)
+        shown.zipWithNext { above, below ->
+            // under the labels of both rows, so as far out as the one without an icon
+            val inset = minOf(labelStart(above), labelStart(below))
+            val start = if (rtl) padding else inset
+            val end = width - if (rtl) inset else padding
+            canvas.drawLine(start, above.bottom - half, end, above.bottom - half, paint)
         }
+    }
+
+    private fun labelStart(row: View): Float {
+        val icon = (row as? ViewGroup)?.getChildAt(0) as? ImageView
+        return if (icon?.isVisible == true) iconInset else padding
     }
 }

@@ -399,11 +399,6 @@
                         android:id="@+id/settings_scroll_horizontally_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_carousel_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_scroll_horizontally"
                             style="@style/SettingsRowSwitch"
@@ -414,11 +409,6 @@
                     <LinearLayout
                         android:id="@+id/settings_enable_pull_to_refresh_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_refresh_vector" />
 
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_enable_pull_to_refresh"
@@ -436,11 +426,6 @@
                     <LinearLayout
                         android:id="@+id/settings_search_all_files_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_search_vector" />
 
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_search_all_files"
@@ -468,11 +453,6 @@
                         android:id="@+id/settings_crop_thumbnails_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_crop_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_crop_thumbnails"
                             style="@style/SettingsRowSwitch"
@@ -483,11 +463,6 @@
                     <LinearLayout
                         android:id="@+id/settings_animate_gifs_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_gif_vector" />
 
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_animate_gifs"
@@ -616,11 +591,6 @@
                         android:id="@+id/settings_show_hidden_items_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_unhide_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_show_hidden_items"
                             style="@style/SettingsRowSwitch"
@@ -678,11 +648,6 @@
                         android:id="@+id/settings_max_brightness_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_brightness_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_max_brightness"
                             style="@style/SettingsRowSwitch"
@@ -693,11 +658,6 @@
                     <LinearLayout
                         android:id="@+id/settings_ultra_hdr_rendering_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_hdr_vector" />
 
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_ultra_hdr_rendering"
@@ -710,11 +670,6 @@
                         android:id="@+id/settings_black_background_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_dark_mode_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_black_background"
                             style="@style/SettingsRowSwitch"
@@ -725,11 +680,6 @@
                     <LinearLayout
                         android:id="@+id/settings_hide_system_ui_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_fullscreen_vector" />
 
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_hide_system_ui"
@@ -742,11 +692,6 @@
                         android:id="@+id/settings_show_notch_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_smartphone_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_show_notch"
                             style="@style/SettingsRowSwitch"
@@ -758,11 +703,6 @@
                         android:id="@+id/settings_keep_screen_on_fullscreen_photos_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_lightbulb_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_keep_screen_on_fullscreen_photos"
                             style="@style/SettingsRowSwitch"
@@ -773,11 +713,6 @@
                     <LinearLayout
                         android:id="@+id/settings_screen_rotation_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_orientation_auto_vector" />
 
                         <LinearLayout style="@style/SettingsRowTexts">
 
@@ -804,11 +739,6 @@
                     <LinearLayout
                         android:id="@+id/settings_allow_instant_change_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_swap_vector" />
 
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_allow_instant_change"
@@ -843,11 +773,6 @@
                         android:id="@+id/settings_show_extended_details_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_info_outline_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_show_extended_details"
                             style="@style/SettingsRowSwitch"
@@ -880,11 +805,6 @@
                     <LinearLayout
                         android:id="@+id/settings_bottom_actions_checkbox_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_bottom_actions_vector" />
 
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_bottom_actions_checkbox"
@@ -928,11 +848,6 @@
                         android:id="@+id/settings_allow_photo_gestures_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_brightness_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_allow_photo_gestures"
                             style="@style/SettingsRowSwitch"
@@ -943,11 +858,6 @@
                     <LinearLayout
                         android:id="@+id/settings_allow_down_gesture_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_arrow_down_vector" />
 
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_allow_down_gesture"
@@ -966,11 +876,6 @@
                         android:id="@+id/settings_allow_zooming_images_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_zoom_in_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_allow_zooming_images"
                             style="@style/SettingsRowSwitch"
@@ -981,11 +886,6 @@
                     <LinearLayout
                         android:id="@+id/settings_allow_rotating_with_gestures_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_rotate_right_vector" />
 
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_allow_rotating_with_gestures"
@@ -998,11 +898,6 @@
                         android:id="@+id/settings_show_highest_quality_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_high_quality_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_show_highest_quality"
                             style="@style/SettingsRowSwitch"
@@ -1013,11 +908,6 @@
                     <LinearLayout
                         android:id="@+id/settings_allow_one_to_one_zoom_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_aspect_ratio_vector" />
 
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_allow_one_to_one_zoom"
@@ -1045,11 +935,6 @@
                         android:id="@+id/settings_autoplay_videos_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_play_circle_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_autoplay_videos"
                             style="@style/SettingsRowSwitch"
@@ -1061,11 +946,6 @@
                         android:id="@+id/settings_remember_last_video_position_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_history_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_remember_last_video_position"
                             style="@style/SettingsRowSwitch"
@@ -1076,11 +956,6 @@
                     <LinearLayout
                         android:id="@+id/settings_loop_videos_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_repeat_vector" />
 
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_loop_videos"
@@ -1098,11 +973,6 @@
                     <LinearLayout
                         android:id="@+id/settings_on_video_tap_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_video_player_vector" />
 
                         <LinearLayout style="@style/SettingsRowTexts">
 
@@ -1124,11 +994,6 @@
                         android:id="@+id/settings_open_videos_on_separate_screen_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_open_in_new_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_open_videos_on_separate_screen"
                             style="@style/SettingsRowSwitch"
@@ -1139,11 +1004,6 @@
                     <LinearLayout
                         android:id="@+id/settings_allow_video_gestures_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_touch_vector" />
 
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_allow_video_gestures"
@@ -1250,11 +1110,6 @@
                         android:id="@+id/settings_delete_empty_folders_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_delete_sweep_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_delete_empty_folders"
                             style="@style/SettingsRowSwitch"
@@ -1266,11 +1121,6 @@
                         android:id="@+id/settings_keep_last_modified_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_clock_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_keep_last_modified"
                             style="@style/SettingsRowSwitch"
@@ -1281,11 +1131,6 @@
                     <LinearLayout
                         android:id="@+id/settings_skip_delete_confirmation_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_delete_vector" />
 
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_skip_delete_confirmation"
@@ -1304,11 +1149,6 @@
                         android:id="@+id/settings_use_recycle_bin_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_delete_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_use_recycle_bin"
                             style="@style/SettingsRowSwitch"
@@ -1320,11 +1160,6 @@
                         android:id="@+id/settings_show_recycle_bin_holder"
                         style="@style/SettingsRow">
 
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_settings_restore_vector" />
-
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_show_recycle_bin"
                             style="@style/SettingsRowSwitch"
@@ -1335,11 +1170,6 @@
                     <LinearLayout
                         android:id="@+id/settings_show_recycle_bin_last_holder"
                         style="@style/SettingsRow">
-
-                        <ImageView
-                            style="@style/SettingsRowIcon"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_move_to_bottom_vector" />
 
                         <org.fossify.commons.views.MyMaterialSwitch
                             android:id="@+id/settings_show_recycle_bin_last"

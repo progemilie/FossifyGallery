@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A setting a search has found: its icon, its title, and the page and heading it is under. See SettingsSearch. -->
+<!-- A setting a search has found: its icon where it has one, its title, and the page and heading it is under. See SettingsSearch. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     style="@style/SettingsRow">
@@ -8,14 +8,14 @@
         android:id="@+id/settings_result_icon"
         style="@style/SettingsRowIcon"
         android:contentDescription="@null"
-        tools:src="@drawable/ic_settings_brightness_vector" />
+        tools:src="@drawable/ic_settings_tune_vector" />
 
     <LinearLayout style="@style/SettingsRowTexts">
 
         <org.fossify.commons.views.MyTextView
             android:id="@+id/settings_result_title"
             style="@style/SettingsRowTitle"
-            tools:text="@string/max_brightness" />
+            tools:text="@string/manage_extended_details" />
 
         <org.fossify.commons.views.MyTextView
             android:id="@+id/settings_result_path"

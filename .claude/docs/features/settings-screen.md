@@ -2,8 +2,9 @@
 
 Settings are a first page of categories, each opening a page of its own, the way the system's own
 Settings, One UI and HyperOS lay theirs out. A category is a coloured disc, a title and a line
-saying what is on its page; a page is its settings in rounded groups under small headings, every
-row with an icon in the page's colour.
+saying what is on its page; a page is its settings in rounded groups under small headings. Only
+some rows have an icon, in the page's colour - most plain switches do without; which is decided
+row by row in the layout.
 
 ## Coupled with
 
@@ -44,9 +45,11 @@ move, both drawn for real, and a push that is turned back part way returns from 
 page coming in is painted and laid out before either moves. Back - the arrow, or the system's -
 returns to the first page as it was left scrolled. The open page survives a rotation.
 
-A row's first child, where it is an image, is its icon, and its group tints it. Rows are
-LinearLayouts of icon, then texts or a switch; the Tabs row keeps a RelativeLayout around its switch
-for the (i), which is placed at runtime just past the label.
+A row's first child, where it is an image, is its icon, and its group tints it. Without one, the
+label starts at the row's padding, a hairline beside it starts there too, and a search finding it
+shows no icon either. Rows are LinearLayouts of an optional icon, then texts or a switch; the Tabs
+row keeps a RelativeLayout around its switch for the (i), which is placed at runtime just past the
+label.
 
 Each scroller starts with its page's name, which hands over to the bar's title as it scrolls under
 the bar, which fills in behind it. The bar floats over the pages, softened by the

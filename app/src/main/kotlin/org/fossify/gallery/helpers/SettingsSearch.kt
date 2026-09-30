@@ -119,9 +119,11 @@ class SettingsSearch(
         binding.settingsResultPath.setTextColor(textColor)
 
         // a drawable of its own: one drawable shared between two views keeps only the last one's bounds
+        // and none where the setting has none, so the finding looks like the row it found
         val icon = ((found.row as? ViewGroup)?.getChildAt(0) as? ImageView)?.drawable
         binding.settingsResultIcon.setImageDrawable(icon?.constantState?.newDrawable()?.mutate())
         binding.settingsResultIcon.setColorFilter(found.page.iconColor)
+        binding.settingsResultIcon.isVisible = icon != null
 
         binding.root.setOnClickListener {
             hideKeyboard()
