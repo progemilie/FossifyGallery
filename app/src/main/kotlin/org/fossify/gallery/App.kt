@@ -29,8 +29,6 @@ class App : FossifyApp() {
         }
 
         keepRatingHeaders()
-        // before any screen reads it, as a viewer opened from another app can be the first
-        config.keepVideoGesturesOnEarlierInstalls()
         Reprint.initialize(this)
         Picasso.setSingletonInstance(Picasso.Builder(this).downloader(object : Downloader {
             override fun load(request: Request) = Response.Builder().build()

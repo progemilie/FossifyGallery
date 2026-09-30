@@ -11,7 +11,6 @@ import android.view.MotionEvent
 import android.view.ViewGroup
 import android.widget.RelativeLayout
 import android.widget.TextView
-import org.fossify.commons.extensions.onGlobalLayout
 import org.fossify.gallery.R
 import org.fossify.gallery.extensions.audioManager
 import org.fossify.gallery.helpers.DRAG_THRESHOLD
@@ -26,7 +25,6 @@ class MediaSideScroll(context: Context, attrs: AttributeSet) : RelativeLayout(co
     private var mTouchDownValue = -1
     private var mTempBrightness = 0
     private var mLastTouchY = 0f
-    private var mViewHeight = 0
     private var mIsBrightnessScroll = false
     private var mPassTouches = false
     private var dragThreshold = DRAG_THRESHOLD * context.resources.displayMetrics.density
@@ -52,9 +50,6 @@ class MediaSideScroll(context: Context, attrs: AttributeSet) : RelativeLayout(co
         mParentView = parentView
         mIsBrightnessScroll = isBrightness
         mSlideInfoText = activity.getString(if (isBrightness) R.string.brightness else R.string.volume)
-        onGlobalLayout {
-            mViewHeight = height
-        }
     }
 
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
@@ -108,7 +103,8 @@ class MediaSideScroll(context: Context, attrs: AttributeSet) : RelativeLayout(co
 
                 if (Math.abs(diffY) > dragThreshold && Math.abs(diffY) > Math.abs(diffX)) {
                     onVerticalScroll?.invoke()
-                    var percent = ((diffY / mViewHeight) * 100).toInt() * 3
+                    // read now, not at the first layout: a strip hidden then measured 0 there
+                    var percent = ((diffY / height) * 100).toInt() * 3
                     percent = Math.min(100, Math.max(-100, percent))
 
                     if ((percent == 100 && event.rawY > mLastTouchY) || (percent == -100 && event.rawY < mLastTouchY)) {

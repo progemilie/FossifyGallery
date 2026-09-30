@@ -34,17 +34,12 @@ Notable fork-only changes.
 - The thumbnail strip under a photo marks videos with a small triangle, and its thumbnails sit
   closer together and are dimmed less.
 - Double tapping a video under a minute long skips five seconds rather than ten.
-- Controlling volume and brightness by swiping up and down on a video is off by default for new
-  installs.
+- Controlling volume and brightness by swiping up and down on a video is off by default.
 ### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.
 - Fixed peek buttons and group ticks staying on a tile after a selection had ended.
 - Fixed a quick swipe down on a video opened on its own screen sometimes being ignored.
-- Fixed holding a video at its left or right edge not changing its speed while volume and brightness
-  gestures are on.
-- Fixed a swipe down on a video not yet started not closing it when the swipe began on the play
-  button, or at the screen's edges while volume and brightness gestures are on.
 - Fixed the volume and brightness readout on a video jumping to the top of the screen while the
   controls were hidden.
 - Fixed holding and dragging to select more pictures not working when the hold started on a peek button.

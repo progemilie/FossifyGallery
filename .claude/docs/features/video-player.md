@@ -40,8 +40,7 @@ With volume and brightness gestures on, a strip lies over each of the video's ed
 vertical drag. A touch listener hands their gestures to `handleTouchHoldEvent()` too, ahead of
 their own handling, and once a hold has begun it takes the rest of its gesture, the lift included:
 a drag then changes neither volume nor brightness, and the lift is read as no tap by the strips or
-the video. The setting is off by default for a new install; an install from before that default
-changed keeps it on (`Config.keepVideoGesturesOnEarlierInstalls()`, from `App.onCreate`).
+the video. The setting is off by default.
 
 Until the video has started, a flick is the viewer's wherever it begins. The strips come only once
 it has (`updateSideScrolls()`), and a flick begun on the play button goes to the flick handling
@@ -107,9 +106,8 @@ goes unnoticed, and the strip shows one keyframe in several cells out of order.
   either moves the thumbnail strip, and the frames sit off it until the function follows.
 - **The strips' visibility goes through `updateSideScrolls()`**, which knows the setting and whether
   the video has started: shown on a video not yet started, they take the flick down that closes it.
-- **The gestures' default is written down once.** Left unwritten, an install that never touched the
-  setting reads whatever the default is now, and a default worked out from `appRunCount` on each
-  read turns them back on at a new install's second run.
+  Gone until then, they miss the first layout, so `MediaSideScroll` works a drag out against its
+  height at the time: measured at the first layout it was 0, and every drag went to 0 or 100%.
 - **Loop is the app's own setting**, so a page already started reads it again whenever it is shown
   (`updateLoop()`): toggled on one page, another would keep its old state and repeat mode.
 - **The hints hang off `video_seek_hint_anchor`**, a zero-size view in the middle, not off the play

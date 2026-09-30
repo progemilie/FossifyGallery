@@ -188,6 +188,10 @@ const val HIDE_SYSTEM_UI_DELAY = 500L
 const val MAX_PRINT_SIDE_SIZE = 4096
 const val FAST_FORWARD_VIDEO_MS = 10000
 
+// ten seconds is a sixth or more of a video shorter than SHORT_VIDEO_MS, which skips five at a time instead
+const val FAST_FORWARD_SHORT_VIDEO_MS = 5000
+const val SHORT_VIDEO_MS = 60000
+
 const val EXOPLAYER_MIN_BUFFER_MS = 2000
 const val EXOPLAYER_MAX_BUFFER_MS = 8000
 

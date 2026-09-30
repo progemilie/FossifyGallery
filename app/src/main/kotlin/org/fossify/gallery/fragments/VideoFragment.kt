@@ -87,8 +87,10 @@ import org.fossify.gallery.helpers.Config
 import org.fossify.gallery.helpers.DisplayedMedia
 import org.fossify.gallery.helpers.EXOPLAYER_MAX_BUFFER_MS
 import org.fossify.gallery.helpers.EXOPLAYER_MIN_BUFFER_MS
+import org.fossify.gallery.helpers.FAST_FORWARD_SHORT_VIDEO_MS
 import org.fossify.gallery.helpers.FAST_FORWARD_VIDEO_MS
 import org.fossify.gallery.helpers.MEDIUM
+import org.fossify.gallery.helpers.SHORT_VIDEO_MS
 import org.fossify.gallery.helpers.SHOULD_INIT_FRAGMENT
 import org.fossify.gallery.interfaces.PlaybackSpeedListener
 import org.fossify.gallery.models.Medium
@@ -109,10 +111,6 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         private const val TOUCH_HOLD_SLOW_SPEED_MULTIPLIER = 0.5f
         private const val TOUCH_SLOP_DIVIDER = 3
         private const val LOOP_OFF_ALPHA = 0.6f
-
-        /** Ten seconds is a sixth or more of a video shorter than this, which skips five at a time instead. */
-        private const val SHORT_VIDEO_MS = 60_000L
-        private const val SHORT_VIDEO_SKIP_MS = 5_000L
 
         /** A hold or a double tap this near either side of the video acts on that side: slower or back on the left. */
         private const val SIDE_ZONE = 1 / 3f
@@ -636,10 +634,10 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
 
         doSkip(forward)
-        mSeekHints.show(forward, (skipLengthMs() / 1000).toInt())
+        mSeekHints.show(forward, skipLengthMs() / 1000)
     }
 
-    private fun skipLengthMs() = if (mDuration < SHORT_VIDEO_MS) SHORT_VIDEO_SKIP_MS else FAST_FORWARD_VIDEO_MS.toLong()
+    private fun skipLengthMs() = if (mDuration < SHORT_VIDEO_MS) FAST_FORWARD_SHORT_VIDEO_MS else FAST_FORWARD_VIDEO_MS
 
     /** The same setting as the app's own, so a video looped here loops the next time too. */
     private fun toggleLoop() {
