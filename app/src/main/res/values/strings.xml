@@ -412,7 +412,6 @@
     <!-- The arrow the last row of a drop-down wears when the menu keeps a section back -->
     <string name="show_more_options">Show more options</string>
     <string name="show_fewer_options">Show fewer options</string>
-    <!-- The video player's controls -->
     <string name="video_play">Play</string>
     <string name="video_pause">Pause</string>
     <string name="video_back_10">Back 10 seconds</string>
