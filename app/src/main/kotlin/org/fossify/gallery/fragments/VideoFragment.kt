@@ -106,8 +106,11 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         private const val TOUCH_HOLD_SPEED_MULTIPLIER = 2.0f
         private const val TOUCH_HOLD_SLOW_SPEED_MULTIPLIER = 0.5f
         private const val TOUCH_SLOP_DIVIDER = 3
-        private const val SKIP_SECONDS = FAST_FORWARD_VIDEO_MS / 1000
         private const val LOOP_OFF_ALPHA = 0.6f
+
+        /** Ten seconds is a sixth or more of a video shorter than this, which skips five at a time instead. */
+        private const val SHORT_VIDEO_MS = 60_000L
+        private const val SHORT_VIDEO_SKIP_MS = 5_000L
 
         /** A hold or a double tap this near either side of the video acts on that side: slower or back on the left. */
         private const val SIDE_ZONE = 1 / 3f
@@ -626,15 +629,17 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
     }
 
-    /** Ten seconds either way for a double tap, with the run of them added up on that side. */
+    /** A skip either way for a double tap, with the run of them added up on that side. */
     private fun skipWithHint(forward: Boolean) {
         if (mExoPlayer == null || mIsPanorama) {
             return
         }
 
         doSkip(forward)
-        mSeekHints.show(forward, SKIP_SECONDS)
+        mSeekHints.show(forward, (skipLengthMs() / 1000).toInt())
     }
+
+    private fun skipLengthMs() = if (mDuration < SHORT_VIDEO_MS) SHORT_VIDEO_SKIP_MS else FAST_FORWARD_VIDEO_MS.toLong()
 
     /** The same setting as the app's own, so a video looped here loops the next time too. */
     private fun toggleLoop() {
@@ -805,8 +810,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
 
         val curr = mExoPlayer!!.currentPosition
-        var newPosition =
-            if (forward) curr + FAST_FORWARD_VIDEO_MS else curr - FAST_FORWARD_VIDEO_MS
+        var newPosition = if (forward) curr + skipLengthMs() else curr - skipLengthMs()
         newPosition = newPosition.coerceIn(0, maxOf(mExoPlayer!!.duration, 0))
         setPosition(newPosition)
     }

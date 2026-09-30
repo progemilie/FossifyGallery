@@ -31,8 +31,8 @@ Read these before changing this feature — each can break silently if this one 
 ## Gestures
 
 The video is taken in thirds. A hold on the left third plays at half speed, a hold anywhere else
-at 2x (upstream's). A double tap on a side third skips ten seconds that way, and in the middle
-plays or pauses. A run of skips counts up in a hint on that side of the middle. Holds start only on
+at 2x (upstream's). A double tap on a side third skips ten seconds that way, five in a video under
+a minute (`skipLengthMs()`, which the time labels skip by too), and in the middle plays or pauses. A run of skips counts up in a hint on that side of the middle. Holds start only on
 a playing video, as upstream's 2x hold did.
 
 The volume and brightness strips lie over the video's edges, so a touch listener hands their

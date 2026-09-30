@@ -33,6 +33,7 @@ Notable fork-only changes.
 - Sorting and grouping by rating works like any other sorting now.
 - The thumbnail strip under a photo marks videos with a small triangle, and its thumbnails sit
   closer together and are dimmed less.
+- Double tapping a video under a minute long skips five seconds rather than ten.
 ### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.
