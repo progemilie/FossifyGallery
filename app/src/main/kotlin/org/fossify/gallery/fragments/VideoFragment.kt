@@ -80,6 +80,7 @@ import org.fossify.gallery.extensions.getFormattedDuration
 import org.fossify.gallery.extensions.getFriendlyMessage
 import org.fossify.gallery.extensions.launchGesturePlayer
 import org.fossify.gallery.extensions.parseFileChannel
+import org.fossify.gallery.extensions.screenLocation
 import org.fossify.gallery.helpers.Config
 import org.fossify.gallery.helpers.DisplayedMedia
 import org.fossify.gallery.helpers.EXOPLAYER_MAX_BUFFER_MS
@@ -225,12 +226,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             mCurrTimeView = bottomVideoTimeHolder.videoCurrTime
             mBrightnessSideScroll = videoBrightnessController
             mVolumeSideScroll = videoVolumeController
-            mBrightnessSideScroll.onVerticalScroll = {
-                mTimerHandler.removeCallbacks(mTouchHoldRunnable)
-            }
-            mVolumeSideScroll.onVerticalScroll = {
-                mTimerHandler.removeCallbacks(mTouchHoldRunnable)
-            }
+            watchSideScrollsForHolds()
             mTextureView = videoSurface
             mTextureView.surfaceTextureListener = this@VideoFragment
 
@@ -266,8 +262,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
             videoSurfaceFrame.setOnTouchListener { view, event ->
                 handleEvent(event) { isFlickEligible() }
-                handleTouchHoldEvent(event)
-                if (mIsLongPressActive) {
+                if (handleTouchHoldEvent(event)) {
                     return@setOnTouchListener true
                 }
 
@@ -1095,13 +1090,30 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
     override fun isFlickEligible() = binding.videoSurfaceFrame.controller.state.zoom == 1f
 
-    private fun handleTouchHoldEvent(event: MotionEvent) {
+    // no click is detected here: a tap on a strip is still the strip's own
+    @SuppressLint("ClickableViewAccessibility")
+    private fun watchSideScrollsForHolds() {
+        listOf(mBrightnessSideScroll, mVolumeSideScroll).forEach {
+            it.setOnTouchListener { _, event -> handleTouchHoldEvent(event) }
+        }
+    }
+
+    /**
+     * Fed the gestures of the video and of the volume and brightness strips over its edges. True for
+     * every event of a gesture a hold has taken, the lift included, which nothing else is to act on:
+     * a drag then changes neither volume nor brightness, and the lift is no tap.
+     */
+    private fun handleTouchHoldEvent(event: MotionEvent): Boolean {
+        val isHolding = mIsLongPressActive
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                if (mIsPlaying && event.pointerCount == 1) {
+                // a finger on another of the page's views comes down as a gesture of its own, and is no second hold
+                mTimerHandler.removeCallbacks(mTouchHoldRunnable)
+                if (mIsPlaying && !isHolding) {
                     mInitialX = event.x
                     mInitialY = event.y
-                    mHoldIsSlow = event.x < mView.width * SIDE_ZONE
+                    // across the page, whichever of its views the finger landed on
+                    mHoldIsSlow = event.rawX - mView.screenLocation().first < mView.width * SIDE_ZONE
                     mTimerHandler.postDelayed(mTouchHoldRunnable, TOUCH_HOLD_DURATION_MS)
                 }
             }
@@ -1125,6 +1137,8 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                 stopHoldSpeedMultiplierGesture()
             }
         }
+
+        return isHolding
     }
 
     private fun stopHoldSpeedMultiplierGesture() {

@@ -35,6 +35,11 @@ at 2x (upstream's). A double tap on a side third skips ten seconds that way, and
 plays or pauses. A run of skips counts up in a hint on that side of the middle. Holds start only on
 a playing video, as upstream's 2x hold did.
 
+The volume and brightness strips lie over the video's edges, so a touch listener hands their
+gestures to `handleTouchHoldEvent()` too, ahead of their own handling. Once a hold has begun it
+takes the rest of its gesture, the lift included: a drag then changes neither volume nor
+brightness, and the lift is read as no tap by the strips or the video.
+
 ## The chrome going by itself
 
 The viewer owns it, not the video: `ViewPagerActivity` sees every touch on the screen, where the
