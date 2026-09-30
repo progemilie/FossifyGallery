@@ -16,7 +16,7 @@ private const val REWIND_SPEED = 2
 private const val REWIND_INTERVAL_MS = 100L
 
 /** How long a playing video is left alone before the chrome goes. */
-private const val CHROME_AUTO_HIDE_MS = 3000L
+private const val CHROME_AUTO_HIDE_MS = 5000L
 
 /**
  * What a run of double taps has added up to, on the side it went: "- 10s", then "- 20s" while the

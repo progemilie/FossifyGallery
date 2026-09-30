@@ -4,7 +4,7 @@ A video in the viewer plays in place, under controls of the fork's own: a play b
 in the middle until it has started, then the time, play and pause, speed, loop and sound along the
 foot, over a strip of the video's own frames as its progress bar, standing exactly where a photo has
 the thumbnail strip. In the gallery's own viewer the chrome goes by itself once a video has played
-three seconds untouched, and comes back when it ends. "Open videos on a separate screen" still hands
+five seconds untouched, and comes back when it ends. "Open videos on a separate screen" still hands
 the video to `VideoPlayerActivity`, which keeps upstream's controls, and its page keeps the thumbnail
 strip and the play button in the middle, which is the way there.
 
@@ -43,7 +43,7 @@ the rewind has got to: a slow decoder shows fewer frames rather than a slower re
 The viewer owns it, not the video: `ViewPagerActivity` sees every touch on the screen, where the
 video sees only its own controls. The fragment says only that a video started (`videoStarted()`);
 from then, a finger down stops the wait and lifting it starts it over, so a drag, a hold or a chooser
-held open never has the chrome go from under it. When three seconds run out the viewer takes the
+held open never has the chrome go from under it. When five seconds run out the viewer takes the
 chrome away only if the video still plays, the metadata sheet is down, and the window has focus — the
 three dots' drop-down and every dialog take it, and the window getting it back starts the wait over,
 since the tap that closed them went to them. A finished video brings the chrome back through
