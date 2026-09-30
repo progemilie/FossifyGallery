@@ -30,17 +30,30 @@
         tools:ignore="UnusedResources"
         tools:override="true">28dp</dimen>
 
-    <!-- smaller than commons' normal_icon_size, which next to one line of text is a slab -->
-    <dimen name="settings_card_chevron_size">36dp</dimen>
-    <dimen name="settings_card_divider_thickness">1dp</dimen>
-    <dimen name="settings_card_icon_size">24dp</dimen>
-    <dimen name="settings_card_icon_gap">16dp</dimen>
-    <dimen name="settings_card_corner_radius">16dp</dimen>
-    <dimen name="settings_card_elevation">2dp</dimen>
-    <dimen name="settings_card_gap">8dp</dimen>
-    <dimen name="settings_card_margin">12dp</dimen>
+    <!-- the settings screen's pages, groups and rows -->
+    <dimen name="settings_page_title_text_size">32sp</dimen>
+    <dimen name="settings_page_title_margin">28dp</dimen>
+    <dimen name="settings_page_title_top">16dp</dimen>
+    <dimen name="settings_page_title_bottom">20dp</dimen>
+    <dimen name="settings_group_margin">16dp</dimen>
+    <dimen name="settings_group_gap">16dp</dimen>
+    <dimen name="settings_group_corner_radius">24dp</dimen>
+    <dimen name="settings_group_title_gap">8dp</dimen>
+    <dimen name="settings_divider_thickness">1dp</dimen>
+    <dimen name="settings_row_min_height">64dp</dimen>
+    <dimen name="settings_row_padding_horizontal">20dp</dimen>
+    <dimen name="settings_row_padding_vertical">12dp</dimen>
+    <dimen name="settings_row_icon_size">24dp</dimen>
+    <dimen name="settings_row_icon_gap">20dp</dimen>
+    <dimen name="settings_row_summary_gap">2dp</dimen>
+    <dimen name="settings_badge_size">40dp</dimen>
+    <dimen name="settings_badge_padding">9dp</dimen>
+    <dimen name="settings_badge_gap">16dp</dimen>
+    <dimen name="settings_chevron_size">24dp</dimen>
+    <dimen name="settings_search_height">56dp</dimen>
+    <dimen name="settings_search_icon_gap">16dp</dimen>
 
-    <!-- how far the screen scrolls before its heading has gone entirely -->
+    <!-- how far a page scrolls before its heading has handed over to the bar's title -->
     <dimen name="settings_title_fade_distance">48dp</dimen>
 
     <!-- between a group header's tick and its title, and how far the title slides for it -->

@@ -8,6 +8,7 @@ Notable fork-only changes.
 - Holding a picked picture and dragging unpicks the pictures the finger passes over.
 - **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with
   adjustable spacing and an optional folder size on the details line.
+- **Settings can be searched**: type a setting's name to find it and jump straight to it.
 ### Changed
 - Pinching the photo grid zooms smoothly.
 - The details at the top of a photo are more compact.
@@ -15,6 +16,8 @@ Notable fork-only changes.
 - Updated the style and opening animation of the copy and move chooser.
 - The rating chooser is smaller, and opens in the middle of the screen.
 - Clearing the cache asks first.
+- **Settings are redesigned** like a phone's own settings app: a first page of categories, each
+  opening a page of its own, with every setting grouped and given an icon.
 - The thumbnail you come back to from a photo no longer pops in.
 - **Opening a photo is quicker**, and a photo can be swiped away the moment it starts opening.
 - **Custom order mode is restyled** to match the rest of the app.

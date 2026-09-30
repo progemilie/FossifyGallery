@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A row of the first settings page, opening one of the others; see SettingsLink. -->
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:orientation="horizontal"
+    tools:parentTag="android.widget.LinearLayout">
+
+    <ImageView
+        android:id="@+id/settings_link_badge"
+        android:layout_width="@dimen/settings_badge_size"
+        android:layout_height="@dimen/settings_badge_size"
+        android:layout_marginEnd="@dimen/settings_badge_gap"
+        android:background="@drawable/settings_badge_background"
+        android:importantForAccessibility="no"
+        android:padding="@dimen/settings_badge_padding"
+        tools:src="@drawable/ic_palette_vector" />
+
+    <LinearLayout style="@style/SettingsRowTexts">
+
+        <org.fossify.commons.views.MyTextView
+            android:id="@+id/settings_link_title"
+            style="@style/SettingsRowTitle"
+            tools:text="@string/color_customization" />
+
+        <org.fossify.commons.views.MyTextView
+            android:id="@+id/settings_link_summary"
+            style="@style/SettingsRowSummary"
+            tools:text="@string/settings_appearance_summary" />
+
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/settings_link_chevron"
+        android:layout_width="@dimen/settings_chevron_size"
+        android:layout_height="@dimen/settings_chevron_size"
+        android:layout_marginStart="@dimen/medium_margin"
+        android:alpha="0.5"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_chevron_right_vector" />
+
+</merge>
