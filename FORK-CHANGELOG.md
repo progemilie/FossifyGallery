@@ -34,6 +34,8 @@ Notable fork-only changes.
 - The thumbnail strip under a photo marks videos with a small triangle, and its thumbnails sit
   closer together and are dimmed less.
 - Double tapping a video under a minute long skips five seconds rather than ten.
+- Controlling volume and brightness by swiping up and down on a video is off by default for new
+  installs.
 ### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.

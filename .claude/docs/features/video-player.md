@@ -35,6 +35,10 @@ at 2x (upstream's). A double tap on a side third skips ten seconds that way, fiv
 a minute (`skipLengthMs()`, which the time labels skip by too), and in the middle plays or pauses. A run of skips counts up in a hint on that side of the middle. Holds start only on
 a playing video, as upstream's 2x hold did.
 
+The strips are there only with volume and brightness gestures on, which is off by default for a new
+install; an install from before that default changed keeps them on
+(`Config.keepVideoGesturesOnEarlierInstalls()`, from `App.onCreate`).
+
 The volume and brightness strips lie over the video's edges, so a touch listener hands their
 gestures to `handleTouchHoldEvent()` too, ahead of their own handling. Once a hold has begun it
 takes the rest of its gesture, the lift included: a drag then changes neither volume nor
@@ -100,6 +104,9 @@ goes unnoticed, and the strip shows one keyframe in several cells out of order.
   either moves the thumbnail strip, and the frames sit off it until the function follows.
 - **The strips' visibility goes through `updateSideScrolls()`**, which knows the setting and whether
   the video has started: shown on a video not yet started, they take the flick down that closes it.
+- **The gestures' default is written down once.** Left unwritten, an install that never touched the
+  setting reads whatever the default is now, and a default worked out from `appRunCount` on each
+  read turns them back on at a new install's second run.
 - **Loop is the app's own setting**, so a page already started reads it again whenever it is shown
   (`updateLoop()`): toggled on one page, another would keep its old state and repeat mode.
 - **The hints hang off `video_seek_hint_anchor`**, a zero-size view in the middle, not off the play

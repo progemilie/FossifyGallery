@@ -396,8 +396,19 @@ class Config(context: Context) : BaseConfig(context) {
         set(allowPhotoGestures) = prefs.edit().putBoolean(ALLOW_PHOTO_GESTURES, allowPhotoGestures).apply()
 
     var allowVideoGestures: Boolean
-        get() = prefs.getBoolean(ALLOW_VIDEO_GESTURES, true)
+        get() = prefs.getBoolean(ALLOW_VIDEO_GESTURES, false)
         set(allowVideoGestures) = prefs.edit().putBoolean(ALLOW_VIDEO_GESTURES, allowVideoGestures).apply()
+
+    /**
+     * Volume and brightness gestures are off by default only since an update, so an install from before
+     * it keeps them on. Decided once, the first time this version starts, by writing the setting down: a
+     * default worked out from [appRunCount] on every read would flip on a new install's second run.
+     */
+    fun keepVideoGesturesOnEarlierInstalls() {
+        if (!prefs.contains(ALLOW_VIDEO_GESTURES)) {
+            allowVideoGestures = appRunCount > 0
+        }
+    }
 
     var slideshowInterval: Int
         get() = prefs.getInt(SLIDESHOW_INTERVAL, SLIDESHOW_DEFAULT_INTERVAL)
