@@ -149,7 +149,7 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
     override fun isBottomActionBarAtFoot() = !actionsPlacement.isInTopRow
 
     fun refreshMenuItems() {
-        // one the top row has no room for is not on the bar, so the menu offers it like any other
+        // actions squeezed out of the top row go in the menu
         val overflowedActions = actionsPlacement.overflowed
         val turnedOnBottomActions = if (config.bottomActions) config.visibleBottomActions else 0
         val visibleBottomActions = turnedOnBottomActions and overflowedActions.inv()
@@ -166,7 +166,6 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
         }
     }
 
-    // squeezed out of the top row, in the menu rather than as a toolbar button beside the row
     private fun MenuItem.keepInMenuIf(isOverflowed: Boolean) =
         setShowAsAction(if (isOverflowed) MenuItem.SHOW_AS_ACTION_NEVER else MenuItem.SHOW_AS_ACTION_ALWAYS)
 

@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The in-viewer video's controls along the foot of the screen: its time, play and pause, and its
-    toggles, over a strip of its own frames that stands where the viewer's thumbnail strip does for a
-    photo. See VideoFragment. In the viewers' landscape layout the controls share the frames' row
-    instead, see VideoControlsLayout. The separate player screen keeps bottom_video_time_holder.
+    The in-viewer video's controls over a strip of its own frames. VideoControlsLayout puts them in one
+    row in landscape. The separate player screen keeps bottom_video_time_holder.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -14,7 +12,7 @@
     android:orientation="vertical"
     android:paddingTop="@dimen/big_margin">
 
-    <!-- a frame rather than a row, so play and pause sit in the middle whatever is either side -->
+    <!-- a frame, so play and pause stay centred whatever is either side -->
     <FrameLayout
         android:id="@+id/video_controls_row"
         android:layout_width="match_parent"

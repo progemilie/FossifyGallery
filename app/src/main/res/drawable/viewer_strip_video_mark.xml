@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The little play triangle a video's thumbnail wears in the viewer's strip. The dark rim round it
-     keeps it readable over a white photo. -->
+<!-- the dark rim keeps it readable over a white photo -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="8dp"
     android:height="8dp"

@@ -14,15 +14,9 @@ import kotlin.math.max
 import org.fossify.commons.R as commonsR
 
 /**
- * The in-viewer video's controls, laid out one of two ways. Along the foot of a tall screen they stand
- * in a row of their own over the frames, as they always have. In the viewers' landscape layout, where
- * height is what there is least of, they share the frames' row: play and the time before the frames,
- * the toggles after them.
- *
- * Sharing a row, the frames are only as wide as the controls either side leave them, and the scrubber
- * reads its frames again for every width it is drawn at. So nothing either side changes width while
- * the video plays: the time is set in figures of one width and kept as wide as its longest, the speed
- * as wide as its widest, and the controls that only come with playing keep their room until then.
+ * The video's controls in a row of their own over the frames, or in landscape sharing the frames' row.
+ * Sharing it, nothing either side may change width while the video plays, as the scrubber reads its
+ * frames again for every width.
  */
 class VideoControlsLayout(private val controls: VideoControlsBinding) {
     private class Home(val parent: ViewGroup, val index: Int, val params: ViewGroup.LayoutParams)
@@ -32,7 +26,6 @@ class VideoControlsLayout(private val controls: VideoControlsBinding) {
     // the order they stand in, sharing a row
     private val moved = with(controls) { listOf(videoTogglePlay, videoTimeGroup, videoSeekbar, videoToggles) }
 
-    // what only comes with playing
     private val playingControls = with(controls) {
         listOf(videoTogglePlay, videoPlaybackSpeed, videoToggleLoop, videoToggleMute)
     }
@@ -47,11 +40,9 @@ class VideoControlsLayout(private val controls: VideoControlsBinding) {
     private val smallMargin = holder.resources.getDimensionPixelSize(commonsR.dimen.small_margin)
     private val scrubberHeight = holder.resources.getDimensionPixelSize(R.dimen.video_scrubber_height)
 
-    /** Whether the controls share the frames' row. */
     var isInOneRow = false
         private set
 
-    /** Lays the controls out for [inOneRow], keeping room for what comes once the video [isStarted]. */
     fun arrange(inOneRow: Boolean, isStarted: Boolean) {
         if (inOneRow != isInOneRow) {
             isInOneRow = inOneRow
@@ -61,7 +52,7 @@ class VideoControlsLayout(private val controls: VideoControlsBinding) {
                 moved.forEach { holder.addView(it, oneRowParams(it)) }
             } else {
                 holder.orientation = LinearLayout.VERTICAL
-                // each back at its own index, which only holds while the ones before it are back already
+                // by index, so each index is valid as its view goes back
                 moved.sortedBy { homes.getValue(it).index }.forEach {
                     val home = homes.getValue(it)
                     home.parent.addView(it, home.index, home.params)
@@ -73,7 +64,7 @@ class VideoControlsLayout(private val controls: VideoControlsBinding) {
         }
 
         if (!isStarted) {
-            // out of the way along the foot, as they always were, but holding their room in a shared row
+            // GONE along the foot as before, INVISIBLE in a shared row to keep their room
             val notYet = if (inOneRow) View.INVISIBLE else View.GONE
             playingControls.forEach { it.visibility = notYet }
         }
@@ -82,9 +73,8 @@ class VideoControlsLayout(private val controls: VideoControlsBinding) {
     }
 
     /**
-     * Sizes the time and the speed for the row they are in: as they come along the foot, and in a
-     * shared row in figures of one width, each as wide as anything it can say. Asked again once the
-     * duration is known, an hour or more being wider than the room kept for it.
+     * In a shared row, tabular figures and each label as wide as anything it can say. Asked again once
+     * the duration is known, an hour or more being wider.
      */
     fun fitLabels() {
         val tabular = if (isInOneRow) TABULAR_FIGURES else null
@@ -101,7 +91,7 @@ class VideoControlsLayout(private val controls: VideoControlsBinding) {
 
         currTime.minWidth = timeWidth
         controls.videoDuration.minWidth = timeWidth
-        // the time counting up keeps to the separator, whatever room is left over before it
+        // keeps to the separator
         currTime.gravity = if (isInOneRow) Gravity.END else currTimeGravity
 
         val speed = controls.videoPlaybackSpeed
@@ -131,7 +121,6 @@ class VideoControlsLayout(private val controls: VideoControlsBinding) {
         /** The longest a position or duration under an hour is written. */
         const val SHORT_TIME = "00:00"
 
-        /** As wide as any speed is written, figures being of one width. */
         const val WIDEST_SPEED = "0.00x"
     }
 }

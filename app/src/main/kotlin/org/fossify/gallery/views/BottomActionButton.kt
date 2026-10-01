@@ -5,10 +5,8 @@ import android.util.AttributeSet
 import androidx.appcompat.widget.AppCompatImageView
 
 /**
- * A button of the viewer's bottom action bar. Up in the landscape layout's top row there may not be
- * room for all of the buttons the viewer shows, and the ones squeezed out are kept away here rather
- * than by the viewer: it goes on saying which buttons apply to the file on screen, the row says which
- * of those fit, and neither undoes the other. See BottomActionsPlacement.
+ * A bottom action button the landscape top row can squeeze out without touching the visibility the
+ * viewer sets, so neither undoes the other. See BottomActionsPlacement.
  */
 class BottomActionButton @JvmOverloads constructor(
     context: Context,
@@ -16,11 +14,10 @@ class BottomActionButton @JvmOverloads constructor(
     defStyleAttr: Int = 0,
 ) : AppCompatImageView(context, attrs, defStyleAttr) {
 
-    /** The visibility the viewer asked for, whether or not there is room for it. */
     var wantedVisibility = visibility
         private set
 
-    /** Whether the top row has no room for this one, which keeps it away whatever the viewer asks. */
+    /** Keeps the button GONE whatever visibility the viewer sets. */
     var isSqueezedOut = false
         set(value) {
             field = value

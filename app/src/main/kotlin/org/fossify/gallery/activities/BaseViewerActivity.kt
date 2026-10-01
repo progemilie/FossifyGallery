@@ -31,20 +31,14 @@ abstract class BaseViewerActivity : SimpleActivity() {
     abstract val contentHolder: View
     abstract val appBarLayout: AppBarLayout
 
-    /**
-     * Whether this viewer has a layout of its own for landscape, where height is what there is least
-     * of: the status bar is kept away and its room given to the chrome. Off for the separate video
-     * player, which keeps upstream's.
-     */
+    /** Opts into the landscape layout, which hides the status bar. Off for the separate video player. */
     protected open val hasLandscapeLayout = false
 
-    /** Whether the viewer's own chrome is up, which the system bars follow. */
     protected open val isChromeShown = true
 
-    /** The system bars as this viewer keeps them; anything laid out around them asks this. */
+    /** Anything laid out around the system bars asks this rather than reading the insets itself. */
     val systemBars = ViewerSystemBars(this, { hasLandscapeLayout }, { isChromeShown }) { onLandscapeLayoutChanged() }
 
-    /** Whether the window is in that layout now, see [ViewerSystemBars.isInLandscapeLayout]. */
     val isInLandscapeLayout: Boolean
         get() = systemBars.isInLandscapeLayout
 
@@ -89,7 +83,6 @@ abstract class BaseViewerActivity : SimpleActivity() {
         systemBars.onWindowChanged()
     }
 
-    /** The window has gone into the landscape layout or come out of it, see [isInLandscapeLayout]. */
     protected open fun onLandscapeLayoutChanged() = Unit
 
     /**

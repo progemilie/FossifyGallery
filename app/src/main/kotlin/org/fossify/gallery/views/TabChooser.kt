@@ -164,9 +164,8 @@ class TabChooser @JvmOverloads constructor(
     }
 
     /**
-     * Sits to the side of its button rather than centred under it - one narrow column of numbers
-     * would be entirely under the finger holding that button down - and never so far over that the
-     * cross has nowhere to grow.
+     * Beside the button rather than centred over it, where the finger would hide the narrow list, and
+     * never so far over that the cross has nowhere to grow.
      */
     override fun position(button: View) {
         val roomForCross = (edgeMargin + closeButton.size + closeGap).toFloat()

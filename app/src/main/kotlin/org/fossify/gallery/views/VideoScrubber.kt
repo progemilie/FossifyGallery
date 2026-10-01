@@ -16,17 +16,13 @@ import androidx.core.graphics.withClip
 import org.fossify.gallery.R
 import kotlin.math.roundToInt
 
-/** How dark the frames still to be played are kept, against the ones already played. */
 private const val UNPLAYED_SHADE_ALPHA = 110
 private const val FRAME_FADE_MS = 180L
 private const val OPAQUE = 255
 
 /**
- * A video's progress bar drawn as a strip of its own frames, which stands where the viewer's
- * thumbnail strip does for a photo. A SeekBar underneath, so a drag, a tap, a keyboard and TalkBack
- * move it as they move any other: only its look is its own, the frames darkened ahead of the
- * playhead, and the playhead itself. The frames come from [VideoScrubberFrames], each shown as it is
- * read.
+ * A video's progress bar drawn as a strip of its own frames, darkened ahead of the playhead. A SeekBar
+ * underneath, so a drag, a tap, keys and TalkBack work as on any seek bar.
  */
 class VideoScrubber @JvmOverloads constructor(
     context: Context,
@@ -42,7 +38,7 @@ class VideoScrubber @JvmOverloads constructor(
     private val shadePaint = Paint().apply { color = withShadeAlpha(Color.BLACK) }
     private val playheadPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
 
-    // a dark rim round the playhead, so it reads over a white frame as well as a black one
+    // so the playhead reads over a white frame too
     private val playheadRimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = shadePaint.color }
 
     private val track = RectF()
@@ -51,7 +47,7 @@ class VideoScrubber @JvmOverloads constructor(
     private val cell = RectF()
     private val playhead = RectF()
 
-    // a cell's frame is null until it has been read, and fades in from when it was
+    // null until read; arrivals time each frame's fade in
     private var frames = emptyArray<Bitmap?>()
     private var arrivals = LongArray(0)
     private var path = ""
@@ -60,15 +56,11 @@ class VideoScrubber @JvmOverloads constructor(
     // the video and the track size the frames are for
     private var framesKey = ""
 
-    // the latest load; one that is not stops, and what it has read goes unseen
+    // a load that is no longer the latest stops, and its frames are dropped
     @Volatile
     private var loadId = 0
 
-    /**
-     * Whether the page is the one on screen. Only that one reads frames - a page swiped away gives up
-     * what it had not finished - so the video playing shares the decoders with a single load, and the
-     * pages the pager keeps ready either side do not hold up the one being looked at.
-     */
+    /** Only the page on screen reads frames, so the playing video shares the decoders with one load. */
     var isOnScreen = false
         set(value) {
             field = value
@@ -83,7 +75,7 @@ class VideoScrubber @JvmOverloads constructor(
         background = null
     }
 
-    /** The video to show frames of; [signature] tells a changed file from the one cached. */
+    /** [signature] tells a changed file from the cached one. */
     fun setVideo(path: String, signature: String) {
         this.path = path
         video = "$path|$signature"
@@ -105,8 +97,7 @@ class VideoScrubber @JvmOverloads constructor(
         stopLoading()
     }
 
-    // a track of another size wants as many frames as fill it, and the ones up stay until those start coming.
-    // Frames already read show on any page, so one sliding in is not bare
+    // a new track size reads a new set, the old frames staying up until it comes; cached ones show on any page
     private fun showFrames() {
         val trackWidth = width - paddingLeft - paddingRight
         val trackHeight = height - paddingTop - paddingBottom
@@ -201,7 +192,7 @@ class VideoScrubber @JvmOverloads constructor(
         }
     }
 
-    /** The middle of [frame] with the proportions of the cell it is drawn into, into [source]. */
+    /** Writes the cell-shaped middle of [frame] into [source]. */
     private fun centreCrop(frame: Bitmap, cellAspect: Float) {
         val frameAspect = frame.width / frame.height.toFloat()
         if (frameAspect > cellAspect) {
@@ -215,7 +206,7 @@ class VideoScrubber @JvmOverloads constructor(
         }
     }
 
-    // what a load had not finished is not kept, and is read again when the frames are next wanted
+    // an unfinished load is dropped, and read again when next wanted
     private fun stopLoading() {
         framesKey = ""
         loadId++
@@ -227,7 +218,7 @@ class VideoScrubber @JvmOverloads constructor(
         VideoScrubberFrames.load(context, path, key, trackWidth, trackHeight, isWanted) { index, count, frame ->
             post {
                 if (loadId == id) {
-                    // a load for a track of another size brings cells of its own with its first frame
+                    // the first frame of a new set brings its own cell count
                     if (frames.size != count) {
                         frames = arrayOfNulls(count)
                         arrivals = LongArray(count)

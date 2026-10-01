@@ -56,8 +56,7 @@
         android:layout_width="@dimen/media_side_slider_width"
         android:layout_height="match_parent" />
 
-    <!-- the way into a video not yet started, or into the separate player; once the video plays, play
-         and pause are in its controls -->
+    <!-- until the video starts; play and pause are then in its controls -->
     <ImageView
         android:id="@+id/video_play_outline"
         android:layout_width="@dimen/video_play_button_size"
@@ -68,14 +67,13 @@
         android:padding="@dimen/video_play_button_padding"
         android:src="@drawable/ic_video_play_vector" />
 
-    <!-- the middle of the screen, which the play button cannot anchor the hints to as it can be gone -->
+    <!-- anchors the hints, as the play button can be gone -->
     <Space
         android:id="@+id/video_seek_hint_anchor"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_centerInParent="true" />
 
-    <!-- how far a run of double taps either way has gone, on the side tapped -->
     <TextView
         android:id="@+id/video_seek_hint_back"
         style="@style/VideoSeekHint"
@@ -107,8 +105,7 @@
         android:src="@drawable/ic_panorama_outline"
         android:visibility="gone" />
 
-    <!-- where the viewer's thumbnail strip is for a photo, which the viewer puts away for a video. Raised
-         off the bottom at runtime, see VideoFragment.thumbnailStripBottom -->
+    <!-- stands where the thumbnail strip does for a photo, placed at runtime by VideoFragment -->
     <include
         android:id="@+id/bottom_video_time_holder"
         layout="@layout/video_controls"

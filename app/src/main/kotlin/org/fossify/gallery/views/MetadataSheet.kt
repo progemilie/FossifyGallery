@@ -215,9 +215,8 @@ class MetadataSheet @JvmOverloads constructor(
             writes?.removeMetadata(currentPath, removable)
         }
 
-        // read ignoring visibility because the viewer hides the system bars in fullscreen, and the
-        // sheet should not shuffle about by a status bar's worth when it does. Through the viewer,
-        // which in landscape keeps the status bar away for good and lets the sheet up into its room
+        // through the viewer: ignoring visibility, so the sheet doesn't jump as the bars come and go,
+        // and in landscape up into the hidden status bar's room
         ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
             val system = viewer?.systemBars?.layoutInsets(insets)
                 ?: insets.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.systemBars())

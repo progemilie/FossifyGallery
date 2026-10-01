@@ -55,7 +55,7 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
         /** How far off the middle a thumbnail is drawn shrunk and shaded, in item widths. */
         private const val FALLOFF_ITEMS = 1f
 
-        /** The thumbnails are laid out edge to edge, so shrinking the ones off the middle is what parts them. */
+        /** The thumbnails are laid out edge to edge, so this shrink is what parts them. */
         private const val OFF_CENTRE_SCALE = 0.92f
         private const val OFF_CENTRE_SHADE = 0.25f
 
@@ -66,7 +66,7 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
     /** Called with the position now in the middle of the strip, so the pager can follow it. */
     var onMediumPicked: ((position: Int) -> Unit)? = null
 
-    /** Called once a scroll the user made, and the fling it left, has come to rest. */
+    /** Once a user's scroll, and its fling, have come to rest. */
     var onUserScrollEnded: (() -> Unit)? = null
 
     // eases out harder than the scroller's own interpolator, so the glide leaves promptly and
@@ -91,7 +91,7 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
     // one frame between the middle changing and the pager being told
     private var committedPosition = NO_POSITION
 
-    /** Whether a finger, or the fling it left, is moving the strip. */
+    /** Includes the fling a finger left. */
     var isUserScrolling = false
         private set
 
@@ -234,10 +234,8 @@ class ViewerThumbnailStrip @JvmOverloads constructor(
     }
 
     /**
-     * Sizes and shades every thumbnail by how near the middle of the strip it currently is. Done
-     * from the children's own positions on each scroll frame rather than by telling the adapter
-     * which item is selected: an adapter change lands a frame later and then animates from there,
-     * which reads as the highlight trailing behind the thumbnails it is supposed to be marking.
+     * Sizes and shades each thumbnail by how near the middle it is, from the children's positions on
+     * every scroll frame - through the adapter, the highlight landed a frame late and trailed behind.
      */
     private fun updateChildDecorations() {
         val middle = width / 2f

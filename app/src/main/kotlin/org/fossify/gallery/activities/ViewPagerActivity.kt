@@ -222,7 +222,7 @@ class ViewPagerActivity :
         private const val REQUEST_VIEW_VIDEO = 1
         private const val SAVED_PATH = "current_path"
 
-        /** How long the thumbnail strip takes to step aside for a video, or back for a photo. */
+        /** The strip stepping aside for a video's frames, or back. */
         private const val STRIP_SWAP_MS = 150L
     }
 
@@ -275,7 +275,7 @@ class ViewPagerActivity :
         }
     }
 
-    // the actions last moved into the three dots' menu for want of room in the top row, see keepOverflowedInMenu
+    // what keepOverflowedInMenu last applied
     private var mOverflowedInMenu = 0
 
     private val metadataSheet: MetadataSheet
@@ -378,7 +378,7 @@ class ViewPagerActivity :
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         setupEdgeToEdge()
-        // before anything is dressed, so the bar rides in with the flight wherever it belongs
+        // before the flight, so the bar fades in where it belongs
         actionsPlacement.placeInTopRow(isInLandscapeLayout)
 
         setupOptionsMenu()
@@ -480,7 +480,7 @@ class ViewPagerActivity :
         val currentMedium = getCurrentMedium() ?: return
         currentMedium.isFavorite = mFavoritePaths.contains(currentMedium.path)
         val turnedOnBottomActions = if (config.bottomActions) config.visibleBottomActions else 0
-        // one the top row has no room for is not on the bar, so the menu offers it like any other
+        // actions squeezed out of the top row go in the menu
         val overflowedActions = actionsPlacement.overflowed
         val visibleBottomActions = turnedOnBottomActions and overflowedActions.inv()
 
@@ -535,7 +535,7 @@ class ViewPagerActivity :
                 findItem(R.id.menu_restore_file).isVisible = currentMedium.path.startsWith(recycleBinPath)
                 findItem(R.id.menu_create_shortcut).isVisible = true
                 findItem(R.id.menu_change_orientation).isVisible = rotationDegrees == 0 && visibleBottomActions and BOTTOM_ACTION_CHANGE_ORIENTATION == 0
-                // the bar is the only way to these two otherwise, so they are here only once squeezed off it
+                // otherwise reached only from the bar
                 findItem(R.id.menu_rating).isVisible =
                     overflowedActions and BOTTOM_ACTION_RATING != 0 && canRate(currentMedium)
                 findItem(R.id.menu_properties).isVisible = overflowedActions and BOTTOM_ACTION_PROPERTIES != 0
@@ -548,10 +548,8 @@ class ViewPagerActivity :
     }
 
     /**
-     * Keeps an action the top row has no room for in the three dots' menu with the rest of them,
-     * rather than as a toolbar button of its own beside the row it was squeezed out of - which is
-     * what the menu's ifRoom items would otherwise become. Only on a change, as the toolbar rebuilds
-     * its buttons for every request.
+     * Keeps squeezed-out actions in the menu, rather than letting its ifRoom items become toolbar
+     * buttons. Only on a change, as every request rebuilds the toolbar's buttons.
      */
     private fun Menu.keepOverflowedInMenu(overflowed: Int) {
         if (overflowed == mOverflowedInMenu) {
@@ -600,8 +598,7 @@ class ViewPagerActivity :
                 R.id.menu_rename -> checkMediaManagementAndRename()
                 R.id.menu_print -> printFile()
                 R.id.menu_edit -> openEditor(getCurrentPath())
-                // in the drop-down only for a bottom bar button the top row had no room for - reached by
-                // that button otherwise, or by swiping the metadata sheet up
+                // only in the menu when squeezed out of the landscape top row
                 R.id.menu_properties -> showProperties()
                 R.id.menu_rating -> showRatingDialog()
                 R.id.menu_show_on_map -> showFileOnMap(getCurrentPath())
@@ -1296,10 +1293,8 @@ class ViewPagerActivity :
     }
 
     /**
-     * The strip as its setting has it, except over a video played here, where it steps aside: the
-     * video's own frames stand in its place as the video's progress bar - see VideoFragment. Invisible
-     * rather than gone, so the buttons under it and the choosers over it stay where they are. A strip
-     * being scrolled stays under the finger whatever passes its middle, and steps aside once it settles.
+     * Puts the strip away on a video's page, where its frames stand in - INVISIBLE, so nothing around
+     * it moves. A strip being scrolled stays until it settles.
      */
     private fun updateThumbnailStrip(animate: Boolean = true) {
         val strip = binding.viewerThumbnailStrip
@@ -1338,7 +1333,7 @@ class ViewPagerActivity :
         ViewCompat.setOnApplyWindowInsetsListener(binding.viewerThumbnailStrip) { view, insets ->
             val sides = systemBars.sideInsets(insets)
             view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                // where the video's frames stand in for it, so the two line up when one swaps for the other
+                // the same sides as the video's frames, so the two line up
                 leftMargin = sides.left
                 rightMargin = sides.right
                 // the thumbnails already reach the bottom of the strip, so the only space left
@@ -1581,9 +1576,8 @@ class ViewPagerActivity :
     }
 
     /**
-     * The hold both of the viewer's tab buttons answer with the same list. [dropsBelow] is which way
-     * it opens, asked as it does: under a button up in the top bar - the toolbar's, or the bottom
-     * bar's in the landscape layout - and above one along the foot.
+     * The list both tab buttons hold open. [dropsBelow] is asked on every hold, as the bar's button
+     * moves between the foot and the landscape top row.
      */
     private fun View.holdToChooseTab(dropsBelow: () -> Boolean) {
         holdToChoose(
@@ -2074,7 +2068,7 @@ class ViewPagerActivity :
 
     override fun videoStarted() = chromeAutoHide.restart()
 
-    // not while any of the chrome is in use: the metadata sheet, or the menu or a dialog over the window
+    // not while the sheet, the menu or a dialog is up
     private fun hideChromeOverVideo() {
         val isPlaying = (getCurrentFragment() as? VideoFragment)?.mIsPlaying == true
         if (isPlaying && !metadataSheet.isSheetVisible && hasWindowFocus()) {
@@ -2082,7 +2076,7 @@ class ViewPagerActivity :
         }
     }
 
-    // the menu or a dialog closing hands the window back with no touch of ours to start the wait over
+    // a menu or dialog closing leaves no touch to restart the wait
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
@@ -2104,7 +2098,7 @@ class ViewPagerActivity :
         if (mIsSlideshowActive) {
             swipeToNextMedium()
         } else {
-            // the chrome may have gone while it played, and a finished video is one to be done something with
+            // the chrome may have gone while it played
             setFullScreen(false)
         }
         return mIsSlideshowActive

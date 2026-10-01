@@ -19,7 +19,7 @@ import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-/** A cell's width against its height, held to this range whatever the video's own shape. */
+/** The range a cell's aspect ratio is held to, whatever the video's shape. */
 private const val MIN_CELL_ASPECT = 0.5f
 private const val MAX_CELL_ASPECT = 1.8f
 private const val MAX_FRAMES = 24
@@ -29,16 +29,14 @@ private const val US_PER_MS = 1000L
 private const val FRAMES_CACHE_BYTES = 6 * 1024 * 1024
 
 /**
- * The frames a [VideoScrubber] draws its track with: as many as fill it at the video's own proportions,
- * spread over its length. Loads run one at a time - each holds a decoder, which the video playing
- * meanwhile needs too - and a finished one is kept for the next time the same video comes round at the
- * same size.
+ * The frames a [VideoScrubber] draws, as many as fill its track at the video's proportions. Loads run
+ * one at a time, as each holds a decoder the playing video needs too, and finished sets are cached.
  */
 object VideoScrubberFrames {
     private val loader = Executors.newSingleThreadExecutor()
 
     private val cache = object : LruCache<String, Array<Bitmap?>>(FRAMES_CACHE_BYTES) {
-        // a frame repeated in a cell after it is counted once
+        // a frame repeated across cells counts once
         override fun sizeOf(key: String, value: Array<Bitmap?>) =
             value.distinct().sumOf { it?.allocationByteCount ?: 0 }
     }
@@ -46,9 +44,8 @@ object VideoScrubberFrames {
     fun cached(key: String): Array<Bitmap?>? = cache.get(key)
 
     /**
-     * Reads the frames of [path] for a track of [trackWidth] by [trackHeight] and keeps them as [key],
-     * handing [onFrame] each as it comes along with how many cells there are, on the loader thread. A
-     * load gives up as soon as [isWanted] says so, before it has opened the file if it can.
+     * Reads [path]'s frames for a track of [trackWidth] by [trackHeight], cached as [key], handing each
+     * to [onFrame] on the loader thread. Gives up as soon as [isWanted] says so.
      */
     fun load(
         context: Context,
@@ -67,11 +64,8 @@ object VideoScrubberFrames {
         }
     }
 
-    /**
-     * Blocking, call it off the main thread. Null if the frames stopped being wanted, or none could be
-     * read.
-     */
-    // a file the retriever cannot read leaves the placeholder, whatever the reason
+    /** Blocking, call it off the main thread. Null if no longer wanted, or nothing could be read. */
+    // any failure leaves the placeholder
     @Suppress("TooGenericExceptionCaught")
     @WorkerThread
     private fun read(
@@ -101,10 +95,8 @@ object VideoScrubberFrames {
                     return null
                 }
 
-                // the keyframe before the middle of the stretch each cell stands for: decoding on from one to
-                // the exact frame is most of the cost, and a phone puts one in every second or so. Where they
-                // lie further apart than the cells, as in a screen recording, the last keyframe comes round
-                // again for a cell well past it, and that cell is decoded on to its own frame
+                // the keyframe before each cell's middle, as decoding on to the exact frame is most of the
+                // cost; where keyframes lie further apart than the cells, a repeat is decoded on to its own frame
                 val timeUs = duration * US_PER_MS * (2 * index + 1) / (2 * count)
                 var frame = retriever.frameAt(timeUs, OPTION_PREVIOUS_SYNC, width, height)
                 if (frame == null || keyframe?.sameAs(frame) == true) {
@@ -137,7 +129,7 @@ private fun MediaMetadataRetriever.setSource(context: Context, path: String) {
     }
 }
 
-/** The video's width over its height as it is shown, turned or not. */
+/** Width over height as shown, the rotation applied. */
 private fun MediaMetadataRetriever.displayAspect(): Float {
     val width = extractMetadata(METADATA_KEY_VIDEO_WIDTH)?.toFloatOrNull()?.takeIf { it > 0f } ?: return 1f
     val height = extractMetadata(METADATA_KEY_VIDEO_HEIGHT)?.toFloatOrNull()?.takeIf { it > 0f } ?: return 1f
@@ -145,7 +137,7 @@ private fun MediaMetadataRetriever.displayAspect(): Float {
     return if (rotation / QUARTER_TURN % 2 == 1) height / width else width / height
 }
 
-/** The frame at [timeUs] scaled to fit [width] by [height], which the retriever does itself from API 27. */
+/** Scaled to fit [width] by [height], which the retriever does itself from API 27. */
 private fun MediaMetadataRetriever.frameAt(timeUs: Long, option: Int, width: Int, height: Int): Bitmap? {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
         return getScaledFrameAtTime(timeUs, option, width, height)

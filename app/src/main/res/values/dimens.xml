@@ -63,7 +63,6 @@
     <dimen name="tmb_shadow_height">70dp</dimen>
     <dimen name="media_side_slider_width">60dp</dimen>
 
-    <!-- the video player's controls, see VideoFragment and VideoScrubber -->
     <dimen name="video_play_button_size">72dp</dimen>
     <dimen name="video_play_button_padding">18dp</dimen>
     <dimen name="video_toggle_size">40dp</dimen>
@@ -74,7 +73,6 @@
     <dimen name="video_scrubber_radius">8dp</dimen>
     <dimen name="video_scrubber_playhead_width">4dp</dimen>
     <dimen name="video_scrubber_playhead_overhang">4dp</dimen>
-    <!-- how far either side of the middle of the screen the skip hints stand -->
     <dimen name="video_seek_hint_offset">72dp</dimen>
     <dimen name="video_player_play_pause_size">60dp</dimen>
     <dimen name="video_player_button_width">68dp</dimen>
@@ -151,7 +149,6 @@
     <!-- how far the list is held to the side of the button it hangs off, so that the finger holding
          that button down rests beside the numbers rather than over them -->
     <dimen name="tab_chooser_finger_clearance">20dp</dimen>
-    <!-- how far under its button a chooser hangs, where it hangs rather than opening upwards -->
     <dimen name="chooser_drop_gap">8dp</dimen>
     <!-- the rounded square the viewer's tab button wears, with the current tab number inside it -->
     <dimen name="tab_badge_size">24dp</dimen>
@@ -165,8 +162,7 @@
     <dimen name="viewer_strip_thumbnail_width">35dp</dimen>
     <dimen name="viewer_strip_thumbnail_height">40dp</dimen>
     <dimen name="viewer_strip_thumbnail_radius">5dp</dimen>
-    <!-- the step from one thumbnail to the next: laid out edge to edge, the gaps between them are
-         what drawing the ones off the middle a little smaller leaves. See ViewerThumbnailStrip -->
+    <!-- edge to edge: the gaps come from shrinking the thumbnails off the middle -->
     <dimen name="viewer_strip_item_width">@dimen/viewer_strip_thumbnail_width</dimen>
     <dimen name="viewer_strip_padding_top">10dp</dimen>
     <dimen name="viewer_strip_padding_bottom">2dp</dimen>
@@ -196,14 +192,11 @@
     <!-- how far the strip sits into the empty top of the bottom action bar, which is all that
          separates the thumbnails from the buttons. See ViewPagerActivity.setupThumbnailStrip -->
     <dimen name="viewer_strip_drop_into_actions">10dp</dimen>
-    <!-- the bottom actions up in the top row in landscape stand a little closer together than along
-         the foot, so more of them fit beside the heading. See BottomActionsPlacement -->
+    <!-- narrower than at the foot, so more actions fit in the landscape top row -->
     <dimen name="viewer_top_row_action_width">44dp</dimen>
-    <!-- how much of the top row the heading keeps however many actions are up there with it; those
-         that do not fit go into the three dots' menu -->
+    <!-- actions that would squeeze the heading narrower than this go into the menu -->
     <dimen name="viewer_top_row_min_title_width">160dp</dimen>
-    <!-- how far a strip along the foot stands off the very edge of the screen where no navigation bar
-         lies under it to stand on: the room a video's playhead hangs below its frames -->
+    <!-- off the screen's edge where no navigation bar is below: the playhead's room under the frames -->
     <dimen name="viewer_strip_edge_gap">@dimen/video_scrubber_padding</dimen>
 
     <dimen name="metadata_sheet_corner_radius">20dp</dimen>

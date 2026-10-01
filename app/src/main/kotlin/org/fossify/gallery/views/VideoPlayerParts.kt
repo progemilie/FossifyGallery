@@ -5,18 +5,14 @@ import android.view.View
 import android.widget.TextView
 import org.fossify.gallery.R
 
-/** How long a skip hint stays up after the last tap of a run, and how a new one pops in. */
+/** How long a skip hint stays up after the last tap, and its fade. */
 private const val SEEK_HINT_MS = 700L
 private const val SEEK_HINT_FADE_MS = 150L
 private const val SEEK_HINT_POP = 0.85f
 
-/** How long a playing video is left alone before the chrome goes. */
 private const val CHROME_AUTO_HIDE_MS = 5000L
 
-/**
- * What a run of double taps has added up to, on the side it went: "- 10s", then "- 20s" while the
- * taps keep coming.
- */
+/** A run of double tap skips added up on its side: "- 10s", then "- 20s". */
 class SeekHints(private val back: TextView, private val forward: TextView) {
     private var shownForward: Boolean? = null
     private var seconds = 0
@@ -50,16 +46,13 @@ class SeekHints(private val back: TextView, private val forward: TextView) {
 }
 
 /**
- * Takes the viewer's chrome away from a playing video once nobody has touched the screen for a moment,
- * the way a phone's own player does. A finger down stops the wait and lifting it starts it over, so a
- * drag, a hold or a chooser held open never has the chrome go from under it. [hideIfIdle] is called
- * when the wait runs out, and it is for the host to say whether a video still plays and whether any of
- * its chrome is in use.
+ * Hides the chrome over a playing video once the screen goes untouched for a while. A finger down
+ * stops the wait and lifting it starts it over; [hideIfIdle] decides whether to hide.
  */
 class ChromeAutoHide(private val view: View, hideIfIdle: () -> Unit) {
     private val run = Runnable(hideIfIdle)
 
-    /** Every touch anywhere on the screen, as the host dispatches it. */
+    /** Fed every touch on the screen. */
     fun onTouchEvent(event: MotionEvent) {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> view.removeCallbacks(run)

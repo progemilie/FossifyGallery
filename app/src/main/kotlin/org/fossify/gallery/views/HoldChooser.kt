@@ -20,13 +20,9 @@ import org.fossify.gallery.helpers.hidePanel
 import org.fossify.gallery.helpers.showPanel
 
 /**
- * A picker that opens over a bottom action button while it is held, is driven by the same finger
- * without it ever lifting off, and is read back when it lets go. [holdToChoose] is what puts one on
- * a button; a plain tap on that button is left to the button's own click listener. A button in a
- * top bar has it hang under the button instead, see [dropsBelow].
- *
- * Subclasses say what the finger is currently over. What was picked has to outlive the closing, so
- * the caller can still read it once the chooser is off the screen.
+ * A picker held open from a button and driven by the same finger, read back when it lifts.
+ * [holdToChoose] puts one on a button; a tap is left to the button's own click listener. What was
+ * picked outlives the closing, so the caller can still read it.
  */
 abstract class HoldChooser @JvmOverloads constructor(
     context: Context,
@@ -47,16 +43,10 @@ abstract class HoldChooser @JvmOverloads constructor(
     /** How this chooser comes and goes. See [PanelMotion]. */
     var motion = PanelMotion.GROW
 
-    /**
-     * Whether this one hangs under its button rather than opening above it, for a button in a top bar.
-     * Said before it is filled, as a list puts what is nearest the finger at the end nearest it.
-     */
+    /** Hangs under the button rather than opening above it, for a button in a top bar. Set before each opening. */
     var dropsBelow = false
 
-    /**
-     * How much of the screen there is under the button for a chooser hanging there, worked out as it
-     * opens. Unbounded for one opening upward, whose own layout keeps it on the screen.
-     */
+    /** The room under the button when [dropsBelow]; unbounded otherwise, its layout keeping it on screen. */
     protected var roomBelow = Int.MAX_VALUE
         private set
 
@@ -105,16 +95,13 @@ abstract class HoldChooser @JvmOverloads constructor(
         }
     }
 
-    /** About to be laid out for opening, with [roomBelow] worked out - the last chance to fit it to that. */
+    /** Called before the chooser is laid out to open, with [roomBelow] known. */
     protected open fun onRevealing() = Unit
 
-    /**
-     * Where the chooser sits sideways once it has been measured. Down the screen it stands where its
-     * layout put it unless it [dropsBelow] its button.
-     */
+    /** Places the chooser sideways once it has been measured. */
     protected open fun position(button: View) = centerOver(button)
 
-    // reset otherwise, or one that last hung under a top bar button would open there again from the foot
+    // reset when not hanging, or the next opening from the foot would land where this one hung
     private fun hangUnder(button: View) {
         if (!dropsBelow || height == 0) {
             translationY = 0f

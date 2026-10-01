@@ -18,8 +18,7 @@ import org.fossify.commons.R as commonsR
 /** A folder the quick chooser can copy or move to. */
 data class QuickFolder(val path: String, val name: String)
 
-// The list of destination folders that pops up above the copy and move buttons while one is held, or
-// hangs under them up in a top bar.
+// Copy and move destinations, held open above the button, or under it in a top bar.
 class FolderChooser @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -38,7 +37,7 @@ class FolderChooser @JvmOverloads constructor(
     private val scrollDown: ImageView
     private val autoScroller: EdgeAutoScroller
 
-    // most recent last, as handed over; shown from whichever end of the list is nearest the finger
+    // most recent last; shownFolders puts the most recent nearest the finger
     private var folders = emptyList<QuickFolder>()
     private var shownFolders = emptyList<QuickFolder>()
     private var lastTouchY = 0f
@@ -111,16 +110,14 @@ class FolderChooser @JvmOverloads constructor(
         contentDescription = null
     }
 
-    /** Most recent last. Laid out as the chooser opens, which way round depending on [dropsBelow]. */
+    /** Most recent last; laid out once the chooser opens. */
     fun setFolders(folders: List<QuickFolder>) {
         this.folders = folders
     }
 
     /**
-     * Lays the rows out with the most recent nearest the finger - at the foot of a list opening up off
-     * the bottom of the screen, at the head of one hanging under a top bar - and as many at once as
-     * the room under the button takes. Filling the list is also what repaints it, so a theme changed
-     * since is picked up on opening.
+     * Lays the rows out with the most recent nearest the finger, as many at once as fit under the
+     * button. Also repaints them, so a changed theme is picked up.
      */
     override fun onRevealing() {
         shownFolders = if (dropsBelow) folders.asReversed() else folders
@@ -131,9 +128,8 @@ class FolderChooser @JvmOverloads constructor(
         scrollUp.applyColorFilter(Glass.contentColor(context))
         scrollDown.applyColorFilter(Glass.contentColor(context))
 
-        // an explicit height is what makes the list scroll at all, and every row is exactly
-        // rowHeight tall so the cap lands on a row boundary rather than halfway through one. The row
-        // taken off the room is the two half-row arrows
+        // an explicit height is what makes the list scroll, in whole rows; the row taken off the room
+        // is the two half-row arrows
         val fittingRows = ((roomBelow - paddingTop - paddingBottom) / rowHeight - 1)
             .coerceIn(1, MAX_VISIBLE_QUICK_CHOOSER_FOLDERS)
         val isScrollable = shownFolders.size > fittingRows
@@ -147,10 +143,8 @@ class FolderChooser @JvmOverloads constructor(
     }
 
     /**
-     * The folders come up into the card as it opens, clipped by the list's own viewport so they
-     * arrive from under its bottom edge rather than from off the screen - or down from over its top
-     * edge, hanging under a top bar. The card itself is already growing under them, which is what the
-     * two together read as - one thing opening.
+     * The rows slide in from the end of the list nearest the button, clipped by its viewport, as the
+     * card grows under them.
      */
     override fun onGlassShown() {
         rows.animate().cancel()
@@ -183,8 +177,7 @@ class FolderChooser @JvmOverloads constructor(
         }
 
         updateSelectionForY(rawY)
-        // driven by where the finger is rather than by whether it landed on a row: past the end of the
-        // list nearest it is the button it came off, which picks nothing but still has to draw the list on
+        // by the finger's position rather than its row: back over the button it picks nothing but still scrolls
         autoScroller.update(rawY)
     }
 
@@ -196,11 +189,10 @@ class FolderChooser @JvmOverloads constructor(
         val viewportBottom = viewportTop + scroller.height
         val isPastButtonEnd = if (dropsBelow) rawY < viewportTop else rawY > viewportBottom
         selectedIndex = if (isPastButtonEnd) {
-            // the button the finger came off is past that end of the list, so nothing is picked yet
+            // back over the button
             NO_SELECTION
         } else {
-            // clamped rather than cleared, so dragging on past the far end holds on to the last row there
-            // and keeps the list scrolling instead of stranding the gesture at the very edge it runs out on
+            // clamped, so dragging past the far end holds the last row and keeps scrolling
             val offsetInList = (minOf(rawY, viewportBottom - 1) - viewportTop).coerceAtLeast(0f) + scroller.scrollY
             (offsetInList / rowHeight).toInt().takeIf { it in shownFolders.indices } ?: NO_SELECTION
         }

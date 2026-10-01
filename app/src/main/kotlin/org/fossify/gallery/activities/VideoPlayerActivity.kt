@@ -841,7 +841,7 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
                 val diffX = mTouchDownX - event.rawX
                 val diffY = mTouchDownY - event.rawY
 
-                // the gesture's own clock: the wall clock when it is handled counts any wait for the main thread
+                // the gesture's own clock, which a busy main thread does not stretch
                 val downGestureDuration = event.eventTime - event.downTime
                 if (config.allowDownGesture && !mIgnoreCloseDown && Math.abs(diffY) > Math.abs(diffX) && diffY < -mCloseDownThreshold &&
                     downGestureDuration < MAX_CLOSE_DOWN_GESTURE_DURATION &&

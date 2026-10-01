@@ -26,7 +26,7 @@ abstract class ViewPagerFragment : Fragment() {
     interface FragmentListener {
         fun fragmentClicked()
 
-        /** A video on the page started playing, which the host may take its chrome away from. */
+        /** The host may take its chrome away from a playing video. */
         fun videoStarted() {}
 
         fun videoEnded(): Boolean
@@ -41,10 +41,7 @@ abstract class ViewPagerFragment : Fragment() {
 
         fun isFullScreen(): Boolean
 
-        /**
-         * Whether the host's bottom action bar is along the foot of the screen, which a video's
-         * frames stand clear of. Up in the top row of the landscape layout it is not.
-         */
+        /** A video's frames stand clear of the bar along the foot, not of one in the landscape top row. */
         fun isBottomActionBarAtFoot(): Boolean = true
 
         /**
@@ -105,8 +102,7 @@ abstract class ViewPagerFragment : Fragment() {
     fun handleViewerEvent(event: MotionEvent) = handleEvent(event) { isFlickEligible() }
 
     /**
-     * Turns a vertical flick over the media into a metadata panel or a closed viewer, answering true
-     * on the ACTION_UP of a flick that did either.
+     * Turns a vertical flick into a metadata panel or a closed viewer, answering whether it did.
      *
      * [isEligible] - "is the media sitting still rather than zoomed or panned" - is asked once per
      * gesture, at its ACTION_DOWN, and that answer holds until the finger lifts. Asking it per event
@@ -147,26 +143,21 @@ abstract class ViewPagerFragment : Fragment() {
         return false
     }
 
-    /** Does what a flick [diffY] back towards the top of the screen asks for, answering false for nothing. */
+    /** Answers false when the flick asks for nothing. */
     private fun actOnFlick(diffY: Float): Boolean {
-        // diffY is the distance back towards the top of the screen, so a negative one
-        // is a finger that travelled downwards
+        // diffY is positive upwards
         val flickedDown = diffY < -mCloseDownThreshold
         val metadataVisible = listener?.isMetadataVisible() == true
 
         when {
-            // with the panel up, a flick down asks to be rid of the panel rather than
-            // of the viewer - the thing that came in last is the thing that goes first
+            // a flick down closes the panel before the viewer
             flickedDown && metadataVisible -> listener?.hideMetadata()
 
-            // how the screen leaves is the screen's own business: the viewers shrink
-            // the photo back into its grid tile from here, and fall back to sliding it
-            // away where there is no tile to shrink into
+            // the viewer's finish() shrinks the photo back into its tile
             flickedDown && context?.config?.allowDownGesture == true ->
                 activity?.finish()
 
-            // not tied to the down gesture setting: that one is about closing the
-            // viewer by accident, which pulling up a panel cannot do
+            // not behind the down gesture setting, which guards against closing by accident
             diffY > mCloseDownThreshold -> listener?.showMetadata()
 
             else -> return false
