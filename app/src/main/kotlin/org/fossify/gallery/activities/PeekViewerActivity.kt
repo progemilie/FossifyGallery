@@ -25,8 +25,6 @@ import org.fossify.gallery.R
 import org.fossify.gallery.adapters.MyPagerAdapter
 import org.fossify.gallery.databinding.ActivityPeekViewerBinding
 import org.fossify.gallery.extensions.config
-import org.fossify.gallery.extensions.hideSystemUI
-import org.fossify.gallery.extensions.showSystemUI
 import org.fossify.gallery.fragments.ViewPagerFragment
 import org.fossify.gallery.helpers.TileFlight
 import org.fossify.gallery.helpers.ViewerOpening
@@ -64,6 +62,11 @@ class PeekViewerActivity :
 
     override val appBarLayout: AppBarLayout
         get() = binding.peekAppbar
+
+    override val hasLandscapeLayout = true
+
+    override val isChromeShown: Boolean
+        get() = !isFullScreen
 
     /** The tile this peek grew out of, and the tile it shrinks back into. */
     private val flight by lazy {
@@ -104,7 +107,7 @@ class PeekViewerActivity :
         setupPill()
         setupThumbnailStrip()
         dressChrome()
-        showSystemUI()
+        systemBars.update(chromeShown = true)
         // after the backdrop is in place, since the flight fades that in from nothing. The pager
         // is built inside it rather than beside it - see TileFlight.enter()
         flight.enter(PeekSession.startPath) { setupViewPager() }
@@ -234,11 +237,7 @@ class PeekViewerActivity :
 
     override fun fragmentClicked() {
         isFullScreen = !isFullScreen
-        if (isFullScreen) {
-            hideSystemUI()
-        } else {
-            showSystemUI()
-        }
+        systemBars.update(!isFullScreen)
 
         (binding.viewPager.adapter as? MyPagerAdapter)?.toggleFullscreen(isFullScreen)
         val newAlpha = if (isFullScreen) 0f else 1f

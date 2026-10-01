@@ -44,13 +44,11 @@ import org.fossify.gallery.BuildConfig
 import org.fossify.gallery.R
 import org.fossify.gallery.databinding.FragmentHolderBinding
 import org.fossify.gallery.extensions.config
-import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.openEditor
 import org.fossify.gallery.extensions.openPath
 import org.fossify.gallery.extensions.setAs
 import org.fossify.gallery.extensions.sharePath
 import org.fossify.gallery.extensions.showFileOnMap
-import org.fossify.gallery.extensions.showSystemUI
 import org.fossify.gallery.fragments.PhotoFragment
 import org.fossify.gallery.fragments.VideoFragment
 import org.fossify.gallery.fragments.ViewPagerFragment
@@ -102,6 +100,11 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
 
     override val isPanelCoveringNavigationBar: Boolean
         get() = metadataSheet.isSheetVisible
+
+    override val hasLandscapeLayout = true
+
+    override val isChromeShown: Boolean
+        get() = !mIsFullScreen
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -249,7 +252,7 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
             }
         }
 
-        showSystemUI()
+        systemBars.update(chromeShown = true)
         val bundle = Bundle()
         val file = File(mUri.toString())
         val intentType = intent.type ?: ""
@@ -472,7 +475,7 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
         }
 
         mIsFullScreen = fullScreen
-        if (mIsFullScreen) hideSystemUI() else showSystemUI()
+        systemBars.update(!mIsFullScreen)
         mFragment?.fullscreenToggled(mIsFullScreen)
 
         val newAlpha = if (mIsFullScreen) 0f else 1f

@@ -115,7 +115,6 @@ import org.fossify.gallery.extensions.getFavoritePaths
 import org.fossify.gallery.extensions.getQuickChooserFolders
 import org.fossify.gallery.extensions.getShortcutImage
 import org.fossify.gallery.extensions.handleMediaManagementPrompt
-import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.isDownloadsFolder
 import org.fossify.gallery.extensions.launchResizeImageDialog
 import org.fossify.gallery.extensions.launchSettings
@@ -129,7 +128,6 @@ import org.fossify.gallery.extensions.saveRotatedImageToFile
 import org.fossify.gallery.extensions.setAs
 import org.fossify.gallery.extensions.shareMediumPath
 import org.fossify.gallery.extensions.showFileOnMap
-import org.fossify.gallery.extensions.showSystemUI
 import org.fossify.gallery.extensions.toggleFileVisibility
 import org.fossify.gallery.extensions.tryCopyMoveFilesTo
 import org.fossify.gallery.extensions.tryDeleteFileDirItem
@@ -310,6 +308,11 @@ class ViewPagerActivity :
 
     override val isPanelCoveringNavigationBar: Boolean
         get() = metadataSheet.isSheetVisible
+
+    override val hasLandscapeLayout = true
+
+    override val isChromeShown: Boolean
+        get() = !mIsFullScreen
 
     /**
      * Makes sure the fragment under the finger sees a whole flick, which the view it started on
@@ -668,7 +671,7 @@ class ViewPagerActivity :
             return
         }
 
-        showSystemUI()
+        systemBars.update(chromeShown = true)
 
         if (intent.getBooleanExtra(SKIP_AUTHENTICATION, false)) {
             initContinue()
@@ -825,7 +828,7 @@ class ViewPagerActivity :
                         binding.viewPager.setPageTransformer(false, FadePageTransformer())
                     }
 
-                    hideSystemUI()
+                    systemBars.update(chromeShown = false)
                     if (!mIsFullScreen) {
                         mIsFullScreen = true
                         fullscreenToggled()
@@ -922,7 +925,7 @@ class ViewPagerActivity :
         if (mIsSlideshowActive) {
             binding.viewPager.setPageTransformer(false, DefaultPageTransformer())
             mIsSlideshowActive = false
-            showSystemUI()
+            systemBars.update(chromeShown = true)
             mSlideshowHandler.removeCallbacksAndMessages(null)
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             mAreSlideShowMediaVisible = false
@@ -2094,12 +2097,11 @@ class ViewPagerActivity :
     }
 
     private fun checkSystemUI() {
-        if (mIsFullScreen) {
-            hideSystemUI()
-        } else {
+        if (!mIsFullScreen) {
             stopSlideshow()
-            showSystemUI()
         }
+
+        systemBars.update(!mIsFullScreen)
     }
 
     private fun fullscreenToggled() {

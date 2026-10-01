@@ -276,7 +276,8 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.videoHolder) { _, insets ->
-            val system = insets.getInsetsIgnoringVisibility(Type.systemBars())
+            val system = (activity as? BaseViewerActivity)?.systemBars?.layoutInsets(insets)
+                ?: insets.getInsetsIgnoringVisibility(Type.systemBars())
 
             val pillTopMargin = system.top + resources.getActionBarHeight(context) +
                 resources.getDimension(org.fossify.commons.R.dimen.normal_margin).toInt()
