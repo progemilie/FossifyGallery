@@ -166,7 +166,8 @@ is big enough), a decode size snapped to `ThumbnailSizes`, and the WebP decoder 
 ## Code style
 
 Keep code comments CONCISE and NOT TOO LONG. Comments dont need to explain small UI details. Comment
-things that are not obvious and might raise questions otherwise. Avoid comments that restate obvious code
+things that are not obvious and might raise questions otherwise. Avoid comments that restate obvious
+code and describe something that the variable name already describes.
 
 ## Version control and GitHub
 
