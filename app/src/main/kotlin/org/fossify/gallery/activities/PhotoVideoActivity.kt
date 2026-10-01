@@ -57,6 +57,7 @@ import org.fossify.gallery.helpers.BOTTOM_ACTION_PROPERTIES
 import org.fossify.gallery.helpers.BOTTOM_ACTION_SET_AS
 import org.fossify.gallery.helpers.BOTTOM_ACTION_SHARE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_SHOW_ON_MAP
+import org.fossify.gallery.helpers.BottomActionsPlacement
 import org.fossify.gallery.helpers.IS_IN_RECYCLE_BIN
 import org.fossify.gallery.helpers.IS_VIEW_INTENT
 import org.fossify.gallery.helpers.MEDIUM
@@ -89,6 +90,10 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
 
     private val viewerHeader by lazy { ViewerHeader(this, binding.viewerHeader) }
 
+    private val actionsPlacement by lazy {
+        BottomActionsPlacement(binding.bottomActions, binding.fragmentViewerToolbar)
+    }
+
     private val metadataSheet: MetadataSheet
         get() = binding.metadataSheetHolder.metadataSheet
 
@@ -109,9 +114,8 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        setupEdgeToEdge(
-            padBottomSystem = listOf(binding.bottomActions.bottomActionsWrapper),
-        )
+        setupEdgeToEdge()
+        actionsPlacement.placeInTopRow(isInLandscapeLayout)
         if (checkAppSideloading()) {
             return
         }
@@ -137,6 +141,10 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
         super.onConfigurationChanged(newConfig)
         initBottomActionsLayout()
     }
+
+    override fun onLandscapeLayoutChanged() = actionsPlacement.placeInTopRow(isInLandscapeLayout)
+
+    override fun isBottomActionBarAtFoot() = !actionsPlacement.isInTopRow
 
     fun refreshMenuItems() {
         val visibleBottomActions = if (config.bottomActions) config.visibleBottomActions else 0

@@ -30,7 +30,6 @@ import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat.Type
 import androidx.core.view.updateLayoutParams
 import androidx.exifinterface.media.ExifInterface
 import androidx.print.PrintHelper
@@ -139,6 +138,7 @@ import org.fossify.gallery.fragments.PhotoFragment
 import org.fossify.gallery.fragments.VideoFragment
 import org.fossify.gallery.fragments.ViewPagerFragment
 import org.fossify.gallery.helpers.BOTTOM_ACTION_CHANGE_ORIENTATION
+import org.fossify.gallery.helpers.BottomActionsPlacement
 import org.fossify.gallery.helpers.BOTTOM_ACTION_COPY
 import org.fossify.gallery.helpers.BOTTOM_ACTION_DELETE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_EDIT
@@ -268,6 +268,10 @@ class ViewPagerActivity :
 
     private val viewerHeader by lazy { ViewerHeader(this, binding.viewerHeader) }
 
+    private val actionsPlacement by lazy {
+        BottomActionsPlacement(binding.bottomActions, binding.mediumViewerToolbar)
+    }
+
     private val metadataSheet: MetadataSheet
         get() = binding.metadataSheetHolder.metadataSheet
 
@@ -367,9 +371,9 @@ class ViewPagerActivity :
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        setupEdgeToEdge(
-            padBottomSystem = listOf(binding.bottomActions.bottomActionsWrapper),
-        )
+        setupEdgeToEdge()
+        // before anything is dressed, so the bar rides in with the flight wherever it belongs
+        actionsPlacement.placeInTopRow(isInLandscapeLayout)
 
         setupOptionsMenu()
         setupThumbnailStrip()
@@ -609,6 +613,10 @@ class ViewPagerActivity :
         super.onConfigurationChanged(newConfig)
         initBottomActionsLayout()
     }
+
+    override fun onLandscapeLayoutChanged() = actionsPlacement.placeInTopRow(isInLandscapeLayout)
+
+    override fun isBottomActionBarAtFoot() = !actionsPlacement.isInTopRow
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
@@ -1287,15 +1295,14 @@ class ViewPagerActivity :
         binding.viewerThumbnailStrip.onUserScrollEnded = { updateThumbnailStrip() }
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.viewerThumbnailStrip) { view, insets ->
-            val systemBottom = insets.getInsetsIgnoringVisibility(Type.systemBars()).bottom
             view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 // the thumbnails already reach the bottom of the strip, so the only space left
                 // between them and the buttons is the bar's own padding above them - the strip is
                 // let down into it rather than made to sit a whole gap clear of the bar
-                bottomMargin = if (binding.bottomActions.root.isVisible()) {
+                bottomMargin = if (binding.bottomActions.root.isVisible() && isBottomActionBarAtFoot()) {
                     -resources.getDimensionPixelSize(R.dimen.viewer_strip_drop_into_actions)
                 } else {
-                    systemBottom
+                    systemBars.footInset(insets)
                 }
             }
             insets

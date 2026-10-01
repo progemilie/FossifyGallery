@@ -7,8 +7,10 @@ import androidx.core.graphics.Insets
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsCompat.Type
 import androidx.core.view.WindowInsetsControllerCompat
+import org.fossify.gallery.R
 import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.showSystemUI
+import kotlin.math.max
 
 /**
  * The system bars as a viewer keeps them: up and away with its own chrome, except in the viewer's
@@ -83,4 +85,12 @@ class ViewerSystemBars(
         val bars = insets.getInsetsIgnoringVisibility(Type.systemBars())
         return if (isInLandscapeLayout) Insets.of(bars.left, 0, bars.right, bars.bottom) else bars
     }
+
+    /**
+     * How far above the bottom of the screen a strip along the very foot ends: on the navigation bar,
+     * or - where none lies along the foot, as in landscape with buttons at the side - clear of the edge
+     * by the room a video's playhead hangs below its frames.
+     */
+    fun footInset(insets: WindowInsetsCompat) =
+        max(layoutInsets(insets).bottom, activity.resources.getDimensionPixelSize(R.dimen.viewer_strip_edge_gap))
 }

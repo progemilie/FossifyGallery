@@ -12,8 +12,9 @@ Notable fork-only changes.
 - **A redesigned video player**: the video's own frames make its progress bar, in place of the
   thumbnail strip, with play and pause and a button to loop just above them, and holding the left
   side plays it at half speed. The controls get out of the way while it plays.
-- **The viewer has a landscape layout**: the status bar steps aside and the top bar moves up into
-  its room.
+- **The viewer has a landscape layout**: the status bar steps aside, the buttons along the bottom
+  join the top bar in a single row, and the thumbnail strip and a video's frames sit at the very
+  bottom.
 ### Changed
 - Pinching the photo grid zooms smoothly.
 - The details at the top of a photo are more compact.

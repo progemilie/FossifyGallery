@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat.Type
 import androidx.core.view.updateLayoutParams
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.appbar.AppBarLayout
@@ -173,7 +172,7 @@ class PeekViewerActivity :
         ViewCompat.setOnApplyWindowInsetsListener(binding.viewerThumbnailStrip) { view, insets ->
             // no buttons under it here, so the strip simply clears the navigation bar
             view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                bottomMargin = insets.getInsetsIgnoringVisibility(Type.systemBars()).bottom
+                bottomMargin = systemBars.footInset(insets)
             }
             insets
         }

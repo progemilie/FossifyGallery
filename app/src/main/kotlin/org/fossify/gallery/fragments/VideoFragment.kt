@@ -276,8 +276,8 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.videoHolder) { _, insets ->
-            val system = (activity as? BaseViewerActivity)?.systemBars?.layoutInsets(insets)
-                ?: insets.getInsetsIgnoringVisibility(Type.systemBars())
+            val systemBars = (activity as? BaseViewerActivity)?.systemBars
+            val system = systemBars?.layoutInsets(insets) ?: insets.getInsetsIgnoringVisibility(Type.systemBars())
 
             val pillTopMargin = system.top + resources.getActionBarHeight(context) +
                 resources.getDimension(org.fossify.commons.R.dimen.normal_margin).toInt()
@@ -288,8 +288,14 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             }
 
             // the frames end where the thumbnail strip's do, the room under them for the playhead hanging below
+            val stripBottom = if (isBottomActionBarAtFoot()) {
+                system.bottom + thumbnailStripBottom()
+            } else {
+                systemBars?.footInset(insets) ?: system.bottom
+            }
+
             binding.bottomVideoTimeHolder.root.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                bottomMargin = system.bottom + thumbnailStripBottom() - mSeekBar.paddingBottom
+                bottomMargin = stripBottom - mSeekBar.paddingBottom
             }
             insets
         }
@@ -667,16 +673,15 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         (activity as? BaseViewerActivity)?.applyProperHorizontalInsets(mTimeHolder)
     }
 
+    // up in the landscape layout's top row the bar leaves the foot to the strips
+    private fun isBottomActionBarAtFoot() = mConfig.bottomActions && listener?.isBottomActionBarAtFoot() != false
+
     /**
-     * How far above the navigation bar the viewer's thumbnail strip ends, which the frames line up with:
-     * let down into the top of the bottom actions, a row of touch targets between two margins (see
-     * ViewPagerActivity.setupThumbnailStrip), or on the navigation bar where there are none.
+     * How far above the navigation bar the viewer's thumbnail strip ends with the bottom actions under
+     * it, which the frames line up with: let down into the top of the bar, a row of touch targets
+     * between two margins - see ViewPagerActivity.setupThumbnailStrip.
      */
     private fun thumbnailStripBottom(): Int {
-        if (!mConfig.bottomActions) {
-            return 0
-        }
-
         val bottomActionsHeight = resources.getDimensionPixelSize(org.fossify.commons.R.dimen.list_touch_target_min) +
             2 * resources.getDimensionPixelSize(org.fossify.commons.R.dimen.normal_margin)
         return bottomActionsHeight - resources.getDimensionPixelSize(R.dimen.viewer_strip_drop_into_actions)

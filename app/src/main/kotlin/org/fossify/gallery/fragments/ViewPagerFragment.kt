@@ -42,6 +42,12 @@ abstract class ViewPagerFragment : Fragment() {
         fun isFullScreen(): Boolean
 
         /**
+         * Whether the host's bottom action bar is along the foot of the screen, which a video's
+         * frames stand clear of. Up in the top row of the landscape layout it is not.
+         */
+        fun isBottomActionBarAtFoot(): Boolean = true
+
+        /**
          * The media was zoomed into, or let back out to the size it rests at. The chrome goes the
          * same way a tap takes it: a photo being looked at closely is not one being chosen between.
          */
