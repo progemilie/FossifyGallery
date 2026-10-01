@@ -13,8 +13,8 @@ Notable fork-only changes.
   thumbnail strip, with play and pause and a button to loop just above them, and holding the left
   side plays it at half speed. The controls get out of the way while it plays.
 - **The viewer has a landscape layout**: the status bar steps aside, the buttons along the bottom
-  join the top bar in a single row, and the thumbnail strip and a video's frames sit at the very
-  bottom.
+  join the top bar in a single row (any that don't fit go into the three dots' menu), and the
+  thumbnail strip and a video's frames sit at the very bottom.
 ### Changed
 - Pinching the photo grid zooms smoothly.
 - The details at the top of a photo are more compact.

@@ -22,6 +22,8 @@ import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.os.Handler
 import android.provider.MediaStore
+import android.view.Menu
+import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -161,7 +163,6 @@ import org.fossify.gallery.helpers.TileFlight
 import org.fossify.gallery.helpers.ViewerOpening
 import org.fossify.gallery.helpers.DefaultPageTransformer
 import org.fossify.gallery.helpers.TabSwitcher
-import org.fossify.gallery.helpers.applyBottomActionsOrder
 import org.fossify.gallery.helpers.FadePageTransformer
 import org.fossify.gallery.helpers.GO_TO_NEXT_ITEM
 import org.fossify.gallery.helpers.GO_TO_PREV_ITEM
@@ -269,8 +270,13 @@ class ViewPagerActivity :
     private val viewerHeader by lazy { ViewerHeader(this, binding.viewerHeader) }
 
     private val actionsPlacement by lazy {
-        BottomActionsPlacement(binding.bottomActions, binding.mediumViewerToolbar)
+        BottomActionsPlacement(binding.bottomActions, binding.mediumViewerToolbar, binding.viewerHeader.root) {
+            refreshMenuItems()
+        }
     }
+
+    // the actions last moved into the three dots' menu for want of room in the top row, see keepOverflowedInMenu
+    private var mOverflowedInMenu = 0
 
     private val metadataSheet: MetadataSheet
         get() = binding.metadataSheetHolder.metadataSheet
@@ -473,11 +479,15 @@ class ViewPagerActivity :
     fun refreshMenuItems() {
         val currentMedium = getCurrentMedium() ?: return
         currentMedium.isFavorite = mFavoritePaths.contains(currentMedium.path)
-        val visibleBottomActions = if (config.bottomActions) config.visibleBottomActions else 0
+        val turnedOnBottomActions = if (config.bottomActions) config.visibleBottomActions else 0
+        // one the top row has no room for is not on the bar, so the menu offers it like any other
+        val overflowedActions = actionsPlacement.overflowed
+        val visibleBottomActions = turnedOnBottomActions and overflowedActions.inv()
 
         runOnUiThread {
             val rotationDegrees = getCurrentPhotoFragment()?.mCurrentRotationDegrees ?: 0
             binding.mediumViewerToolbar.menu.apply {
+                keepOverflowedInMenu(overflowedActions)
                 findItem(R.id.menu_switch_tab).apply {
                     isVisible = config.tabsEnabled
                             && !isExternalIntent()
@@ -525,11 +535,40 @@ class ViewPagerActivity :
                 findItem(R.id.menu_restore_file).isVisible = currentMedium.path.startsWith(recycleBinPath)
                 findItem(R.id.menu_create_shortcut).isVisible = true
                 findItem(R.id.menu_change_orientation).isVisible = rotationDegrees == 0 && visibleBottomActions and BOTTOM_ACTION_CHANGE_ORIENTATION == 0
+                // the bar is the only way to these two otherwise, so they are here only once squeezed off it
+                findItem(R.id.menu_rating).isVisible =
+                    overflowedActions and BOTTOM_ACTION_RATING != 0 && canRate(currentMedium)
+                findItem(R.id.menu_properties).isVisible = overflowedActions and BOTTOM_ACTION_PROPERTIES != 0
             }
 
-            if (visibleBottomActions != 0) {
+            if (turnedOnBottomActions != 0) {
                 updateBottomActionIcons(currentMedium)
             }
+        }
+    }
+
+    /**
+     * Keeps an action the top row has no room for in the three dots' menu with the rest of them,
+     * rather than as a toolbar button of its own beside the row it was squeezed out of - which is
+     * what the menu's ifRoom items would otherwise become. Only on a change, as the toolbar rebuilds
+     * its buttons for every request.
+     */
+    private fun Menu.keepOverflowedInMenu(overflowed: Int) {
+        if (overflowed == mOverflowedInMenu) {
+            return
+        }
+
+        mOverflowedInMenu = overflowed
+        mapOf(
+            R.id.menu_switch_tab to BOTTOM_ACTION_TABS,
+            R.id.menu_mirror to BOTTOM_ACTION_MIRROR,
+            R.id.menu_add_to_favorites to BOTTOM_ACTION_TOGGLE_FAVORITE,
+            R.id.menu_remove_from_favorites to BOTTOM_ACTION_TOGGLE_FAVORITE,
+        ).forEach { (itemId, action) ->
+            val isOverflowed = overflowed and action != 0
+            findItem(itemId).setShowAsAction(
+                if (isOverflowed) MenuItem.SHOW_AS_ACTION_NEVER else MenuItem.SHOW_AS_ACTION_IF_ROOM
+            )
         }
     }
 
@@ -561,8 +600,10 @@ class ViewPagerActivity :
                 R.id.menu_rename -> checkMediaManagementAndRename()
                 R.id.menu_print -> printFile()
                 R.id.menu_edit -> openEditor(getCurrentPath())
-                // gone from the drop-down - reached by its bottom bar button, or the metadata sheet
+                // in the drop-down only for a bottom bar button the top row had no room for - reached by
+                // that button otherwise, or by swiping the metadata sheet up
                 R.id.menu_properties -> showProperties()
+                R.id.menu_rating -> showRatingDialog()
                 R.id.menu_show_on_map -> showFileOnMap(getCurrentPath())
                 R.id.menu_rotate_right -> rotateImage(90)
                 R.id.menu_rotate_left -> rotateImage(-90)
@@ -1232,7 +1273,7 @@ class ViewPagerActivity :
 
     private fun initBottomActionsLayout() {
         if (config.bottomActions) {
-            binding.bottomActions.applyBottomActionsOrder(config.bottomActionsOrder)
+            actionsPlacement.applyOrder(config.bottomActionsOrder)
             binding.bottomActions.root.beVisible()
         } else {
             binding.bottomActions.root.beGone()

@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.view.MenuItem
 import android.view.View
 import androidx.core.graphics.drawable.toDrawable
 import com.google.android.material.appbar.AppBarLayout
@@ -71,7 +72,6 @@ import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.TYPE_VIDEOS
 import org.fossify.gallery.helpers.ViewerHeader
-import org.fossify.gallery.helpers.applyBottomActionsOrder
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.views.MetadataSheet
 import java.io.File
@@ -91,7 +91,9 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
     private val viewerHeader by lazy { ViewerHeader(this, binding.viewerHeader) }
 
     private val actionsPlacement by lazy {
-        BottomActionsPlacement(binding.bottomActions, binding.fragmentViewerToolbar)
+        BottomActionsPlacement(binding.bottomActions, binding.fragmentViewerToolbar, binding.viewerHeader.root) {
+            refreshMenuItems()
+        }
     }
 
     private val metadataSheet: MetadataSheet
@@ -147,9 +149,15 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
     override fun isBottomActionBarAtFoot() = !actionsPlacement.isInTopRow
 
     fun refreshMenuItems() {
-        val visibleBottomActions = if (config.bottomActions) config.visibleBottomActions else 0
+        // one the top row has no room for is not on the bar, so the menu offers it like any other
+        val overflowedActions = actionsPlacement.overflowed
+        val turnedOnBottomActions = if (config.bottomActions) config.visibleBottomActions else 0
+        val visibleBottomActions = turnedOnBottomActions and overflowedActions.inv()
 
         binding.fragmentViewerToolbar.menu.apply {
+            findItem(R.id.menu_share).keepInMenuIf(overflowedActions and BOTTOM_ACTION_SHARE != 0)
+            findItem(R.id.menu_edit).keepInMenuIf(overflowedActions and BOTTOM_ACTION_EDIT != 0)
+
             findItem(R.id.menu_set_as).isVisible = mMedium?.isImage() == true && visibleBottomActions and BOTTOM_ACTION_SET_AS == 0
             findItem(R.id.menu_edit).isVisible = mMedium?.isImage() == true && mUri?.scheme == "file" && visibleBottomActions and BOTTOM_ACTION_EDIT == 0
             findItem(R.id.menu_properties).isVisible = mUri?.scheme == "file" && visibleBottomActions and BOTTOM_ACTION_PROPERTIES == 0
@@ -157,6 +165,10 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
             findItem(R.id.menu_show_on_map).isVisible = visibleBottomActions and BOTTOM_ACTION_SHOW_ON_MAP == 0
         }
     }
+
+    // squeezed out of the top row, in the menu rather than as a toolbar button beside the row
+    private fun MenuItem.keepInMenuIf(isOverflowed: Boolean) =
+        setShowAsAction(if (isOverflowed) MenuItem.SHOW_AS_ACTION_NEVER else MenuItem.SHOW_AS_ACTION_ALWAYS)
 
     private fun setupOptionsMenu() {
         binding.fragmentViewerToolbar.apply {
@@ -411,7 +423,7 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
 
     private fun initBottomActionsLayout() {
         if (config.bottomActions) {
-            binding.bottomActions.applyBottomActionsOrder(config.bottomActionsOrder)
+            actionsPlacement.applyOrder(config.bottomActionsOrder)
             binding.bottomActions.root.beVisible()
         } else {
             binding.bottomActions.root.beGone()

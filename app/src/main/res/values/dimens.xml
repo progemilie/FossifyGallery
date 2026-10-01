@@ -199,6 +199,9 @@
     <!-- the bottom actions up in the top row in landscape stand a little closer together than along
          the foot, so more of them fit beside the heading. See BottomActionsPlacement -->
     <dimen name="viewer_top_row_action_width">44dp</dimen>
+    <!-- how much of the top row the heading keeps however many actions are up there with it; those
+         that do not fit go into the three dots' menu -->
+    <dimen name="viewer_top_row_min_title_width">160dp</dimen>
     <!-- how far a strip along the foot stands off the very edge of the screen where no navigation bar
          lies under it to stand on: the room a video's playhead hangs below its frames -->
     <dimen name="viewer_strip_edge_gap">@dimen/video_scrubber_padding</dimen>

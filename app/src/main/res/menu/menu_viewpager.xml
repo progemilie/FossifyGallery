@@ -177,4 +177,18 @@
         android:showAsAction="never"
         android:title="@string/settings"
         app:showAsAction="never" />
+    <!-- up only for a bottom bar button the landscape layout's top row has no room for, there
+         being no other entry for either in this menu -->
+    <item
+        android:id="@+id/menu_rating"
+        android:icon="@drawable/ic_star_outline_vector"
+        android:title="@string/rating"
+        android:visible="false"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/menu_properties"
+        android:icon="@drawable/ic_info_vector"
+        android:title="@string/properties"
+        android:visible="false"
+        app:showAsAction="never" />
 </menu>
