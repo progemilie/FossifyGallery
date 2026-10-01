@@ -1472,6 +1472,7 @@ class ViewPagerActivity :
             onOpen = {
                 val medium = getCurrentMedium()
                 medium?.let { binding.ratingChooser.rating = it.rating }
+                binding.ratingChooser.dropsBelow = actionsPlacement.isInTopRow
                 medium != null
             },
             onChosen = { applyRating(binding.ratingChooser.rating) }
@@ -1507,6 +1508,7 @@ class ViewPagerActivity :
                 if (mQuickChooserFolders.isEmpty()) {
                     false
                 } else {
+                    binding.folderChooser.dropsBelow = actionsPlacement.isInTopRow
                     binding.folderChooser.setFolders(mQuickChooserFolders)
                     true
                 }
@@ -1571,18 +1573,19 @@ class ViewPagerActivity :
 
         button.setImageDrawable(tabBadge())
         button.setOnClickListener { TabSwitcher.quickSwitch(this, this) }
-        button.holdToChooseTab(dropsBelow = false)
+        button.holdToChooseTab { actionsPlacement.isInTopRow }
     }
 
     /**
      * The hold both of the viewer's tab buttons answer with the same list. [dropsBelow] is which way
-     * it opens: the bottom bar's button has it above, the toolbar's under.
+     * it opens, asked as it does: under a button up in the top bar - the toolbar's, or the bottom
+     * bar's in the landscape layout - and above one along the foot.
      */
-    private fun View.holdToChooseTab(dropsBelow: Boolean) {
+    private fun View.holdToChooseTab(dropsBelow: () -> Boolean) {
         holdToChoose(
             chooser = binding.tabChooser,
             onOpen = {
-                binding.tabChooser.dropsBelow = dropsBelow
+                binding.tabChooser.dropsBelow = dropsBelow()
                 binding.tabChooser.fillFromTabs()
                 true
             },
@@ -1612,7 +1615,7 @@ class ViewPagerActivity :
 
             mBoundTabMenuView = view
             // a tap still goes through performClick, which is how the toolbar invokes the item
-            view.holdToChooseTab(dropsBelow = true)
+            view.holdToChooseTab { true }
         }
     }
 

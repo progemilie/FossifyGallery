@@ -8,6 +8,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import androidx.annotation.DimenRes
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import org.fossify.commons.extensions.beInvisible
 import org.fossify.commons.extensions.realScreenSize
 import org.fossify.gallery.R
@@ -20,7 +22,8 @@ import org.fossify.gallery.helpers.showPanel
 /**
  * A picker that opens over a bottom action button while it is held, is driven by the same finger
  * without it ever lifting off, and is read back when it lets go. [holdToChoose] is what puts one on
- * a button; a plain tap on that button is left to the button's own click listener.
+ * a button; a plain tap on that button is left to the button's own click listener. A button in a
+ * top bar has it hang under the button instead, see [dropsBelow].
  *
  * Subclasses say what the finger is currently over. What was picked has to outlive the closing, so
  * the caller can still read it once the chooser is off the screen.
@@ -44,6 +47,21 @@ abstract class HoldChooser @JvmOverloads constructor(
     /** How this chooser comes and goes. See [PanelMotion]. */
     var motion = PanelMotion.GROW
 
+    /**
+     * Whether this one hangs under its button rather than opening above it, for a button in a top bar.
+     * Said before it is filled, as a list puts what is nearest the finger at the end nearest it.
+     */
+    var dropsBelow = false
+
+    /**
+     * How much of the screen there is under the button for a chooser hanging there, worked out as it
+     * opens. Unbounded for one opening upward, whose own layout keeps it on the screen.
+     */
+    protected var roomBelow = Int.MAX_VALUE
+        private set
+
+    private val dropGap = resources.getDimensionPixelSize(R.dimen.chooser_drop_gap)
+
     // whether the finger is still driving this chooser, which stops the moment it is closed rather
     // than when it finishes leaving - the button it hangs off may be pressed again before the fade
     // is over, and a chooser still fading counts as gone
@@ -59,6 +77,17 @@ abstract class HoldChooser @JvmOverloads constructor(
     fun revealOver(button: View) {
         isOpen = true
         animate().cancel()
+        roomBelow = if (dropsBelow) {
+            // down to the navigation bar, with a gap at either end
+            val buttonInWindow = IntArray(2).also { button.getLocationInWindow(it) }
+            val navigationBar = ViewCompat.getRootWindowInsets(this)
+                ?.getInsets(WindowInsetsCompat.Type.systemBars())?.bottom ?: 0
+            rootView.height - navigationBar - (buttonInWindow[1] + button.height) - 2 * dropGap
+        } else {
+            Int.MAX_VALUE
+        }
+
+        onRevealing()
         beInvisible()
         post {
             // a hold let go of inside the one frame this waits for
@@ -70,17 +99,31 @@ abstract class HoldChooser @JvmOverloads constructor(
             // its shrunken self, and the pivot worked out off the wrong rectangle
             clearPanelMotion()
             position(button)
+            hangUnder(button)
             openPivot = PanelPivot.over(this, button)
             showPanel(motion, openPivot)
         }
     }
 
+    /** About to be laid out for opening, with [roomBelow] worked out - the last chance to fit it to that. */
+    protected open fun onRevealing() = Unit
+
     /**
-     * Where the chooser sits once it has been measured. Sideways alone by default, which is all a
-     * chooser laid out along the bottom of the screen needs - one hanging off a button at the top
-     * has to place itself down the screen as well.
+     * Where the chooser sits sideways once it has been measured. Down the screen it stands where its
+     * layout put it unless it [dropsBelow] its button.
      */
     protected open fun position(button: View) = centerOver(button)
+
+    // reset otherwise, or one that last hung under a top bar button would open there again from the foot
+    private fun hangUnder(button: View) {
+        if (!dropsBelow || height == 0) {
+            translationY = 0f
+            return
+        }
+
+        val untranslatedTop = screenLocation()[1] - translationY
+        translationY = button.screenLocation()[1] + button.height + dropGap - untranslatedTop
+    }
 
     fun close() {
         if (!isOpen) {
