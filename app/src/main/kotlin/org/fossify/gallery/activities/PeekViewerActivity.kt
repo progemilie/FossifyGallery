@@ -171,7 +171,10 @@ class PeekViewerActivity :
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.viewerThumbnailStrip) { view, insets ->
             // no buttons under it here, so the strip simply clears the navigation bar
+            val sides = systemBars.sideInsets(insets)
             view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                leftMargin = sides.left
+                rightMargin = sides.right
                 bottomMargin = systemBars.footInset(insets)
             }
             insets

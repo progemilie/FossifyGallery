@@ -1336,7 +1336,11 @@ class ViewPagerActivity :
         binding.viewerThumbnailStrip.onUserScrollEnded = { updateThumbnailStrip() }
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.viewerThumbnailStrip) { view, insets ->
+            val sides = systemBars.sideInsets(insets)
             view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                // where the video's frames stand in for it, so the two line up when one swaps for the other
+                leftMargin = sides.left
+                rightMargin = sides.right
                 // the thumbnails already reach the bottom of the strip, so the only space left
                 // between them and the buttons is the bar's own padding above them - the strip is
                 // let down into it rather than made to sit a whole gap clear of the bar

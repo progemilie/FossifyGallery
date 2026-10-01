@@ -8,6 +8,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsCompat.Type
 import androidx.core.view.WindowInsetsControllerCompat
 import org.fossify.gallery.R
+import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.showSystemUI
 import kotlin.math.max
@@ -93,4 +94,19 @@ class ViewerSystemBars(
      */
     fun footInset(insets: WindowInsetsCompat) =
         max(layoutInsets(insets).bottom, activity.resources.getDimensionPixelSize(R.dimen.viewer_strip_edge_gap))
+
+    /**
+     * How far in from either side the viewer's chrome keeps: clear of a navigation bar at the side,
+     * and of a cutout unless the content is already padded clear of it - which it is with the notch
+     * area left unused, see BaseViewerActivity.
+     */
+    fun sideInsets(insets: WindowInsetsCompat): Insets {
+        val system = insets.getInsetsIgnoringVisibility(Type.systemBars())
+        val cutout = insets.getInsetsIgnoringVisibility(Type.displayCutout())
+        return if (activity.config.showNotch) {
+            Insets.of(max(system.left, cutout.left), 0, max(system.right, cutout.right), 0)
+        } else {
+            Insets.of(if (cutout.left > 0) 0 else system.left, 0, if (cutout.right > 0) 0 else system.right, 0)
+        }
+    }
 }
