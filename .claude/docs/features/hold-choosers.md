@@ -1,7 +1,8 @@
 # Choosers held open over a button
 
 Rating, copy/move and tabs answer a hold on their button with a picker the finger drags through
-without lifting off, and a tap with the dialog (or action) they always had.
+without lifting off, and a tap with the dialog (or action) they always had. Held from a button in a
+top bar - the toolbar's tab button, or any of the bar's in landscape - the picker hangs under it.
 
 ## Coupled with
 
@@ -9,6 +10,7 @@ Read these before changing this feature — each can break silently if this one 
 
 - [floating-chrome](floating-chrome.md) — `PanelAnim` never touches translation, because choosers place themselves with it.
 - [tabs](tabs.md) — `TabChooser` is a hold chooser too.
+- [landscape-viewer](landscape-viewer.md) — the viewer says which way a chooser opens from where its bar is when it is held.
 
 ## Where it lives
 
@@ -42,6 +44,13 @@ nowhere to explain a refusal. Dragging up past the list keeps the top row and ke
 sliding down off it or off a side clears the pick, so a hold that never moved does nothing. Both paths
 still run through commons' `CopyMoveTask`.
 
+**Hanging under a button** (`dropsBelow`): a chooser is translated to stand a gap under its button
+rather than where its layout put it, and grows out of its top edge. The folder list is the mirror of
+itself there: the most recent destination at the top, opened scrolled there, its rows sliding down
+into place, the button past its top edge picking nothing and dragging on past its foot holding the
+last row - and as many rows at once as fit the room above the navigation bar (`roomBelow`), worked
+out as it opens, the rows being built only then.
+
 ## What breaks silently
 
 - **`revealOver()` lays a chooser out INVISIBLE** and makes it VISIBLE only once positioned — it
@@ -51,6 +60,10 @@ still run through commons' `CopyMoveTask`.
   moves to another folder; it reads Room and the filesystem, far too slow to build when the hold
   fires. Once per folder, not per swipe.
 - **Nothing in `PanelAnim` touches translation** — a chooser places itself against its button with
-  `translationX/Y`.
+  `translationX/Y`. One opening upward has its translation cleared, or after hanging under a button
+  it would open where it last hung.
+- **`dropsBelow` is set every time the chooser opens**, before `revealOver`: the same chooser serves
+  buttons at the top and at the foot, and the bar's buttons move between the two with the screen's
+  orientation.
 - `FolderChooser` sits at detekt's function-count threshold; that is why `EdgeAutoScroller` and
   `FolderChooserRows` are separate files.

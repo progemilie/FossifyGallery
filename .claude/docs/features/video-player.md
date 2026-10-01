@@ -15,6 +15,7 @@ Read these before changing this feature — each can break silently if this one 
 - [thumbnail-strip](thumbnail-strip.md) — the strip steps aside on a video's page, and the scrubber takes its place, lined up from the strip's own dimensions.
 - [viewer-chrome](viewer-chrome.md) — the chrome going by itself is the viewer's, asked for by the video.
 - [viewer-transition](viewer-transition.md) — a close stops the frame strip reading (`onViewerClosing()`), or it decodes through the shrink.
+- [landscape-viewer](landscape-viewer.md) — the controls share the frames' row in landscape, where nothing in it may change width.
 
 ## Where it lives
 
@@ -24,6 +25,7 @@ Read these before changing this feature — each can break silently if this one 
 | `views/VideoScrubber.kt` | The progress bar as a strip of frames, a `SeekBar` underneath |
 | `views/VideoScrubberFrames.kt` | Reads the scrubber's frames, one load at a time, and caches them |
 | `views/VideoPlayerParts.kt` | `SeekHints` (the "+ 20s"), `ChromeAutoHide` |
+| `views/VideoControlsLayout.kt` | The controls in a row of their own, or sharing the frames' row in landscape |
 | `layout/video_controls.xml` | Time, play and pause, toggles and scrubber; `VideoPlayerActivity` keeps `bottom_video_time_holder.xml` |
 | `layout/pager_video_item.xml` | The play button in the middle, the seek hints either side of it |
 | `ViewPagerActivity` | `updateThumbnailStrip()` puts the strip away on a video's page; owns `ChromeAutoHide` |
@@ -64,6 +66,14 @@ drag, a tap, keys and TalkBack work as on any seek bar. Frames ahead of the play
 The frames stand to the pixel where a photo's thumbnails do, so a swipe between the two swaps one
 strip for the other in place: `thumbnailStripBottom()` works out where the viewer lets the strip down
 into the bottom actions, and the scrubber's bottom padding, the room for the playhead, hangs below.
+With no bar along the foot - none at all, or up in the landscape top row - both stand at the very
+foot (`ViewerSystemBars.footInset()`). There is no scrim behind the controls: the frames sit on the
+video as the thumbnails sit on a photo, the time keeping a text shadow and play and pause a dark disc.
+
+In the viewers' landscape layout the time, play and pause and the toggles share the frames' row,
+before and after them, rather than standing in a row of their own over it. `VideoControlsLayout` moves
+the same views between the two arrangements and puts each back where it came from, so portrait keeps
+its layout exactly.
 `VideoScrubberFrames` reads as many frames as fill the track at the video's own proportions (held
 to 0.5–1.8, at most 24), each at the smallest size that still covers its cell, and hands each over
 as it comes; a finished set is cached by path, signature and track size, so a rotation reads again
@@ -103,7 +113,12 @@ goes unnoticed, and the strip shows one keyframe in several cells out of order.
   with the chrome away reads its frames at once rather than when the chrome comes back.
 - **The frames are placed from dimensions, not from the viewer's layout.** `thumbnailStripBottom()`
   repeats how tall `bottom_actions.xml` lays out and `viewer_strip_drop_into_actions`; a change to
-  either moves the thumbnail strip, and the frames sit off it until the function follows.
+  either moves the thumbnail strip, and the frames sit off it until the function follows. Whether the
+  bar is along the foot at all is the host's to say (`isBottomActionBarAtFoot()`).
+- **Nothing sharing the frames' row in landscape may change width while the video plays**: the
+  scrubber reads its frames again for every width it is drawn at. The time is in tabular figures and
+  kept as wide as the longest it says, the speed as wide as its widest, and the controls that only come
+  with playing hold their room (INVISIBLE, not GONE) until it starts - see `VideoControlsLayout`.
 - **The strips' visibility goes through `updateSideScrolls()`**, which knows the setting and whether
   the video has started: shown on a video not yet started, they take the flick down that closes it.
   Gone until then, they miss the first layout, so `MediaSideScroll` works a drag out against its

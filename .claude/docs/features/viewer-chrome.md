@@ -3,7 +3,8 @@
 The fullscreen viewer shows the file's name as its heading with the extended details packed under
 it, a [thumbnail strip](thumbnail-strip.md) and the [bottom action bar](bottom-actions.md) along the
 foot, and a [glass drop-down](glass-menu.md) behind the three dots. Tapping the photo, or zooming
-into it, takes all of that away.
+into it, takes all of that away. In landscape the status bar stays away and the bar joins the top
+row - see [the viewer in landscape](landscape-viewer.md).
 
 ## Coupled with
 
@@ -11,6 +12,7 @@ Read these before changing this feature — each can break silently if this one 
 
 - [viewer-transition](viewer-transition.md) — the chrome rides in with the flight, dressed before the pager exists.
 - [video-player](video-player.md) — a playing video has the chrome go by itself, through `setFullScreen()`.
+- [landscape-viewer](landscape-viewer.md) — the top bar is laid out around the system bars as `ViewerSystemBars` has them, without the status bar in landscape.
 
 ## Where it lives
 
@@ -18,6 +20,8 @@ Read these before changing this feature — each can break silently if this one 
   share `BaseViewerActivity` with it.
 - `activities/BaseViewerActivity.kt` — what every viewer has in common: forced light system-bar
   icons, `updateNavigationBarIconsForPanel()`.
+- `helpers/ViewerSystemBars.kt` — the system bars following the chrome in and out, and the insets
+  everything in a viewer is laid out by.
 - `helpers/ViewerHeader.kt`, `layout/viewer_header.xml` — the heading in place of a toolbar title.
 - `extensions/ExtendedDetails.kt` — the details, formatted, off the main thread.
 - `views/DetailsFlowText.kt` — packs the details onto as few lines as fit, a dot between them.
@@ -57,6 +61,8 @@ star is the [rating](ratings.md)) live there too.
 
 - The viewer forces light system-bar icons, which vanish against a light-theme panel;
   `updateNavigationBarIconsForPanel()` switches them while the metadata sheet is up.
+- The system bars go up and away through `systemBars.update()`, never `showSystemUI()` or
+  `hideSystemUI()` directly, which would bring the status bar back in landscape.
 - The watcher is hung on in `doOnAttach`: before the view is on a window, the observer it would join
   is a temporary one nothing draws through.
 - The chrome is dressed from the medium on screen, which during an opening flight is named by

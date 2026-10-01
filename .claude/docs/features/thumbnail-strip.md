@@ -13,6 +13,7 @@ Read these before changing this feature — each can break silently if this one 
 - [viewer-transition](viewer-transition.md) — the strip is centred on the opening photo before the flight lands.
 - [thumbnails](thumbnails.md) — the strip is the one thumbnail view that must be reloaded by hand after an edit.
 - [video-player](video-player.md) — a video's page puts the strip away for its own frame strip, lined up with it from `viewer_strip_drop_into_actions` and the bottom actions' height.
+- [landscape-viewer](landscape-viewer.md) — with the bar up in the top row the strip stands at the very foot, by the same insets as the frames.
 
 ## Where it lives
 
@@ -46,6 +47,10 @@ wears a small play triangle in its bottom right corner, under the shade so it di
   [editing files in place](file-edits.md).
 - The peek viewer's ticks are written onto laid out children (`setSelection`), not through a rebind,
   which would restart every Glide load for a tick.
+- **Its margins come from `ViewerSystemBars`**: let down into the bar where the bar is along the foot,
+  and otherwise `footInset()` from the bottom and `sideInsets()` from either side - the same the
+  video's frames stand by, so the two still swap in place. Laid out by the insets themselves it runs
+  under a navigation bar at the side, where its thumbnails cannot be tapped.
 - Its visibility goes through `ViewPagerActivity.updateThumbnailStrip()`, never straight from
   `Config.showThumbnailStrip`: on a video's page the strip is put away (INVISIBLE, so it keeps its
   place) and the [video's frame strip](video-player.md) stands there instead. Not while the user is

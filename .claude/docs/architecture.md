@@ -120,6 +120,8 @@ The viewer
 - [The video player](features/video-player.md) — the controls, the frame strip as progress bar, and
   holding or double tapping either side.
 - [Bottom action bar](features/bottom-actions.md) — the one table behind the bar and its dialog.
+- [The viewer in landscape](features/landscape-viewer.md) — the status bar kept away, the bar in the
+  top row, the strips at the very foot.
 - [Choosers held open over a button](features/hold-choosers.md) — rating, copy/move and tabs.
 - [Metadata sheet](features/metadata-sheet.md) — reading every group, descriptions, and removing
   metadata.

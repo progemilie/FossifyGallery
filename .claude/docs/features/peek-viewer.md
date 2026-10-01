@@ -48,5 +48,8 @@ pill are dressed before the flight from the handed list; only the pager waits fo
   drag selection starts; the button gives no haptic of its own.
 - `REQUEST_PEEK` must stay clear of every host's own request codes — see
   [two grids](two-grids-one-window.md).
+- The peek leaves `isBottomActionBarAtFoot()` at its default. Its strip does not step aside for a
+  video, so a video's frames keep the room a bottom bar would take and stand above the strip, in
+  either orientation.
 - `currentMedium()` reads the pager's item, which is zero until there is an adapter; anything dressed
   before the flight lands has to use the path it was opened on.
