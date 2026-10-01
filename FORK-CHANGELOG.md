@@ -35,6 +35,7 @@ Notable fork-only changes.
   closer together and are dimmed less.
 - Double tapping a video under a minute long skips five seconds rather than ten.
 - Controlling volume and brightness by swiping up and down on a video is off by default.
+- The shadow under a video's frame strip is gone.
 ### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.
