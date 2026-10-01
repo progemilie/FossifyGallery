@@ -96,6 +96,7 @@ import org.fossify.gallery.interfaces.PlaybackSpeedListener
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.views.MediaSideScroll
 import org.fossify.gallery.views.SeekHints
+import org.fossify.gallery.views.VideoControlsLayout
 import java.io.File
 import java.io.FileInputStream
 import java.text.DecimalFormat
@@ -162,6 +163,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     }
 
     private lateinit var mTimeHolder: View
+    private lateinit var mControlsLayout: VideoControlsLayout
     private lateinit var mBrightnessSideScroll: MediaSideScroll
     private lateinit var mVolumeSideScroll: MediaSideScroll
     private lateinit var binding: PagerVideoItemBinding
@@ -227,6 +229,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             mSeekHints = SeekHints(videoSeekHintBack, videoSeekHintForward)
 
             mTimeHolder = bottomVideoTimeHolder.videoTimeHolder
+            mControlsLayout = VideoControlsLayout(bottomVideoTimeHolder)
             mCurrTimeView = bottomVideoTimeHolder.videoCurrTime
             mBrightnessSideScroll = videoBrightnessController
             mVolumeSideScroll = videoVolumeController
@@ -301,6 +304,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
 
         mView = binding.root
+        arrangeControls()
 
         if (!arguments.getBoolean(SHOULD_INIT_FRAGMENT, true)) {
             return mView
@@ -443,6 +447,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        arrangeControls()
         setVideoSize()
         binding.videoSurfaceFrame.onGlobalLayout {
             binding.videoSurfaceFrame.controller.resetState()
@@ -485,6 +490,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     private fun setupTimeHolder() {
         mSeekBar.max = mDuration.toInt()
         binding.bottomVideoTimeHolder.videoDuration.text = mDuration.getFormattedDuration()
+        mControlsLayout.fitLabels()
         setupTimer()
     }
 
@@ -666,6 +672,12 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             setImageResource(if (isPlaying) R.drawable.ic_video_pause_vector else R.drawable.ic_video_play_vector)
             contentDescription = getString(if (isPlaying) R.string.video_pause else R.string.video_play)
         }
+    }
+
+    // the landscape layout has the controls share the frames' row
+    private fun arrangeControls() {
+        val isLandscapeLayout = (activity as? BaseViewerActivity)?.isInLandscapeLayout == true
+        mControlsLayout.arrange(inOneRow = isLandscapeLayout, isStarted = mWasVideoStarted)
     }
 
     private fun initTimeHolder() {
