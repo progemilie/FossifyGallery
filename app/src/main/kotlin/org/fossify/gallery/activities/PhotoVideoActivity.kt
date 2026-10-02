@@ -146,7 +146,7 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
 
     override fun onLandscapeLayoutChanged() = actionsPlacement.placeInTopRow(isInLandscapeLayout)
 
-    override fun isBottomActionBarAtFoot() = !actionsPlacement.isInTopRow
+    override fun isBottomActionBarAtFoot() = config.bottomActions && !actionsPlacement.isInTopRow
 
     fun refreshMenuItems() {
         // actions squeezed out of the top row go in the menu

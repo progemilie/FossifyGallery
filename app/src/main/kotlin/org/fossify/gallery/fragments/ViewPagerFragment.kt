@@ -41,7 +41,10 @@ abstract class ViewPagerFragment : Fragment() {
 
         fun isFullScreen(): Boolean
 
-        /** A video's frames stand clear of the bar along the foot, not of one in the landscape top row. */
+        /**
+         * Whether a video's frames keep clear of a bar along the foot: not with the bar turned off or up
+         * in the landscape top row. A host with no bar can answer true to keep that room for itself.
+         */
         fun isBottomActionBarAtFoot(): Boolean = true
 
         /**

@@ -76,7 +76,6 @@ import org.fossify.commons.extensions.isPortrait
 import org.fossify.commons.extensions.isRawFast
 import org.fossify.commons.extensions.isSvg
 import org.fossify.commons.extensions.isVideoFast
-import org.fossify.commons.extensions.isVisible
 import org.fossify.commons.extensions.needsStupidWritePermissions
 import org.fossify.commons.extensions.onGlobalLayout
 import org.fossify.commons.extensions.recycleBinPath
@@ -654,7 +653,7 @@ class ViewPagerActivity :
 
     override fun onLandscapeLayoutChanged() = actionsPlacement.placeInTopRow(isInLandscapeLayout)
 
-    override fun isBottomActionBarAtFoot() = !actionsPlacement.isInTopRow
+    override fun isBottomActionBarAtFoot() = config.bottomActions && !actionsPlacement.isInTopRow
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
@@ -1339,7 +1338,7 @@ class ViewPagerActivity :
                 // the thumbnails already reach the bottom of the strip, so the only space left
                 // between them and the buttons is the bar's own padding above them - the strip is
                 // let down into it rather than made to sit a whole gap clear of the bar
-                bottomMargin = if (binding.bottomActions.root.isVisible() && isBottomActionBarAtFoot()) {
+                bottomMargin = if (isBottomActionBarAtFoot()) {
                     -resources.getDimensionPixelSize(R.dimen.viewer_strip_drop_into_actions)
                 } else {
                     systemBars.footInset(insets)

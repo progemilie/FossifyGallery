@@ -75,7 +75,9 @@ video frames keep the room a bar would take, above its own strip, in either orie
 - **Anything laid out around the status bar has to ask `systemBars.layoutInsets()`**, never the
   insets themselves: read directly, they report the hidden status bar's height and leave a gap for it.
 - **A bar button's visibility is set the ordinary way, never through `isSqueezedOut`** - the row owns
-  that, and resets it on every fit.
+  that, and resets it on every fit. And only by the viewer: anything else calling `setVisibility` with
+  what it read back - as `ConstraintSet.applyTo` does unless told to ignore visibility - records a
+  squeezed-out button as hidden. See `applyBottomActionsOrder()`.
 - **An action added to the bar needs a menu item that shows when it is squeezed out**, or on a screen
   too narrow for it the action is simply gone in landscape.
 - **The bar's order goes through `BottomActionsPlacement.applyOrder()`**, which is also the order the

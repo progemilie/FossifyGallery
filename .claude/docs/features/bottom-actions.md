@@ -41,5 +41,8 @@ Rating and copy/move answer a hold with a [chooser](hold-choosers.md); a tap sti
   constraint pointing at its old neighbour. Every button is chained whatever its visibility, so the
   ones that come and go with the file (rating, rotate) need no re-chaining. A viewer applies it through
   `BottomActionsPlacement.applyOrder()`, which also keeps the order the top row squeezes buttons out of.
+  It leaves visibility alone (`VISIBILITY_MODE_IGNORE`): `ConstraintSet.applyTo` otherwise sets back
+  whatever `clone` read, and a button squeezed out of the landscape top row would then read as one the
+  viewer hid - after any resume in landscape, those actions were gone from the bar and the menu both.
 - **An action added to the table needs an entry in the viewer's menu** that shows while the action is
   off the bar, or squeezed out of the landscape top row it is gone.

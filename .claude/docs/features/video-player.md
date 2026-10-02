@@ -16,6 +16,7 @@ Read these before changing this feature — each can break silently if this one 
 - [viewer-chrome](viewer-chrome.md) — the chrome going by itself is the viewer's, asked for by the video.
 - [viewer-transition](viewer-transition.md) — a close stops the frame strip reading (`onViewerClosing()`), or it decodes through the shrink.
 - [landscape-viewer](landscape-viewer.md) — the controls share the frames' row in landscape, where nothing in it may change width.
+- [peek-viewer](peek-viewer.md) — the peek's strip never steps aside, so the frames stand above it only because the peek answers `isBottomActionBarAtFoot()` true.
 
 ## Where it lives
 
@@ -125,7 +126,8 @@ goes unnoticed, and the strip shows one keyframe in several cells out of order.
 - **The frames are placed from dimensions, not from the viewer's layout.** `thumbnailStripBottom()`
   repeats how tall `bottom_actions.xml` lays out and `viewer_strip_drop_into_actions`; a change to
   either moves the thumbnail strip, and the frames sit off it until the function follows. Whether the
-  bar is along the foot at all is the host's to say (`isBottomActionBarAtFoot()`).
+  bar is along the foot at all is the host's to say (`isBottomActionBarAtFoot()`), the bottom actions
+  setting included: the peek has no bar but keeps that room for its strip, whatever the setting says.
 - **Nothing sharing the frames' row in landscape may change width while the video plays**: the
   scrubber reads its frames again for every width it is drawn at. The time is in tabular figures and
   kept as wide as the longest it says, the speed as wide as its widest, and the controls that only come
