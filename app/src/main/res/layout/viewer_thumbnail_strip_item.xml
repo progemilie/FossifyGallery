@@ -34,7 +34,6 @@
             android:layout_height="match_parent"
             android:background="@android:color/black" />
 
-        <!-- over the shade, so it stays light while its thumbnail dims -->
         <ImageView
             android:id="@+id/viewer_thumbnail_video"
             android:layout_width="wrap_content"

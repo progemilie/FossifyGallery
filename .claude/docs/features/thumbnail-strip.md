@@ -38,7 +38,7 @@ between thumbnails are what drawing the ones off the middle smaller (`OFF_CENTRE
 Thumbnails decode at strip size in RGB_565, with their corners cut by an outline clip on the holder
 rather than by Glide's `RoundedCorners`, which would need transparency. An unloaded cell shows a
 placeholder of its own rather than black, which over a photo reads as a hole. A video's thumbnail
-wears a small play triangle in its bottom right corner, over the shade so it stays light while the thumbnail dims.
+wears a small play triangle in its bottom right corner.
 
 ## What breaks silently
 
