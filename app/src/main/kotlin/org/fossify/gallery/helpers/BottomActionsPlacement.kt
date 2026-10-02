@@ -1,6 +1,8 @@
 package org.fossify.gallery.helpers
 
 import android.view.Gravity
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
@@ -58,6 +60,9 @@ class BottomActionsPlacement(
     /** Actions squeezed out of the top row, as Config.visibleBottomActions bits. */
     var overflowed = 0
         private set
+
+    // what keepOverflowedInMenu last applied
+    private var overflowedInMenu = 0
 
     init {
         // padded clear of the navigation bar only along the foot
@@ -121,7 +126,16 @@ class BottomActionsPlacement(
      * the bar share the same room however many are up. Answers whether the frame can be drawn.
      */
     private fun fitTopRow(): Boolean {
-        if (!isInTopRow || !topRow.isLaidOut || root.visibility != View.VISIBLE) {
+        if (!isInTopRow || !topRow.isLaidOut) {
+            return true
+        }
+
+        // turned off, the bar squeezes nothing out; the chrome hides it by alpha, not this
+        if (root.visibility != View.VISIBLE) {
+            if (overflowed != 0) {
+                unsqueezeAll()
+            }
+
             return true
         }
 
@@ -155,6 +169,23 @@ class BottomActionsPlacement(
         }
 
         return !isRowChanged
+    }
+
+    /**
+     * Keeps squeezed-out actions' [items], each mapped to its action, in [menu] rather than letting them
+     * become toolbar buttons; otherwise they show as [showAsAction]. Only on a change, as every call
+     * rebuilds the toolbar's buttons.
+     */
+    fun keepOverflowedInMenu(menu: Menu, items: Map<Int, Int>, showAsAction: Int) {
+        if (overflowed == overflowedInMenu) {
+            return
+        }
+
+        overflowedInMenu = overflowed
+        items.forEach { (itemId, action) ->
+            val isOverflowed = overflowed and action != 0
+            menu.findItem(itemId).setShowAsAction(if (isOverflowed) MenuItem.SHOW_AS_ACTION_NEVER else showAsAction)
+        }
     }
 
     private fun unsqueezeAll() {

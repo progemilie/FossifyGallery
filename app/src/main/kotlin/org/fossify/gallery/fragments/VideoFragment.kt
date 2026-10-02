@@ -75,14 +75,15 @@ import org.fossify.gallery.activities.BaseViewerActivity
 import org.fossify.gallery.activities.VideoActivity
 import org.fossify.gallery.databinding.PagerVideoItemBinding
 import org.fossify.gallery.extensions.config
-import org.fossify.gallery.extensions.screenRect
 import org.fossify.gallery.extensions.displayedImageRect
 import org.fossify.gallery.extensions.getActionBarHeight
+import org.fossify.gallery.extensions.getBottomActionsHeight
 import org.fossify.gallery.extensions.getFormattedDuration
 import org.fossify.gallery.extensions.getFriendlyMessage
 import org.fossify.gallery.extensions.launchGesturePlayer
 import org.fossify.gallery.extensions.parseFileChannel
 import org.fossify.gallery.extensions.screenLocation
+import org.fossify.gallery.extensions.screenRect
 import org.fossify.gallery.helpers.Config
 import org.fossify.gallery.helpers.DisplayedMedia
 import org.fossify.gallery.helpers.EXOPLAYER_MAX_BUFFER_MS
@@ -677,6 +678,12 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
     }
 
+    fun onLandscapeLayoutChanged() {
+        if (view != null) {
+            arrangeControls()
+        }
+    }
+
     private fun arrangeControls() {
         val isLandscapeLayout = (activity as? BaseViewerActivity)?.isInLandscapeLayout == true
         mControlsLayout.arrange(inOneRow = isLandscapeLayout, isStarted = mWasVideoStarted)
@@ -690,15 +697,10 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     // a fragment restored without its host's listener still follows the setting
     private fun isBottomActionBarAtFoot() = listener?.isBottomActionBarAtFoot() ?: mConfig.bottomActions
 
-    /**
-     * Where the thumbnail strip ends above the navigation bar with the bar under it. Repeats the bar's
-     * dimensions, see ViewPagerActivity.setupThumbnailStrip.
-     */
-    private fun thumbnailStripBottom(): Int {
-        val bottomActionsHeight = resources.getDimensionPixelSize(org.fossify.commons.R.dimen.list_touch_target_min) +
-            2 * resources.getDimensionPixelSize(org.fossify.commons.R.dimen.normal_margin)
-        return bottomActionsHeight - resources.getDimensionPixelSize(R.dimen.viewer_strip_drop_into_actions)
-    }
+    // where the thumbnail strip ends above the navigation bar with the bar under it,
+    // see ViewPagerActivity.setupThumbnailStrip
+    private fun thumbnailStripBottom() =
+        resources.getBottomActionsHeight() - resources.getDimensionPixelSize(R.dimen.viewer_strip_drop_into_actions)
 
     private fun updateControls(animate: Boolean) {
         // with that setting videos play on a separate screen

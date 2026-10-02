@@ -274,9 +274,6 @@ class ViewPagerActivity :
         }
     }
 
-    // what keepOverflowedInMenu last applied
-    private var mOverflowedInMenu = 0
-
     private val metadataSheet: MetadataSheet
         get() = binding.metadataSheetHolder.metadataSheet
 
@@ -486,7 +483,17 @@ class ViewPagerActivity :
         runOnUiThread {
             val rotationDegrees = getCurrentPhotoFragment()?.mCurrentRotationDegrees ?: 0
             binding.mediumViewerToolbar.menu.apply {
-                keepOverflowedInMenu(overflowedActions)
+                // kept in the menu while squeezed out, rather than becoming toolbar buttons
+                actionsPlacement.keepOverflowedInMenu(
+                    this,
+                    mapOf(
+                        R.id.menu_switch_tab to BOTTOM_ACTION_TABS,
+                        R.id.menu_mirror to BOTTOM_ACTION_MIRROR,
+                        R.id.menu_add_to_favorites to BOTTOM_ACTION_TOGGLE_FAVORITE,
+                        R.id.menu_remove_from_favorites to BOTTOM_ACTION_TOGGLE_FAVORITE,
+                    ),
+                    MenuItem.SHOW_AS_ACTION_IF_ROOM
+                )
                 findItem(R.id.menu_switch_tab).apply {
                     isVisible = config.tabsEnabled
                             && !isExternalIntent()
@@ -543,29 +550,6 @@ class ViewPagerActivity :
             if (turnedOnBottomActions != 0) {
                 updateBottomActionIcons(currentMedium)
             }
-        }
-    }
-
-    /**
-     * Keeps squeezed-out actions in the menu, rather than letting its ifRoom items become toolbar
-     * buttons. Only on a change, as every request rebuilds the toolbar's buttons.
-     */
-    private fun Menu.keepOverflowedInMenu(overflowed: Int) {
-        if (overflowed == mOverflowedInMenu) {
-            return
-        }
-
-        mOverflowedInMenu = overflowed
-        mapOf(
-            R.id.menu_switch_tab to BOTTOM_ACTION_TABS,
-            R.id.menu_mirror to BOTTOM_ACTION_MIRROR,
-            R.id.menu_add_to_favorites to BOTTOM_ACTION_TOGGLE_FAVORITE,
-            R.id.menu_remove_from_favorites to BOTTOM_ACTION_TOGGLE_FAVORITE,
-        ).forEach { (itemId, action) ->
-            val isOverflowed = overflowed and action != 0
-            findItem(itemId).setShowAsAction(
-                if (isOverflowed) MenuItem.SHOW_AS_ACTION_NEVER else MenuItem.SHOW_AS_ACTION_IF_ROOM
-            )
         }
     }
 

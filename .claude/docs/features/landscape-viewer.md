@@ -62,7 +62,9 @@ apply to the file on screen is still the viewer's to say, through the visibility
 viewer's `refreshMenuItems()` counts them as off the bar - so their menu items show like those of any
 action not on it. Rating and Properties have no other entry in the viewer's menu, so they have items
 of their own that show only in that case. Items the menu would otherwise make toolbar buttons
-(`ifRoom`, or the external viewer's `always`) are kept in the drop-down while squeezed out.
+(`ifRoom`, or the external viewer's `always`) are kept in the drop-down while squeezed out, through
+`keepOverflowedInMenu()`, which touches them only on a change since each touch rebuilds the toolbar's
+buttons. A bar turned off squeezes nothing out.
 
 **The foot.** With the bar gone from it, the thumbnail strip and the video's frames stand on the
 navigation bar - or, where none lies along the foot, as with buttons at the side, clear of the edge by

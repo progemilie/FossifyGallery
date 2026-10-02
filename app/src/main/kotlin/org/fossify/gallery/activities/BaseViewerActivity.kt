@@ -18,6 +18,7 @@ import org.fossify.commons.extensions.getProperBackgroundColor
 import org.fossify.commons.extensions.updateMarginWithBase
 import org.fossify.commons.extensions.updatePaddingWithBase
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.fragments.VideoFragment
 import org.fossify.gallery.helpers.ViewerSystemBars
 import org.fossify.gallery.helpers.holdWindowStill
 
@@ -37,7 +38,11 @@ abstract class BaseViewerActivity : SimpleActivity() {
     protected open val isChromeShown = true
 
     /** Anything laid out around the system bars asks this rather than reading the insets itself. */
-    val systemBars = ViewerSystemBars(this, { hasLandscapeLayout }, { isChromeShown }) { onLandscapeLayoutChanged() }
+    val systemBars = ViewerSystemBars(this, { hasLandscapeLayout }, { isChromeShown }) {
+        onLandscapeLayoutChanged()
+        // a change of window mode reaches no fragment, and a rotation may reach it before the layout changed
+        supportFragmentManager.fragments.forEach { (it as? VideoFragment)?.onLandscapeLayoutChanged() }
+    }
 
     val isInLandscapeLayout: Boolean
         get() = systemBars.isInLandscapeLayout

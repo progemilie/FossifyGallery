@@ -155,8 +155,11 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
         val visibleBottomActions = turnedOnBottomActions and overflowedActions.inv()
 
         binding.fragmentViewerToolbar.menu.apply {
-            findItem(R.id.menu_share).keepInMenuIf(overflowedActions and BOTTOM_ACTION_SHARE != 0)
-            findItem(R.id.menu_edit).keepInMenuIf(overflowedActions and BOTTOM_ACTION_EDIT != 0)
+            actionsPlacement.keepOverflowedInMenu(
+                this,
+                mapOf(R.id.menu_share to BOTTOM_ACTION_SHARE, R.id.menu_edit to BOTTOM_ACTION_EDIT),
+                MenuItem.SHOW_AS_ACTION_ALWAYS
+            )
 
             findItem(R.id.menu_set_as).isVisible = mMedium?.isImage() == true && visibleBottomActions and BOTTOM_ACTION_SET_AS == 0
             findItem(R.id.menu_edit).isVisible = mMedium?.isImage() == true && mUri?.scheme == "file" && visibleBottomActions and BOTTOM_ACTION_EDIT == 0
@@ -165,9 +168,6 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
             findItem(R.id.menu_show_on_map).isVisible = visibleBottomActions and BOTTOM_ACTION_SHOW_ON_MAP == 0
         }
     }
-
-    private fun MenuItem.keepInMenuIf(isOverflowed: Boolean) =
-        setShowAsAction(if (isOverflowed) MenuItem.SHOW_AS_ACTION_NEVER else MenuItem.SHOW_AS_ACTION_ALWAYS)
 
     private fun setupOptionsMenu() {
         binding.fragmentViewerToolbar.apply {

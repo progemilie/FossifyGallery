@@ -124,8 +124,9 @@ goes unnoticed, and the strip shows one keyframe in several cells out of order.
   with the chrome away, the readout sat at the top of the page. Still laid out, a page first shown
   with the chrome away reads its frames at once rather than when the chrome comes back.
 - **The frames are placed from dimensions, not from the viewer's layout.** `thumbnailStripBottom()`
-  repeats how tall `bottom_actions.xml` lays out and `viewer_strip_drop_into_actions`; a change to
-  either moves the thumbnail strip, and the frames sit off it until the function follows. Whether the
+  takes the bar's height from `getBottomActionsHeight()`, less `viewer_strip_drop_into_actions`; a
+  change to how tall `bottom_actions.xml` lays out moves the thumbnail strip, and the frames sit off
+  it until that function follows. Whether the
   bar is along the foot at all is the host's to say (`isBottomActionBarAtFoot()`), the bottom actions
   setting included: the peek has no bar but keeps that room for its strip, whatever the setting says.
 - **Nothing sharing the frames' row in landscape may change width while the video plays**: the

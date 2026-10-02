@@ -14,7 +14,9 @@ import android.util.AttributeSet
 import androidx.appcompat.widget.AppCompatSeekBar
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.withClip
+import androidx.core.view.doOnNextLayout
 import org.fossify.gallery.R
+import java.lang.ref.WeakReference
 import kotlin.math.roundToInt
 
 private const val UNPLAYED_SHADE_ALPHA = 110
@@ -55,8 +57,9 @@ class VideoScrubber @JvmOverloads constructor(
     private var path = ""
     private var video = ""
 
-    // the video and the track size the frames are for
+    // the video and the track size the frames are for, and the load still bringing them in, if any
     private var framesKey = ""
+    private var loadingKey = ""
 
     // a load that is no longer the latest stops, and its frames are dropped
     @Volatile
@@ -82,6 +85,7 @@ class VideoScrubber @JvmOverloads constructor(
             } else {
                 stopLoading()
                 frames = emptyArray()
+                framesKey = ""
             }
 
             invalidate()
@@ -109,7 +113,12 @@ class VideoScrubber @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        showFrames()
+        // moved between rows (VideoControlsLayout) it is laid out again first, maybe at a new size
+        if (isLayoutRequested) {
+            doOnNextLayout { showFrames() }
+        } else {
+            showFrames()
+        }
     }
 
     override fun onDetachedFromWindow() {
@@ -131,7 +140,8 @@ class VideoScrubber @JvmOverloads constructor(
 
         val key = "$video|${trackWidth}x$trackHeight"
         val cached = VideoScrubberFrames.cached(key)
-        if (key == framesKey || cached == null && !isOnScreen) {
+        val isUpToDate = key == framesKey && (key == loadingKey || cached != null)
+        if (isUpToDate || cached == null && !isOnScreen) {
             return
         }
 
@@ -139,10 +149,12 @@ class VideoScrubber @JvmOverloads constructor(
         framesKey = key
         loadId++
         if (cached != null) {
+            loadingKey = ""
             frames = cached.copyOf()
             arrivals = LongArray(cached.size)
             invalidate()
         } else {
+            loadingKey = key
             if (!sameVideo) {
                 frames = emptyArray()
                 invalidate()
@@ -235,27 +247,31 @@ class VideoScrubber @JvmOverloads constructor(
         }
     }
 
-    // an unfinished load is dropped, and read again when next wanted
+    // an unfinished load is dropped, and read again when next wanted, its frames staying up meanwhile
     private fun stopLoading() {
-        framesKey = ""
+        loadingKey = ""
         loadId++
     }
 
     private fun loadFrames(key: String, trackWidth: Int, trackHeight: Int) {
         val id = loadId
-        val isWanted = { loadId == id }
+        // weakly, as a load queued behind another would otherwise hold the whole viewer until it runs
+        val scrubber = WeakReference(this)
+        val isWanted = { scrubber.get()?.loadId == id }
         VideoScrubberFrames.load(context, path, key, trackWidth, trackHeight, isWanted) { index, count, frame ->
-            post {
-                if (loadId == id) {
-                    // the first frame of a new set brings its own cell count
-                    if (frames.size != count) {
-                        frames = arrayOfNulls(count)
-                        arrivals = LongArray(count)
-                    }
+            scrubber.get()?.run {
+                post {
+                    if (loadId == id) {
+                        // the first frame of a new set brings its own cell count
+                        if (frames.size != count) {
+                            frames = arrayOfNulls(count)
+                            arrivals = LongArray(count)
+                        }
 
-                    frames[index] = frame
-                    arrivals[index] = SystemClock.uptimeMillis()
-                    invalidate()
+                        frames[index] = frame
+                        arrivals[index] = SystemClock.uptimeMillis()
+                        invalidate()
+                    }
                 }
             }
         }
