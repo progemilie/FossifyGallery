@@ -432,7 +432,7 @@
     <string name="settings_folders_summary">Included, excluded and hidden folders</string>
     <string name="settings_viewer_summary">Display, details and bottom actions</string>
     <string name="settings_gestures_zoom">Gestures &amp; zoom</string>
-    <string name="settings_gestures_zoom_summary">Swipes, deep zoom and the video player</string>
+    <string name="settings_gestures_zoom_summary">Swipes, deep zoom and video player</string>
     <string name="settings_videos_summary">Autoplay, looping and taps</string>
     <string name="settings_security_summary">Password protection</string>
     <string name="settings_files">Files &amp; recycle bin</string>
@@ -453,9 +453,9 @@
     <string name="settings_section_video_player">Video player</string>
     <!-- Settings: the video player's own -->
     <string name="video_frame_strip">Show the video\'s frames in its progress bar</string>
-    <string name="allow_video_brightness_gesture">Change brightness by swiping up or down along the left edge</string>
-    <string name="allow_video_volume_gesture">Change volume by swiping up or down along the right edge</string>
-    <string name="allow_video_hold_speed">Hold to play at 2x speed, or 0.5x on the left side</string>
+    <string name="allow_video_brightness_gesture">Drag up or down on the left edge to change brightness</string>
+    <string name="allow_video_volume_gesture">Drag up or down on the right edge to change volume</string>
+    <string name="allow_video_hold_speed">Hold the sides to speed up or slow down the video</string>
     <string name="allow_video_double_tap_skip">Double tap the sides to skip back or forward</string>
     <string name="settings_section_password_protection">Password protection</string>
     <string name="settings_section_order_groups">Order &amp; groups</string>
