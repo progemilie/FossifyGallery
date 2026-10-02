@@ -143,8 +143,8 @@ fun BottomActionsBinding.applyBottomActionsOrder(order: List<Int>) {
         set.clear(viewId, ConstraintSet.END)
         set.clear(viewId, ConstraintSet.LEFT)
         set.clear(viewId, ConstraintSet.RIGHT)
-        // or applyTo sets back the visibility clone read, and a button squeezed out of the landscape
-        // top row reads as one the viewer hid - see BottomActionButton
+        // applyTo would otherwise set back the visibility clone read, recording a button squeezed out
+        // of the landscape top row as one the viewer hid - see BottomActionButton
         set.setVisibilityMode(viewId, ConstraintSet.VISIBILITY_MODE_IGNORE)
     }
 

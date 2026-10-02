@@ -687,7 +687,8 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         (activity as? BaseViewerActivity)?.applyProperHorizontalInsets(mTimeHolder)
     }
 
-    private fun isBottomActionBarAtFoot() = listener?.isBottomActionBarAtFoot() != false
+    // a fragment restored without its host's listener still follows the setting
+    private fun isBottomActionBarAtFoot() = listener?.isBottomActionBarAtFoot() ?: mConfig.bottomActions
 
     /**
      * Where the thumbnail strip ends above the navigation bar with the bar under it. Repeats the bar's
