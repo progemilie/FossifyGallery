@@ -22,7 +22,7 @@ Read these before changing this feature — each can break silently if this one 
 | File | Job |
 |---|---|
 | `fragments/VideoFragment.kt` | The player: ExoPlayer, the gestures, the controls' wiring |
-| `views/VideoScrubber.kt` | The progress bar as a strip of frames, a `SeekBar` underneath |
+| `views/VideoScrubber.kt` | The progress bar as a strip of frames or a plain line (`ProgressLine`), a `SeekBar` underneath |
 | `views/VideoScrubberFrames.kt` | Reads the scrubber's frames, one load at a time, and caches them |
 | `views/VideoPlayerParts.kt` | `SeekHints` (the "+ 20s"), `ChromeAutoHide` |
 | `views/VideoControlsLayout.kt` | The controls in a row of their own, or sharing the frames' row in landscape |
@@ -38,11 +38,17 @@ a minute (`skipLengthMs()`, which the time labels skip by too), and in the middl
 A run of skips counts up in a hint on that side of the middle. Holds start only on a playing video,
 as upstream's 2x hold did.
 
-With volume and brightness gestures on, a strip lies over each of the video's edges to take a
-vertical drag. A touch listener hands their gestures to `handleTouchHoldEvent()` too, ahead of
-their own handling, and once a hold has begun it takes the rest of its gesture, the lift included:
-a drag then changes neither volume nor brightness, and the lift is read as no tap by the strips or
-the video. The setting is off by default.
+With the volume or brightness gesture on, a strip lies over that edge of the video (volume the
+right, brightness the left) to take a vertical drag. A touch listener hands their gestures to
+`handleTouchHoldEvent()` too, ahead of their own handling, and once a hold has begun it takes the
+rest of its gesture, the lift included: a drag then changes neither volume nor brightness, and the
+lift is read as no tap by the strips or the video.
+
+Every gesture has a setting of its own, on the Gestures page under Video player, and
+`VideoPlayerActivity` obeys them too. Volume and brightness are off by default, and until set fall
+back to upstream's single `allowVideoGestures`, which an old settings backup imports into both; the
+hold and the double tap skip are on. With
+skipping off, a double tap on a side plays or pauses as one in the middle does (`doubleTapSide()`).
 
 Until the video has started, a flick is the viewer's wherever it begins. The strips come only once
 it has (`updateSideScrolls()`), and a flick begun on the play button goes to the flick handling
@@ -69,6 +75,11 @@ into the bottom actions, and the scrubber's bottom padding, the room for the pla
 With no bar along the foot - none at all, or up in the landscape top row - both stand at the very
 foot (`ViewerSystemBars.footInset()`). There is no scrim behind the controls: the frames sit on the
 video as the thumbnails sit on a photo, the time keeping a text shadow and play and pause a dark disc.
+
+With "Show the video's frames in its progress bar" off (`videoFrameStrip`), the scrubber draws a
+plain line with a round handle across the middle of the same track instead, and reads no frames
+(`showsFrames`). It keeps its size, so the controls stand where they do over the frames, and the
+landscape row is laid out the same.
 
 In the viewers' landscape layout the time, play and pause and the toggles share the frames' row,
 before and after them, rather than standing in a row of their own over it. `VideoControlsLayout` moves
@@ -119,7 +130,7 @@ goes unnoticed, and the strip shows one keyframe in several cells out of order.
   scrubber reads its frames again for every width it is drawn at. The time is in tabular figures and
   kept as wide as the longest it says, the speed as wide as its widest, and the controls that only come
   with playing hold their room (INVISIBLE, not GONE) until it starts - see `VideoControlsLayout`.
-- **The strips' visibility goes through `updateSideScrolls()`**, which knows the setting and whether
+- **The strips' visibility goes through `updateSideScrolls()`**, which knows the settings and whether
   the video has started: shown on a video not yet started, they take the flick down that closes it.
   Gone until then, they miss the first layout, so `MediaSideScroll` works a drag out against its
   height at the time: measured at the first layout it was 0, and every drag went to 0 or 100%.

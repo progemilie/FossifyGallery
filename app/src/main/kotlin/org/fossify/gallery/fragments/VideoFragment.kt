@@ -218,6 +218,8 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             mPlayPauseButton.setOnClickListener { togglePlayPause() }
 
             mSeekBar = bottomVideoTimeHolder.videoSeekbar
+            // before the video, so no frames are read for a line
+            bottomVideoTimeHolder.videoSeekbar.showsFrames = mConfig.videoFrameStrip
             bottomVideoTimeHolder.videoSeekbar.setVideo(mMedium.path, mMedium.getSignature())
             mPlaybackSpeedPill = playbackSpeedPill
             mSeekBar.setOnSeekBarChangeListener(this@VideoFragment)
@@ -361,7 +363,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                         }
                     },
                     doubleTap = { x, y ->
-                        skipWithHint(false)
+                        doubleTapSide(false)
                     })
                 mVolumeSideScroll.initialize(
                     activity,
@@ -376,7 +378,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                         }
                     },
                     doubleTap = { x, y ->
-                        skipWithHint(true)
+                        doubleTapSide(true)
                     })
 
                 videoSurface.onGlobalLayout {
@@ -404,6 +406,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         binding.videoSurfaceFrame.beGoneIf(mTextureView.isGone())
 
         updateSideScrolls()
+        binding.bottomVideoTimeHolder.videoSeekbar.showsFrames = mConfig.videoFrameStrip
         initTimeHolder()
         updateLoop()
         storeStateVariables()
@@ -631,10 +634,15 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     private fun handleDoubleTap(x: Float) {
         val sideWidth = mView.width * SIDE_ZONE
         when {
-            x <= sideWidth -> skipWithHint(false)
-            x >= mView.width - sideWidth -> skipWithHint(true)
+            x <= sideWidth -> doubleTapSide(false)
+            x >= mView.width - sideWidth -> doubleTapSide(true)
             else -> togglePlayPause()
         }
+    }
+
+    // with skipping off, a side plays and pauses like the middle
+    private fun doubleTapSide(forward: Boolean) {
+        if (mConfig.allowVideoDoubleTapSkip) skipWithHint(forward) else togglePlayPause()
     }
 
     private fun skipWithHint(forward: Boolean) {
@@ -714,9 +722,9 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
     // only once the video has started, as until then a flick down over its edges closes the viewer
     private fun updateSideScrolls() {
-        val show = mConfig.allowVideoGestures && !mIsPanorama && mWasVideoStarted
-        mVolumeSideScroll.beVisibleIf(show)
-        mBrightnessSideScroll.beVisibleIf(show)
+        val show = !mIsPanorama && mWasVideoStarted
+        mVolumeSideScroll.beVisibleIf(show && mConfig.allowVideoVolumeGesture)
+        mBrightnessSideScroll.beVisibleIf(show && mConfig.allowVideoBrightnessGesture)
     }
 
     private fun checkIfPanorama() {
@@ -1141,7 +1149,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             MotionEvent.ACTION_DOWN -> {
                 // a finger landing on another of the page's views is not a second hold
                 mTimerHandler.removeCallbacks(mTouchHoldRunnable)
-                if (mIsPlaying && !isHolding) {
+                if (mIsPlaying && !isHolding && mConfig.allowVideoHoldSpeed) {
                     mInitialX = event.x
                     mInitialY = event.y
                     // across the page, whichever of its views the finger landed on

@@ -1,6 +1,7 @@
 package org.fossify.gallery.views
 
 import android.content.Context
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -21,8 +22,8 @@ private const val FRAME_FADE_MS = 180L
 private const val OPAQUE = 255
 
 /**
- * A video's progress bar drawn as a strip of its own frames, darkened ahead of the playhead. A SeekBar
- * underneath, so a drag, a tap, keys and TalkBack work as on any seek bar.
+ * A video's progress bar drawn as a strip of its own frames, darkened ahead of the playhead, or as a
+ * plain line. A SeekBar underneath, so a drag, a tap, keys and TalkBack work as on any seek bar.
  */
 class VideoScrubber @JvmOverloads constructor(
     context: Context,
@@ -32,6 +33,7 @@ class VideoScrubber @JvmOverloads constructor(
     private val radius = resources.getDimension(R.dimen.video_scrubber_radius)
     private val playheadWidth = resources.getDimension(R.dimen.video_scrubber_playhead_width)
     private val playheadOverhang = resources.getDimension(R.dimen.video_scrubber_playhead_overhang)
+    private val progressLine = ProgressLine(resources)
 
     private val framePaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val placeholderPaint = Paint().apply { color = withShadeAlpha(Color.WHITE) }
@@ -67,6 +69,24 @@ class VideoScrubber @JvmOverloads constructor(
             if (value) showFrames() else stopLoading()
         }
 
+    /** False draws a plain line, and reads no frames. */
+    var showsFrames = true
+        set(value) {
+            if (field == value) {
+                return
+            }
+
+            field = value
+            if (value) {
+                showFrames()
+            } else {
+                stopLoading()
+                frames = emptyArray()
+            }
+
+            invalidate()
+        }
+
     init {
         // the frames are the track, and the playhead is drawn here too
         progressDrawable = null
@@ -99,6 +119,10 @@ class VideoScrubber @JvmOverloads constructor(
 
     // a new track size reads a new set, the old frames staying up until it comes; cached ones show on any page
     private fun showFrames() {
+        if (!showsFrames) {
+            return
+        }
+
         val trackWidth = width - paddingLeft - paddingRight
         val trackHeight = height - paddingTop - paddingBottom
         if (video.isEmpty() || trackWidth <= 0 || trackHeight <= 0) {
@@ -140,9 +164,14 @@ class VideoScrubber @JvmOverloads constructor(
             return
         }
 
+        val played = track.left + track.width() * if (max > 0) progress / max.toFloat() else 0f
+        if (!showsFrames) {
+            progressLine.draw(canvas, track, played)
+            return
+        }
+
         clip.reset()
         clip.addRoundRect(track, radius, radius, Path.Direction.CW)
-        val played = track.left + track.width() * if (max > 0) progress / max.toFloat() else 0f
         canvas.withClip(clip) {
             drawFrames(this)
             drawRect(played, track.top, track.right, track.bottom, shadePaint)
@@ -230,6 +259,40 @@ class VideoScrubber @JvmOverloads constructor(
                 }
             }
         }
+    }
+}
+
+/** The progress bar as a plain line with a round handle, across the middle of the frames' track. */
+private class ProgressLine(resources: Resources) {
+    private val height = resources.getDimension(R.dimen.video_scrubber_line_height)
+    private val rim = resources.getDimension(R.dimen.video_scrubber_line_rim)
+    private val handleRadius = resources.getDimension(R.dimen.video_scrubber_handle_radius)
+
+    private val playedPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+    private val unplayedPaint = Paint().apply { color = withShadeAlpha(Color.WHITE) }
+
+    // so the line reads over a white video too
+    private val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = withShadeAlpha(Color.BLACK) }
+
+    private val line = RectF()
+    private val clip = Path()
+
+    fun draw(canvas: Canvas, track: RectF, played: Float) {
+        val centreY = track.centerY()
+        line.set(track.left, centreY - height / 2, track.right, centreY + height / 2)
+        line.inset(-rim, -rim)
+        canvas.drawRoundRect(line, line.height() / 2, line.height() / 2, rimPaint)
+        line.inset(rim, rim)
+
+        clip.reset()
+        clip.addRoundRect(line, height / 2, height / 2, Path.Direction.CW)
+        canvas.withClip(clip) {
+            drawRect(line, unplayedPaint)
+            drawRect(line.left, line.top, played, line.bottom, playedPaint)
+        }
+
+        canvas.drawCircle(played, centreY, handleRadius + rim, rimPaint)
+        canvas.drawCircle(played, centreY, handleRadius, playedPaint)
     }
 }
 

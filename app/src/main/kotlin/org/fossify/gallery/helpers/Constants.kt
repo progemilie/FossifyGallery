@@ -114,6 +114,11 @@ const val LAST_FOLDER_GROUP_ID = "last_folder_group_id"
 const val TABS_ENABLED = "tabs_enabled"
 const val TABS = "tabs"
 const val CURRENT_TAB = "current_tab"
+const val VIDEO_FRAME_STRIP = "video_frame_strip"
+const val ALLOW_VIDEO_VOLUME_GESTURE = "allow_video_volume_gesture"
+const val ALLOW_VIDEO_BRIGHTNESS_GESTURE = "allow_video_brightness_gesture"
+const val ALLOW_VIDEO_HOLD_SPEED = "allow_video_hold_speed"
+const val ALLOW_VIDEO_DOUBLE_TAP_SKIP = "allow_video_double_tap_skip"
 
 /**
  * What a folder group's tile carries instead of a real path. Nothing on disk answers to it, so it

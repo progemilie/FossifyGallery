@@ -31,6 +31,7 @@ Notable fork-only changes.
   up to twenty.
 - Sorting and grouping by rating works like any other sorting now.
 - The thumbnail strip under a photo marks videos with a small triangle.
+- Video volume and brightness gestures are separate settings now, and have moved to Gestures & zoom.
 ### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.

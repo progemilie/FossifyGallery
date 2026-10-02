@@ -918,6 +918,56 @@
 
                 </org.fossify.gallery.views.SettingsGroup>
 
+                <org.fossify.gallery.views.SettingsGroup
+                    style="@style/SettingsGroup"
+                    app:groupTitle="@string/settings_section_video_player">
+
+                    <LinearLayout
+                        android:id="@+id/settings_allow_video_brightness_gesture_holder"
+                        style="@style/SettingsRow">
+
+                        <org.fossify.commons.views.MyMaterialSwitch
+                            android:id="@+id/settings_allow_video_brightness_gesture"
+                            style="@style/SettingsRowSwitch"
+                            android:text="@string/allow_video_brightness_gesture" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/settings_allow_video_volume_gesture_holder"
+                        style="@style/SettingsRow">
+
+                        <org.fossify.commons.views.MyMaterialSwitch
+                            android:id="@+id/settings_allow_video_volume_gesture"
+                            style="@style/SettingsRowSwitch"
+                            android:text="@string/allow_video_volume_gesture" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/settings_allow_video_hold_speed_holder"
+                        style="@style/SettingsRow">
+
+                        <org.fossify.commons.views.MyMaterialSwitch
+                            android:id="@+id/settings_allow_video_hold_speed"
+                            style="@style/SettingsRowSwitch"
+                            android:text="@string/allow_video_hold_speed" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/settings_allow_video_double_tap_skip_holder"
+                        style="@style/SettingsRow">
+
+                        <org.fossify.commons.views.MyMaterialSwitch
+                            android:id="@+id/settings_allow_video_double_tap_skip"
+                            style="@style/SettingsRowSwitch"
+                            android:text="@string/allow_video_double_tap_skip" />
+
+                    </LinearLayout>
+
+                </org.fossify.gallery.views.SettingsGroup>
+
             </org.fossify.gallery.views.SettingsPage>
 
             <org.fossify.gallery.views.SettingsPage
@@ -1002,13 +1052,13 @@
                     </LinearLayout>
 
                     <LinearLayout
-                        android:id="@+id/settings_allow_video_gestures_holder"
+                        android:id="@+id/settings_video_frame_strip_holder"
                         style="@style/SettingsRow">
 
                         <org.fossify.commons.views.MyMaterialSwitch
-                            android:id="@+id/settings_allow_video_gestures"
+                            android:id="@+id/settings_video_frame_strip"
                             style="@style/SettingsRowSwitch"
-                            android:text="@string/allow_video_gestures" />
+                            android:text="@string/video_frame_strip" />
 
                     </LinearLayout>
 

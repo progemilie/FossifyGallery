@@ -359,7 +359,9 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
             })
 
         binding.videoSurfaceFrame.setOnTouchListener { view, event ->
-            videoGestureHelper.onTouchEvent(event)
+            if (config.allowVideoHoldSpeed) {
+                videoGestureHelper.onTouchEvent(event)
+            }
 
             if (videoGestureHelper.isLongPressActive) {
                 return@setOnTouchListener true
@@ -373,7 +375,7 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
         initExoPlayer()
         binding.videoSurface.surfaceTextureListener = this
 
-        if (config.allowVideoGestures) {
+        if (config.allowVideoBrightnessGesture) {
             binding.videoBrightnessController.initialize(
                 this,
                 binding.slideInfo,
@@ -383,9 +385,13 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
                     toggleFullscreen()
                 },
                 doubleTap = { x, y ->
-                    doSkip(false)
+                    doubleTapSide(false)
                 })
+        } else {
+            binding.videoBrightnessController.beGone()
+        }
 
+        if (config.allowVideoVolumeGesture) {
             binding.videoVolumeController.initialize(
                 this,
                 binding.slideInfo,
@@ -395,10 +401,9 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
                     toggleFullscreen()
                 },
                 doubleTap = { x, y ->
-                    doSkip(true)
+                    doubleTapSide(true)
                 })
         } else {
-            binding.videoBrightnessController.beGone()
             binding.videoVolumeController.beGone()
         }
 
@@ -533,10 +538,15 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
     private fun handleDoubleTap(x: Float) {
         val instantWidth = mScreenWidth / 7
         when {
-            x <= instantWidth -> doSkip(false)
-            x >= mScreenWidth - instantWidth -> doSkip(true)
+            x <= instantWidth -> doubleTapSide(false)
+            x >= mScreenWidth - instantWidth -> doubleTapSide(true)
             else -> togglePlayPause()
         }
+    }
+
+    // with skipping off, a side plays and pauses like the middle
+    private fun doubleTapSide(forward: Boolean) {
+        if (config.allowVideoDoubleTapSkip) doSkip(forward) else togglePlayPause()
     }
 
     private fun resumeVideo() {
