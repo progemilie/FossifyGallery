@@ -118,3 +118,25 @@ fun Context.fullPhotoRequest(
 
     return Glide.with(this).load(path).apply(options)
 }
+
+/**
+ * The still a video's page shows until it plays, shared for the reason [fullPhotoRequest] is: the
+ * tap starts it so the flight is drawn sharp - the small first pass is a 320px frame, grainy at full
+ * size - and the page finds that work done only if it asks in exactly the same terms. Sized off
+ * the screen, like the photo.
+ */
+fun Context.videoStillRequest(
+    path: String,
+    signature: ObjectKey,
+    priority: Priority = Priority.IMMEDIATE
+): RequestBuilder<Drawable> {
+    val screen = realScreenSize
+    val options = RequestOptions()
+        .signature(signature)
+        .override(screen.x, screen.y)
+        .priority(priority)
+        .fitCenter()
+        .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+
+    return Glide.with(this).load(path).apply(options)
+}

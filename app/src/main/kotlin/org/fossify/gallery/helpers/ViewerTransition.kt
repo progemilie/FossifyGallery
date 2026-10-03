@@ -20,6 +20,7 @@ import org.fossify.gallery.adapters.MediaAdapter
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.fullPhotoRequest
 import org.fossify.gallery.extensions.lowResPhotoRequest
+import org.fossify.gallery.extensions.videoStillRequest
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.ThumbnailItem
 
@@ -149,8 +150,9 @@ object ViewerTransition {
      * Starts both pictures a flight is drawn with decoding at the tap rather than when the
      * flight wants them. The viewer is a good hundred milliseconds off being laid out, time
      * enough for the small copy to land first and the flight to set off already aimed at where
-     * the photo comes to rest; the photo itself follows it, usually while the flight is still in
-     * the air. It is also what the viewer binds a moment later, and so already decoded by then.
+     * the photo comes to rest; the photo itself - or a video's still - follows it, usually while
+     * the flight is still in the air. It is also what the viewer binds a moment later, and so
+     * already decoded by then.
      */
     private fun fetchFlightPictures(context: Context, medium: Medium) {
         flightPicture = null
@@ -181,10 +183,14 @@ object ViewerTransition {
         }
 
         keep(context.lowResPhotoRequest(medium.path, medium.getKey()), isFull = false)
-        // only what the viewer draws through Glide: a video, a GIF, an SVG or a WebP is decoded by
-        // something else, and this would be a whole picture decoded for nothing
-        if (medium.isImage() && !medium.path.isWebP()) {
-            keep(context.fullPhotoRequest(medium.path, medium.getKey(), priority = Priority.HIGH), isFull = true)
+        // only what the viewer draws through Glide: a GIF, an SVG or a WebP is decoded by something
+        // else, and this would be a whole picture decoded for nothing. A video's page shows a still
+        when {
+            medium.isImage() && !medium.path.isWebP() ->
+                keep(context.fullPhotoRequest(medium.path, medium.getKey(), priority = Priority.HIGH), isFull = true)
+
+            medium.isVideo() ->
+                keep(context.videoStillRequest(medium.path, medium.getKey(), priority = Priority.HIGH), isFull = true)
         }
     }
 

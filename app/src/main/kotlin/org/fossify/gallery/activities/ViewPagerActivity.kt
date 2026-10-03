@@ -286,7 +286,6 @@ class ViewPagerActivity :
     private val flight by lazy {
         TileFlight(
             activity = this,
-            overlay = TileFlight.overlayOver(this),
             stage = binding.viewPager,
             backdrops = {
                 listOfNotNull(
@@ -299,7 +298,9 @@ class ViewPagerActivity :
                 listOf(
                     binding.topShadow,
                     binding.mediumViewerAppbar,
-                    binding.bottomChrome
+                    binding.bottomChrome,
+                    // drawn over the flight like the rest, so a sheet left up would hide the photo shrinking
+                    binding.metadataSheetHolder.root
                 )
             },
             displayed = { getCurrentFragment()?.displayedMedia() }
@@ -735,13 +736,22 @@ class ViewPagerActivity :
         }
         viewerHeader.setFilename(mPath.getFilenameFromPath())
 
-        binding.viewPager.onGlobalLayout {
+        val buildPager = {
             if (!isDestroyed) {
                 if (mMediaFiles.isNotEmpty()) {
                     gotMedia(mMediaFiles as ArrayList<ThumbnailItem>, refetchViewPagerPosition = true)
                     checkSlideshowOnEnter()
                 }
             }
+        }
+
+        // an opening flight laid the pager out long ago and nothing is going to ask for another layout,
+        // so waiting for one left the pager unbuilt until the whole library had been read back in.
+        // Not posted either: a touch landing in between would find no pager to take it
+        if (binding.viewPager.isLaidOut) {
+            buildPager()
+        } else {
+            binding.viewPager.onGlobalLayout(buildPager)
         }
 
         // show the selected image asap, while loading the rest in the background to allow swiping between them. Might be needed at third party intents

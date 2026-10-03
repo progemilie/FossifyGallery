@@ -22,6 +22,7 @@ import androidx.fragment.app.FragmentActivity
 import org.fossify.gallery.extensions.screenRect
 import org.fossify.gallery.fragments.ViewPagerFragment
 import org.fossify.gallery.views.FlightOverlay
+import kotlin.math.abs
 import org.fossify.commons.R as commonsR
 
 /** The picture the viewer is showing this instant, and where on screen it is showing it. */
@@ -46,7 +47,6 @@ class DisplayedMedia(val rect: RectF, val image: Bitmap?)
  */
 class TileFlight(
     private val activity: Activity,
-    private val overlay: FlightOverlay,
     /** Where the fullscreen picture sits, and so the bounds a flight is measured inside. */
     private val stage: View,
     /** Everything painting over the grid, faded together so the grid comes back through. */
@@ -54,11 +54,14 @@ class TileFlight(
     /**
      * The bar, the strip and the buttons, faded in over the back half of a flight. Whatever a
      * screen names here has to be dressed before [enter] is called, or it fades in half filled.
+     * Drawn over the flight, as they are over the photo it becomes - see [overlayAbove].
      */
     chrome: () -> List<View>,
     /** What the viewer is drawing and where, once it is drawing anything. */
     private val displayed: () -> DisplayedMedia?
 ) {
+    private val overlay = overlayAbove(stage)
+
     private val scrim = Scrim(backdrops, chrome)
 
     private var animator: ValueAnimator? = null
@@ -233,9 +236,10 @@ class TileFlight(
         }
 
         // where the picture actually is, which is not where it was aimed if the photo turned up
-        // late and landed somewhere the flying thumbnail's proportions did not predict
+        // late and landed somewhere the flying thumbnail's proportions did not predict. A fraction
+        // of a pixel out is the two rounding the same proportions apart, not worth a correction
         val from = overlay.currentRect()
-        if (from == shown.rect) {
+        if (from.isWithinPixelOf(shown.rect)) {
             revealStage()
             return
         }
@@ -374,16 +378,20 @@ class TileFlight(
 
     companion object {
         /**
-         * Puts an overlay over the whole window, clear of the cutout padding the screens apply to
-         * their own content - a flight starts at a tile that may well be under the notch.
+         * Puts an overlay directly over [stage], under everything the screen draws over the photo.
+         * Laid over the whole window instead, a big picture covered the bar, the strip and the
+         * buttons until it landed.
+         *
+         * It covers the holder's padding too (see [FlightOverlay.layout]), so the holder must not
+         * clip to it: the screens pad their content clear of a notch, and a flight can start at a
+         * tile under one.
          */
-        fun overlayOver(activity: Activity): FlightOverlay {
-            return FlightOverlay(activity).apply {
+        private fun overlayAbove(stage: View): FlightOverlay {
+            val holder = stage.parent as ViewGroup
+            holder.clipToPadding = false
+            return FlightOverlay(stage.context).apply {
                 isInvisible = true
-                activity.findViewById<ViewGroup>(android.R.id.content).addView(
-                    this,
-                    ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-                )
+                holder.addView(this, holder.indexOfChild(stage) + 1, ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT))
             }
         }
 
@@ -478,6 +486,10 @@ private fun Activity.slideOutOnClose(finishNow: () -> Unit) {
         overridePendingTransition(0, commonsR.anim.slide_down)
     }
 }
+
+private fun RectF.isWithinPixelOf(other: RectF) =
+    abs(left - other.left) < 1f && abs(top - other.top) < 1f &&
+        abs(right - other.right) < 1f && abs(bottom - other.bottom) < 1f
 
 /** A rect [fraction] of the way from [from] to [to]. */
 private fun lerp(from: RectF, to: RectF, fraction: Float) = RectF(

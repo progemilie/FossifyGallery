@@ -10,7 +10,7 @@ row - see [the viewer in landscape](landscape-viewer.md).
 
 Read these before changing this feature — each can break silently if this one changes without it.
 
-- [viewer-transition](viewer-transition.md) — the chrome rides in with the flight, dressed before the pager exists.
+- [viewer-transition](viewer-transition.md) — the chrome rides in with the flight, dressed before the pager exists, and is drawn over it.
 - [video-player](video-player.md) — a playing video has the chrome go by itself, through `setFullScreen()`.
 - [landscape-viewer](landscape-viewer.md) — the top bar is laid out around the system bars as `ViewerSystemBars` has them, without the status bar in landscape.
 

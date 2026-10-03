@@ -2,17 +2,18 @@
 
 Tapping a photo grows that tile into the fullscreen one, and closing shrinks it back into whichever
 tile was swiped to. The grid stays drawn underneath the whole way, so the two windows read as one
-surface. The full viewer, the peek viewer and `PhotoVideoActivity` all fly this way.
+surface. The full viewer, the peek viewer and the separate video player (`VideoPlayerActivity`) all
+fly this way.
 
 ## Coupled with
 
 Read these before changing this feature — each can break silently if this one changes without it.
 
 - [thumbnails](thumbnails.md) — the tap preloads the viewer's own requests; any change to them has to keep the two identical.
-- [viewer-chrome](viewer-chrome.md) — the chrome is dressed from the medium named before the flight (`aimAtOpeningMedium`).
+- [viewer-chrome](viewer-chrome.md) — the chrome is dressed from the medium named before the flight (`aimAtOpeningMedium`), and drawn over the flight.
 - [peek-viewer](peek-viewer.md) — the peek flies the same way.
 - [thumbnail-strip](thumbnail-strip.md) — the strip is dressed before the flight lands.
-- [video-player](video-player.md) — a video's frame strip stops reading in `onViewerClosing()`.
+- [video-player](video-player.md) — a video's page binds the still the tap prefetches (`videoStillRequest`), and its frame strip stops reading in `onViewerClosing()`.
 
 ## Where it lives
 
@@ -20,12 +21,12 @@ Read these before changing this feature — each can break silently if this one 
 |---|---|
 | `helpers/ViewerTransition.kt` | The hand-off between the two activities: the tile's rect, the flight pictures, the grid left registered as the `Anchor` |
 | `helpers/TileFlight.kt` | The viewer's half: `enter()` grows, `finishThrough()` shrinks, `holdWindowStill()` |
-| `views/FlightOverlay.kt` | The picture in flight: rect and crop moved together |
+| `views/FlightOverlay.kt` | The picture in flight, laid just over the stage: rect and crop moved together |
 | `adapters/MediaGridNavigator.kt` | `locateTile()` — the grid's answer to "where is the tile for this path" |
 | `helpers/ViewerReturn.kt` | Puts the grid back onto the item the viewer was left on, unless a photo shrank back into its tile |
 | `helpers/ViewerLaunchGuard.kt` | One tap opens one viewer |
 | `helpers/ViewerOpening.kt` | A flick down while a photo is still opening closes it; `DownFlick` |
-| `extensions/Glide.kt` | `lowResPhotoRequest()` / `fullPhotoRequest()` — what the viewer paints with |
+| `extensions/Glide.kt` | `lowResPhotoRequest()` / `fullPhotoRequest()` / `videoStillRequest()` — what the viewer paints with |
 | `res/anim/viewer_hold.xml`, `ViewerTheme` | The no-motion window animation, the translucent theme |
 
 Constants: `FLIGHT_GROW_MS` (220), `FLIGHT_SHRINK_MS` (220), `FLIGHT_CHROME_IN`,
@@ -48,6 +49,11 @@ back to its pool on the next rebind.
 started is the work the pager finds done rather than a second decode. The full one is sized off the
 screen rather than off the view it lands in, a preload having no view to read.
 
+**A video flies with the still its page shows** (`videoStillRequest()`), started at the tap beside
+the small copy, which for a video is a 320px frame and grainy at full size. The page asked for its
+still only once the pager was built, so a video used to fly grainy the whole way and sharpen on
+landing.
+
 **A flight is measured against the photo, never the screen** (`landing()`): a fitted photo often
 covers little more than half the screen, and a flight sized by the screen overruns it and is yanked
 back.
@@ -56,6 +62,12 @@ back.
 other. It is never GONE, only INVISIBLE, since a flight is set up against its position on screen. A
 close that comes before the viewer has taken over — the tile still growing, or its photo still
 awaited — turns the overlay's picture round from wherever it has got to.
+
+**The overlay is laid directly over the stage** (`overlayAbove()`), so the bar, the strip and the
+buttons are drawn over a flight as they are over the photo; laid over the whole window, a big picture
+covered them until it landed. It still takes the holder's whole area, padding included
+(`FlightOverlay.layout()`), and the holder is set not to clip to its padding: with "show notch" off
+the screens pad their content clear of the cutout, and a flight can start at a tile under it.
 
 ## The two directions
 
@@ -66,6 +78,22 @@ dropped frames. So the screen's setup is handed to `enter()` and built once the 
 the pager waits, since the flight is already drawing what the viewer will draw, where it will draw
 it. The medium is named before the flight (`aimAtOpeningMedium()`), so the bar, strip and buttons can
 ride in on `FLIGHT_CHROME_IN` dressed for the right file.
+
+**Until the pager is built, the viewer takes no gesture but the flick down**, so it is built in the
+very frame the flight lands, and its photo bound as its page is made:
+
+- `initContinue()` waited for the pager's next layout pass, as upstream did when it built the pager
+  in `onCreate`. A flight has laid the pager out long before it lands and nothing asks for another
+  layout, so the pager went unbuilt until `GetMediaAsynctask` had read the whole library back in.
+  Nor is the build posted: a touch landing in between found no pager and was lost.
+- `PhotoFragment.loadImage()` binds the picture before the Exif orientation is read, which only the
+  zoomable layer needs. Read first, off the main thread, the bind of a photo already decoded queued
+  behind the pages' first layout, and a touch made meanwhile reached a view with nothing in it.
+
+A swipe begun as the photo lands is then taken, if a little late: the pages take a moment to be made
+and laid out (~150ms on the emulator), and the touch waits for them rather than being lost. The
+zoomable layer's own delay now runs inside that time, so a pinch works about as soon as the photo is
+handed over.
 
 ## Flicking away a photo that is still opening
 
@@ -92,10 +120,11 @@ timed by that reads as a slow drag.
 ## A close stops the viewer
 
 The close people make most is a photo looked at and flicked away, and it comes while the viewer is
-still setting up. `ViewPagerActivity` builds its pager only once `GetMediaAsynctask` has read the
-whole library back in — later the bigger the library — and after that the pages either side and the
-zoomable layer load. All of it runs on the main thread, and whatever lands during a shrink freezes it
-for as long as it takes. So a close has the viewer do nothing more (`stopStage()` in `TileFlight.kt`):
+still setting up: the pages either side and the zoomable layer load once the flight lands, and
+`GetMediaAsynctask` reads the whole library back in — later the bigger the library — and rebuilds the
+pager if the list has changed. All of it runs on the main thread, and whatever lands during a shrink
+freezes it for as long as it takes. So a close has the viewer do nothing more (`stopStage()` in
+`TileFlight.kt`):
 
 - The stage is hidden (`INVISIBLE`) rather than left faded out, since a faded view still uploads
   every picture that finishes decoding in it. Not `GONE`, which would lay the whole screen out again
@@ -143,3 +172,9 @@ And:
   (`dropWhenDestroyed`), or a stale grid answers for the next viewer.
 - `PhotoFragment` reports no rect until something is drawn; reporting the view's whole bounds made
   a flight land and then stretch to the screen.
+- **Whatever is drawn over the stage is drawn over a flight too.** A panel still up as the viewer
+  closes hides the photo shrinking under it unless it fades with the chrome, which is why the
+  metadata sheet is in `ViewPagerActivity`'s chrome list.
+- The pager is built in the frame the flight lands, never on a layout pass or a post — see [the two
+  directions](#the-two-directions). `PhotoFragment`'s zoomable layer turns the photo by an
+  orientation the picture no longer waits for, so it waits for it itself (`mIsOrientationRead`).
