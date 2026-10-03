@@ -109,6 +109,7 @@ val VIEWER_MENU = MenuSpec(
                 MenuIcon(R.id.menu_mirror, R.drawable.ic_flip_horizontally_vector),
                 MenuIcon(R.id.menu_edit, commonsR.drawable.ic_edit_vector),
                 MenuIcon(R.id.menu_resize, R.drawable.ic_minimize_vector),
+                MenuIcon(R.id.menu_rating, commonsR.drawable.ic_star_outline_vector),
             ),
             // above save-as: switching tabs is somewhere to go rather than something done to the
             // file, so it competes with none of the file operations under it
@@ -122,6 +123,7 @@ val VIEWER_MENU = MenuSpec(
                 // rather than following the delete that ends it
                 MenuIcon(R.id.menu_show_thumbnail_strip, R.drawable.ic_thumbnail_strip_vector),
                 MenuIcon(R.id.menu_hide_thumbnail_strip, R.drawable.ic_thumbnail_strip_off_vector),
+                MenuIcon(R.id.menu_properties, commonsR.drawable.ic_info_vector),
                 MenuIcon(R.id.menu_add_to_favorites, R.drawable.ic_heart_outline_vector),
                 MenuIcon(R.id.menu_remove_from_favorites, commonsR.drawable.ic_heart_vector),
                 MenuIcon(R.id.menu_hide, commonsR.drawable.ic_hide_vector),

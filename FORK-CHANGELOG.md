@@ -9,6 +9,8 @@ Notable fork-only changes.
 - **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with
   adjustable spacing and an optional folder size on the details line.
 - **Settings can be searched**: type a setting's name to find it and jump straight to it.
+- **Redesigned video player**
+- **Added viewer landscape layout**: the viewer layout is now cleaner in landscape mode.
 ### Changed
 - Pinching the photo grid zooms smoothly.
 - The details at the top of a photo are more compact.
@@ -28,13 +30,13 @@ Notable fork-only changes.
 - The folder grid offers only as many columns as fit the screen — five on a phone — rather than
   up to twenty.
 - Sorting and grouping by rating works like any other sorting now.
+- The thumbnail strip under a photo marks videos with a small triangle.
 ### Fixed
 - Fixed a photo opening soft — the picture the tile grows into is now the photo itself rather than
   a thumbnail of it, so it is sharp the moment the viewer arrives.
 - Fixed peek buttons and group ticks staying on a tile after a selection had ended.
 - Fixed holding and dragging to select more pictures not working when the hold started on a peek button.
 - Fixed two photos opening on top of each other when two thumbnails were tapped at once.
-- Fixed a quick swipe down on a photo sometimes being ignored while it was still loading.
 - Fixed a photo swiped away straight after opening stuttering as it shrank back into its thumbnail.
 - Fixed the grid jumping to a photo near the top or bottom of the screen that was closed straight
   after opening it.

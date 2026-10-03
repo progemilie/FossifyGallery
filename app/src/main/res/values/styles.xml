@@ -100,6 +100,36 @@
         <item name="android:textSize">@dimen/bigger_text_size</item>
     </style>
 
+    <style name="VideoTime">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:shadowColor">@color/default_background_color</item>
+        <item name="android:shadowRadius">2</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textSize">@dimen/normal_text_size</item>
+    </style>
+
+    <style name="VideoToggle">
+        <item name="android:layout_width">@dimen/video_toggle_size</item>
+        <item name="android:layout_height">@dimen/video_toggle_size</item>
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+        <item name="android:padding">@dimen/video_toggle_padding</item>
+    </style>
+
+    <style name="VideoSeekHint">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:alpha">0</item>
+        <item name="android:background">@drawable/playback_pill_background</item>
+        <item name="android:drawablePadding">@dimen/tiny_margin</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingHorizontal">@dimen/activity_margin</item>
+        <item name="android:paddingVertical">@dimen/medium_margin</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textSize">@dimen/normal_text_size</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
     <style name="CustomBottomSheetDialogTheme" parent="Theme.Design.Light.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/CustomBottomSheetStyle</item>
     </style>

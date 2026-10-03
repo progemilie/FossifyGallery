@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.view.MenuItem
 import android.view.View
 import androidx.core.graphics.drawable.toDrawable
 import com.google.android.material.appbar.AppBarLayout
@@ -44,13 +45,11 @@ import org.fossify.gallery.BuildConfig
 import org.fossify.gallery.R
 import org.fossify.gallery.databinding.FragmentHolderBinding
 import org.fossify.gallery.extensions.config
-import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.openEditor
 import org.fossify.gallery.extensions.openPath
 import org.fossify.gallery.extensions.setAs
 import org.fossify.gallery.extensions.sharePath
 import org.fossify.gallery.extensions.showFileOnMap
-import org.fossify.gallery.extensions.showSystemUI
 import org.fossify.gallery.fragments.PhotoFragment
 import org.fossify.gallery.fragments.VideoFragment
 import org.fossify.gallery.fragments.ViewPagerFragment
@@ -59,6 +58,7 @@ import org.fossify.gallery.helpers.BOTTOM_ACTION_PROPERTIES
 import org.fossify.gallery.helpers.BOTTOM_ACTION_SET_AS
 import org.fossify.gallery.helpers.BOTTOM_ACTION_SHARE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_SHOW_ON_MAP
+import org.fossify.gallery.helpers.BottomActionsPlacement
 import org.fossify.gallery.helpers.IS_IN_RECYCLE_BIN
 import org.fossify.gallery.helpers.IS_VIEW_INTENT
 import org.fossify.gallery.helpers.MEDIUM
@@ -72,7 +72,6 @@ import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.TYPE_VIDEOS
 import org.fossify.gallery.helpers.ViewerHeader
-import org.fossify.gallery.helpers.applyBottomActionsOrder
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.views.MetadataSheet
 import java.io.File
@@ -91,6 +90,12 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
 
     private val viewerHeader by lazy { ViewerHeader(this, binding.viewerHeader) }
 
+    private val actionsPlacement by lazy {
+        BottomActionsPlacement(binding.bottomActions, binding.fragmentViewerToolbar, binding.viewerHeader.root) {
+            refreshMenuItems()
+        }
+    }
+
     private val metadataSheet: MetadataSheet
         get() = binding.metadataSheetHolder.metadataSheet
 
@@ -103,12 +108,16 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
     override val isPanelCoveringNavigationBar: Boolean
         get() = metadataSheet.isSheetVisible
 
+    override val hasLandscapeLayout = true
+
+    override val isChromeShown: Boolean
+        get() = !mIsFullScreen
+
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        setupEdgeToEdge(
-            padBottomSystem = listOf(binding.bottomActions.bottomActionsWrapper),
-        )
+        setupEdgeToEdge()
+        actionsPlacement.placeInTopRow(isInLandscapeLayout)
         if (checkAppSideloading()) {
             return
         }
@@ -135,10 +144,23 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
         initBottomActionsLayout()
     }
 
+    override fun onLandscapeLayoutChanged() = actionsPlacement.placeInTopRow(isInLandscapeLayout)
+
+    override fun isBottomActionBarAtFoot() = config.bottomActions && !actionsPlacement.isInTopRow
+
     fun refreshMenuItems() {
-        val visibleBottomActions = if (config.bottomActions) config.visibleBottomActions else 0
+        // actions squeezed out of the top row go in the menu
+        val overflowedActions = actionsPlacement.overflowed
+        val turnedOnBottomActions = if (config.bottomActions) config.visibleBottomActions else 0
+        val visibleBottomActions = turnedOnBottomActions and overflowedActions.inv()
 
         binding.fragmentViewerToolbar.menu.apply {
+            actionsPlacement.keepOverflowedInMenu(
+                this,
+                mapOf(R.id.menu_share to BOTTOM_ACTION_SHARE, R.id.menu_edit to BOTTOM_ACTION_EDIT),
+                MenuItem.SHOW_AS_ACTION_ALWAYS
+            )
+
             findItem(R.id.menu_set_as).isVisible = mMedium?.isImage() == true && visibleBottomActions and BOTTOM_ACTION_SET_AS == 0
             findItem(R.id.menu_edit).isVisible = mMedium?.isImage() == true && mUri?.scheme == "file" && visibleBottomActions and BOTTOM_ACTION_EDIT == 0
             findItem(R.id.menu_properties).isVisible = mUri?.scheme == "file" && visibleBottomActions and BOTTOM_ACTION_PROPERTIES == 0
@@ -249,7 +271,7 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
             }
         }
 
-        showSystemUI()
+        systemBars.update(chromeShown = true)
         val bundle = Bundle()
         val file = File(mUri.toString())
         val intentType = intent.type ?: ""
@@ -400,7 +422,7 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
 
     private fun initBottomActionsLayout() {
         if (config.bottomActions) {
-            binding.bottomActions.applyBottomActionsOrder(config.bottomActionsOrder)
+            actionsPlacement.applyOrder(config.bottomActionsOrder)
             binding.bottomActions.root.beVisible()
         } else {
             binding.bottomActions.root.beGone()
@@ -472,7 +494,7 @@ open class PhotoVideoActivity : BaseViewerActivity(), ViewPagerFragment.Fragment
         }
 
         mIsFullScreen = fullScreen
-        if (mIsFullScreen) hideSystemUI() else showSystemUI()
+        systemBars.update(!mIsFullScreen)
         mFragment?.fullscreenToggled(mIsFullScreen)
 
         val newAlpha = if (mIsFullScreen) 0f else 1f

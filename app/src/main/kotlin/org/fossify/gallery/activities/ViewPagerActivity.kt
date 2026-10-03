@@ -22,6 +22,8 @@ import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.os.Handler
 import android.provider.MediaStore
+import android.view.Menu
+import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -30,7 +32,6 @@ import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat.Type
 import androidx.core.view.updateLayoutParams
 import androidx.exifinterface.media.ExifInterface
 import androidx.print.PrintHelper
@@ -75,7 +76,6 @@ import org.fossify.commons.extensions.isPortrait
 import org.fossify.commons.extensions.isRawFast
 import org.fossify.commons.extensions.isSvg
 import org.fossify.commons.extensions.isVideoFast
-import org.fossify.commons.extensions.isVisible
 import org.fossify.commons.extensions.needsStupidWritePermissions
 import org.fossify.commons.extensions.onGlobalLayout
 import org.fossify.commons.extensions.recycleBinPath
@@ -115,7 +115,6 @@ import org.fossify.gallery.extensions.getFavoritePaths
 import org.fossify.gallery.extensions.getQuickChooserFolders
 import org.fossify.gallery.extensions.getShortcutImage
 import org.fossify.gallery.extensions.handleMediaManagementPrompt
-import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.isDownloadsFolder
 import org.fossify.gallery.extensions.launchResizeImageDialog
 import org.fossify.gallery.extensions.launchSettings
@@ -129,7 +128,6 @@ import org.fossify.gallery.extensions.saveRotatedImageToFile
 import org.fossify.gallery.extensions.setAs
 import org.fossify.gallery.extensions.shareMediumPath
 import org.fossify.gallery.extensions.showFileOnMap
-import org.fossify.gallery.extensions.showSystemUI
 import org.fossify.gallery.extensions.toggleFileVisibility
 import org.fossify.gallery.extensions.tryCopyMoveFilesTo
 import org.fossify.gallery.extensions.tryDeleteFileDirItem
@@ -141,6 +139,7 @@ import org.fossify.gallery.fragments.PhotoFragment
 import org.fossify.gallery.fragments.VideoFragment
 import org.fossify.gallery.fragments.ViewPagerFragment
 import org.fossify.gallery.helpers.BOTTOM_ACTION_CHANGE_ORIENTATION
+import org.fossify.gallery.helpers.BottomActionsPlacement
 import org.fossify.gallery.helpers.BOTTOM_ACTION_COPY
 import org.fossify.gallery.helpers.BOTTOM_ACTION_DELETE
 import org.fossify.gallery.helpers.BOTTOM_ACTION_EDIT
@@ -163,7 +162,6 @@ import org.fossify.gallery.helpers.TileFlight
 import org.fossify.gallery.helpers.ViewerOpening
 import org.fossify.gallery.helpers.DefaultPageTransformer
 import org.fossify.gallery.helpers.TabSwitcher
-import org.fossify.gallery.helpers.applyBottomActionsOrder
 import org.fossify.gallery.helpers.FadePageTransformer
 import org.fossify.gallery.helpers.GO_TO_NEXT_ITEM
 import org.fossify.gallery.helpers.GO_TO_PREV_ITEM
@@ -203,6 +201,7 @@ import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.TabLocation
 import org.fossify.gallery.models.TabScreen
 import org.fossify.gallery.models.ThumbnailItem
+import org.fossify.gallery.views.ChromeAutoHide
 import org.fossify.gallery.views.GlassMenu
 import org.fossify.gallery.views.MetadataSheet
 import org.fossify.gallery.views.QuickFolder
@@ -221,6 +220,9 @@ class ViewPagerActivity :
     companion object {
         private const val REQUEST_VIEW_VIDEO = 1
         private const val SAVED_PATH = "current_path"
+
+        /** The strip stepping aside for a video's frames, or back. */
+        private const val STRIP_SWAP_MS = 150L
     }
 
     private var mPath = ""
@@ -266,8 +268,16 @@ class ViewPagerActivity :
 
     private val viewerHeader by lazy { ViewerHeader(this, binding.viewerHeader) }
 
+    private val actionsPlacement by lazy {
+        BottomActionsPlacement(binding.bottomActions, binding.mediumViewerToolbar, binding.viewerHeader.root) {
+            refreshMenuItems()
+        }
+    }
+
     private val metadataSheet: MetadataSheet
         get() = binding.metadataSheetHolder.metadataSheet
+
+    private val chromeAutoHide by lazy { ChromeAutoHide(binding.fragmentHolder) { hideChromeOverVideo() } }
 
     /**
      * The tile this screen grew out of, and the tile it shrinks back into. Everything it fades is
@@ -305,6 +315,11 @@ class ViewPagerActivity :
     override val isPanelCoveringNavigationBar: Boolean
         get() = metadataSheet.isSheetVisible
 
+    override val hasLandscapeLayout = true
+
+    override val isChromeShown: Boolean
+        get() = !mIsFullScreen
+
     /**
      * Makes sure the fragment under the finger sees a whole flick, which the view it started on
      * cannot be relied on to deliver. Two ways a gesture goes missing:
@@ -326,6 +341,7 @@ class ViewPagerActivity :
         // before any of this exists: the pager is only built once the opening flight lands
         ViewerOpening.watchViewer(this, ev, flight)
 
+        chromeAutoHide.onTouchEvent(ev)
         if (ev.actionMasked == MotionEvent.ACTION_DOWN) {
             mPagerTookGesture = mPagerScrollState != ViewPager.SCROLL_STATE_IDLE
         }
@@ -357,9 +373,9 @@ class ViewPagerActivity :
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        setupEdgeToEdge(
-            padBottomSystem = listOf(binding.bottomActions.bottomActionsWrapper),
-        )
+        setupEdgeToEdge()
+        // before the flight, so the bar fades in where it belongs
+        actionsPlacement.placeInTopRow(isInLandscapeLayout)
 
         setupOptionsMenu()
         setupThumbnailStrip()
@@ -459,11 +475,25 @@ class ViewPagerActivity :
     fun refreshMenuItems() {
         val currentMedium = getCurrentMedium() ?: return
         currentMedium.isFavorite = mFavoritePaths.contains(currentMedium.path)
-        val visibleBottomActions = if (config.bottomActions) config.visibleBottomActions else 0
+        val turnedOnBottomActions = if (config.bottomActions) config.visibleBottomActions else 0
+        // actions squeezed out of the top row go in the menu
+        val overflowedActions = actionsPlacement.overflowed
+        val visibleBottomActions = turnedOnBottomActions and overflowedActions.inv()
 
         runOnUiThread {
             val rotationDegrees = getCurrentPhotoFragment()?.mCurrentRotationDegrees ?: 0
             binding.mediumViewerToolbar.menu.apply {
+                // kept in the menu while squeezed out, rather than becoming toolbar buttons
+                actionsPlacement.keepOverflowedInMenu(
+                    this,
+                    mapOf(
+                        R.id.menu_switch_tab to BOTTOM_ACTION_TABS,
+                        R.id.menu_mirror to BOTTOM_ACTION_MIRROR,
+                        R.id.menu_add_to_favorites to BOTTOM_ACTION_TOGGLE_FAVORITE,
+                        R.id.menu_remove_from_favorites to BOTTOM_ACTION_TOGGLE_FAVORITE,
+                    ),
+                    MenuItem.SHOW_AS_ACTION_IF_ROOM
+                )
                 findItem(R.id.menu_switch_tab).apply {
                     isVisible = config.tabsEnabled
                             && !isExternalIntent()
@@ -511,9 +541,13 @@ class ViewPagerActivity :
                 findItem(R.id.menu_restore_file).isVisible = currentMedium.path.startsWith(recycleBinPath)
                 findItem(R.id.menu_create_shortcut).isVisible = true
                 findItem(R.id.menu_change_orientation).isVisible = rotationDegrees == 0 && visibleBottomActions and BOTTOM_ACTION_CHANGE_ORIENTATION == 0
+                // otherwise reached only from the bar
+                findItem(R.id.menu_rating).isVisible =
+                    overflowedActions and BOTTOM_ACTION_RATING != 0 && canRate(currentMedium)
+                findItem(R.id.menu_properties).isVisible = overflowedActions and BOTTOM_ACTION_PROPERTIES != 0
             }
 
-            if (visibleBottomActions != 0) {
+            if (turnedOnBottomActions != 0) {
                 updateBottomActionIcons(currentMedium)
             }
         }
@@ -547,8 +581,9 @@ class ViewPagerActivity :
                 R.id.menu_rename -> checkMediaManagementAndRename()
                 R.id.menu_print -> printFile()
                 R.id.menu_edit -> openEditor(getCurrentPath())
-                // gone from the drop-down - reached by its bottom bar button, or the metadata sheet
+                // only in the menu when squeezed out of the landscape top row
                 R.id.menu_properties -> showProperties()
+                R.id.menu_rating -> showRatingDialog()
                 R.id.menu_show_on_map -> showFileOnMap(getCurrentPath())
                 R.id.menu_rotate_right -> rotateImage(90)
                 R.id.menu_rotate_left -> rotateImage(-90)
@@ -599,6 +634,10 @@ class ViewPagerActivity :
         super.onConfigurationChanged(newConfig)
         initBottomActionsLayout()
     }
+
+    override fun onLandscapeLayoutChanged() = actionsPlacement.placeInTopRow(isInLandscapeLayout)
+
+    override fun isBottomActionBarAtFoot() = config.bottomActions && !actionsPlacement.isInTopRow
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
@@ -661,7 +700,7 @@ class ViewPagerActivity :
             return
         }
 
-        showSystemUI()
+        systemBars.update(chromeShown = true)
 
         if (intent.getBooleanExtra(SKIP_AUTHENTICATION, false)) {
             initContinue()
@@ -794,6 +833,7 @@ class ViewPagerActivity :
             binding.viewerThumbnailStrip.setMedia(media, mPos)
             // onPageSelected does not fire for the page the pager opens on
             flight.onPathChanged(getCurrentPath())
+            updateThumbnailStrip(animate = false)
         }
     }
 
@@ -817,7 +857,7 @@ class ViewPagerActivity :
                         binding.viewPager.setPageTransformer(false, FadePageTransformer())
                     }
 
-                    hideSystemUI()
+                    systemBars.update(chromeShown = false)
                     if (!mIsFullScreen) {
                         mIsFullScreen = true
                         fullscreenToggled()
@@ -914,7 +954,7 @@ class ViewPagerActivity :
         if (mIsSlideshowActive) {
             binding.viewPager.setPageTransformer(false, DefaultPageTransformer())
             mIsSlideshowActive = false
-            showSystemUI()
+            systemBars.update(chromeShown = true)
             mSlideshowHandler.removeCallbacksAndMessages(null)
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             mAreSlideShowMediaVisible = false
@@ -1213,13 +1253,13 @@ class ViewPagerActivity :
 
     private fun initBottomActionsLayout() {
         if (config.bottomActions) {
-            binding.bottomActions.applyBottomActionsOrder(config.bottomActionsOrder)
+            actionsPlacement.applyOrder(config.bottomActionsOrder)
             binding.bottomActions.root.beVisible()
         } else {
             binding.bottomActions.root.beGone()
         }
 
-        binding.viewerThumbnailStrip.beVisibleIf(config.showThumbnailStrip)
+        updateThumbnailStrip(animate = false)
         binding.viewerThumbnailStrip.requestApplyInsets()
     }
 
@@ -1229,10 +1269,39 @@ class ViewPagerActivity :
      */
     private fun toggleThumbnailStrip() {
         config.showThumbnailStrip = !config.showThumbnailStrip
-        binding.viewerThumbnailStrip.beVisibleIf(config.showThumbnailStrip)
+        updateThumbnailStrip(animate = false)
         // the strip and the bottom actions share the space above the navigation bar
         binding.viewerThumbnailStrip.requestApplyInsets()
         refreshMenuItems()
+    }
+
+    /**
+     * Puts the strip away on a video's page, where its frames stand in - INVISIBLE, so nothing around
+     * it moves. A strip being scrolled stays until it settles.
+     */
+    private fun updateThumbnailStrip(animate: Boolean = true) {
+        val strip = binding.viewerThumbnailStrip
+        if (!config.showThumbnailStrip) {
+            strip.animate().cancel()
+            strip.beGone()
+            return
+        }
+
+        val showsVideo = getCurrentMedium()?.isVideo() == true && !config.gestureVideoPlayer && !strip.isUserScrolling
+        val alpha = if (showsVideo) 0f else 1f
+        strip.animate().cancel()
+        if (!animate) {
+            strip.alpha = alpha
+            strip.visibility = if (showsVideo) View.INVISIBLE else View.VISIBLE
+            return
+        }
+
+        strip.beVisible()
+        strip.animate().alpha(alpha).setDuration(STRIP_SWAP_MS).withEndAction {
+            if (showsVideo) {
+                strip.visibility = View.INVISIBLE
+            }
+        }.start()
     }
 
     private fun setupThumbnailStrip() {
@@ -1242,16 +1311,21 @@ class ViewPagerActivity :
             }
         }
 
+        binding.viewerThumbnailStrip.onUserScrollEnded = { updateThumbnailStrip() }
+
         ViewCompat.setOnApplyWindowInsetsListener(binding.viewerThumbnailStrip) { view, insets ->
-            val systemBottom = insets.getInsetsIgnoringVisibility(Type.systemBars()).bottom
+            val sides = systemBars.sideInsets(insets)
             view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                // the same sides as the video's frames, so the two line up
+                leftMargin = sides.left
+                rightMargin = sides.right
                 // the thumbnails already reach the bottom of the strip, so the only space left
                 // between them and the buttons is the bar's own padding above them - the strip is
                 // let down into it rather than made to sit a whole gap clear of the bar
-                bottomMargin = if (binding.bottomActions.root.isVisible()) {
+                bottomMargin = if (isBottomActionBarAtFoot()) {
                     -resources.getDimensionPixelSize(R.dimen.viewer_strip_drop_into_actions)
                 } else {
-                    systemBottom
+                    systemBars.footInset(insets)
                 }
             }
             insets
@@ -1380,6 +1454,7 @@ class ViewPagerActivity :
             onOpen = {
                 val medium = getCurrentMedium()
                 medium?.let { binding.ratingChooser.rating = it.rating }
+                binding.ratingChooser.dropsBelow = actionsPlacement.isInTopRow
                 medium != null
             },
             onChosen = { applyRating(binding.ratingChooser.rating) }
@@ -1415,6 +1490,7 @@ class ViewPagerActivity :
                 if (mQuickChooserFolders.isEmpty()) {
                     false
                 } else {
+                    binding.folderChooser.dropsBelow = actionsPlacement.isInTopRow
                     binding.folderChooser.setFolders(mQuickChooserFolders)
                     true
                 }
@@ -1479,18 +1555,18 @@ class ViewPagerActivity :
 
         button.setImageDrawable(tabBadge())
         button.setOnClickListener { TabSwitcher.quickSwitch(this, this) }
-        button.holdToChooseTab(dropsBelow = false)
+        button.holdToChooseTab { actionsPlacement.isInTopRow }
     }
 
     /**
-     * The hold both of the viewer's tab buttons answer with the same list. [dropsBelow] is which way
-     * it opens: the bottom bar's button has it above, the toolbar's under.
+     * The list both tab buttons hold open. [dropsBelow] is asked on every hold, as the bar's button
+     * moves between the foot and the landscape top row.
      */
-    private fun View.holdToChooseTab(dropsBelow: Boolean) {
+    private fun View.holdToChooseTab(dropsBelow: () -> Boolean) {
         holdToChoose(
             chooser = binding.tabChooser,
             onOpen = {
-                binding.tabChooser.dropsBelow = dropsBelow
+                binding.tabChooser.dropsBelow = dropsBelow()
                 binding.tabChooser.fillFromTabs()
                 true
             },
@@ -1520,7 +1596,7 @@ class ViewPagerActivity :
 
             mBoundTabMenuView = view
             // a tap still goes through performClick, which is how the toolbar invokes the item
-            view.holdToChooseTab(dropsBelow = true)
+            view.holdToChooseTab { true }
         }
     }
 
@@ -1973,6 +2049,24 @@ class ViewPagerActivity :
 
     override fun zoomChanged(isZoomedIn: Boolean) = setFullScreen(isZoomedIn)
 
+    override fun videoStarted() = chromeAutoHide.restart()
+
+    // not while the sheet, the menu or a dialog is up
+    private fun hideChromeOverVideo() {
+        val isPlaying = (getCurrentFragment() as? VideoFragment)?.mIsPlaying == true
+        if (isPlaying && !metadataSheet.isSheetVisible && hasWindowFocus()) {
+            setFullScreen(true)
+        }
+    }
+
+    // a menu or dialog closing leaves no touch to restart the wait
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            chromeAutoHide.restart()
+        }
+    }
+
     private fun setFullScreen(fullScreen: Boolean) {
         if (mIsFullScreen == fullScreen) {
             return
@@ -1986,6 +2080,9 @@ class ViewPagerActivity :
     override fun videoEnded(): Boolean {
         if (mIsSlideshowActive) {
             swipeToNextMedium()
+        } else {
+            // the chrome may have gone while it played
+            setFullScreen(false)
         }
         return mIsSlideshowActive
     }
@@ -2032,12 +2129,11 @@ class ViewPagerActivity :
     }
 
     private fun checkSystemUI() {
-        if (mIsFullScreen) {
-            hideSystemUI()
-        } else {
+        if (!mIsFullScreen) {
             stopSlideshow()
-            showSystemUI()
         }
+
+        systemBars.update(!mIsFullScreen)
     }
 
     private fun fullscreenToggled() {
@@ -2098,6 +2194,7 @@ class ViewPagerActivity :
             updateHeader()
             refreshMenuItems()
             binding.viewerThumbnailStrip.setSelectedPosition(position)
+            updateThumbnailStrip()
             scheduleSwipe()
             flight.onPathChanged(getCurrentPath())
             // showing everything at once means the folder swiped to may not be the one swiped from,

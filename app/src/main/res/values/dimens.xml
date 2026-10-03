@@ -62,6 +62,21 @@
     <dimen name="play_outline_size_big">96dp</dimen>
     <dimen name="tmb_shadow_height">70dp</dimen>
     <dimen name="media_side_slider_width">60dp</dimen>
+
+    <dimen name="video_play_button_size">72dp</dimen>
+    <dimen name="video_play_button_padding">18dp</dimen>
+    <dimen name="video_toggle_size">40dp</dimen>
+    <dimen name="video_toggle_padding">9dp</dimen>
+    <dimen name="video_controls_margin">16dp</dimen>
+    <dimen name="video_scrubber_height">56dp</dimen>
+    <dimen name="video_scrubber_padding">8dp</dimen>
+    <dimen name="video_scrubber_radius">8dp</dimen>
+    <dimen name="video_scrubber_playhead_width">4dp</dimen>
+    <dimen name="video_scrubber_playhead_overhang">4dp</dimen>
+    <dimen name="video_scrubber_line_height">4dp</dimen>
+    <dimen name="video_scrubber_line_rim">1dp</dimen>
+    <dimen name="video_scrubber_handle_radius">6dp</dimen>
+    <dimen name="video_seek_hint_offset">72dp</dimen>
     <dimen name="video_player_play_pause_size">60dp</dimen>
     <dimen name="video_player_button_width">68dp</dimen>
     <dimen name="list_view_folder_thumbnail_size">72dp</dimen>
@@ -137,8 +152,7 @@
     <!-- how far the list is held to the side of the button it hangs off, so that the finger holding
          that button down rests beside the numbers rather than over them -->
     <dimen name="tab_chooser_finger_clearance">20dp</dimen>
-    <!-- how far under the button the list hangs, where it hangs rather than opening upwards -->
-    <dimen name="tab_chooser_drop_gap">8dp</dimen>
+    <dimen name="chooser_drop_gap">8dp</dimen>
     <!-- the rounded square the viewer's tab button wears, with the current tab number inside it -->
     <dimen name="tab_badge_size">24dp</dimen>
     <!-- the search bar's button draws the square a shade smaller, to sit inside its glass circle -->
@@ -151,10 +165,8 @@
     <dimen name="viewer_strip_thumbnail_width">35dp</dimen>
     <dimen name="viewer_strip_thumbnail_height">40dp</dimen>
     <dimen name="viewer_strip_thumbnail_radius">5dp</dimen>
-    <!-- the thumbnail plus the widest gap, which is the one beside the middle thumbnail; the gaps
-         close towards viewer_strip_gap_tight from there outwards. See ViewerThumbnailStrip -->
-    <dimen name="viewer_strip_item_width">41dp</dimen>
-    <dimen name="viewer_strip_gap_tight">1dp</dimen>
+    <!-- edge to edge: the gaps come from shrinking the thumbnails off the middle -->
+    <dimen name="viewer_strip_item_width">@dimen/viewer_strip_thumbnail_width</dimen>
     <dimen name="viewer_strip_padding_top">10dp</dimen>
     <dimen name="viewer_strip_padding_bottom">2dp</dimen>
     <dimen name="viewer_strip_height">50dp</dimen>
@@ -183,6 +195,12 @@
     <!-- how far the strip sits into the empty top of the bottom action bar, which is all that
          separates the thumbnails from the buttons. See ViewPagerActivity.setupThumbnailStrip -->
     <dimen name="viewer_strip_drop_into_actions">10dp</dimen>
+    <!-- narrower than at the foot, so more actions fit in the landscape top row -->
+    <dimen name="viewer_top_row_action_width">44dp</dimen>
+    <!-- actions that would squeeze the heading narrower than this go into the menu -->
+    <dimen name="viewer_top_row_min_title_width">160dp</dimen>
+    <!-- off the screen's edge where no navigation bar is below: the playhead's room under the frames -->
+    <dimen name="viewer_strip_edge_gap">@dimen/video_scrubber_padding</dimen>
 
     <dimen name="metadata_sheet_corner_radius">20dp</dimen>
     <dimen name="metadata_sheet_handle_height">28dp</dimen>

@@ -39,7 +39,6 @@ class TabChooser @JvmOverloads constructor(
     override val endMarginId = R.dimen.chooser_edge_margin
 
     private val rowHeight = resources.getDimensionPixelSize(R.dimen.tab_chooser_row_height)
-    private val dropGap = resources.getDimensionPixelSize(R.dimen.tab_chooser_drop_gap)
     private val closeGap = resources.getDimensionPixelSize(R.dimen.tab_chooser_close_gap)
     private val sideReach = resources.getDimensionPixelSize(R.dimen.tab_chooser_side_reach)
     private val fingerClearance = resources.getDimensionPixelSize(R.dimen.tab_chooser_finger_clearance)
@@ -52,9 +51,6 @@ class TabChooser @JvmOverloads constructor(
         rowHeight = rowHeight,
         textSize = resources.getDimension(R.dimen.tab_chooser_text_size),
     )
-
-    /** Whether this one hangs under its button rather than opening above it. */
-    var dropsBelow = false
 
     private var tabCount = 0
     private var canAddTab = false
@@ -168,20 +164,12 @@ class TabChooser @JvmOverloads constructor(
     }
 
     /**
-     * Sits to the side of its button rather than centred under it - one narrow column of numbers
-     * would be entirely under the finger holding that button down - and never so far over that the
-     * cross has nowhere to grow. Hangs under the button where it was told to, and opens above it
-     * as usual otherwise.
+     * Beside the button rather than centred over it, where the finger would hide the narrow list, and
+     * never so far over that the cross has nowhere to grow.
      */
     override fun position(button: View) {
         val roomForCross = (edgeMargin + closeButton.size + closeGap).toFloat()
         placeLeftEdgeAt((button.centerX() - fingerClearance - width).coerceAtLeast(roomForCross))
-        if (!dropsBelow || height == 0) {
-            return
-        }
-
-        val untranslatedTop = screenLocation()[1] - translationY
-        translationY = button.screenLocation()[1] + button.height + dropGap - untranslatedTop
     }
 
     override fun onChooserClosed() {

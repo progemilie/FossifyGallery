@@ -121,7 +121,6 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
     private var mDragThreshold = 0f
     private var mTouchDownX = 0f
     private var mTouchDownY = 0f
-    private var mTouchDownTime = 0L
     private var mProgressAtDown = 0L
     private var mCloseDownThreshold = 100f
 
@@ -360,7 +359,9 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
             })
 
         binding.videoSurfaceFrame.setOnTouchListener { view, event ->
-            videoGestureHelper.onTouchEvent(event)
+            if (config.allowVideoHoldSpeed) {
+                videoGestureHelper.onTouchEvent(event)
+            }
 
             if (videoGestureHelper.isLongPressActive) {
                 return@setOnTouchListener true
@@ -374,7 +375,7 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
         initExoPlayer()
         binding.videoSurface.surfaceTextureListener = this
 
-        if (config.allowVideoGestures) {
+        if (config.allowVideoBrightnessGesture) {
             binding.videoBrightnessController.initialize(
                 this,
                 binding.slideInfo,
@@ -384,9 +385,13 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
                     toggleFullscreen()
                 },
                 doubleTap = { x, y ->
-                    doSkip(false)
+                    doubleTapSide(false)
                 })
+        } else {
+            binding.videoBrightnessController.beGone()
+        }
 
+        if (config.allowVideoVolumeGesture) {
             binding.videoVolumeController.initialize(
                 this,
                 binding.slideInfo,
@@ -396,10 +401,9 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
                     toggleFullscreen()
                 },
                 doubleTap = { x, y ->
-                    doSkip(true)
+                    doubleTapSide(true)
                 })
         } else {
-            binding.videoBrightnessController.beGone()
             binding.videoVolumeController.beGone()
         }
 
@@ -534,10 +538,15 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
     private fun handleDoubleTap(x: Float) {
         val instantWidth = mScreenWidth / 7
         when {
-            x <= instantWidth -> doSkip(false)
-            x >= mScreenWidth - instantWidth -> doSkip(true)
+            x <= instantWidth -> doubleTapSide(false)
+            x >= mScreenWidth - instantWidth -> doubleTapSide(true)
             else -> togglePlayPause()
         }
+    }
+
+    // with skipping off, a side plays and pauses like the middle
+    private fun doubleTapSide(forward: Boolean) {
+        if (config.allowVideoDoubleTapSkip) doSkip(forward) else togglePlayPause()
     }
 
     private fun resumeVideo() {
@@ -802,7 +811,6 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
             MotionEvent.ACTION_DOWN -> {
                 mTouchDownX = event.rawX
                 mTouchDownY = event.rawY
-                mTouchDownTime = System.currentTimeMillis()
                 mProgressAtDown = mExoPlayer!!.currentPosition
             }
 
@@ -843,7 +851,8 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
                 val diffX = mTouchDownX - event.rawX
                 val diffY = mTouchDownY - event.rawY
 
-                val downGestureDuration = System.currentTimeMillis() - mTouchDownTime
+                // the gesture's own clock, which a busy main thread does not stretch
+                val downGestureDuration = event.eventTime - event.downTime
                 if (config.allowDownGesture && !mIgnoreCloseDown && Math.abs(diffY) > Math.abs(diffX) && diffY < -mCloseDownThreshold &&
                     downGestureDuration < MAX_CLOSE_DOWN_GESTURE_DURATION &&
                     binding.videoSurfaceFrame.controller.state.zoom == 1f

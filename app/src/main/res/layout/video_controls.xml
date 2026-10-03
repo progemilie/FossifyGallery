@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The in-viewer video's controls over a strip of its own frames. VideoControlsLayout puts them in one
+    row in landscape. The separate player screen keeps bottom_video_time_holder.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/video_time_holder"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="@dimen/big_margin">
+
+    <!-- a frame, so play and pause stay centred whatever is either side -->
+    <FrameLayout
+        android:id="@+id/video_controls_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:id="@+id/video_time_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start|center_vertical"
+            android:layout_marginStart="@dimen/video_controls_margin"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/video_curr_time"
+                style="@style/VideoTime"
+                android:textStyle="bold"
+                tools:text="0:03" />
+
+            <TextView
+                style="@style/VideoTime"
+                android:alpha="0.7"
+                android:text=" / "
+                tools:ignore="HardcodedText" />
+
+            <TextView
+                android:id="@+id/video_duration"
+                style="@style/VideoTime"
+                android:alpha="0.7"
+                tools:text="0:20" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/video_toggle_play"
+            style="@style/VideoToggle"
+            android:layout_gravity="center"
+            android:background="@drawable/video_control_background"
+            android:contentDescription="@string/video_play"
+            android:src="@drawable/ic_video_play_vector"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <LinearLayout
+            android:id="@+id/video_toggles"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="@dimen/small_margin"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/video_playback_speed"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/video_toggle_size"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:drawablePadding="@dimen/tiny_margin"
+                android:gravity="center"
+                android:paddingHorizontal="@dimen/medium_margin"
+                android:shadowColor="@color/default_background_color"
+                android:shadowRadius="2"
+                android:textColor="@android:color/white"
+                android:visibility="gone"
+                app:drawableStartCompat="@drawable/ic_playback_speed_vector"
+                tools:text="1x"
+                tools:visibility="visible" />
+
+            <ImageView
+                android:id="@+id/video_toggle_loop"
+                style="@style/VideoToggle"
+                android:contentDescription="@string/loop_videos"
+                android:src="@drawable/ic_video_repeat_vector"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <ImageView
+                android:id="@+id/video_toggle_mute"
+                style="@style/VideoToggle"
+                android:contentDescription="@string/video_sound"
+                android:src="@drawable/ic_vector_speaker_on"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <org.fossify.gallery.views.VideoScrubber
+        android:id="@+id/video_seekbar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/video_scrubber_height"
+        android:paddingStart="@dimen/video_controls_margin"
+        android:paddingTop="@dimen/video_scrubber_padding"
+        android:paddingEnd="@dimen/video_controls_margin"
+        android:paddingBottom="@dimen/video_scrubber_padding" />
+
+</LinearLayout>

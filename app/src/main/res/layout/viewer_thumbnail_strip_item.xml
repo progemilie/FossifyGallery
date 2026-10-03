@@ -34,6 +34,17 @@
             android:layout_height="match_parent"
             android:background="@android:color/black" />
 
+        <ImageView
+            android:id="@+id/viewer_thumbnail_video"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="@dimen/tiny_margin"
+            android:contentDescription="@null"
+            android:src="@drawable/viewer_strip_video_mark"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
         <!-- only the peek viewer fills a selection in, so this stays away in the ordinary one -->
         <ImageView
             android:id="@+id/viewer_thumbnail_check"

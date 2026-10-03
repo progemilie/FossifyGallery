@@ -1,8 +1,10 @@
 package org.fossify.gallery.activities
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.View
 import androidx.core.graphics.ColorUtils
+import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsCompat.Type
@@ -16,6 +18,8 @@ import org.fossify.commons.extensions.getProperBackgroundColor
 import org.fossify.commons.extensions.updateMarginWithBase
 import org.fossify.commons.extensions.updatePaddingWithBase
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.fragments.VideoFragment
+import org.fossify.gallery.helpers.ViewerSystemBars
 import org.fossify.gallery.helpers.holdWindowStill
 
 abstract class BaseViewerActivity : SimpleActivity() {
@@ -28,6 +32,21 @@ abstract class BaseViewerActivity : SimpleActivity() {
     abstract val contentHolder: View
     abstract val appBarLayout: AppBarLayout
 
+    /** Opts into the landscape layout, which hides the status bar. Off for the separate video player. */
+    protected open val hasLandscapeLayout = false
+
+    protected open val isChromeShown = true
+
+    /** Anything laid out around the system bars asks this rather than reading the insets itself. */
+    val systemBars = ViewerSystemBars(this, { hasLandscapeLayout }, { isChromeShown }) {
+        onLandscapeLayoutChanged()
+        // a change of window mode reaches no fragment, and a rotation may reach it before the layout changed
+        supportFragmentManager.fragments.forEach { (it as? VideoFragment)?.onLandscapeLayoutChanged() }
+    }
+
+    val isInLandscapeLayout: Boolean
+        get() = systemBars.isInLandscapeLayout
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // the tile growing into the photo is the only motion there should be here
@@ -38,6 +57,7 @@ abstract class BaseViewerActivity : SimpleActivity() {
             insets
         }
         registerShowNotchCollector(contentRoot)
+        systemBars.attach()
     }
 
     /** Whether a panel of the app's own is currently drawn over the navigation bar. */
@@ -57,6 +77,18 @@ abstract class BaseViewerActivity : SimpleActivity() {
         // ...unless a panel left open across a trip to another app is still covering them
         updateNavigationBarIconsForPanel(isPanelCoveringNavigationBar)
     }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        systemBars.onWindowChanged()
+    }
+
+    override fun onMultiWindowModeChanged(isInMultiWindowMode: Boolean, newConfig: Configuration) {
+        super.onMultiWindowModeChanged(isInMultiWindowMode, newConfig)
+        systemBars.onWindowChanged()
+    }
+
+    protected open fun onLandscapeLayoutChanged() = Unit
 
     /**
      * Hands the navigation bar back its normal icons while a panel covers it.
@@ -82,9 +114,10 @@ abstract class BaseViewerActivity : SimpleActivity() {
     }
 
     private fun setupEdgeToEdge(insets: WindowInsetsCompat) {
+        val system = systemBars.layoutInsets(insets)
+        val cutout = insets.getInsetsIgnoringVisibility(Type.displayCutout())
         if (config.showNotch) {
-            val systemAndCutout =
-                insets.getInsetsIgnoringVisibility(Type.systemBars() or Type.displayCutout())
+            val systemAndCutout = Insets.max(system, cutout)
             appBarLayout.updatePaddingWithBase(
                 top = systemAndCutout.top,
                 left = systemAndCutout.left,
@@ -93,8 +126,6 @@ abstract class BaseViewerActivity : SimpleActivity() {
 
             contentHolder.updatePaddingWithBase(left = 0, top = 0, right = 0, bottom = 0)
         } else {
-            val system = insets.getInsetsIgnoringVisibility(Type.systemBars())
-            val cutout = insets.getInsetsIgnoringVisibility(Type.displayCutout())
             appBarLayout.updatePaddingWithBase(
                 top = if (cutout.top > 0) 0 else system.top,
                 left = if (cutout.left > 0) 0 else system.left,
@@ -112,21 +143,8 @@ abstract class BaseViewerActivity : SimpleActivity() {
 
     fun applyProperHorizontalInsets(view: View) {
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
-            if (config.showNotch) {
-                val systemAndCutout =
-                    insets.getInsetsIgnoringVisibility(Type.systemBars() or Type.displayCutout())
-                view.updateMarginWithBase(
-                    left = systemAndCutout.left,
-                    right = systemAndCutout.right
-                )
-            } else {
-                val system = insets.getInsetsIgnoringVisibility(Type.systemBars())
-                val cutout = insets.getInsetsIgnoringVisibility(Type.displayCutout())
-                view.updateMarginWithBase(
-                    left = if (cutout.left > 0) 0 else system.left,
-                    right = if (cutout.right > 0) 0 else system.right
-                )
-            }
+            val sides = systemBars.sideInsets(insets)
+            view.updateMarginWithBase(left = sides.left, right = sides.right)
             insets
         }
     }

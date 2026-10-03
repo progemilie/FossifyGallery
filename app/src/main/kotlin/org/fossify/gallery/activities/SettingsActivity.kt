@@ -196,6 +196,7 @@ class SettingsActivity : SimpleActivity() {
         setupLoopVideos()
         setupOpenVideosOnSeparateScreen()
         setupOnVideoTap()
+        setupVideoFrameStrip()
         setupMaxBrightness()
         setupUltraHdrRendering()
         setupCropThumbnails()
@@ -211,8 +212,11 @@ class SettingsActivity : SimpleActivity() {
         setupDeleteEmptyFolders()
         setupKeepScreenOn()
         setupAllowPhotoGestures()
-        setupAllowVideoGestures()
         setupAllowDownGesture()
+        setupAllowVideoBrightnessGesture()
+        setupAllowVideoVolumeGesture()
+        setupAllowVideoHoldSpeed()
+        setupAllowVideoDoubleTapSkip()
         setupAllowRotatingWithGestures()
         setupShowNotch()
         setupBottomActions()
@@ -565,6 +569,14 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
+    private fun setupVideoFrameStrip() {
+        binding.settingsVideoFrameStrip.isChecked = config.videoFrameStrip
+        binding.settingsVideoFrameStripHolder.setOnClickListener {
+            binding.settingsVideoFrameStrip.toggle()
+            config.videoFrameStrip = binding.settingsVideoFrameStrip.isChecked
+        }
+    }
+
     private fun setupOnVideoTap() {
         binding.settingsOnVideoTap.text = getVideoPlayerTypeText()
         binding.settingsOnVideoTapHolder.setOnClickListener {
@@ -767,11 +779,35 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
-    private fun setupAllowVideoGestures() {
-        binding.settingsAllowVideoGestures.isChecked = config.allowVideoGestures
-        binding.settingsAllowVideoGesturesHolder.setOnClickListener {
-            binding.settingsAllowVideoGestures.toggle()
-            config.allowVideoGestures = binding.settingsAllowVideoGestures.isChecked
+    private fun setupAllowVideoBrightnessGesture() {
+        binding.settingsAllowVideoBrightnessGesture.isChecked = config.allowVideoBrightnessGesture
+        binding.settingsAllowVideoBrightnessGestureHolder.setOnClickListener {
+            binding.settingsAllowVideoBrightnessGesture.toggle()
+            config.allowVideoBrightnessGesture = binding.settingsAllowVideoBrightnessGesture.isChecked
+        }
+    }
+
+    private fun setupAllowVideoVolumeGesture() {
+        binding.settingsAllowVideoVolumeGesture.isChecked = config.allowVideoVolumeGesture
+        binding.settingsAllowVideoVolumeGestureHolder.setOnClickListener {
+            binding.settingsAllowVideoVolumeGesture.toggle()
+            config.allowVideoVolumeGesture = binding.settingsAllowVideoVolumeGesture.isChecked
+        }
+    }
+
+    private fun setupAllowVideoHoldSpeed() {
+        binding.settingsAllowVideoHoldSpeed.isChecked = config.allowVideoHoldSpeed
+        binding.settingsAllowVideoHoldSpeedHolder.setOnClickListener {
+            binding.settingsAllowVideoHoldSpeed.toggle()
+            config.allowVideoHoldSpeed = binding.settingsAllowVideoHoldSpeed.isChecked
+        }
+    }
+
+    private fun setupAllowVideoDoubleTapSkip() {
+        binding.settingsAllowVideoDoubleTapSkip.isChecked = config.allowVideoDoubleTapSkip
+        binding.settingsAllowVideoDoubleTapSkipHolder.setOnClickListener {
+            binding.settingsAllowVideoDoubleTapSkip.toggle()
+            config.allowVideoDoubleTapSkip = binding.settingsAllowVideoDoubleTapSkip.isChecked
         }
     }
 
@@ -1301,7 +1337,11 @@ class SettingsActivity : SimpleActivity() {
                 put(LOOP_VIDEOS, config.loopVideos)
                 put(GESTURE_VIDEO_PLAYER, config.gestureVideoPlayer)
                 put(VIDEO_PLAYER_TYPE, config.videoPlayerType)
-                put(ALLOW_VIDEO_GESTURES, config.allowVideoGestures)
+                put(ALLOW_VIDEO_VOLUME_GESTURE, config.allowVideoVolumeGesture)
+                put(ALLOW_VIDEO_BRIGHTNESS_GESTURE, config.allowVideoBrightnessGesture)
+                put(ALLOW_VIDEO_HOLD_SPEED, config.allowVideoHoldSpeed)
+                put(ALLOW_VIDEO_DOUBLE_TAP_SKIP, config.allowVideoDoubleTapSkip)
+                put(VIDEO_FRAME_STRIP, config.videoFrameStrip)
                 put(ANIMATE_GIFS, config.animateGifs)
                 put(CROP_THUMBNAILS, config.cropThumbnails)
                 put(SHOW_THUMBNAIL_VIDEO_DURATION, config.showThumbnailVideoDuration)
@@ -1451,7 +1491,16 @@ class SettingsActivity : SimpleActivity() {
                 LOOP_VIDEOS -> config.loopVideos = value.toBoolean()
                 GESTURE_VIDEO_PLAYER -> config.gestureVideoPlayer = value.toBoolean()
                 VIDEO_PLAYER_TYPE -> config.videoPlayerType = value.toInt()
-                ALLOW_VIDEO_GESTURES -> config.allowVideoGestures = value.toBoolean()
+                // a backup from before the gesture was split in two
+                ALLOW_VIDEO_GESTURES -> {
+                    config.allowVideoVolumeGesture = value.toBoolean()
+                    config.allowVideoBrightnessGesture = value.toBoolean()
+                }
+                ALLOW_VIDEO_VOLUME_GESTURE -> config.allowVideoVolumeGesture = value.toBoolean()
+                ALLOW_VIDEO_BRIGHTNESS_GESTURE -> config.allowVideoBrightnessGesture = value.toBoolean()
+                ALLOW_VIDEO_HOLD_SPEED -> config.allowVideoHoldSpeed = value.toBoolean()
+                ALLOW_VIDEO_DOUBLE_TAP_SKIP -> config.allowVideoDoubleTapSkip = value.toBoolean()
+                VIDEO_FRAME_STRIP -> config.videoFrameStrip = value.toBoolean()
                 ANIMATE_GIFS -> config.animateGifs = value.toBoolean()
                 CROP_THUMBNAILS -> config.cropThumbnails = value.toBoolean()
                 SHOW_THUMBNAIL_VIDEO_DURATION -> config.showThumbnailVideoDuration = value.toBoolean()

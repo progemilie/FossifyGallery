@@ -114,6 +114,11 @@ const val LAST_FOLDER_GROUP_ID = "last_folder_group_id"
 const val TABS_ENABLED = "tabs_enabled"
 const val TABS = "tabs"
 const val CURRENT_TAB = "current_tab"
+const val VIDEO_FRAME_STRIP = "video_frame_strip"
+const val ALLOW_VIDEO_VOLUME_GESTURE = "allow_video_volume_gesture"
+const val ALLOW_VIDEO_BRIGHTNESS_GESTURE = "allow_video_brightness_gesture"
+const val ALLOW_VIDEO_HOLD_SPEED = "allow_video_hold_speed"
+const val ALLOW_VIDEO_DOUBLE_TAP_SKIP = "allow_video_double_tap_skip"
 
 /**
  * What a folder group's tile carries instead of a real path. Nothing on disk answers to it, so it
@@ -187,6 +192,10 @@ const val MIN_SKIP_LENGTH = 2000
 const val HIDE_SYSTEM_UI_DELAY = 500L
 const val MAX_PRINT_SIDE_SIZE = 4096
 const val FAST_FORWARD_VIDEO_MS = 10000
+
+// ten seconds is too much of a video under SHORT_VIDEO_MS
+const val FAST_FORWARD_SHORT_VIDEO_MS = 5000
+const val SHORT_VIDEO_MS = 60000
 
 const val EXOPLAYER_MIN_BUFFER_MS = 2000
 const val EXOPLAYER_MAX_BUFFER_MS = 8000

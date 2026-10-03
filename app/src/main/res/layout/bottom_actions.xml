@@ -9,7 +9,7 @@
     android:minHeight="@dimen/bottom_actions_height"
     android:paddingTop="@dimen/normal_margin">
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_favorite"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -25,7 +25,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_rating"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -41,7 +41,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_edit"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -57,7 +57,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_share"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -73,7 +73,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_delete"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -89,7 +89,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_rotate"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -105,7 +105,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_mirror"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -121,7 +121,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_properties"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -137,7 +137,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_change_orientation"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -153,7 +153,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_slideshow"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -169,7 +169,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_show_on_map"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -185,7 +185,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_toggle_file_visibility"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -201,7 +201,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_rename"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -217,7 +217,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_set_as"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -233,7 +233,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_copy"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -249,7 +249,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_move"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -265,7 +265,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_resize"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"
@@ -281,7 +281,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
-    <ImageView
+    <org.fossify.gallery.views.BottomActionButton
         android:id="@+id/bottom_tabs"
         android:layout_width="@dimen/list_touch_target_min"
         android:layout_height="@dimen/list_touch_target_min"

@@ -396,8 +396,32 @@ class Config(context: Context) : BaseConfig(context) {
         set(allowPhotoGestures) = prefs.edit().putBoolean(ALLOW_PHOTO_GESTURES, allowPhotoGestures).apply()
 
     var allowVideoGestures: Boolean
-        get() = prefs.getBoolean(ALLOW_VIDEO_GESTURES, true)
+        get() = prefs.getBoolean(ALLOW_VIDEO_GESTURES, false)
         set(allowVideoGestures) = prefs.edit().putBoolean(ALLOW_VIDEO_GESTURES, allowVideoGestures).apply()
+
+    // the two halves of allowVideoGestures, which each keeps until set on its own
+    var allowVideoVolumeGesture: Boolean
+        get() = prefs.getBoolean(ALLOW_VIDEO_VOLUME_GESTURE, allowVideoGestures)
+        set(allowVideoVolumeGesture) = prefs.edit { putBoolean(ALLOW_VIDEO_VOLUME_GESTURE, allowVideoVolumeGesture) }
+
+    var allowVideoBrightnessGesture: Boolean
+        get() = prefs.getBoolean(ALLOW_VIDEO_BRIGHTNESS_GESTURE, allowVideoGestures)
+        set(allowVideoBrightnessGesture) = prefs.edit {
+            putBoolean(ALLOW_VIDEO_BRIGHTNESS_GESTURE, allowVideoBrightnessGesture)
+        }
+
+    var allowVideoHoldSpeed: Boolean
+        get() = prefs.getBoolean(ALLOW_VIDEO_HOLD_SPEED, true)
+        set(allowVideoHoldSpeed) = prefs.edit { putBoolean(ALLOW_VIDEO_HOLD_SPEED, allowVideoHoldSpeed) }
+
+    var allowVideoDoubleTapSkip: Boolean
+        get() = prefs.getBoolean(ALLOW_VIDEO_DOUBLE_TAP_SKIP, true)
+        set(allowVideoDoubleTapSkip) = prefs.edit { putBoolean(ALLOW_VIDEO_DOUBLE_TAP_SKIP, allowVideoDoubleTapSkip) }
+
+    // a plain line when off
+    var videoFrameStrip: Boolean
+        get() = prefs.getBoolean(VIDEO_FRAME_STRIP, true)
+        set(videoFrameStrip) = prefs.edit { putBoolean(VIDEO_FRAME_STRIP, videoFrameStrip) }
 
     var slideshowInterval: Int
         get() = prefs.getInt(SLIDESHOW_INTERVAL, SLIDESHOW_DEFAULT_INTERVAL)

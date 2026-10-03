@@ -51,6 +51,8 @@ import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import com.bumptech.glide.Glide
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beGoneIf
+import org.fossify.commons.extensions.beInvisible
+import org.fossify.commons.extensions.beInvisibleIf
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.fadeIn
@@ -73,7 +75,6 @@ import org.fossify.gallery.activities.BaseViewerActivity
 import org.fossify.gallery.activities.VideoActivity
 import org.fossify.gallery.databinding.PagerVideoItemBinding
 import org.fossify.gallery.extensions.config
-import org.fossify.gallery.extensions.screenRect
 import org.fossify.gallery.extensions.displayedImageRect
 import org.fossify.gallery.extensions.getActionBarHeight
 import org.fossify.gallery.extensions.getBottomActionsHeight
@@ -81,16 +82,22 @@ import org.fossify.gallery.extensions.getFormattedDuration
 import org.fossify.gallery.extensions.getFriendlyMessage
 import org.fossify.gallery.extensions.launchGesturePlayer
 import org.fossify.gallery.extensions.parseFileChannel
+import org.fossify.gallery.extensions.screenLocation
+import org.fossify.gallery.extensions.screenRect
 import org.fossify.gallery.helpers.Config
 import org.fossify.gallery.helpers.DisplayedMedia
 import org.fossify.gallery.helpers.EXOPLAYER_MAX_BUFFER_MS
 import org.fossify.gallery.helpers.EXOPLAYER_MIN_BUFFER_MS
+import org.fossify.gallery.helpers.FAST_FORWARD_SHORT_VIDEO_MS
 import org.fossify.gallery.helpers.FAST_FORWARD_VIDEO_MS
 import org.fossify.gallery.helpers.MEDIUM
+import org.fossify.gallery.helpers.SHORT_VIDEO_MS
 import org.fossify.gallery.helpers.SHOULD_INIT_FRAGMENT
 import org.fossify.gallery.interfaces.PlaybackSpeedListener
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.views.MediaSideScroll
+import org.fossify.gallery.views.SeekHints
+import org.fossify.gallery.views.VideoControlsLayout
 import java.io.File
 import java.io.FileInputStream
 import java.text.DecimalFormat
@@ -103,7 +110,12 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         private const val UPDATE_INTERVAL_MS = 250L
         private const val TOUCH_HOLD_DURATION_MS = 500L
         private const val TOUCH_HOLD_SPEED_MULTIPLIER = 2.0f
+        private const val TOUCH_HOLD_SLOW_SPEED_MULTIPLIER = 0.5f
         private const val TOUCH_SLOP_DIVIDER = 3
+        private const val LOOP_OFF_ALPHA = 0.6f
+
+        /** How far in from either side a hold or a double tap acts on that side. */
+        private const val SIDE_ZONE = 1 / 3f
     }
 
     private var mIsFullscreen = false
@@ -133,17 +145,25 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     private var mHasAudio = true
 
     private val mTouchHoldRunnable = Runnable {
+        val player = mExoPlayer ?: return@Runnable
         mView.parent.requestDisallowInterceptTouchEvent(true)
         // This code runs after the delay, only if the user is still holding down.
         mIsLongPressActive = true
-        mOriginalPlaybackSpeed = mExoPlayer?.playbackParameters?.speed ?: mConfig.playbackSpeed
         mView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        updatePlaybackSpeed(TOUCH_HOLD_SPEED_MULTIPLIER)
+        mOriginalPlaybackSpeed = player.playbackParameters.speed
+        val (speed, label) = if (mHoldIsSlow) {
+            TOUCH_HOLD_SLOW_SPEED_MULTIPLIER to R.string.playback_slow_display_text
+        } else {
+            TOUCH_HOLD_SPEED_MULTIPLIER to R.string.playback_speed_display_text
+        }
 
+        updatePlaybackSpeed(speed)
+        mPlaybackSpeedPill.setText(label)
         mPlaybackSpeedPill.fadeIn()
     }
 
     private lateinit var mTimeHolder: View
+    private lateinit var mControlsLayout: VideoControlsLayout
     private lateinit var mBrightnessSideScroll: MediaSideScroll
     private lateinit var mVolumeSideScroll: MediaSideScroll
     private lateinit var binding: PagerVideoItemBinding
@@ -158,6 +178,9 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     private var mTouchSlop = 0
     private var mInitialX = 0f
     private var mInitialY = 0f
+
+    private lateinit var mSeekHints: SeekHints
+    private var mHoldIsSlow = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -183,33 +206,35 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                 updatePlayerMuteState(showToast = true)
             }
 
+            bottomVideoTimeHolder.videoToggleLoop.setOnClickListener { toggleLoop() }
+
             videoSurfaceFrame.controller.settings.swallowDoubleTaps = true
 
             videoPlayOutline.setOnClickListener {
                 if (mConfig.gestureVideoPlayer) activity.launchGesturePlayer(mMedium.path) else togglePlayPause()
             }
+            letFlicksThrough(videoPlayOutline)
 
-            mPlayPauseButton = bottomVideoTimeHolder.videoTogglePlayPause
-            mPlayPauseButton.setOnClickListener {
-                togglePlayPause()
-            }
+            mPlayPauseButton = bottomVideoTimeHolder.videoTogglePlay
+            mPlayPauseButton.setOnClickListener { togglePlayPause() }
 
             mSeekBar = bottomVideoTimeHolder.videoSeekbar
+            // before the video, so no frames are read for a line
+            bottomVideoTimeHolder.videoSeekbar.showsFrames = mConfig.videoFrameStrip
+            bottomVideoTimeHolder.videoSeekbar.setVideo(mMedium.path, mMedium.getSignature())
             mPlaybackSpeedPill = playbackSpeedPill
             mSeekBar.setOnSeekBarChangeListener(this@VideoFragment)
             // adding an empty click listener just to avoid ripple animation at toggling fullscreen
             mSeekBar.setOnClickListener { }
 
+            mSeekHints = SeekHints(videoSeekHintBack, videoSeekHintForward)
+
             mTimeHolder = bottomVideoTimeHolder.videoTimeHolder
+            mControlsLayout = VideoControlsLayout(bottomVideoTimeHolder)
             mCurrTimeView = bottomVideoTimeHolder.videoCurrTime
             mBrightnessSideScroll = videoBrightnessController
             mVolumeSideScroll = videoVolumeController
-            mBrightnessSideScroll.onVerticalScroll = {
-                mTimerHandler.removeCallbacks(mTouchHoldRunnable)
-            }
-            mVolumeSideScroll.onVerticalScroll = {
-                mTimerHandler.removeCallbacks(mTouchHoldRunnable)
-            }
+            watchSideScrollsForHolds()
             mTextureView = videoSurface
             mTextureView.surfaceTextureListener = this@VideoFragment
 
@@ -233,7 +258,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                     }
 
                     override fun onDoubleTap(e: MotionEvent): Boolean {
-                        handleDoubleTap(e.rawX)
+                        handleDoubleTap(e.x)
                         return true
                     }
                 })
@@ -245,8 +270,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
             videoSurfaceFrame.setOnTouchListener { view, event ->
                 handleEvent(event) { isFlickEligible() }
-                handleTouchHoldEvent(event)
-                if (mIsLongPressActive) {
+                if (handleTouchHoldEvent(event)) {
                     return@setOnTouchListener true
                 }
 
@@ -256,7 +280,8 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.videoHolder) { _, insets ->
-            val system = insets.getInsetsIgnoringVisibility(Type.systemBars())
+            val systemBars = (activity as? BaseViewerActivity)?.systemBars
+            val system = systemBars?.layoutInsets(insets) ?: insets.getInsetsIgnoringVisibility(Type.systemBars())
 
             val pillTopMargin = system.top + resources.getActionBarHeight(context) +
                 resources.getDimension(org.fossify.commons.R.dimen.normal_margin).toInt()
@@ -266,13 +291,21 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                 )
             }
 
-            binding.bottomActionsDummy.updateLayoutParams<ViewGroup.LayoutParams> {
-                height = resources.getBottomActionsHeight() + system.bottom
+            // the frames line up with the thumbnail strip, the playhead's room hanging below
+            val stripBottom = if (isBottomActionBarAtFoot()) {
+                system.bottom + thumbnailStripBottom()
+            } else {
+                systemBars?.footInset(insets) ?: system.bottom
+            }
+
+            binding.bottomVideoTimeHolder.root.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = stripBottom - mSeekBar.paddingBottom
             }
             insets
         }
 
         mView = binding.root
+        arrangeControls()
 
         if (!arguments.getBoolean(SHOULD_INIT_FRAGMENT, true)) {
             return mView
@@ -313,6 +346,8 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             }
 
             mWasFragmentInit = true
+            // setMenuVisibility may have come before there was a view
+            binding.bottomVideoTimeHolder.videoSeekbar.isOnScreen = mIsFragmentVisible
             setVideoSize()
 
             binding.apply {
@@ -329,7 +364,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                         }
                     },
                     doubleTap = { x, y ->
-                        doSkip(false)
+                        doubleTapSide(false)
                     })
                 mVolumeSideScroll.initialize(
                     activity,
@@ -344,7 +379,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                         }
                     },
                     doubleTap = { x, y ->
-                        doSkip(true)
+                        doubleTapSide(true)
                     })
 
                 videoSurface.onGlobalLayout {
@@ -368,14 +403,13 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         mConfig =
             requireContext().config      // make sure we get a new config, in case the user changed something in the app settings
         requireActivity().updateTextColors(binding.videoHolder)
-        val allowVideoGestures = mConfig.allowVideoGestures
         mTextureView.beGoneIf(mConfig.gestureVideoPlayer || mIsPanorama)
         binding.videoSurfaceFrame.beGoneIf(mTextureView.isGone())
 
-        mVolumeSideScroll.beVisibleIf(allowVideoGestures && !mIsPanorama)
-        mBrightnessSideScroll.beVisibleIf(allowVideoGestures && !mIsPanorama)
-
+        updateSideScrolls()
+        binding.bottomVideoTimeHolder.videoSeekbar.showsFrames = mConfig.videoFrameStrip
         initTimeHolder()
+        updateLoop()
         storeStateVariables()
     }
 
@@ -402,12 +436,20 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
 
         mIsFragmentVisible = menuVisible
+        if (mWasFragmentInit) {
+            binding.bottomVideoTimeHolder.videoSeekbar.isOnScreen = menuVisible
+            if (menuVisible) {
+                updateLoop()
+            }
+        }
+
         val shouldPlayVideo = mWasFragmentInit && menuVisible && mConfig.autoplayVideos && !mConfig.gestureVideoPlayer
         if (shouldPlayVideo) playVideo()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        arrangeControls()
         setVideoSize()
         binding.videoSurfaceFrame.onGlobalLayout {
             binding.videoSurfaceFrame.controller.resetState()
@@ -450,6 +492,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     private fun setupTimeHolder() {
         mSeekBar.max = mDuration.toInt()
         binding.bottomVideoTimeHolder.videoDuration.text = mDuration.getFormattedDuration()
+        mControlsLayout.fitLabels()
         setupTimer()
     }
 
@@ -566,15 +609,15 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                 binding.errorMessageHolder.errorMessage.apply {
                     if (error != null) {
                         binding.videoPreview.beGone()
-                        binding.videoPlayOutline.beGone()
                         text = error.getFriendlyMessage(context)
                         setTextColor(if (context.config.blackBackground) Color.WHITE else context.getProperTextColor())
                         fadeIn()
                     } else {
                         beGone()
-                        binding.videoPlayOutline.beVisible()
                     }
                 }
+
+                updateControls(animate = false)
             }
 
             override fun onTracksChanged(tracks: Tracks) {
@@ -590,19 +633,101 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     }
 
     private fun handleDoubleTap(x: Float) {
-        val viewWidth = mView.width
-        val instantWidth = viewWidth / 7
+        val sideWidth = mView.width * SIDE_ZONE
         when {
-            x <= instantWidth -> doSkip(false)
-            x >= viewWidth - instantWidth -> doSkip(true)
+            x <= sideWidth -> doubleTapSide(false)
+            x >= mView.width - sideWidth -> doubleTapSide(true)
             else -> togglePlayPause()
         }
     }
 
+    // with skipping off, a side plays and pauses like the middle
+    private fun doubleTapSide(forward: Boolean) {
+        if (mConfig.allowVideoDoubleTapSkip) skipWithHint(forward) else togglePlayPause()
+    }
+
+    private fun skipWithHint(forward: Boolean) {
+        if (mExoPlayer == null || mIsPanorama) {
+            return
+        }
+
+        doSkip(forward)
+        mSeekHints.show(forward, skipLengthMs() / 1000)
+    }
+
+    private fun skipLengthMs() = if (mDuration < SHORT_VIDEO_MS) FAST_FORWARD_SHORT_VIDEO_MS else FAST_FORWARD_VIDEO_MS
+
+    // the app's own setting, so it holds for every video
+    private fun toggleLoop() {
+        mConfig.loopVideos = !mConfig.loopVideos
+        updateLoop()
+    }
+
+    // re-read on every page, as another may have changed it; never in a slideshow, which moves on
+    private fun updateLoop() {
+        val isLooping = mConfig.loopVideos
+        val loopsHere = isLooping && listener?.isSlideShowActive() == false
+        mExoPlayer?.repeatMode = if (loopsHere) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+        binding.bottomVideoTimeHolder.videoToggleLoop.alpha = if (isLooping) 1f else LOOP_OFF_ALPHA
+    }
+
+    private fun showPlaying(isPlaying: Boolean) {
+        mPlayPauseButton.apply {
+            setImageResource(if (isPlaying) R.drawable.ic_video_pause_vector else R.drawable.ic_video_play_vector)
+            contentDescription = getString(if (isPlaying) R.string.video_pause else R.string.video_play)
+        }
+    }
+
+    fun onLandscapeLayoutChanged() {
+        if (view != null) {
+            arrangeControls()
+        }
+    }
+
+    private fun arrangeControls() {
+        val isLandscapeLayout = (activity as? BaseViewerActivity)?.isInLandscapeLayout == true
+        mControlsLayout.arrange(inOneRow = isLandscapeLayout, isStarted = mWasVideoStarted)
+    }
+
     private fun initTimeHolder() {
-        mTimeHolder.beGoneIf(mIsFullscreen)
-        mTimeHolder.alpha = if (mIsFullscreen) 0f else 1f
+        updateControls(animate = false)
         (activity as? BaseViewerActivity)?.applyProperHorizontalInsets(mTimeHolder)
+    }
+
+    // a fragment restored without its host's listener still follows the setting
+    private fun isBottomActionBarAtFoot() = listener?.isBottomActionBarAtFoot() ?: mConfig.bottomActions
+
+    // where the thumbnail strip ends above the navigation bar with the bar under it,
+    // see ViewPagerActivity.setupThumbnailStrip
+    private fun thumbnailStripBottom() =
+        resources.getBottomActionsHeight() - resources.getDimensionPixelSize(R.dimen.viewer_strip_drop_into_actions)
+
+    private fun updateControls(animate: Boolean) {
+        // with that setting videos play on a separate screen
+        mTimeHolder.showIf(!mIsFullscreen && !mConfig.gestureVideoPlayer, animate)
+        binding.videoPlayOutline.showIf(!mWasVideoStarted && mExoPlayer?.playerError == null, animate)
+    }
+
+    // not GONE: the volume readout is laid out above the controls, and would lose its anchor
+    private fun View.showIf(show: Boolean, animate: Boolean) {
+        when {
+            animate && show -> fadeIn(DEFAULT_ANIMATION_DURATION)
+            animate -> animate().alpha(0f).setDuration(DEFAULT_ANIMATION_DURATION)
+                .withEndAction { beInvisible() }
+                .start()
+            else -> {
+                animate().cancel()
+                beInvisibleIf(!show)
+                alpha = if (show) 1f else 0f
+            }
+        }
+    }
+
+    // only once the video has started, as until then a flick down over its edges closes the viewer
+    private fun updateSideScrolls() {
+        val show = !mIsPanorama && mWasVideoStarted
+        mVolumeSideScroll.beVisibleIf(show && mConfig.allowVideoVolumeGesture)
+        mBrightnessSideScroll.beVisibleIf(show && mConfig.allowVideoBrightnessGesture)
     }
 
     private fun checkIfPanorama() {
@@ -645,27 +770,23 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         return DisplayedMedia(mTextureView.screenRect(), runCatching { mTextureView.bitmap }.getOrNull())
     }
 
+    // frames still to come would only be decoded during the shrink
+    override fun onViewerClosing() {
+        if (mWasFragmentInit) {
+            binding.bottomVideoTimeHolder.videoSeekbar.isOnScreen = false
+        }
+    }
+
     override fun fullscreenToggled(isFullscreen: Boolean) {
         mIsFullscreen = isFullscreen
 
         mSeekBar.setOnSeekBarChangeListener(if (mIsFullscreen) null else this)
-        arrayOf(
-            binding.bottomVideoTimeHolder.videoCurrTime,
-            binding.bottomVideoTimeHolder.videoDuration,
-            binding.bottomVideoTimeHolder.videoTogglePlayPause,
-            binding.bottomVideoTimeHolder.videoPlaybackSpeed,
-            binding.bottomVideoTimeHolder.videoToggleMute
-        ).forEach {
-            it.isClickable = !mIsFullscreen
+        binding.bottomVideoTimeHolder.apply {
+            arrayOf(videoCurrTime, videoDuration, videoTogglePlay, videoPlaybackSpeed, videoToggleMute, videoToggleLoop)
+                .forEach { it.isClickable = !mIsFullscreen }
         }
 
-        if (isFullscreen) {
-            mTimeHolder.fadeOut(DEFAULT_ANIMATION_DURATION)
-            binding.bottomActionsDummy.fadeOut(DEFAULT_ANIMATION_DURATION)
-        } else {
-            binding.bottomActionsDummy.beVisible()
-            mTimeHolder.fadeIn(DEFAULT_ANIMATION_DURATION)
-        }
+        updateControls(animate = true)
     }
 
     private fun showPlaybackSpeedPicker() {
@@ -714,8 +835,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
 
         val curr = mExoPlayer!!.currentPosition
-        var newPosition =
-            if (forward) curr + FAST_FORWARD_VIDEO_MS else curr - FAST_FORWARD_VIDEO_MS
+        var newPosition = if (forward) curr + skipLengthMs() else curr - skipLengthMs()
         newPosition = newPosition.coerceIn(0, maxOf(mExoPlayer!!.duration, 0))
         setPosition(newPosition)
     }
@@ -742,7 +862,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             return
         }
 
-        mExoPlayer!!.playWhenReady = false
+        startScrubbing()
         mIsDragged = true
     }
 
@@ -756,11 +876,26 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             return
         }
 
-        if (mIsPlaying) {
-            mExoPlayer!!.playWhenReady = true
-        }
-
+        stopScrubbing()
         mIsDragged = false
+    }
+
+    private fun startScrubbing() {
+        mExoPlayer?.apply {
+            playWhenReady = false
+            // or each seek cancels the last before it draws, and the picture freezes
+            isScrubbingModeEnabled = true
+        }
+    }
+
+    // a video paused meanwhile, by the screen going off, stays paused
+    private fun stopScrubbing() {
+        mExoPlayer?.apply {
+            isScrubbingModeEnabled = false
+            if (mIsPlaying) {
+                playWhenReady = true
+            }
+        }
     }
 
     private fun togglePlayPause() {
@@ -814,24 +949,29 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
 
         if (!wasEnded || !mConfig.loopVideos) {
-            mPlayPauseButton.setImageResource(org.fossify.commons.R.drawable.ic_pause_outline_vector)
+            showPlaying(true)
         }
 
         if (!mWasVideoStarted) {
-            binding.videoPlayOutline.beGone()
-            mPlayPauseButton.beVisible()
-            binding.bottomVideoTimeHolder.videoToggleMute.beVisible()
-            binding.bottomVideoTimeHolder.videoPlaybackSpeed.beVisible()
-            binding.bottomVideoTimeHolder.videoPlaybackSpeed.text =
-                "${DecimalFormat("#.##").format(mConfig.playbackSpeed)}x"
+            mWasVideoStarted = true
+            // the controls only come once the video is playing
+            binding.bottomVideoTimeHolder.apply {
+                videoTogglePlay.beVisible()
+                videoToggleMute.beVisible()
+                videoToggleLoop.beVisible()
+                videoPlaybackSpeed.beVisible()
+                videoPlaybackSpeed.text = "${DecimalFormat("#.##").format(mConfig.playbackSpeed)}x"
+            }
+            updateControls(animate = true)
+            updateSideScrolls()
         }
 
-        mWasVideoStarted = true
         if (mIsPlayerPrepared) {
             mIsPlaying = true
         }
         mExoPlayer?.playWhenReady = true
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        listener?.videoStarted()
     }
 
     private fun pauseVideo() {
@@ -844,7 +984,7 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
             mExoPlayer?.playWhenReady = false
         }
 
-        mPlayPauseButton.setImageResource(org.fossify.commons.R.drawable.ic_play_outline_vector)
+        showPlaying(false)
         activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         mPositionAtPause = mExoPlayer?.currentPosition ?: 0L
     }
@@ -979,12 +1119,44 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
     override fun isFlickEligible() = binding.videoSurfaceFrame.controller.state.zoom == 1f
 
-    private fun handleTouchHoldEvent(event: MotionEvent) {
+    /**
+     * Lets a flick begun on [button] close the viewer or bring up the details, as anywhere else, then
+     * cancels the button's gesture so it neither clicks nor stays pressed.
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    private fun letFlicksThrough(button: View) {
+        button.setOnTouchListener { view, event ->
+            val tookFlick = handleEvent(event) { isFlickEligible() }
+            if (tookFlick) {
+                val cancel = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
+                view.onTouchEvent(cancel)
+                cancel.recycle()
+            }
+
+            tookFlick
+        }
+    }
+
+    // detects no clicks: a tap is still the strip's own
+    @SuppressLint("ClickableViewAccessibility")
+    private fun watchSideScrollsForHolds() {
+        listOf(mBrightnessSideScroll, mVolumeSideScroll).forEach {
+            it.setOnTouchListener { _, event -> handleTouchHoldEvent(event) }
+        }
+    }
+
+    /** True for every event of a gesture a hold has taken, the lift included, which nothing else may act on. */
+    private fun handleTouchHoldEvent(event: MotionEvent): Boolean {
+        val isHolding = mIsLongPressActive
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                if (mIsPlaying && event.pointerCount == 1) {
+                // a finger landing on another of the page's views is not a second hold
+                mTimerHandler.removeCallbacks(mTouchHoldRunnable)
+                if (mIsPlaying && !isHolding && mConfig.allowVideoHoldSpeed) {
                     mInitialX = event.x
                     mInitialY = event.y
+                    // across the page, whichever of its views the finger landed on
+                    mHoldIsSlow = event.rawX - mView.screenLocation().first < mView.width * SIDE_ZONE
                     mTimerHandler.postDelayed(mTouchHoldRunnable, TOUCH_HOLD_DURATION_MS)
                 }
             }
@@ -1008,6 +1180,8 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
                 stopHoldSpeedMultiplierGesture()
             }
         }
+
+        return isHolding
     }
 
     private fun stopHoldSpeedMultiplierGesture() {
