@@ -10,7 +10,7 @@ Read these before changing this feature — each can break silently if this one 
 
 - [grid-zoom](grid-zoom.md) — the zoom overlay and the simplified grid's loader share the bind's requests; `simpleThumbnailSize` is deliberately off the `ThumbnailSizes` ladder.
 - [file-edits](file-edits.md) — every cache key is path + last-modified + size, so each in-place edit has to call `TransformedMedia.onTransformed`.
-- [viewer-transition](viewer-transition.md) — a flight's pictures are the viewer's own cached requests (`lowResPhotoRequest`, `fullPhotoRequest`); changing one changes what the tap preloads.
+- [viewer-transition](viewer-transition.md) — a flight's pictures are the viewer's own cached requests (`lowResPhotoRequest`, `fullPhotoRequest`, `videoStillRequest`); changing one changes what the tap preloads.
 - [folder-cover-styles](folder-cover-styles.md) — a cover's decode size comes from the style's inset and aspect ratio.
 - [thumbnail-strip](thumbnail-strip.md) — the strip decodes its own thumbnails at strip size, outside the grid pipeline.
 
@@ -23,7 +23,7 @@ Read these before changing this feature — each can break silently if this one 
 | `helpers/ThumbnailPrefetcher.kt` | Decodes what the media grid is scrolling towards |
 | `extensions/Context.kt` → `loadImageBase()` | Every Glide thumbnail but the simplified grid's |
 | `helpers/SimpleThumbnailLoader.kt` | The zoomed-out grid's one prepared request, see [grid zoom](grid-zoom.md) |
-| `extensions/Glide.kt` | The viewer's `lowResPhotoRequest()` / `fullPhotoRequest()` |
+| `extensions/Glide.kt` | The viewer's `lowResPhotoRequest()` / `fullPhotoRequest()` / `videoStillRequest()` |
 | `helpers/TransformedMedia.kt` | Invalidates cache keys after an in-place edit |
 
 ## The embedded copy

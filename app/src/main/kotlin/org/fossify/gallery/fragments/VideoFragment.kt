@@ -49,6 +49,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import com.bumptech.glide.Glide
+import com.bumptech.glide.Priority
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beGoneIf
 import org.fossify.commons.extensions.beInvisible
@@ -84,6 +85,7 @@ import org.fossify.gallery.extensions.launchGesturePlayer
 import org.fossify.gallery.extensions.parseFileChannel
 import org.fossify.gallery.extensions.screenLocation
 import org.fossify.gallery.extensions.screenRect
+import org.fossify.gallery.extensions.videoStillRequest
 import org.fossify.gallery.helpers.Config
 import org.fossify.gallery.helpers.DisplayedMedia
 import org.fossify.gallery.helpers.EXOPLAYER_MAX_BUFFER_MS
@@ -312,7 +314,12 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
         }
 
         storeStateVariables()
-        Glide.with(context).load(mMedium.path).into(binding.videoPreview)
+        // the shared request, so the still the tap on the tile started decoding is the one found waiting
+        context.videoStillRequest(
+            path = mMedium.path,
+            signature = mMedium.getKey(),
+            priority = if (mIsFragmentVisible) Priority.IMMEDIATE else Priority.NORMAL
+        ).into(binding.videoPreview)
 
         // setMenuVisibility is not called at VideoActivity (third party intent)
         if (!mIsFragmentVisible && activity is VideoActivity) {

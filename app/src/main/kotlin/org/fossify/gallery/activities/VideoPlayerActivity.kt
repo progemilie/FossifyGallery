@@ -148,7 +148,6 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
     private val flight by lazy {
         TileFlight(
             activity = this,
-            overlay = TileFlight.overlayOver(this),
             stage = binding.videoSurfaceFrame,
             backdrops = {
                 listOfNotNull(window.decorView.background, binding.videoPlayerHolder.background)

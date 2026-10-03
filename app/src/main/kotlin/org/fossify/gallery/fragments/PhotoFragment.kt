@@ -130,6 +130,7 @@ class PhotoFragment : ViewPagerFragment() {
     private var mCurrentPortraitPhotoPath = ""
     private var mOriginalPath = ""
     private var mImageOrientation = -1
+    private var mIsOrientationRead = false
     private var mLoadZoomableViewHandler = Handler()
     private var mScreenWidth = 0
     private var mScreenHeight = 0
@@ -489,16 +490,23 @@ class PhotoFragment : ViewPagerFragment() {
             showPortraitStripe()
         }
 
+        // bound at once, as nothing but the zoomable layer needs the orientation: behind a read off the
+        // main thread, a photo already decoded came up only after the pages' first layout, and a
+        // touch made meanwhile reached a view with nothing in it and was lost
+        mIsOrientationRead = false
+        when {
+            mMedium.isGIF() -> loadGif()
+            mMedium.isSVG() -> loadSVG()
+            mMedium.isApng() -> loadAPNG()
+            mMedium.isAvif() -> loadAVIF()
+            else -> loadBitmap()
+        }
+
         ensureBackgroundThread {
-            mImageOrientation = getImageOrientation()
+            val orientation = getImageOrientation()
             activity?.runOnUiThread {
-                when {
-                    mMedium.isGIF() -> loadGif()
-                    mMedium.isSVG() -> loadSVG()
-                    mMedium.isApng() -> loadAPNG()
-                    mMedium.isAvif() -> loadAVIF()
-                    else -> loadBitmap()
-                }
+                mImageOrientation = orientation
+                mIsOrientationRead = true
             }
         }
     }
@@ -853,6 +861,12 @@ class PhotoFragment : ViewPagerFragment() {
         }
 
         mLoadZoomableViewHandler.postDelayed({
+            // it turns the photo by the orientation, which the image no longer waits for - see loadImage()
+            if (!mIsOrientationRead) {
+                scheduleZoomableView()
+                return@postDelayed
+            }
+
             if (mIsFragmentVisible && context?.config?.allowZoomingImages == true && (mMedium.isImage() || mMedium.isPortrait()) && !mIsSubsamplingVisible) {
                 addZoomableView()
             }

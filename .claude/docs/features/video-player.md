@@ -14,7 +14,7 @@ Read these before changing this feature — each can break silently if this one 
 
 - [thumbnail-strip](thumbnail-strip.md) — the strip steps aside on a video's page, and the scrubber takes its place, lined up from the strip's own dimensions.
 - [viewer-chrome](viewer-chrome.md) — the chrome going by itself is the viewer's, asked for by the video.
-- [viewer-transition](viewer-transition.md) — a close stops the frame strip reading (`onViewerClosing()`), or it decodes through the shrink.
+- [viewer-transition](viewer-transition.md) — a close stops the frame strip reading (`onViewerClosing()`), or it decodes through the shrink; the page's still is the request the tap prefetches for the flight (`videoStillRequest`).
 - [landscape-viewer](landscape-viewer.md) — the controls share the frames' row in landscape, where nothing in it may change width.
 - [peek-viewer](peek-viewer.md) — the peek's strip never steps aside, so the frames stand above it only because the peek answers `isBottomActionBarAtFoot()` true.
 
@@ -113,6 +113,9 @@ goes unnoticed, and the strip shows one keyframe in several cells out of order.
   one only if `mIsPlaying` still says so — a pause meanwhile (the screen going off) wins.
 - **`fragmentClicked()` is a tap**, a toggle that closes an open metadata sheet rather than showing
   the chrome. Anything that wants the chrome a particular way goes through `setFullScreen()`.
+- **The still shown until the video plays is `videoStillRequest()`**, which the tap on the tile
+  starts so the flight into the viewer is drawn sharp. Every part of it is cache key: described any
+  other way, the page decodes the frame a second time and the flight lands on a different picture.
 - **The thumbnail strip's visibility goes through `updateThumbnailStrip()`**, which knows a video's
   page; set straight from the setting, the strip sits over the scrubber. A strip being scrolled
   stays up whatever its middle passes, and is looked at again once it settles.

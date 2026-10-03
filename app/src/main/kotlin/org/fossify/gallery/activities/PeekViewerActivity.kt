@@ -71,7 +71,6 @@ class PeekViewerActivity :
     private val flight by lazy {
         TileFlight(
             activity = this,
-            overlay = TileFlight.overlayOver(this),
             stage = binding.viewPager,
             backdrops = {
                 listOfNotNull(

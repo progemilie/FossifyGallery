@@ -15,8 +15,8 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * The picture in flight between a grid tile and the fullscreen photo - the one thing on screen
- * while a flight is running, drawn over the viewer with the grid still visible behind it. It draws
+ * The picture in flight between a grid tile and the fullscreen photo, drawn where the photo is -
+ * just over the view showing it, under the chrome - with the grid still visible behind it. It draws
  * a bitmap into a rect rather than being one, so a flight costs no layout at all. See
  * [org.fossify.gallery.helpers.TileFlight].
  *
@@ -106,6 +106,19 @@ class FlightOverlay @JvmOverloads constructor(
             to.set(moved)
             lerpBounds()
             invalidate()
+        }
+    }
+
+    /**
+     * Takes the whole of the parent, padding and all, whatever the parent hands it: a screen pads
+     * its content clear of a notch, and a flight can start at a tile under one.
+     */
+    override fun layout(l: Int, t: Int, r: Int, b: Int) {
+        val holder = parent as? View
+        if (holder == null) {
+            super.layout(l, t, r, b)
+        } else {
+            super.layout(0, 0, holder.width, holder.height)
         }
     }
 
