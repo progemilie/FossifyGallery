@@ -6,6 +6,8 @@
     <dimen name="play_outline_icon_size">22dp</dimen>
     <dimen name="favorite_list_icon_size">17dp</dimen>
     <dimen name="selection_check_size">26dp</dimen>
+    <!-- a media tile is a fraction of a folder's, and the full size tick covered too much of it -->
+    <dimen name="selection_check_size_media">20dp</dimen>
     <!-- a hint of an edge on the selection tick, not an outline around it -->
     <dimen name="selection_check_border">1dp</dimen>
 
