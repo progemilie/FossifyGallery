@@ -34,6 +34,7 @@ Notable fork-only changes.
 - The tick on a selected photo or video in the grid is smaller.
 - The most zoomed out photo grid keeps a thin gap between pictures, like the rest of the grid.
 - Exported order & groups files no longer start with a block of comments.
+- The metadata sheet shows the camera a photo was taken with near the top.
 ### Fixed
 - Fixed a photo or video opening soft — the picture the tile grows into is now the photo itself, or
   the video's own frame, rather than a thumbnail of it, so it is sharp the moment the viewer arrives.

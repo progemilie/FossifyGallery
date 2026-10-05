@@ -35,7 +35,9 @@ Read these before changing this feature — each can break silently if this one 
 the sections verbatim, so nothing is dropped for want of a hand-written mapping; `ExifInterface`,
 `MediaMetadataRetriever` and `MediaExtractor` fill in what it cannot parse.
 
-The sheet rests at the height of the pinned summary, so the photo stays visible; dragging further
+The pinned summary includes a Camera row (Exif make and model, the make dropped where the model
+already starts with it) whenever the file names one; the same make and model stay in the Exif
+section below. The sheet rests at the height of the pinned summary, so the photo stays visible; dragging further
 opens the collapsible sections, which build their rows only when first opened (a fat XMP packet has
 hundreds of tags). Swiping to the next file keeps the old rows up until the new ones are read.
 
