@@ -34,8 +34,6 @@
         <item name="android:textSize">@dimen/settings_page_title_text_size</item>
     </style>
 
-    <!-- written on the page like a settings page's title, in line with the folder tiles below it, at
-         the size the picker's toolbar title had -->
     <style name="FolderPickerTitle" parent="SettingsPageTitle">
         <item name="android:paddingStart">@dimen/activity_margin</item>
         <item name="android:paddingEnd">@dimen/activity_margin</item>
@@ -175,7 +173,7 @@
 
     <!--
         The folder picker: a dialog filling the screen. Its content is inflated with the activity's own
-        theme, so this carries only what the window itself needs. See PickDirectoryDialog.
+        theme, so this carries only what the window itself needs. See FolderPickerScreen.
     -->
     <style name="FullscreenDialog" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:windowIsFloating">false</item>

@@ -8,10 +8,8 @@ import android.widget.ImageView
 import androidx.activity.ComponentDialog
 import androidx.annotation.StringRes
 import androidx.appcompat.widget.TooltipCompat
-import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isEmpty
 import org.fossify.commons.R as commonsR
 import org.fossify.commons.activities.BaseSimpleActivity
@@ -27,6 +25,7 @@ import org.fossify.commons.extensions.getProperTextColor
 import org.fossify.commons.extensions.handleHiddenFolderPasswordProtection
 import org.fossify.commons.extensions.hideKeyboard
 import org.fossify.commons.extensions.isAStorageRootFolder
+import org.fossify.commons.extensions.setSystemBarsAppearance
 import org.fossify.commons.helpers.MEDIUM_ALPHA
 import org.fossify.commons.helpers.isPiePlus
 import org.fossify.commons.helpers.isQPlus
@@ -37,8 +36,6 @@ import org.fossify.gallery.helpers.FloatingTopBar
 import org.fossify.gallery.helpers.Glass
 import org.fossify.gallery.views.GlassPanel
 import org.fossify.gallery.views.NavPillSegment
-
-private const val LIGHT_LUMINANCE = 0.5
 
 /**
  * The folder picker as a screen of its own: a dialog filling the window edge to edge, the grid running
@@ -130,7 +127,6 @@ class FolderPickerScreen(
         }
     }
 
-    // round, the selection pill's glass and its back button's look
     private fun dressPill(panel: GlassPanel, segment: NavPillSegment, icon: ImageView) {
         val content = Glass.contentColor(activity)
         panel.dressAsFloatingPill(activity.resources.getDimension(R.dimen.peek_pill_radius))
@@ -163,8 +159,7 @@ class FolderPickerScreen(
         onShowHiddenChanged(show)
     }
 
-    // the eye open while hidden folders are kept out, as the way to bring them in; shut, and dimmed to
-    // the search hint's grey, once they are
+    // the icon shows what a tap does next, so it is the open eye while hidden folders are kept out
     private fun paintHiddenToggle() {
         val item = binding.folderSearchView.requireToolbar().menu.findItem(R.id.toggle_hidden_folders) ?: return
         item.setIcon(if (isShowingHidden) commonsR.drawable.ic_hide_vector else commonsR.drawable.ic_unhide_vector)
@@ -202,9 +197,5 @@ private fun Window.fillScreen(background: Int) {
         }
     }
 
-    val isLight = ColorUtils.calculateLuminance(background) > LIGHT_LUMINANCE
-    WindowInsetsControllerCompat(this, decorView).apply {
-        isAppearanceLightStatusBars = isLight
-        isAppearanceLightNavigationBars = isLight
-    }
+    setSystemBarsAppearance(background)
 }
