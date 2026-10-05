@@ -34,6 +34,12 @@
         <item name="android:textSize">@dimen/settings_page_title_text_size</item>
     </style>
 
+    <style name="FolderPickerTitle" parent="SettingsPageTitle">
+        <item name="android:paddingStart">@dimen/activity_margin</item>
+        <item name="android:paddingEnd">@dimen/activity_margin</item>
+        <item name="android:textSize">@dimen/actionbar_text_size</item>
+    </style>
+
     <style name="SettingsGroup">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
@@ -163,5 +169,22 @@
         <item name="android:activityOpenExitAnimation">@anim/viewer_hold</item>
         <item name="android:activityCloseEnterAnimation">@anim/viewer_hold</item>
         <item name="android:activityCloseExitAnimation">@anim/viewer_hold</item>
+    </style>
+
+    <!--
+        The folder picker: a dialog filling the screen. Its content is inflated with the activity's own
+        theme, so this carries only what the window itself needs. See FolderPickerScreen.
+    -->
+    <style name="FullscreenDialog" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowAnimationStyle">@style/FullscreenDialogAnimation</item>
+    </style>
+
+    <style name="FullscreenDialogAnimation">
+        <item name="android:windowEnterAnimation">@anim/fullscreen_dialog_enter</item>
+        <item name="android:windowExitAnimation">@anim/fullscreen_dialog_exit</item>
     </style>
 </resources>

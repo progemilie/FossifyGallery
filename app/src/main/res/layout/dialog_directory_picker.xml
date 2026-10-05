@@ -1,62 +1,163 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+    Fills the screen, edge to edge, with the chrome floating over the grid. FolderPickerLayout pads
+    the pills by the system bars, keeps the grid clear of them, and carries the header and Other
+    folder along with the grid's first and last rows.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/directories_holder"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <RelativeLayout
-        android:id="@+id/directories_grid_holder"
+    <!-- everything the glass frosts -->
+    <FrameLayout
+        android:id="@+id/directories_content"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:minHeight="@dimen/directory_picker_dialog_min_height"
-        android:paddingTop="@dimen/medium_margin">
-
-        <org.fossify.commons.views.MySearchMenu
-            android:id="@+id/folder_search_view"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/medium_margin" />
-
-        <org.fossify.commons.views.MyTextView
-            android:id="@+id/directories_empty_placeholder"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@+id/folder_search_view"
-            android:alpha="0.8"
-            android:gravity="center_horizontal"
-            android:paddingStart="@dimen/activity_margin"
-            android:paddingTop="@dimen/activity_margin"
-            android:paddingEnd="@dimen/activity_margin"
-            android:text="@string/no_media_with_filters"
-            android:textSize="@dimen/bigger_text_size"
-            android:textStyle="italic"
-            android:visibility="gone" />
+        android:layout_height="match_parent">
 
         <com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
             android:id="@+id/directories_fastscroller"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@+id/directories_empty_placeholder">
+            android:layout_height="match_parent">
 
             <org.fossify.commons.views.MyRecyclerView
                 android:id="@+id/directories_grid"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:clipToPadding="false"
                 android:scrollbars="none"
                 app:layoutManager="org.fossify.commons.views.MyGridLayoutManager"
                 app:spanCount="@integer/directory_columns_vertical_scroll" />
 
         </com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller>
-    </RelativeLayout>
 
-    <org.fossify.commons.views.MyFloatingActionButton
-        android:id="@+id/directories_show_hidden"
-        android:layout_width="wrap_content"
+        <!-- over the grid rather than in it, so the folder tiles keep their own adapter positions -->
+        <LinearLayout
+            android:id="@+id/directories_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/directories_title"
+                style="@style/FolderPickerTitle" />
+
+            <org.fossify.commons.views.MyTextView
+                android:id="@+id/directories_empty_placeholder"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:alpha="0.8"
+                android:gravity="center_horizontal"
+                android:paddingStart="@dimen/activity_margin"
+                android:paddingEnd="@dimen/activity_margin"
+                android:paddingBottom="@dimen/activity_margin"
+                android:text="@string/no_media_with_filters"
+                android:textSize="@dimen/bigger_text_size"
+                android:textStyle="italic"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <!-- over the grid too: the fast scroller only asks the grid's own adapter for its bubble's text -->
+        <TextView
+            android:id="@+id/directories_other_folder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="@dimen/medium_margin"
+            android:layout_marginBottom="@dimen/medium_margin"
+            android:background="@drawable/ripple_all_corners"
+            android:paddingStart="@dimen/activity_margin"
+            android:paddingTop="@dimen/normal_margin"
+            android:paddingEnd="@dimen/activity_margin"
+            android:paddingBottom="@dimen/normal_margin"
+            android:text="@string/other_folder"
+            android:textSize="@dimen/bigger_text_size"
+            android:visibility="gone" />
+
+        <View
+            android:id="@+id/directories_top_fade"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/top_fade_height"
+            android:layout_gravity="top" />
+
+        <View
+            android:id="@+id/directories_bottom_fade"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/bottom_fade_height"
+            android:layout_gravity="bottom" />
+
+    </FrameLayout>
+
+    <!-- the padding is shadow room, as around the selection pill: a shadow is drawn outside its view -->
+    <FrameLayout
+        android:id="@+id/directories_top_bar"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="@dimen/activity_margin"
-        android:src="@drawable/ic_unhide_vector"
-        android:visibility="gone" />
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:padding="@dimen/glass_menu_shadow_room">
 
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+        <org.fossify.gallery.views.GlassPanel
+            android:id="@+id/directories_back_panel"
+            android:layout_width="@dimen/peek_pill_height"
+            android:layout_height="@dimen/peek_pill_height"
+            android:layout_gravity="start">
+
+            <org.fossify.gallery.views.NavPillSegment
+                android:id="@+id/directories_back"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clickable="true"
+                android:contentDescription="@string/back"
+                android:focusable="true"
+                android:gravity="center">
+
+                <ImageView
+                    android:id="@+id/directories_back_icon"
+                    android:layout_width="@dimen/nav_pill_icon_size"
+                    android:layout_height="@dimen/nav_pill_icon_size"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_arrow_left_vector" />
+
+            </org.fossify.gallery.views.NavPillSegment>
+
+        </org.fossify.gallery.views.GlassPanel>
+
+        <org.fossify.gallery.views.GlassPanel
+            android:id="@+id/directories_new_folder_panel"
+            android:layout_width="@dimen/peek_pill_height"
+            android:layout_height="@dimen/peek_pill_height"
+            android:layout_gravity="end"
+            android:visibility="gone">
+
+            <org.fossify.gallery.views.NavPillSegment
+                android:id="@+id/directories_new_folder"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clickable="true"
+                android:contentDescription="@string/create_new_folder"
+                android:focusable="true"
+                android:gravity="center">
+
+                <ImageView
+                    android:id="@+id/directories_new_folder_icon"
+                    android:layout_width="@dimen/nav_pill_icon_size"
+                    android:layout_height="@dimen/nav_pill_icon_size"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_plus_vector" />
+
+            </org.fossify.gallery.views.NavPillSegment>
+
+        </org.fossify.gallery.views.GlassPanel>
+
+    </FrameLayout>
+
+    <org.fossify.commons.views.MySearchMenu
+        android:id="@+id/folder_search_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom" />
+
+</FrameLayout>

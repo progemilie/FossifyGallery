@@ -1,32 +1,24 @@
 package org.fossify.gallery.dialogs
 
-import android.graphics.Color
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.activity.addCallback
-import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.RecyclerView
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.dialogs.FilePickerDialog
-import org.fossify.commons.extensions.beGone
-import org.fossify.commons.extensions.beInvisible
 import org.fossify.commons.extensions.beVisibleIf
-import org.fossify.commons.extensions.getAlertDialogBuilder
 import org.fossify.commons.extensions.getDefaultCopyDestinationPath
 import org.fossify.commons.extensions.getProperPrimaryColor
-import org.fossify.commons.extensions.handleHiddenFolderPasswordProtection
 import org.fossify.commons.extensions.handleLockedFolderOpening
 import org.fossify.commons.extensions.hideKeyboard
 import org.fossify.commons.extensions.isGone
 import org.fossify.commons.extensions.isInDownloadDir
 import org.fossify.commons.extensions.isRestrictedWithSAFSdk30
-import org.fossify.commons.extensions.setupDialogStuff
 import org.fossify.commons.extensions.toast
 import org.fossify.commons.helpers.VIEW_TYPE_GRID
 import org.fossify.commons.views.MyGridLayoutManager
 import org.fossify.commons.views.MySearchMenu
-import org.fossify.gallery.R
 import org.fossify.gallery.adapters.DirectoryAdapter
 import org.fossify.gallery.databinding.DialogDirectoryPickerBinding
 import org.fossify.gallery.extensions.addTempFolderIfNeeded
@@ -47,24 +39,36 @@ class PickDirectoryDialog(
     val isPickingFolderForWidget: Boolean,
     // not every caller is picking a place to put files - the startup setting picks a folder to open
     @StringRes val titleId: Int = org.fossify.commons.R.string.select_destination,
+    // how many files a copy or a move is putting there, which the title counts
+    val fileCount: Int = 0,
     val callback: (path: String) -> Unit
 ) {
-    private var dialog: AlertDialog? = null
     private var shownDirectories = ArrayList<Directory>()
     private var allDirectories = ArrayList<Directory>()
     private var openedSubfolders = arrayListOf("")
     private var binding = DialogDirectoryPickerBinding.inflate(activity.layoutInflater)
     private var isGridViewType = activity.config.viewTypeFolders == VIEW_TYPE_GRID
+    private val scrollHorizontally = activity.config.scrollHorizontally && isGridViewType
     private var showHidden = activity.config.shouldShowHidden
     private var currentPathPrefix = ""
     private val config = activity.config
     private val searchView = binding.folderSearchView
     private val searchEditText = searchView.binding.topToolbarSearch
-    private val searchBarContainer = searchView.binding.searchBarContainer
+    private val screen = FolderPickerScreen(
+        activity = activity,
+        binding = binding,
+        titleId = titleId,
+        fileCount = fileCount,
+        showOtherFolder = showOtherFolderButton,
+        newFolderBeside = sourcePath.takeIf { isPickingCopyMoveDestination }
+    )
+
+    // only the latest fetch is shown, as the eye can be tapped again before the last one comes back
+    private var fetchGeneration = 0
 
     init {
         (binding.directoriesGrid.layoutManager as MyGridLayoutManager).apply {
-            orientation = if (activity.config.scrollHorizontally && isGridViewType) RecyclerView.HORIZONTAL else RecyclerView.VERTICAL
+            orientation = if (scrollHorizontally) RecyclerView.HORIZONTAL else RecyclerView.VERTICAL
             spanCount = if (isGridViewType) activity.fittedDirColumnCnt() else 1
         }
 
@@ -72,43 +76,29 @@ class PickDirectoryDialog(
 
         configureSearchView()
 
-        val builder = activity.getAlertDialogBuilder()
-            .setPositiveButton(org.fossify.commons.R.string.ok, null)
-            .setNegativeButton(org.fossify.commons.R.string.cancel, null)
-
-        if (showOtherFolderButton) {
-            builder.setNeutralButton(R.string.other_folder) { dialogInterface, i -> showOtherFolder() }
+        screen.onOtherFolder = ::showOtherFolder
+        screen.onFolderCreated = callback
+        screen.onShowHiddenChanged = {
+            showHidden = it
+            fetchDirectories(it)
         }
 
-        builder.apply {
-            activity.setupDialogStuff(binding.root, this, titleId) { alertDialog ->
-                dialog = alertDialog
-                binding.directoriesShowHidden.beVisibleIf(!context.config.shouldShowHidden)
-                binding.directoriesShowHidden.setOnClickListener {
-                    activity.handleHiddenFolderPasswordProtection {
-                        binding.directoriesShowHidden.beGone()
-                        showHidden = true
-                        fetchDirectories(true)
-                    }
+        val dialog = screen.dialog
+        dialog.onBackPressedDispatcher.addCallback(dialog) {
+            if (searchView.isSearchOpen) {
+                searchView.closeSearch()
+            } else if (activity.config.groupDirectSubfolders) {
+                if (currentPathPrefix.isEmpty()) {
+                    isEnabled = false
+                    dialog.onBackPressedDispatcher.onBackPressed()
+                } else {
+                    openedSubfolders.removeAt(openedSubfolders.lastIndex)
+                    currentPathPrefix = openedSubfolders.last()
+                    gotDirectories(allDirectories)
                 }
-
-                alertDialog.onBackPressedDispatcher.addCallback(alertDialog) {
-                    if (searchView.isSearchOpen) {
-                        searchView.closeSearch()
-                    } else if (activity.config.groupDirectSubfolders) {
-                        if (currentPathPrefix.isEmpty()) {
-                            isEnabled = false
-                            alertDialog.onBackPressedDispatcher.onBackPressed()
-                        } else {
-                            openedSubfolders.removeAt(openedSubfolders.lastIndex)
-                            currentPathPrefix = openedSubfolders.last()
-                            gotDirectories(allDirectories)
-                        }
-                    } else {
-                        isEnabled = false
-                        alertDialog.onBackPressedDispatcher.onBackPressed()
-                    }
-                }
+            } else {
+                isEnabled = false
+                dialog.onBackPressedDispatcher.onBackPressed()
             }
         }
 
@@ -119,18 +109,14 @@ class PickDirectoryDialog(
         updateHintText(context.getString(org.fossify.commons.R.string.search_folders))
         searchEditText.imeOptions = EditorInfo.IME_ACTION_DONE
 
-        toggleHideOnScroll(!config.scrollHorizontally)
+        // pinned to the foot of the screen, out of the way of the grid scrolling under it
+        toggleHideOnScroll(false)
         setupMenu()
         setSearchViewListeners()
         updateSearchViewUi()
     }
 
-    private fun MySearchMenu.updateSearchViewUi() {
-        requireToolbar().beInvisible()
-        updateColors()
-        setBackgroundColor(Color.TRANSPARENT)
-        searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
-    }
+    private fun updateSearchViewUi() = screen.dressSearchBar()
 
     private fun MySearchMenu.setSearchViewListeners() {
         onSearchOpenListener = {
@@ -186,15 +172,21 @@ class PickDirectoryDialog(
     }
 
     private fun fetchDirectories(forceShowHiddenAndExcluded: Boolean) {
+        val generation = ++fetchGeneration
         activity.getCachedDirectories(forceShowHidden = forceShowHiddenAndExcluded, forceShowExcluded = forceShowHiddenAndExcluded) {
-            if (it.isNotEmpty()) {
-                it.forEach {
-                    it.subfoldersMediaCount = it.mediaCnt
-                }
+            it.forEach {
+                it.subfoldersMediaCount = it.mediaCnt
+            }
 
-                activity.runOnUiThread {
+            // even an empty list is shown, as hiding hidden folders again can leave none
+            activity.runOnUiThread {
+                if (generation == fetchGeneration) {
                     allDirectories.clear()
                     gotDirectories(activity.addTempFolderIfNeeded(it))
+                    val query = searchView.getCurrentQuery()
+                    if (query.isNotEmpty()) {
+                        filterFolderListBySearchQuery(query)
+                    }
                 }
             }
         }
@@ -213,6 +205,7 @@ class PickDirectoryDialog(
             config.lastCopyPath = it
             activity.handleLockedFolderOpening(it) { success ->
                 if (success) {
+                    screen.dismiss()
                     callback(it)
                 }
             }
@@ -228,7 +221,7 @@ class PickDirectoryDialog(
             .toMutableList() as ArrayList<Directory>
         val sortedDirs = activity.getSortedDirectories(distinctDirs)
         val dirs = activity.getDirsToShow(sortedDirs, allDirectories, currentPathPrefix).clone() as ArrayList<Directory>
-        if (dirs.hashCode() == shownDirectories.hashCode()) {
+        if (binding.directoriesGrid.adapter != null && dirs.hashCode() == shownDirectories.hashCode()) {
             return
         }
 
@@ -249,7 +242,7 @@ class PickDirectoryDialog(
                             callback(path)
                         }
                     }
-                    dialog?.dismiss()
+                    screen.dismiss()
                 }
             } else {
                 currentPathPrefix = path
@@ -258,7 +251,6 @@ class PickDirectoryDialog(
             }
         }
 
-        val scrollHorizontally = activity.config.scrollHorizontally && isGridViewType
         binding.apply {
             directoriesGrid.adapter = adapter
             directoriesFastscroller.setScrollVertically(!scrollHorizontally)

@@ -95,7 +95,6 @@
     <dimen name="widget_initial_size">110dp</dimen>
     <dimen name="full_brush_size">40dp</dimen>
     <dimen name="lock_padding">30dp</dimen>
-    <dimen name="directory_picker_dialog_min_height">180dp</dimen>
     <dimen name="smaller_icon_size">36dp</dimen>
     <dimen name="accent_border_min_width">2dp</dimen>
     <dimen name="accent_border_max_width">8dp</dimen>

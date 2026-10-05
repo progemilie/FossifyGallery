@@ -323,7 +323,8 @@ fun BaseSimpleActivity.tryCopyMoveFilesTo(fileDirItems: ArrayList<FileDirItem>, 
     }
 
     val source = fileDirItems[0].getParentPath()
-    PickDirectoryDialog(this, source, true, false, true, false) { destination ->
+    val titleId = if (isCopyOperation) org.fossify.commons.R.string.copy_to else org.fossify.commons.R.string.move_to
+    PickDirectoryDialog(this, source, true, false, true, false, titleId, fileDirItems.size) { destination ->
         copyMoveFilesToFolder(fileDirItems, destination, isCopyOperation, callback)
     }
 }

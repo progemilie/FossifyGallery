@@ -130,6 +130,8 @@ Files
 - [Ratings](features/ratings.md) — stars stored in XMP, cached for scans, sorted and grouped by.
 - [Editing files in place](features/file-edits.md) — XMP writes, mirroring, and what an edit owes
   the caches.
+- [The folder picker](features/folder-picker.md) — the fullscreen screen a copy or move picks its
+  folder on, making a new folder from it, and the eye for hidden folders.
 
 Look & feel
 - [Floating chrome and glass](features/floating-chrome.md) — the search pill, glass panels, their
