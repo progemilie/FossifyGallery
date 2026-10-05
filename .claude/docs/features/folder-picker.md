@@ -51,7 +51,8 @@ any other destination (see [hold-choosers](hold-choosers.md)). Only a copy or a 
 **The eye** is a menu item in the search pill, shown only while hidden folders are hidden everywhere
 else. The eye open, in the text colour, brings in hidden and excluded folders (after the
 hidden-items password, if set); shut, in the search hint's grey (`MEDIUM_ALPHA`), it takes them back
-out. Either way the picker fetches its folders again.
+out. Either way the picker fetches its folders again, shows only the latest fetch to come back, and
+filters it by whatever is typed in the search pill.
 
 **Other folder** opens commons' file picker over the screen, which stays until a folder is picked
 there, so cancelling it comes back to the grid.

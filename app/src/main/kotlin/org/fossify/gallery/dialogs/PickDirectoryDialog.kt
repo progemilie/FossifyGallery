@@ -63,6 +63,9 @@ class PickDirectoryDialog(
         newFolderBeside = sourcePath.takeIf { isPickingCopyMoveDestination }
     )
 
+    // only the latest fetch is shown, as the eye can be tapped again before the last one comes back
+    private var fetchGeneration = 0
+
     init {
         (binding.directoriesGrid.layoutManager as MyGridLayoutManager).apply {
             orientation = if (scrollHorizontally) RecyclerView.HORIZONTAL else RecyclerView.VERTICAL
@@ -169,6 +172,7 @@ class PickDirectoryDialog(
     }
 
     private fun fetchDirectories(forceShowHiddenAndExcluded: Boolean) {
+        val generation = ++fetchGeneration
         activity.getCachedDirectories(forceShowHidden = forceShowHiddenAndExcluded, forceShowExcluded = forceShowHiddenAndExcluded) {
             it.forEach {
                 it.subfoldersMediaCount = it.mediaCnt
@@ -176,8 +180,14 @@ class PickDirectoryDialog(
 
             // even an empty list is shown, as hiding hidden folders again can leave none
             activity.runOnUiThread {
-                allDirectories.clear()
-                gotDirectories(activity.addTempFolderIfNeeded(it))
+                if (generation == fetchGeneration) {
+                    allDirectories.clear()
+                    gotDirectories(activity.addTempFolderIfNeeded(it))
+                    val query = searchView.getCurrentQuery()
+                    if (query.isNotEmpty()) {
+                        filterFolderListBySearchQuery(query)
+                    }
+                }
             }
         }
     }
