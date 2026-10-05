@@ -34,10 +34,12 @@
         <item name="android:textSize">@dimen/settings_page_title_text_size</item>
     </style>
 
-    <!-- written on the page like a settings page's title, in line with the folder tiles below it -->
+    <!-- written on the page like a settings page's title, in line with the folder tiles below it, at
+         the size the picker's toolbar title had -->
     <style name="FolderPickerTitle" parent="SettingsPageTitle">
         <item name="android:paddingStart">@dimen/activity_margin</item>
         <item name="android:paddingEnd">@dimen/activity_margin</item>
+        <item name="android:textSize">@dimen/actionbar_text_size</item>
     </style>
 
     <style name="SettingsGroup">
