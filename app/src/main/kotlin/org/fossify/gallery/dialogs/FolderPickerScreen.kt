@@ -150,7 +150,8 @@ class FolderPickerScreen(
         directoriesTitle.text = if (fileCount > 0) {
             val text = activity.getString(R.string.folder_picker_title_with_count, title, fileCount)
             SpannableString(text).apply {
-                setSpan(RelativeSizeSpan(TITLE_COUNT_SCALE), title.length, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                val count = RelativeSizeSpan(TITLE_COUNT_SCALE)
+                setSpan(count, title.length, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
         } else {
             title
