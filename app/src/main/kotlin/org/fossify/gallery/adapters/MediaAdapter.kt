@@ -208,6 +208,9 @@ class MediaAdapter(
             size = activity.mediaGridZoom().simpleThumbnailSize
         ).also { preparedSimpleThumbnails = it }
 
+    /** A spacing of a pixel or less is padding on each tile; anything wider is the decoration's. */
+    private val thinSpacing = config.thumbnailSpacing.takeIf { it <= 1 } ?: 0
+
     private var columnCount = config.mediaColumnCnt
     private var scrollHorizontally = config.scrollHorizontally
     private var animateGifs = config.animateGifs
@@ -232,7 +235,11 @@ class MediaAdapter(
         val binding = when {
             viewType == ITEM_SECTION ->
                 ThumbnailSectionBinding.inflate(layoutInflater, parent, false).also { it.sinkCheckIntoPadding() }
-            viewType == ITEM_MEDIUM_SIMPLE -> PhotoItemGridSimpleBinding.inflate(layoutInflater, parent, false)
+            viewType == ITEM_MEDIUM_SIMPLE -> PhotoItemGridSimpleBinding.inflate(layoutInflater, parent, false).also {
+                // spaced as a full tile is (see setupThumbnail), or the pictures run into one another
+                it.root.setPadding(thinSpacing, thinSpacing, thinSpacing, thinSpacing)
+            }
+
             isListViewType -> {
                 if (viewType == ITEM_MEDIUM_PHOTO) {
                     PhotoItemListBinding.inflate(layoutInflater, parent, false)
