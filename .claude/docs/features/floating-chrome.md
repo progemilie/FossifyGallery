@@ -12,6 +12,7 @@ Read these before changing this feature — each can break silently if this one 
 - [two-grids-one-window](two-grids-one-window.md) — a pane swap is a draw, so `keepGridClear()` has to be called outright during one.
 - [selection](selection.md) — a selection covers the bar (`isCovered`) while keeping its room, so the grid does not jump.
 - [hold-choosers](hold-choosers.md) — choosers place themselves with translation, which is why `PanelAnim` never touches it.
+- [folder-picker](folder-picker.md) — the picker's search pill sits at the foot of the screen and is frosted by `FloatingTopBar.makeFloating()` alone, so that can assume nothing about being at the top.
 
 ## Where it lives
 
