@@ -1,9 +1,6 @@
 package org.fossify.gallery.dialogs
 
 import android.graphics.Color
-import android.text.SpannableString
-import android.text.Spanned
-import android.text.style.RelativeSizeSpan
 import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowManager
@@ -47,9 +44,6 @@ import org.fossify.gallery.views.GlassPanel
 import org.fossify.gallery.views.NavPillSegment
 
 private const val LIGHT_LUMINANCE = 0.5
-
-// the file count in brackets after the title, a step down from it
-private const val TITLE_COUNT_SCALE = 0.8f
 
 /**
  * The folder picker as a screen of its own: a dialog filling the window edge to edge, the grid running
@@ -148,11 +142,7 @@ class FolderPickerScreen(
     private fun setupTopBar(@StringRes titleId: Int, fileCount: Int) = with(binding) {
         val title = activity.getString(titleId)
         directoriesTitle.text = if (fileCount > 0) {
-            val text = activity.getString(R.string.folder_picker_title_with_count, title, fileCount)
-            SpannableString(text).apply {
-                val count = RelativeSizeSpan(TITLE_COUNT_SCALE)
-                setSpan(count, title.length, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            }
+            activity.getString(R.string.folder_picker_title_with_count, title, fileCount)
         } else {
             title
         }
