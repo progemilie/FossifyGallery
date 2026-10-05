@@ -43,8 +43,8 @@ tappable count wants `largestInteractive`.
 
 Past `interactiveMax` a tile is only its picture, and a screenful is several hundred of them.
 `MediaAdapter` binds `photo_item_grid_simple.xml` — a bare `MySquareImageView`, no listeners, no
-badges, no selection — and `MediaGridPane.mediaForGrid()` drops the grouping headers, which would
-leave ragged gaps. Nothing there is tappable, so a tap zooms in one rung and scrolls the item that
+badges, no selection, padded by a thin spacing as a full tile's holder is — and
+`MediaGridPane.mediaForGrid()` drops the grouping headers, which would leave ragged gaps. Nothing there is tappable, so a tap zooms in one rung and scrolls the item that
 was under the finger back under it.
 
 `SimpleThumbnailLoader` prepares its Glide request **once** and reuses it, because a fling across

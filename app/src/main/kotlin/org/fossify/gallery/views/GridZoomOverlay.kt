@@ -79,7 +79,7 @@ class HeaderStyle(
 class TileStyle(
     val placeholderColor: Int,
     val cornerRadius: Float,
-    /** Around the picture in a full tile, whose holder is padded by a thin spacing. */
+    /** Around the picture in any tile, full or simplified, each padded by a thin spacing. */
     val padding: Int,
     /**
      * Whether an SVG fills its tile, cropped, rather than fitting inside it. Its view scales it, where
@@ -377,10 +377,8 @@ internal class ZoomTilePainter {
         val shown = found?.let(::shownOf)
         val bitmap = shown?.let(::bitmapOf)?.takeIf { !it.isRecycled }
         val picture = (shown as? PictureDrawable)?.picture?.takeIf { it.width > 0 && it.height > 0 }
-        if (!pass.isSimplified) {
-            val padding = pass.drawing.tileStyle.padding * pass.layer.scaleAcross
-            tile.inset(padding, padding)
-        }
+        val padding = pass.drawing.tileStyle.padding * pass.layer.scaleAcross
+        tile.inset(padding, padding)
 
         // a full tile keeps its placeholder under a picture that leaves any of it showing, as the
         // grid's does, and any tile shows one while it has no picture at all

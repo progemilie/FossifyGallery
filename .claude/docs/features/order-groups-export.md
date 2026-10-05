@@ -32,7 +32,9 @@ group:Trips
 /storage/emulated/0/DCIM/Camera/IMG_002.jpg
 ```
 
-Paths are absolute, so a bracketed line can never be mistaken for one. **Groups go out by name, not
+Nothing else is written. Import still skips blank lines and lines starting with `#`, which files
+exported before carried as a header. Paths are absolute, so a bracketed line can never be mistaken
+for one. **Groups go out by name, not
 by id**, since a `folder_group:<id>` means nothing on the install reading it back; inside the folder
 order a tile is written `group:<name>`, and tiles whose group is gone are dropped. `group:` can never
 begin a real path, so a file older than groups reads exactly as it did.

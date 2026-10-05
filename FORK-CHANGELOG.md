@@ -31,6 +31,7 @@ Notable fork-only changes.
   up to twenty.
 - Sorting and grouping by rating works like any other sorting now.
 - The thumbnail strip under a photo marks videos with a small triangle.
+- The metadata sheet shows the camera a photo was taken with near the top.
 ### Fixed
 - Fixed a photo or video opening soft — the picture the tile grows into is now the photo itself, or
   the video's own frame, rather than a thumbnail of it, so it is sharp the moment the viewer arrives.

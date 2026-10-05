@@ -52,7 +52,8 @@ the padding from too.
 
 `SelectionMark.bind()` draws the tick growing in over a hairline-rimmed circle, and settles the
 picture under it a third of the way to black for as long as it is picked. The rim is uncoloured, so
-the accent circle still reads over a photo of its own colour.
+the accent circle still reads over a photo of its own colour. A media tile's tick is a size smaller
+than a folder's (`selection_check_size_media`), being drawn over a much smaller tile.
 
 ## Group headers
 

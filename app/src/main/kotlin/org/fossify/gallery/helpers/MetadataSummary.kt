@@ -89,6 +89,8 @@ internal object MetadataSummary {
             add(R.string.metadata_resolution, resolution(context, path) ?: NO_VALUE)
             addIfPresent(R.string.metadata_format, format(file, extracted))
             add(R.string.metadata_size, file.length().takeIf { it > 0 }?.formatSize() ?: NO_VALUE)
+            // labelled as the viewer's matching extended detail is
+            addIfPresent(org.fossify.commons.R.string.camera, camera(extracted))
         }
 
         /**
@@ -191,6 +193,15 @@ internal object MetadataSummary {
             name != null -> name
             else -> mimeType
         }
+    }
+
+    /** The device the photo was taken with, its make left out where the model already names it. */
+    private fun camera(extracted: ExtractedMetadata?): String? {
+        val ifd0 = extracted?.firstOf(ExifIFD0Directory::class.java) ?: return null
+        val make = ifd0.getString(ExifDirectoryBase.TAG_MAKE)?.trim().orEmpty()
+        val model = ifd0.getString(ExifDirectoryBase.TAG_MODEL)?.trim().orEmpty()
+        val name = if (model.startsWith(make, ignoreCase = true)) model else "$make $model".trim()
+        return name.ifEmpty { null }
     }
 
     private fun coordinates(extracted: ExtractedMetadata?): String? {

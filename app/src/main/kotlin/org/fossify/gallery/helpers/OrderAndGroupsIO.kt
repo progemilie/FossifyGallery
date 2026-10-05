@@ -14,6 +14,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.Locale
 
+// no longer written, but files exported before still open with a header of comments
 private const val COMMENT_MARKER = "#"
 private const val SECTION_OPEN = "["
 private const val SECTION_CLOSE = "]"
@@ -30,16 +31,6 @@ private const val FOLDER_ORDER_SECTION = "order:folders"
 
 /** The folders that stand for a query rather than a place on disk, so nothing can stat them. */
 private val SENTINEL_FOLDERS = setOf(SHOW_ALL, FAVORITES, RECYCLE_BIN)
-
-private val FILE_HEADER = listOf(
-    "# Fossify Gallery order and groups 3",
-    "# Bracketed lines open a section.",
-    "#   [group:name]     a folder group; the lines under it are its folders, in order.",
-    "#   [order:folders]  the folder grid's own order; a group appears in it as group:name.",
-    "#   [any other]      a folder; the lines under it are its media, in order.",
-    "# Entries naming something that no longer exists are dropped on import, and a section left",
-    "# empty by that is dropped with them. Lines starting with # are ignored."
-)
 
 /**
  * Writes every arrangement the user has made by hand to [out] as plain text, and returns how many
@@ -90,9 +81,11 @@ fun Context.exportOrderAndGroups(out: OutputStream): Int {
     }
 
     out.bufferedWriter().use { writer ->
-        FILE_HEADER.forEach { writer.writeLn(it) }
-        sections.forEach { (header, lines) ->
-            writer.writeLn("")
+        sections.entries.forEachIndexed { index, (header, lines) ->
+            if (index > 0) {
+                writer.writeLn("")
+            }
+
             writer.writeLn("$SECTION_OPEN$header$SECTION_CLOSE")
             lines.forEach { writer.writeLn(it) }
         }
