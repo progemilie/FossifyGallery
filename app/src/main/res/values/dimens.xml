@@ -95,11 +95,6 @@
     <dimen name="widget_initial_size">110dp</dimen>
     <dimen name="full_brush_size">40dp</dimen>
     <dimen name="lock_padding">30dp</dimen>
-    <!-- the folder picker's tile for making a new folder: a dashed outline round a plus -->
-    <dimen name="new_folder_outline_width">1.5dp</dimen>
-    <dimen name="new_folder_outline_dash">6dp</dimen>
-    <dimen name="new_folder_outline_gap">4dp</dimen>
-    <dimen name="new_folder_plus_size">28dp</dimen>
     <dimen name="smaller_icon_size">36dp</dimen>
     <dimen name="accent_border_min_width">2dp</dimen>
     <dimen name="accent_border_max_width">8dp</dimen>

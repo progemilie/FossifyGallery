@@ -419,8 +419,6 @@
     <string name="nav_pictures">Pictures</string>
     <string name="nav_albums">Albums</string>
     <string name="nav_menu">Menu</string>
-    <!-- Folder picker: the tile at the end of the list, which makes a folder to copy or move into -->
-    <string name="new_folder">New folder</string>
     <!-- Folder picker: its title, followed by how many files are being copied or moved, e.g. "Copy to (3)" -->
     <string name="folder_picker_title_with_count" translatable="false">%1$s (%2$d)</string>
     <!--

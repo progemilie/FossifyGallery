@@ -13,14 +13,12 @@ import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isEmpty
-import androidx.recyclerview.widget.ConcatAdapter
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import org.fossify.commons.R as commonsR
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.dialogs.CreateNewFolderDialog
 import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.applyColorFilter
+import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.getParentPath
 import org.fossify.commons.extensions.getProperBackgroundColor
@@ -33,9 +31,6 @@ import org.fossify.commons.helpers.MEDIUM_ALPHA
 import org.fossify.commons.helpers.isPiePlus
 import org.fossify.commons.helpers.isQPlus
 import org.fossify.gallery.R
-import org.fossify.gallery.adapters.DirectoryAdapter
-import org.fossify.gallery.adapters.NewFolderTileAdapter
-import org.fossify.gallery.adapters.OtherFolderAdapter
 import org.fossify.gallery.databinding.DialogDirectoryPickerBinding
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.helpers.FloatingTopBar
@@ -47,14 +42,13 @@ private const val LIGHT_LUMINANCE = 0.5
 
 /**
  * The folder picker as a screen of its own: a dialog filling the window edge to edge, the grid running
- * under glass pills the way the browsing grids do - back and a new folder along the top, the search,
- * with the eye that shows hidden folders and hides them again, along the foot - and the title naming
- * what the folder is for. Past the folder tiles come the new folder tile and Other folder.
+ * under glass pills the way the browsing grids do - back and a new folder along the top, the search
+ * with the eye for hidden folders along the foot - and Other folder after the tiles.
  * [PickDirectoryDialog] fills the grid and answers back; [FolderPickerLayout] lays it all out.
  *
  * [newFolderBeside] is the folder the files come from, which a new folder is made next to; null where
- * the picker is not choosing somewhere to put files, and has no use for one. [fileCount] is how many
- * files are being put there, 0 where that is not what the picker is for.
+ * the picker is not choosing somewhere to put files. [fileCount] is how many files are being put there,
+ * 0 where that is not what the picker is for.
  */
 class FolderPickerScreen(
     private val activity: BaseSimpleActivity,
@@ -69,7 +63,7 @@ class FolderPickerScreen(
     var onFolderCreated: (path: String) -> Unit = {}
 
     private val textColor = activity.getProperTextColor()
-    private val backgroundColor = activity.getProperBackgroundColor()
+    private val layout = FolderPickerLayout(binding)
     private val searchBar = FloatingTopBar(binding.folderSearchView, binding.directoriesContent)
     private var isShowingHidden = false
 
@@ -78,45 +72,21 @@ class FolderPickerScreen(
 
     val dialog = ComponentDialog(activity, R.style.FullscreenDialog)
 
-    /** The tile after the folders that makes a new one, where the picker has a use for one. */
-    val newFolderTile = newFolderBeside?.let { NewFolderTileAdapter(activity, textColor, ::createNewFolder) }
-
-    private val otherFolderButton = if (showOtherFolder) {
-        OtherFolderAdapter(activity, activity.getProperPrimaryColor()) {
-            activity.hideKeyboard(binding.folderSearchView.binding.topToolbarSearch)
-            onOtherFolder()
-        }
-    } else {
-        null
-    }
-
-    /** Whether the grid has something to show past the folders, which it shows even without any folders. */
-    val hasExtraTiles get() = newFolderTile != null || otherFolderButton != null
-
     init {
-        FolderPickerLayout(binding)
+        searchBar.onHeightChanged = layout::keepGridClear
         setupTopBar(titleId, fileCount)
-        spanOtherFolderAcrossGrid()
+        if (showOtherFolder) {
+            setupOtherFolder()
+        }
 
         dialog.setContentView(binding.root)
-        dialog.window?.fillScreen(backgroundColor)
+        dialog.window?.fillScreen(activity.getProperBackgroundColor())
         if (!activity.isDestroyed && !activity.isFinishing) {
             dialog.show()
         }
     }
 
     fun dismiss() = dialog.dismiss()
-
-    /** What the grid shows: [folders], followed by whichever of the new folder tile and Other folder the picker has. */
-    fun gridAdapter(folders: DirectoryAdapter?): RecyclerView.Adapter<*> {
-        val parts = listOfNotNull<RecyclerView.Adapter<out RecyclerView.ViewHolder>>(
-            folders,
-            newFolderTile,
-            otherFolderButton
-        )
-
-        return parts.singleOrNull() ?: ConcatAdapter(parts)
-    }
 
     /**
      * Frosts the search pill the way the browsing screens' is, and puts the eye at its end. Commons
@@ -153,9 +123,11 @@ class FolderPickerScreen(
         dressPill(directoriesBackPanel, directoriesBack, directoriesBackIcon)
         directoriesBack.setOnClickListener { dialog.onBackPressedDispatcher.onBackPressed() }
 
-        directoriesNewFolderPanel.beVisibleIf(newFolderTile != null)
-        dressPill(directoriesNewFolderPanel, directoriesNewFolder, directoriesNewFolderIcon)
-        directoriesNewFolder.setOnClickListener { createNewFolder() }
+        if (newFolderBeside != null) {
+            directoriesNewFolderPanel.beVisible()
+            dressPill(directoriesNewFolderPanel, directoriesNewFolder, directoriesNewFolderIcon)
+            directoriesNewFolder.setOnClickListener { createNewFolder(newFolderBeside) }
+        }
     }
 
     // round, the selection pill's glass and its back button's look
@@ -168,14 +140,12 @@ class FolderPickerScreen(
         TooltipCompat.setTooltipText(segment, segment.contentDescription)
     }
 
-    // Other folder takes a row of its own under the tiles, and a column of its own after them sideways
-    private fun spanOtherFolderAcrossGrid() {
-        val layoutManager = binding.directoriesGrid.layoutManager as GridLayoutManager
-        layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
-            override fun getSpanSize(position: Int): Int {
-                val isOtherFolder = otherFolderButton != null && position == layoutManager.itemCount - 1
-                return if (isOtherFolder) layoutManager.spanCount else 1
-            }
+    private fun setupOtherFolder() = with(binding.directoriesOtherFolder) {
+        beVisible()
+        setTextColor(activity.getProperPrimaryColor())
+        setOnClickListener {
+            activity.hideKeyboard(binding.folderSearchView.binding.topToolbarSearch)
+            onOtherFolder()
         }
     }
 
@@ -204,8 +174,7 @@ class FolderPickerScreen(
         )
     }
 
-    private fun createNewFolder() {
-        val source = newFolderBeside ?: return
+    private fun createNewFolder(source: String) {
         // a storage's root has nothing beside it, so the folder goes inside it instead
         val parent = if (activity.isAStorageRootFolder(source)) source else source.getParentPath()
         activity.hideKeyboard(binding.folderSearchView.binding.topToolbarSearch)

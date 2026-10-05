@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Fills the screen, edge to edge, with the chrome floating over the grid. FolderPickerLayout pads
-    the pills by the system bars, keeps the grid clear of them, and carries the header along with
-    the grid's first row.
+    the pills by the system bars, keeps the grid clear of them, and carries the header and Other
+    folder along with the grid's first and last rows.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -58,6 +58,23 @@
                 android:visibility="gone" />
 
         </LinearLayout>
+
+        <!-- over the grid too: the fast scroller only asks the grid's own adapter for its bubble's text -->
+        <TextView
+            android:id="@+id/directories_other_folder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="@dimen/medium_margin"
+            android:layout_marginBottom="@dimen/medium_margin"
+            android:background="@drawable/ripple_all_corners"
+            android:paddingStart="@dimen/activity_margin"
+            android:paddingTop="@dimen/normal_margin"
+            android:paddingEnd="@dimen/activity_margin"
+            android:paddingBottom="@dimen/normal_margin"
+            android:text="@string/other_folder"
+            android:textSize="@dimen/bigger_text_size"
+            android:visibility="gone" />
 
         <View
             android:id="@+id/directories_top_fade"

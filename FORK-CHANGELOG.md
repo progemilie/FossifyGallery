@@ -11,8 +11,8 @@ Notable fork-only changes.
 - **Settings can be searched**: type a setting's name to find it and jump straight to it.
 - **Redesigned video player**
 - **Added viewer landscape layout**: the viewer layout is now cleaner in landscape mode.
-- **A new folder can be made straight from copy and move**, with the plus at the top or the tile at
-  the end of the list; the pictures go straight into it.
+- **A new folder can be made straight from copy and move** with the plus at the top; the pictures go
+  straight into it.
 ### Changed
 - Pinching the photo grid zooms smoothly.
 - The details at the top of a photo are more compact.

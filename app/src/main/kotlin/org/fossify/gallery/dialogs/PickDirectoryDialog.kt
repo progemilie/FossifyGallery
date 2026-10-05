@@ -48,6 +48,7 @@ class PickDirectoryDialog(
     private var openedSubfolders = arrayListOf("")
     private var binding = DialogDirectoryPickerBinding.inflate(activity.layoutInflater)
     private var isGridViewType = activity.config.viewTypeFolders == VIEW_TYPE_GRID
+    private val scrollHorizontally = activity.config.scrollHorizontally && isGridViewType
     private var showHidden = activity.config.shouldShowHidden
     private var currentPathPrefix = ""
     private val config = activity.config
@@ -62,12 +63,9 @@ class PickDirectoryDialog(
         newFolderBeside = sourcePath.takeIf { isPickingCopyMoveDestination }
     )
 
-    // the folder tiles alone, without the new folder tile and Other folder put after them
-    private var directoryAdapter: DirectoryAdapter? = null
-
     init {
         (binding.directoriesGrid.layoutManager as MyGridLayoutManager).apply {
-            orientation = if (activity.config.scrollHorizontally && isGridViewType) RecyclerView.HORIZONTAL else RecyclerView.VERTICAL
+            orientation = if (scrollHorizontally) RecyclerView.HORIZONTAL else RecyclerView.VERTICAL
             spanCount = if (isGridViewType) activity.fittedDirColumnCnt() else 1
         }
 
@@ -140,7 +138,7 @@ class PickDirectoryDialog(
     }
 
     private fun filterFolderListBySearchQuery(query: String) {
-        val adapter = directoryAdapter
+        val adapter = binding.directoriesGrid.adapter as? DirectoryAdapter
         var dirsToShow = allDirectories
         if (query.isNotEmpty()) {
             dirsToShow = dirsToShow.filter { it.name.contains(query, true) }.toMutableList() as ArrayList
@@ -167,26 +165,19 @@ class PickDirectoryDialog(
             directoriesEmptyPlaceholder.text = root.context.getString(org.fossify.commons.R.string.no_items_found)
         }
 
-        // a search finding nothing still leaves the new folder tile and Other folder to show
-        directoriesFastscroller.beVisibleIf(directoriesEmptyPlaceholder.isGone() || screen.hasExtraTiles)
+        directoriesFastscroller.beVisibleIf(directoriesEmptyPlaceholder.isGone())
     }
 
     private fun fetchDirectories(forceShowHiddenAndExcluded: Boolean) {
         activity.getCachedDirectories(forceShowHidden = forceShowHiddenAndExcluded, forceShowExcluded = forceShowHiddenAndExcluded) {
-            if (it.isNotEmpty()) {
-                it.forEach {
-                    it.subfoldersMediaCount = it.mediaCnt
-                }
+            it.forEach {
+                it.subfoldersMediaCount = it.mediaCnt
+            }
 
-                activity.runOnUiThread {
-                    allDirectories.clear()
-                    gotDirectories(activity.addTempFolderIfNeeded(it))
-                }
-            } else if (screen.hasExtraTiles) {
-                // no folders at all still leaves somewhere to make one, and the way to another
-                activity.runOnUiThread {
-                    binding.directoriesGrid.adapter = binding.directoriesGrid.adapter ?: screen.gridAdapter(null)
-                }
+            // even an empty list is shown, as hiding hidden folders again can leave none
+            activity.runOnUiThread {
+                allDirectories.clear()
+                gotDirectories(activity.addTempFolderIfNeeded(it))
             }
         }
     }
@@ -220,7 +211,7 @@ class PickDirectoryDialog(
             .toMutableList() as ArrayList<Directory>
         val sortedDirs = activity.getSortedDirectories(distinctDirs)
         val dirs = activity.getDirsToShow(sortedDirs, allDirectories, currentPathPrefix).clone() as ArrayList<Directory>
-        if (dirs.hashCode() == shownDirectories.hashCode()) {
+        if (binding.directoriesGrid.adapter != null && dirs.hashCode() == shownDirectories.hashCode()) {
             return
         }
 
@@ -250,10 +241,8 @@ class PickDirectoryDialog(
             }
         }
 
-        directoryAdapter = adapter
-        val scrollHorizontally = activity.config.scrollHorizontally && isGridViewType
         binding.apply {
-            directoriesGrid.adapter = screen.gridAdapter(adapter)
+            directoriesGrid.adapter = adapter
             directoriesFastscroller.setScrollVertically(!scrollHorizontally)
         }
     }
