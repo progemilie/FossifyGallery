@@ -6,8 +6,7 @@ Notable fork-only changes.
 ### Added
 - **Zooming into a photo takes the chrome away**, and letting it back out brings it back.
 - Holding a picked picture and dragging unpicks the pictures the finger passes over.
-- **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with
-  adjustable spacing and an optional folder size on the details line.
+- **New folder cover styles**: a tall card with the name on a frosted band, and a stack — both with adjustable spacing and an optional folder size on the details line.
 - **Settings can be searched**: type a setting's name to find it and jump straight to it.
 - **Redesigned video player**
 - **Added viewer landscape layout**: the viewer layout is now cleaner in landscape mode.
@@ -19,8 +18,7 @@ Notable fork-only changes.
 - Updated the style and opening animation of the copy and move chooser.
 - The rating chooser is smaller, and opens in the middle of the screen.
 - Clearing the cache asks first.
-- **Settings are redesigned** like a phone's own settings app: a first page of categories, each
-  opening a page of its own, with every setting grouped and given an icon.
+- **Settings are redesigned** like a phone's own settings app: a first page of categories, each opening a page of its own, with every setting grouped and given an icon.
 - The thumbnail you come back to from a photo no longer pops in.
 - **Opening a photo is quicker**, and a photo can be swiped away the moment it starts opening.
 - **Custom order mode is restyled** to match the rest of the app.
@@ -28,26 +26,20 @@ Notable fork-only changes.
 - The menu opened from a pill at the bottom opens in the middle of the screen.
 - Going back from a search with nothing typed closes the search, rather than only the keyboard.
 - The metadata sheet no longer shows a date created, which only ever repeated another date.
-- The folder grid offers only as many columns as fit the screen — five on a phone — rather than
-  up to twenty.
+- The folder grid offers only as many columns as fit the screen — five on a phone — rather than up to twenty.
 - Sorting and grouping by rating works like any other sorting now.
 - The thumbnail strip under a photo marks videos with a small triangle.
 - The metadata sheet shows the camera a photo was taken with near the top.
 ### Fixed
-- Fixed a photo or video opening soft — the picture the tile grows into is now the photo itself, or
-  the video's own frame, rather than a thumbnail of it, so it is sharp the moment the viewer arrives.
-- Fixed swiping and zooming not working for a while after a photo opened — the longer, the bigger
-  the library.
-- Fixed a large photo covering the viewer's buttons and thumbnail strip while it grew in or shrank
-  away.
+- Fixed a photo or video opening soft — the picture the tile grows into is now the photo itself, or the video's own frame, rather than a thumbnail of it, so it is sharp the moment the viewer arrives.
+- Fixed swiping and zooming not working for a while after a photo opened — the longer, the bigger the library.
+- Fixed a large photo covering the viewer's buttons and thumbnail strip while it grew in or shrank away.
 - Fixed peek buttons and group ticks staying on a tile after a selection had ended.
 - Fixed holding and dragging to select more pictures not working when the hold started on a peek button.
 - Fixed two photos opening on top of each other when two thumbnails were tapped at once.
 - Fixed a photo swiped away straight after opening stuttering as it shrank back into its thumbnail.
-- Fixed the grid jumping to a photo near the top or bottom of the screen that was closed straight
-  after opening it.
-- Fixed a photo closed while it was still opening dropping off the bottom of the screen, rather than
-  shrinking back into its thumbnail.
+- Fixed the grid jumping to a photo near the top or bottom of the screen that was closed straight after opening it.
+- Fixed a photo closed while it was still opening dropping off the bottom of the screen, rather than shrinking back into its thumbnail.
 - Fixed the Settings title, back arrow, status bar icons and last card's shadow on a light theme.
 - Fixed a renamed photo losing its place in a folder arranged by hand.
 - Fixed photos with the same rating not being in date taken order when sorting by rating.
@@ -59,8 +51,7 @@ Notable fork-only changes.
 - **Selection view is redesigned** to follow the style of the app.
 - Select whole group with one tap by tapping the header.
 - **Settings is redesigned as cards**, one per section. Each is collapsed to its title and a summary line along with an icon.
-- The rating, copy/move and tab choosers open and close with the same grow-and-fade as the three
-  dots' drop-down, and swell whatever letting go would pick.
+- The rating, copy/move and tab choosers open and close with the same grow-and-fade as the three dots' drop-down, and swell whatever letting go would pick.
 - The search pill steps aside while a folder is being arranged by hand.
 - The search pill shows the three dots only on screens where no other pill opens the menu.
 - An (i) beside the Tabs setting says what tabs are.
@@ -101,18 +92,15 @@ Notable fork-only changes.
 
 ## [v1.13.3] - 2026.08.22 — scrolling
 
-- The media grid decodes thumbnails ahead of the way it is being scrolled, so fewer tiles come up
-  blank on a fling.
+- The media grid decodes thumbnails ahead of the way it is being scrolled, so fewer tiles come up blank on a fling.
 
 ## [v1.13.2] - 2026.08.22 — thumbnail cache
 
-- Thumbnails are decoded at a set of standard sizes rather than one per column count, so column
-  counts that differ by a little share a cached thumbnail. Roughly half as many thumbnails on disk.
+- Thumbnails are decoded at a set of standard sizes rather than one per column count, so column counts that differ by a little share a cached thumbnail. Roughly half as many thumbnails on disk.
 
 ## [v1.13.1] - 2026.08.22 — thumbnail cache
 
-- The zoomed-out grid caches a smaller thumbnail, cutting what its rungs take up on disk and in
-  memory.
+- The zoomed-out grid caches a smaller thumbnail, cutting what its rungs take up on disk and in memory.
 
 ## [v1.13.0] - 2026.08.21 — zoom levels
 
@@ -120,8 +108,7 @@ Notable fork-only changes.
 
 ## [v1.12.1] - 2026.08.17 — thumbnail cache
 
-- The media grid no longer stores a second copy of a thumbnail that is a pixel off the first, so the
-  cache holds one picture per column count instead of up to three.
+- The media grid no longer stores a second copy of a thumbnail that is a pixel off the first, so the cache holds one picture per column count instead of up to three.
 
 ## [v1.12.0] - 2026.08.17 — zooming
 
@@ -130,29 +117,23 @@ Notable fork-only changes.
 
 ## [v1.11.0] - 2026.08.16 — removing metadata
 
-- **Remove metadata** from the metadata sheet: location, camera details, captions, colour profile and
-  the rest — pick what comes off the file, or take everything in one tap. Only what the file actually
-  carries is offered.
+- **Remove metadata** from the metadata sheet: location, camera details, captions, colour profile and the rest — pick what comes off the file, or take everything in one tap. Only what the file actually carries is offered.
 - **Save as a new file** puts the stripped copy beside the original instead of writing over it.
 
 ## [v1.10.2] - 2026.08.16 — metadata, settings
 
-- **File descriptions** — read and edit a file's description in the metadata sheet. Stored in the
-  file's own XMP, so other apps see it too.
-- **Startup screen** — pick what the app opens on: the folder grid, all folders, favorites, the
-  recycle bin, a folder group or any folder.
+- **File descriptions** — read and edit a file's description in the metadata sheet. Stored in the file's own XMP, so other apps see it too.
+- **Startup screen** — pick what the app opens on: the folder grid, all folders, favorites, the recycle bin, a folder group or any folder.
 - **Thumbnail strip toggle** in the viewer's drop-down menu.
 
 ## [v1.9.0] - 2026.08.16 — menus
 
-- **Glass drop-down menus** on all three browsing screens, matching the other glass effects, with
-  items gathered into sections.
+- **Glass drop-down menus** on all three browsing screens, matching the other glass effects, with items gathered into sections.
 - Viewer actions moved off the toolbar and into the drop-down, so they stop changing places.
 
 ## [v1.8.0] - 2026.08.15 — folder grid
 
-- **Folder groups** — several folders under one tile in the folder grid, with a collage cover.
-  Nothing moves on disk. Tap to step into the group, group/rename/ungroup from the selection bar.
+- **Folder groups** — several folders under one tile in the folder grid, with a collage cover. Nothing moves on disk. Tap to step into the group, group/rename/ungroup from the selection bar.
 - **Drag folder tiles** to arrange the grid, or hold one over another to group them.
 - The export now carries folder groups and the folder grid's own order as well as media orders.
 
@@ -168,8 +149,7 @@ Notable fork-only changes.
 
 ## [v1.6.0] - 2026.08.10 — design
 
-- **Glass effect on the quick action UI** — the rating and copy/move choosers wear the same frosted
-  material as the search pill and follow the theme.
+- **Glass effect on the quick action UI** — the rating and copy/move choosers wear the same frosted material as the search pill and follow the theme.
 - A **Glass UI** switch under Look & feel turns it all off (Android 12+).
 
 ## [v1.5.0] - 2026.08.10 — ratings
@@ -182,8 +162,7 @@ Notable fork-only changes.
 
 ## [v1.3.0] - 2026.08.10 — quick actions
 
-- **Copy/move quick action** — hold the button to pick a folder without a dialog. Frequently used
-  folders appear first.
+- **Copy/move quick action** — hold the button to pick a folder without a dialog. Frequently used folders appear first.
 
 ## [v1.2.0] - 2026.08.09 — bottom actions
 
@@ -192,21 +171,17 @@ Notable fork-only changes.
 
 ## [v1.1.0] - 2026.08.09 — metadata
 
-- **Metadata viewer** — swipe up while viewing an image, or use the properties button. Lists every
-  metadata group the file actually carries, read straight off the file.
+- **Metadata viewer** — swipe up while viewing an image, or use the properties button. Lists every metadata group the file actually carries, read straight off the file.
 
 ## [v1.0.0] - 2026.08.09 — viewer, custom order, design
 
 Initial fork work, landed over 2026.08.06–08.09 before fork versions were tracked.
 
-- **Ratings out of five** — hold the star in the viewer and slide to pick, or tap for a dialog.
-  Written to the file's XMP, so Aves, Lightroom, digiKam and Windows read it. Sort and group by
-  rating. Favourite became a heart to free the star up.
+- **Ratings out of five** — hold the star in the viewer and slide to pick, or tap for a dialog. Written to the file's XMP, so Aves, Lightroom, digiKam and Windows read it. Sort and group by rating. Favourite became a heart to free the star up.
 - **Custom media order per folder** — drag to arrange, multi-select to move several at once.
 - **Export and import** the custom order to a file.
 - **Thumbnail strip** under the photo in the viewer.
-- **Floating chrome** — content runs edge to edge with the search pill floating over the grid, and
-  the viewer's top bar showing the file name and its details.
+- **Floating chrome** — content runs edge to edge with the search pill floating over the grid, and the viewer's top bar showing the file name and its details.
 - Leaving the viewer reveals and grows the thumbnail you were on.
 - **Lossless mirror** (horizontal flip) in the media grid's selection bar and the viewer.
 
