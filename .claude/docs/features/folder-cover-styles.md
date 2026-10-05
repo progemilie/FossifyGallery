@@ -10,6 +10,7 @@ Read these before changing this feature — each can break silently if this one 
 
 - [folder-groups](folder-groups.md) — every style has to hold a group's collage and badge.
 - [thumbnails](thumbnails.md) — covers decode at the snapped column width less the style's inset, at its aspect ratio.
+- [folder-picker](folder-picker.md) — the picker's new folder tile copies each style's shape, spacing and label placement by hand.
 
 ## Where it lives
 
