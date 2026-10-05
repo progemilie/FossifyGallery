@@ -12,10 +12,12 @@
     android:contentDescription="@string/create_new_folder"
     android:focusable="true">
 
+    <!-- not match_parent: a row stretches its tiles to the tallest of them, which would hand the
+         outline the label's room too -->
     <org.fossify.gallery.views.NewFolderOutline
         android:id="@+id/new_folder_outline"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="wrap_content" />
 
     <TextView
         android:id="@+id/new_folder_label"
