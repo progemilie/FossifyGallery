@@ -164,4 +164,21 @@
         <item name="android:activityCloseEnterAnimation">@anim/viewer_hold</item>
         <item name="android:activityCloseExitAnimation">@anim/viewer_hold</item>
     </style>
+
+    <!--
+        The folder picker: a dialog filling the screen. Its content is inflated with the activity's own
+        theme, so this carries only what the window itself needs. See PickDirectoryDialog.
+    -->
+    <style name="FullscreenDialog" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowAnimationStyle">@style/FullscreenDialogAnimation</item>
+    </style>
+
+    <style name="FullscreenDialogAnimation">
+        <item name="android:windowEnterAnimation">@anim/fullscreen_dialog_enter</item>
+        <item name="android:windowExitAnimation">@anim/fullscreen_dialog_exit</item>
+    </style>
 </resources>

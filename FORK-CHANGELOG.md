@@ -11,6 +11,8 @@ Notable fork-only changes.
 - **Settings can be searched**: type a setting's name to find it and jump straight to it.
 - **Redesigned video player**
 - **Added viewer landscape layout**: the viewer layout is now cleaner in landscape mode.
+- **A new folder can be made straight from copy and move**, with the plus at the top or the tile at
+  the end of the list; the pictures go straight into it.
 ### Changed
 - Pinching the photo grid zooms smoothly.
 - The details at the top of a photo are more compact.
@@ -32,6 +34,8 @@ Notable fork-only changes.
 - Sorting and grouping by rating works like any other sorting now.
 - The thumbnail strip under a photo marks videos with a small triangle.
 - The metadata sheet shows the camera a photo was taken with near the top.
+- **The folder picker fills the screen**, and its title says whether you are copying or moving.
+- The picker's eye button can hide hidden folders again after showing them.
 ### Fixed
 - Fixed a photo or video opening soft — the picture the tile grows into is now the photo itself, or
   the video's own frame, rather than a thumbnail of it, so it is sharp the moment the viewer arrives.
