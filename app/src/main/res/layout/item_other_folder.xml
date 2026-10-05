@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The folder picker's last row, below the tiles: the way out to the file browser. Spans the whole
+    row, or the whole column when the grid scrolls sideways - see OtherFolderAdapter.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingTop="@dimen/medium_margin"
+    android:paddingBottom="@dimen/medium_margin">
+
+    <TextView
+        android:id="@+id/other_folder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/ripple_all_corners"
+        android:paddingStart="@dimen/activity_margin"
+        android:paddingTop="@dimen/normal_margin"
+        android:paddingEnd="@dimen/activity_margin"
+        android:paddingBottom="@dimen/normal_margin"
+        android:text="@string/other_folder"
+        android:textSize="@dimen/bigger_text_size" />
+
+</FrameLayout>

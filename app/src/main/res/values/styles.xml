@@ -34,6 +34,12 @@
         <item name="android:textSize">@dimen/settings_page_title_text_size</item>
     </style>
 
+    <!-- written on the page like a settings page's title, in line with the folder tiles below it -->
+    <style name="FolderPickerTitle" parent="SettingsPageTitle">
+        <item name="android:paddingStart">@dimen/activity_margin</item>
+        <item name="android:paddingEnd">@dimen/activity_margin</item>
+    </style>
+
     <style name="SettingsGroup">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>

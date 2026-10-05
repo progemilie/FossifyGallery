@@ -1,15 +1,12 @@
 package org.fossify.gallery.dialogs
 
-import android.graphics.Color
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.activity.addCallback
-import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.RecyclerView
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.dialogs.FilePickerDialog
-import org.fossify.commons.extensions.beInvisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.getDefaultCopyDestinationPath
 import org.fossify.commons.extensions.getProperPrimaryColor
@@ -42,6 +39,8 @@ class PickDirectoryDialog(
     val isPickingFolderForWidget: Boolean,
     // not every caller is picking a place to put files - the startup setting picks a folder to open
     @StringRes val titleId: Int = org.fossify.commons.R.string.select_destination,
+    // how many files a copy or a move is putting there, which the title counts
+    val fileCount: Int = 0,
     val callback: (path: String) -> Unit
 ) {
     private var shownDirectories = ArrayList<Directory>()
@@ -54,16 +53,16 @@ class PickDirectoryDialog(
     private val config = activity.config
     private val searchView = binding.folderSearchView
     private val searchEditText = searchView.binding.topToolbarSearch
-    private val searchBarContainer = searchView.binding.searchBarContainer
     private val screen = FolderPickerScreen(
         activity = activity,
         binding = binding,
         titleId = titleId,
+        fileCount = fileCount,
         showOtherFolder = showOtherFolderButton,
         newFolderBeside = sourcePath.takeIf { isPickingCopyMoveDestination }
     )
 
-    // the folder tiles alone, without the new folder tile a copy or a move puts after them
+    // the folder tiles alone, without the new folder tile and Other folder put after them
     private var directoryAdapter: DirectoryAdapter? = null
 
     init {
@@ -109,18 +108,14 @@ class PickDirectoryDialog(
         updateHintText(context.getString(org.fossify.commons.R.string.search_folders))
         searchEditText.imeOptions = EditorInfo.IME_ACTION_DONE
 
-        toggleHideOnScroll(!config.scrollHorizontally)
+        // pinned to the foot of the screen, out of the way of the grid scrolling under it
+        toggleHideOnScroll(false)
         setupMenu()
         setSearchViewListeners()
         updateSearchViewUi()
     }
 
-    private fun MySearchMenu.updateSearchViewUi() {
-        requireToolbar().beInvisible()
-        updateColors()
-        setBackgroundColor(Color.TRANSPARENT)
-        searchBarContainer.setBackgroundColor(Color.TRANSPARENT)
-    }
+    private fun updateSearchViewUi() = screen.dressSearchBar()
 
     private fun MySearchMenu.setSearchViewListeners() {
         onSearchOpenListener = {
@@ -172,8 +167,8 @@ class PickDirectoryDialog(
             directoriesEmptyPlaceholder.text = root.context.getString(org.fossify.commons.R.string.no_items_found)
         }
 
-        // a search finding nothing still leaves the new folder tile to show
-        directoriesFastscroller.beVisibleIf(directoriesEmptyPlaceholder.isGone() || screen.newFolderTile != null)
+        // a search finding nothing still leaves the new folder tile and Other folder to show
+        directoriesFastscroller.beVisibleIf(directoriesEmptyPlaceholder.isGone() || screen.hasExtraTiles)
     }
 
     private fun fetchDirectories(forceShowHiddenAndExcluded: Boolean) {
@@ -187,10 +182,10 @@ class PickDirectoryDialog(
                     allDirectories.clear()
                     gotDirectories(activity.addTempFolderIfNeeded(it))
                 }
-            } else if (screen.newFolderTile != null) {
-                // no folders at all still leaves somewhere to make one
+            } else if (screen.hasExtraTiles) {
+                // no folders at all still leaves somewhere to make one, and the way to another
                 activity.runOnUiThread {
-                    binding.directoriesGrid.adapter = binding.directoriesGrid.adapter ?: screen.newFolderTile
+                    binding.directoriesGrid.adapter = binding.directoriesGrid.adapter ?: screen.gridAdapter(null)
                 }
             }
         }
@@ -258,7 +253,7 @@ class PickDirectoryDialog(
         directoryAdapter = adapter
         val scrollHorizontally = activity.config.scrollHorizontally && isGridViewType
         binding.apply {
-            directoriesGrid.adapter = screen.newFolderTile?.let { ConcatAdapter(adapter, it) } ?: adapter
+            directoriesGrid.adapter = screen.gridAdapter(adapter)
             directoriesFastscroller.setScrollVertically(!scrollHorizontally)
         }
     }

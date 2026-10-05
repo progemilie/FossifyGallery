@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The folder picker's search pill. The eye's icon and title follow what it does next, see FolderPickerScreen. -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/create_new_folder"
-        android:icon="@drawable/ic_plus_vector"
-        android:title="@string/create_new_folder"
+        android:id="@+id/toggle_hidden_folders"
+        android:icon="@drawable/ic_unhide_vector"
+        android:title="@string/show_hidden_items"
         app:showAsAction="always" />
 </menu>

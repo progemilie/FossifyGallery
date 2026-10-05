@@ -34,8 +34,9 @@ Notable fork-only changes.
 - Sorting and grouping by rating works like any other sorting now.
 - The thumbnail strip under a photo marks videos with a small triangle.
 - The metadata sheet shows the camera a photo was taken with near the top.
-- **The folder picker fills the screen**, and its title says whether you are copying or moving.
-- The picker's eye button can hide hidden folders again after showing them.
+- **The folder picker fills the screen** with glass buttons like the albums, the search at the
+  bottom, and a title saying whether you are copying or moving and how many files.
+- The picker's eye sits in the search bar, and can hide hidden folders again after showing them.
 ### Fixed
 - Fixed a photo or video opening soft — the picture the tile grows into is now the photo itself, or
   the video's own frame, rather than a thumbnail of it, so it is sharp the moment the viewer arrives.
