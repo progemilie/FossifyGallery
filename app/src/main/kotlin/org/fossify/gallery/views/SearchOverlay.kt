@@ -2,8 +2,12 @@ package org.fossify.gallery.views
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import android.util.AttributeSet
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -16,6 +20,9 @@ import org.fossify.gallery.models.SearchFilter
 
 /** How dark the grid goes behind the options. */
 private const val DIM_ALPHA = 0.55f
+
+/** Below this a blur is not worth the offscreen pass it costs. */
+private const val MIN_BLUR_PX = 0.5f
 
 /**
  * What an open search puts up under the bar: the grid dimmed behind it, and the options it can be
@@ -49,6 +56,13 @@ class SearchOverlay @JvmOverloads constructor(
 
     private val sections = SearchOverlaySections(column)
     private val footRoom = resources.getDimensionPixelSize(R.dimen.search_options_foot_room)
+    private val blurRadius = resources.getDimension(R.dimen.search_blur_radius)
+
+    /** The content under the overlay, which the dim blurs as well as darkens. */
+    var blurred: ViewGroup? = null
+
+    /** Whether the dim may blur at all: the platform can, and the Glass UI setting is on. */
+    var canBlur = false
 
     var onChosen: ((SearchFilter) -> Unit)?
         get() = sections.onChosen
@@ -56,11 +70,12 @@ class SearchOverlay @JvmOverloads constructor(
             sections.onChosen = value
         }
 
-    /** How far the dim has come in, 0 to 1. */
+    /** How far the dim, and the blur with it, has come in, 0 to 1. */
     var dimLevel = 0f
         set(value) {
             field = value
             dim.alpha = value * DIM_ALPHA
+            blur(value)
         }
 
     init {
@@ -87,5 +102,17 @@ class SearchOverlay @JvmOverloads constructor(
     fun fill(options: SearchOptions, active: SearchFilter?) {
         sections.fill(options, active)
         this.options.scrollTo(0, 0)
+    }
+
+    private fun blur(level: Float) {
+        val content = blurred
+        if (content == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return
+        }
+
+        val radius = if (canBlur) level * blurRadius else 0f
+        content.setRenderEffect(
+            if (radius < MIN_BLUR_PX) null else RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP)
+        )
     }
 }

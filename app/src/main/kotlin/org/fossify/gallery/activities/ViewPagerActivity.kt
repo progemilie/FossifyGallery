@@ -160,6 +160,7 @@ import org.fossify.gallery.helpers.BOTTOM_ACTION_TOGGLE_VISIBILITY
 import org.fossify.gallery.helpers.ColorModeHelper
 import org.fossify.gallery.helpers.TileFlight
 import org.fossify.gallery.helpers.ViewerOpening
+import org.fossify.gallery.helpers.ViewerNarrowing
 import org.fossify.gallery.helpers.DefaultPageTransformer
 import org.fossify.gallery.helpers.TabSwitcher
 import org.fossify.gallery.helpers.FadePageTransformer
@@ -252,6 +253,9 @@ class ViewPagerActivity :
     private var mIsOrientationLocked = false
 
     private var mMediaFiles = ArrayList<Medium>()
+
+    // what a narrowed grid opened this on, which every read of the folder keeps to
+    private val mNarrowing by lazy { ViewerNarrowing.of(intent) }
     private var mFavoritePaths = ArrayList<String>()
     private var mIgnoredPaths = ArrayList<String>()
     private var mOriginalBrightness: Float? = null
@@ -393,6 +397,7 @@ class ViewPagerActivity :
         }
 
         (MediaActivity.mMedia.clone() as ArrayList<ThumbnailItem>).filterIsInstanceTo(mMediaFiles, Medium::class.java)
+        mMediaFiles.retainAll { mNarrowing.keeps(it.path) }
         aimAtOpeningMedium()
         initFavorites()
 
@@ -1926,6 +1931,8 @@ class ViewPagerActivity :
                 name = it.getFilenameFromPath()
             }
 
+            mNarrowing.renamed(oldPath, it)
+
             ensureBackgroundThread {
                 updateDBMediaPath(oldPath, it)
             }
@@ -1956,7 +1963,7 @@ class ViewPagerActivity :
         }
 
         val media = thumbnailItems.asSequence().filter {
-            it is Medium && !mIgnoredPaths.contains(it.path)
+            it is Medium && !mIgnoredPaths.contains(it.path) && mNarrowing.keeps(it.path)
         }.map { it as Medium }.toMutableList() as ArrayList<Medium>
 
         if (isDirEmpty(media) || media.hashCode() == mPrevHashcode) {

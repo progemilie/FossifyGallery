@@ -3,8 +3,6 @@ package org.fossify.gallery.helpers
 import android.animation.ValueAnimator
 import android.app.Activity
 import android.content.Context
-import android.graphics.RenderEffect
-import android.graphics.Shader
 import android.os.Build
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
@@ -33,8 +31,8 @@ private const val OUT_MS = 180L
 /** How much of the edge's entrance it takes to come up to full strength; the light keeps rising after. */
 private const val EDGE_FADE_SHARE = 0.35f
 
-/** Below this a blur is not worth the offscreen pass it costs. */
-private const val MIN_BLUR_PX = 0.5f
+/** The search pill's edge, along its lit top. */
+private const val SEARCH_EDGE_OPACITY = 0.5f
 
 /**
  * The search's own chrome over commons' bar. While a search is open with nothing typed, the grid dims
@@ -59,15 +57,17 @@ class SearchChrome(
     private val settle = context.curve(R.interpolator.search_settle)
     private val leave = context.curve(R.interpolator.search_leave)
     private val rise = resources.getDimension(R.dimen.search_options_rise)
-    private val blurRadius = resources.getDimension(R.dimen.search_blur_radius)
     private val barGap = resources.getDimensionPixelSize(R.dimen.search_options_top_gap)
+
     // what keeps Back with nothing typed for closing the search, where the platform can be asked
     private val syncUntouchedBack: () -> Unit =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) UntouchedSearchBack(topBar)::sync else ({})
 
     private var pane: GridPane? = null
     private var dimming: ValueAnimator? = null
-    private var canBlur = false
+
+    // what the options on show were filled from, so an answer that changes nothing leaves them be
+    private var shownOptions: SearchOptions? = null
 
     // a pane's options come back off the main thread, and only the latest asking is still wanted
     private var optionsAsked = 0
@@ -85,6 +85,7 @@ class SearchChrome(
         )
 
         overlay.beGone()
+        overlay.blurred = contentBehind
         overlay.onChosen = { filter ->
             // the filter already on, picked again, is taken off
             onFilterChosen?.invoke(filter.takeUnless { it == pane?.activeFilter })
@@ -95,8 +96,18 @@ class SearchChrome(
 
     /** Points the chip and the options at [pane]. */
     fun bind(pane: GridPane) {
+        val isNewPane = pane !== this.pane
         this.pane = pane
         refreshChip()
+
+        // a search carried over to another pane: it dresses the bar as it would a closed one, so the
+        // way back out has to be put back, and the options are the new pane's
+        if (isNewPane && topBar.isSearchOpen) {
+            topBar.binding.topToolbarSearchIcon.setImageResource(org.fossify.commons.R.drawable.ic_arrow_left_vector)
+            if (topBar.getCurrentQuery().isEmpty()) {
+                showOptions()
+            }
+        }
     }
 
     /** Puts the chip in line with the filter the pane is narrowed by now. */
@@ -138,78 +149,69 @@ class SearchChrome(
 
     private fun showOptions() {
         val pane = pane?.takeIf { it.offersSearchOptions } ?: return
-        canBlur = isSPlus() && Glass.isEnabled(context)
+        overlay.canBlur = isSPlus() && Glass.isEnabled(context)
         overlay.keepClearOfBar(topBar.height + barGap)
 
         // whatever a fade on its way out had left of the dim is where it comes back from
         dimming?.cancel()
-        val from = overlay.dimLevel * overlay.alpha
-        overlay.alpha = 1f
-        overlay.dimLevel = from
-        overlay.beVisible()
         overlay.options.animate().cancel()
-        overlay.options.alpha = 0f
-        animateDim(from, 1f, DIM_IN_MS, dimCurve) { level ->
-            overlay.dimLevel = level
-            blur(level)
-        }
+        overlay.beVisible()
+        animateDim(to = 1f, DIM_IN_MS, dimCurve)
 
         val asked = ++optionsAsked
+        // answered again whenever what the pane counts them from changes under an open search
         pane.loadSearchOptions { options ->
             if (asked == optionsAsked && topBar.isSearchOpen) {
-                overlay.fill(options, pane.activeFilter)
-                // they rise the last little way into place as they fade in
-                overlay.options.translationY = rise
-                overlay.options.animate()
-                    .translationY(0f)
-                    .alpha(1f)
-                    .setDuration(OPTIONS_IN_MS)
-                    .setInterpolator(settle)
-                    .start()
+                fill(options, pane.activeFilter)
             }
+        }
+    }
+
+    private fun fill(options: SearchOptions, active: SearchFilter?) {
+        if (options == shownOptions) {
+            return
+        }
+
+        val isArriving = shownOptions?.isEmpty != false
+        shownOptions = options
+        overlay.fill(options, active)
+        if (isArriving) {
+            // they rise the last little way into place as they fade in
+            overlay.options.alpha = 0f
+            overlay.options.translationY = rise
+            overlay.options.animate()
+                .translationY(0f)
+                .alpha(1f)
+                .setDuration(OPTIONS_IN_MS)
+                .setInterpolator(settle)
+                .start()
         }
     }
 
     /** Fades the dim, the blur and the options away as one. */
     private fun fadeOptions() {
+        shownOptions = null
         if (!overlay.isShown) {
             return
         }
 
         dimming?.cancel()
-        overlay.options.animate().cancel()
-        val dimLevel = overlay.dimLevel
-        animateDim(overlay.alpha, 0f, OUT_MS, leave) { level ->
-            overlay.alpha = level
-            blur(level * dimLevel)
-        }.doOnEnd {
-            if (overlay.alpha == 0f) {
+        overlay.options.animate().alpha(0f).setDuration(OUT_MS).setInterpolator(leave).start()
+        animateDim(to = 0f, OUT_MS, leave).doOnEnd {
+            if (overlay.dimLevel == 0f) {
                 overlay.beGone()
-                overlay.dimLevel = 0f
-                blur(0f)
             }
         }
     }
 
-    private fun animateDim(from: Float, to: Float, duration: Long, curve: Interpolator, apply: (Float) -> Unit) =
-        ValueAnimator.ofFloat(from, to).apply {
+    private fun animateDim(to: Float, duration: Long, curve: Interpolator) =
+        ValueAnimator.ofFloat(overlay.dimLevel, to).apply {
             this.duration = duration
             interpolator = curve
-            addUpdateListener { apply(it.animatedValue as Float) }
+            addUpdateListener { overlay.dimLevel = it.animatedValue as Float }
             dimming = this
             start()
         }
-
-    private fun blur(level: Float) {
-        if (!canBlur || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            return
-        }
-
-        val radius = level * blurRadius
-        contentBehind.setRenderEffect(
-            if (radius < MIN_BLUR_PX) null else RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP)
-        )
-    }
 }
 
 /**
@@ -221,7 +223,9 @@ private class SearchEdge(topBar: MySearchMenu) {
     private val context = topBar.context
     private val edge = LitEdgeDrawable(
         context,
-        context.resources.getDimension(org.fossify.commons.R.dimen.material_dialog_corner_radius)
+        context.resources.getDimension(org.fossify.commons.R.dimen.material_dialog_corner_radius),
+        // twice Save's: on a pill the length of the screen the usual line is lost, light rising and all
+        LitEdge(opacity = SEARCH_EDGE_OPACITY)
     ).apply { strength = 0f }
 
     private val settle = context.curve(R.interpolator.search_settle)

@@ -746,7 +746,12 @@ class MainActivity :
     override fun onSearchToggled(isOpen: Boolean) {
         onPaneStateChanged()
         if (isOpen && config.searchAllFilesByDefault) {
-            launchSearchActivity()
+            if (mIsThirdPartyIntent) {
+                launchSearchActivity()
+            } else {
+                // Pictures already searches every file, and the search goes over with the bar
+                swapTo(NavDestination.PICTURES, keepSearch = true)
+            }
         }
     }
 
@@ -945,14 +950,17 @@ class MainActivity :
      * The swap the pill asks for. Both grids are children of the one holder, so neither the pill nor
      * the search bar is part of what moves - the two panes are, one out and one in.
      */
-    private fun swapTo(destination: NavDestination) {
+    private fun swapTo(destination: NavDestination, keepSearch: Boolean = false) {
         val toPictures = destination == NavDestination.PICTURES
         val incoming: GridPane = if (toPictures) mediaPane() else this
         if (mIsSwapping || incoming === activePane) {
             return
         }
 
-        hideKeyboard()
+        if (!keepSearch) {
+            hideKeyboard()
+        }
+
         // held from here rather than from the slide below, so the activation in between knows the
         // bar is not this pane's to dress yet - the hand-over is halfway through the slide
         mIsSwapping = true

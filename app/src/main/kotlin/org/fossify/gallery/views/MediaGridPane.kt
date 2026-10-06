@@ -125,6 +125,7 @@ import org.fossify.gallery.helpers.SLIDESHOW_START_ON_ENTER
 import org.fossify.gallery.helpers.VIDEO_PLAYER_APP
 import org.fossify.gallery.helpers.VIDEO_PLAYER_SYSTEM
 import org.fossify.gallery.helpers.ViewerLaunchGuard
+import org.fossify.gallery.helpers.ViewerNarrowing
 import org.fossify.gallery.helpers.ViewerReturn
 import org.fossify.gallery.interfaces.GridPane
 import org.fossify.gallery.interfaces.MediaOperationsListener
@@ -234,6 +235,10 @@ class MediaGridPane(
 
     /** Whether something typed or a filter has the grid showing less than the whole folder. */
     private val isNarrowed get() = mLastSearchedText.isNotEmpty() || mFilter != null
+
+    // what an open search asked the options of, answered again whenever the media they are counted
+    // from changes - a search can open onto a grid that has not finished loading
+    private var mOptionsWanted: ((SearchOptions) -> Unit)? = null
 
     // built on first use rather than here, where there is no context to read yet, and dropped when
     // the scroll direction changes which axis it divides
@@ -562,6 +567,12 @@ class MediaGridPane(
     override val activeFilter get() = mFilter
 
     override fun loadSearchOptions(onLoaded: (SearchOptions) -> Unit) {
+        mOptionsWanted = onLoaded
+        countSearchOptions()
+    }
+
+    private fun countSearchOptions() {
+        val onLoaded = mOptionsWanted ?: return
         // taken here rather than on the worker, which a rescan landing in the meantime would race
         val media = mMedia.filterIsInstance<Medium>()
         ensureBackgroundThread {
@@ -610,7 +621,8 @@ class MediaGridPane(
         if (mMedia.isNotEmpty()) {
             activity.hideKeyboard()
             Intent(activity, ViewPagerActivity::class.java).apply {
-                val item = mMedia.firstOrNull { it is Medium } as? Medium ?: return
+                val item = gridSource().firstOrNull { it is Medium } as? Medium ?: return
+                ViewerNarrowing.handOver(this, mSearchResults)
                 putExtra(SKIP_AUTHENTICATION, shouldSkipAuthentication())
                 putExtra(PATH, item.path)
                 putExtra(SHOW_ALL, mShowAll)
@@ -1446,6 +1458,8 @@ class MediaGridPane(
 
     private fun openInViewPager(path: String) {
         Intent(activity, ViewPagerActivity::class.java).apply {
+            // a narrowed grid's viewer swipes through its results rather than the whole folder
+            ViewerNarrowing.handOver(this, mSearchResults)
             putExtra(SKIP_AUTHENTICATION, shouldSkipAuthentication())
             putExtra(PATH, path)
             putExtra(SHOW_ALL, mShowAll)
@@ -1481,6 +1495,11 @@ class MediaGridPane(
             }
             binding.mediaFastscroller.beVisibleIf(binding.mediaEmptyTextPlaceholder.isGone())
             setupAdapter()
+            if (host.topBar.isSearchOpen) {
+                countSearchOptions()
+            } else {
+                mOptionsWanted = null
+            }
         }
 
         mLatestMediaId = activity.getLatestMediaId()
