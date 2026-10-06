@@ -31,7 +31,6 @@
     <string name="reorder_by_dragging">Mappák átrendezése húzással</string>
     <string name="reorder_by_dragging_pro">Mappák átrendezése húzással (Pro)</string>
     <string name="restore_to_path">Helyreállítás ide: „%s”</string>
-    <string name="filter_media">Médiafájlok szűrése</string>
     <string name="images">Képek</string>
     <string name="videos">Videók</string>
     <string name="gifs">GIF</string>
@@ -39,7 +38,6 @@
     <string name="svgs">SVG</string>
     <string name="portraits">Portrék</string>
     <string name="no_media_with_filters">A kiválasztott szűrők nem találtak médiafájlokat.</string>
-    <string name="change_filters_underlined"><u>Szűrők változtatása</u></string>
     <string name="hide_folder_description">Ez a funkció elrejti a mappát egy „.nomedia” fájl hozzáadásával, és elrejti az almappákat is. Láthatóvá teheti ezeket a Beállítások „Rejtett elemek megjelenítése\" lehetőségének bekapcsolásáva. Folytatja\?</string>
     <string name="exclude_folder_parent">Kizárja a szülőmappát\?</string>
     <string name="hidden_folders">Rejtett mappák</string>

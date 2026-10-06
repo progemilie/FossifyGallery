@@ -31,7 +31,6 @@
     <string name="reorder_by_dragging">Сортировка папок перетаскиванием</string>
     <string name="reorder_by_dragging_pro">Сортировка папок перетаскиванием (Pro)</string>
     <string name="restore_to_path">Восстановление в \"%s\"</string>
-    <string name="filter_media">Фильтр медиа</string>
     <string name="images">Изображения</string>
     <string name="videos">Видео</string>
     <string name="gifs">GIF</string>
@@ -39,7 +38,6 @@
     <string name="svgs">SVG</string>
     <string name="portraits">Портреты</string>
     <string name="no_media_with_filters">При заданных фильтрах медиафайлы не найдены.</string>
-    <string name="change_filters_underlined"><u>Изменить фильтры</u></string>
     <string name="hide_folder_description">Эта функция скрывает папку, добавляя в неё файл \".nomedia\". Также будут скрыты все подпапки. Можно показать их, переключая \"Показывать скрытые папки\" в настройках. Продолжить?</string>
     <string name="exclude_folder_parent">Исключить только родительскую папку\?</string>
     <string name="hidden_folders">Скрытые папки</string>

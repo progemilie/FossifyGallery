@@ -31,7 +31,6 @@
     <string name="reorder_by_dragging">Подреждане на папките с влачене</string>
     <string name="reorder_by_dragging_pro">Подреждане на папките с влачене (про)</string>
     <string name="restore_to_path">Възстановяване в „%s“</string>
-    <string name="filter_media">Филтриране</string>
     <string name="images">Изображения</string>
     <string name="videos">Видео</string>
     <string name="gifs">GIF</string>
@@ -39,7 +38,6 @@
     <string name="svgs">SVG</string>
     <string name="portraits">Портрети</string>
     <string name="no_media_with_filters">На зададените филтри не отговарят файлове.</string>
-    <string name="change_filters_underlined"><u>Променяне на филтрите</u></string>
     <string name="hide_folder_description">По този начин ще бъде добавен файл „.nomedia“, който скрива папката и нейното съдържание от приложението. Можете да прегледате скритото съдържание като изберете „Показване на скрити елементи“ от настройките. Продължаване?</string>
     <string name="exclude_folder_parent">Изключване на родителската папката?</string>
     <string name="hidden_folders">Скрити папки</string>

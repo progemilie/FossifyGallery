@@ -31,7 +31,6 @@
     <string name="reorder_by_dragging">ドラッグによるフォルダーの並べ替え</string>
     <string name="reorder_by_dragging_pro">ドラッグによるフォルダーの並べ替え (Pro)</string>
     <string name="restore_to_path">\'%s\' に復元しています</string>
-    <string name="filter_media">表示する形式</string>
     <string name="images">画像</string>
     <string name="videos">動画</string>
     <string name="gifs">GIF</string>
@@ -39,7 +38,6 @@
     <string name="svgs">SVG</string>
     <string name="portraits">ポートレイト</string>
     <string name="no_media_with_filters">条件に該当するメディアがありません。</string>
-    <string name="change_filters_underlined"><u>絞り込み条件を変更</u></string>
     <string name="hide_folder_description">対象のフォルダーに「.nomedia」ファイルを作成し、フォルダーを非表示にします。そのフォルダーの中にあるすべてのサブフォルダーも非表示となります。非表示のフォルダーを見るには、「設定」の中にある「非表示のアイテムを表示する」を有効にしてください。このフォルダーを非表示にしますか？</string>
     <string name="exclude_folder_parent">親フォルダーを代わりに除外しますか？</string>
     <string name="hidden_folders">非表示フォルダー</string>

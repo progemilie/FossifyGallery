@@ -97,7 +97,6 @@ import org.fossify.gallery.databases.GalleryDatabase
 import org.fossify.gallery.databinding.ActivityMainBinding
 import org.fossify.gallery.dialogs.ChangeSortingDialog
 import org.fossify.gallery.dialogs.ChangeViewTypeDialog
-import org.fossify.gallery.dialogs.FilterMediaDialog
 import org.fossify.gallery.dialogs.GrantAllFilesDialog
 import org.fossify.gallery.extensions.addTempFolderIfNeeded
 import org.fossify.gallery.extensions.applyEdgeFade
@@ -175,7 +174,6 @@ import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.TYPE_VIDEOS
 import org.fossify.gallery.helpers.TabSwitcher
 import org.fossify.gallery.helpers.ViewerOpening
-import org.fossify.gallery.helpers.getDefaultFileFilter
 import org.fossify.gallery.helpers.getPermissionToRequest
 import org.fossify.gallery.helpers.getPermissionsToRequest
 import org.fossify.gallery.interfaces.DirectoryOperationsListener
@@ -762,7 +760,6 @@ class MainActivity :
     override fun onMenuItemClick(itemId: Int): Boolean {
         when (itemId) {
             R.id.sort -> showSortingDialog()
-            R.id.filter -> showFilterMediaDialog()
             // no menu offers this any more, the id lives in ids.xml - kept so it can be put back
             R.id.open_camera -> launchCamera()
             R.id.change_view_type -> changeViewType()
@@ -1371,15 +1368,6 @@ class MainActivity :
             }
 
             getRecyclerAdapter()?.directorySorting = config.directorySorting
-        }
-    }
-
-    private fun showFilterMediaDialog() {
-        FilterMediaDialog(this) {
-            mShouldStopFetching = true
-            binding.directoryPane.directoriesRefreshLayout.isRefreshing = true
-            binding.directoryPane.directoriesGrid.adapter = null
-            getDirectories()
         }
     }
 
@@ -2165,7 +2153,7 @@ class MainActivity :
             binding.directoryPane.directoriesEmptyPlaceholder.text =
                 getString(org.fossify.commons.R.string.no_items_found)
             binding.directoryPane.directoriesEmptyPlaceholder2.beGone()
-        } else if (dirs.isEmpty() && config.filterMedia == getDefaultFileFilter()) {
+        } else if (dirs.isEmpty()) {
             if (isRPlus() && !isExternalStorageManager()) {
                 binding.directoryPane.directoriesEmptyPlaceholder.text =
                     getString(org.fossify.commons.R.string.no_items_found)
@@ -2179,14 +2167,6 @@ class MainActivity :
                 showAddIncludedFolderDialog {
                     refreshItems()
                 }
-            }
-        } else {
-            binding.directoryPane.directoriesEmptyPlaceholder.text = getString(R.string.no_media_with_filters)
-            binding.directoryPane.directoriesEmptyPlaceholder2.text =
-                getString(R.string.change_filters_underlined)
-
-            binding.directoryPane.directoriesEmptyPlaceholder2.setOnClickListener {
-                showFilterMediaDialog()
             }
         }
 

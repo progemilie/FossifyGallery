@@ -31,7 +31,6 @@
     <string name="reorder_by_dragging">Berrordenatu karpetak arrastatuz</string>
     <string name="reorder_by_dragging_pro">Berrordenatu karpetak arrastatuz (Pro)</string>
     <string name="restore_to_path">\'%s\'-ra leheneratzen</string>
-    <string name="filter_media">Iragazi multimedia</string>
     <string name="images">Irudiak</string>
     <string name="videos">Bideoak</string>
     <string name="gifs">GIFak</string>
@@ -39,7 +38,6 @@
     <string name="svgs">SVGak</string>
     <string name="portraits">Erretratuak</string>
     <string name="no_media_with_filters">Hautatutako filtroa duen multimedia fitxategirik ez da aurkitu.</string>
-    <string name="change_filters_underlined"><u>Aldatu filtroak</u></string>
     <string name="hide_folder_description">Funtzio honek karpeta \'.nomedia\' fitxategi bat gehituz ezkutatzen du, azpikarpeta guztiak ere ezkutatuko ditu. Ezarpenetako \'Erakutsi ezkutatutako elementuak\' aukera aldatuz ikus ditzakezu. Jarraitu\?</string>
     <string name="exclude_folder_parent">Baztertu nagusia horren ordez\?</string>
     <string name="hidden_folders">Ezkutatutako karpetak</string>

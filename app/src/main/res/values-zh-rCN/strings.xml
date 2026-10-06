@@ -31,7 +31,6 @@
     <string name="reorder_by_dragging">通过拖动重新排列文件夹</string>
     <string name="reorder_by_dragging_pro">通过拖动重新排列文件夹 (专业版)</string>
     <string name="restore_to_path">恢复至“%s”</string>
-    <string name="filter_media">过滤显示的文件</string>
     <string name="images">图片</string>
     <string name="videos">视频</string>
     <string name="gifs">GIF</string>
@@ -39,7 +38,6 @@
     <string name="svgs">SVG</string>
     <string name="portraits">竖向</string>
     <string name="no_media_with_filters">没有找到符合该过滤条件的媒体文件。</string>
-    <string name="change_filters_underlined"><u>更改过滤条件</u></string>
     <string name="hide_folder_description">此隐藏方式将在文件夹中添加“.nomedia”文件来隐藏文件夹，这也将隐藏它的所有子文件夹。您可以通过启用设置中的“显示隐藏的项目”选项来显示被隐藏的内容。您确定要继续操作吗？</string>
     <string name="exclude_folder_description">这将只在本应用中排除指定的文件夹和它的子文件夹。您可以在设置中管理排除的文件夹。</string>
     <string name="exclude_folder_parent">是否排除上级文件夹？</string>

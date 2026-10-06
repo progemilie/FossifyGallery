@@ -6,7 +6,6 @@
     <string name="reorder_by_dragging">Athordaigh fillteáin trí tharraingt</string>
     <string name="reorder_by_dragging_pro">Athordaigh fillteáin trí tharraingt (Pro)</string>
     <string name="full_storage_permission_required">Teastaíonn rochtain iomlán ó Ghailearaí Fossify chun do ghrianghraif agus físeáin go léir a thaispeáint. Téigh go Socruithe &gt; Ceadanna &gt; Grianghraif agus físeáin &gt; Ceadaigh gach rud.</string>
-    <string name="change_filters_underlined"><u>Athraigh na scagairí</u></string>
     <string name="exclude_folder_parent">Tuismitheoir a eisiamh ina ionad?</string>
     <string name="excluded_activity_placeholder">Gan fillteáin a áireamh, beidh siad mar aon lena bhfofhillteáin i bhfolach díreach i nGailearaí Fossify, beidh siad fós le feiceáil in iarratais eile.\n\nMás mian leat iad a cheilt ó fheidhmchláir eile freisin, bain úsáid as an bhfeidhm Folaigh.</string>
     <string name="hidden_folders">Fillteáin fholaithe</string>
@@ -74,7 +73,6 @@
     <string name="share_resized">Comhroinn leagan athraithe</string>
     <string name="switch_to_file_search">Athraigh go cuardach comhad i ngach fillteán infheicthe</string>
     <string name="restore_to_path">Ag aischur go \'%s\'</string>
-    <string name="filter_media">Scag meáin</string>
     <string name="images">Íomhánna</string>
     <string name="videos">Físeáin</string>
     <string name="gifs">GIFanna</string>

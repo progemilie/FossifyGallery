@@ -73,7 +73,6 @@ import org.fossify.gallery.asynctasks.GetMediaAsynctask
 import org.fossify.gallery.databinding.PaneMediaGridBinding
 import org.fossify.gallery.dialogs.ChangeSortingDialog
 import org.fossify.gallery.dialogs.ChangeViewTypeDialog
-import org.fossify.gallery.dialogs.FilterMediaDialog
 import org.fossify.gallery.dialogs.GrantAllFilesDialog
 import org.fossify.gallery.extensions.applyEdgeFade
 import org.fossify.gallery.extensions.config
@@ -340,9 +339,6 @@ class MediaGridPane(
         // here as well as in the adapter: a grid simplified at startup hands the adapter no animator
         // to settle, and this one is due back the moment it is pinched in again
         SelectionMark.settleChangeAnimations(binding.mediaGrid)
-        binding.mediaEmptyTextPlaceholder2.setOnClickListener {
-            showFilterMediaDialog()
-        }
     }
 
     override fun onActivated() {
@@ -404,8 +400,6 @@ class MediaGridPane(
         binding.loadingIndicator.setIndicatorColor(activity.getProperPrimaryColor())
         reorderPills.updateColors()
         binding.mediaEmptyTextPlaceholder.setTextColor(activity.getProperTextColor())
-        binding.mediaEmptyTextPlaceholder2.setTextColor(activity.getProperPrimaryColor())
-        binding.mediaEmptyTextPlaceholder2.bringToFront()
 
         // the grid still holds what it had when the viewer was opened, so point the item out now
         // rather than only once the refresh below comes back. it stays pending if it is not there
@@ -551,7 +545,6 @@ class MediaGridPane(
     override fun onMenuItemClick(itemId: Int): Boolean {
         when (itemId) {
             R.id.sort -> showSortingDialog()
-            R.id.filter -> showFilterMediaDialog()
             R.id.empty_recycle_bin -> emptyRecycleBin()
             R.id.empty_disable_recycle_bin -> emptyAndDisableRecycleBin()
             R.id.restore_all_files -> restoreAllFiles()
@@ -919,15 +912,6 @@ class MediaGridPane(
         }
     }
 
-    private fun showFilterMediaDialog() {
-        FilterMediaDialog(activity) {
-            mLoadedInitialPhotos = false
-            binding.mediaRefreshLayout.isRefreshing = true
-            binding.mediaGrid.adapter = null
-            getMedia()
-        }
-    }
-
     private fun emptyRecycleBin() {
         activity.showRecycleBinEmptyingDialog {
             activity.emptyTheRecycleBin {
@@ -1063,7 +1047,6 @@ class MediaGridPane(
             if (mPath == RECYCLE_BIN) {
                 binding.mediaEmptyTextPlaceholder.setText(org.fossify.commons.R.string.no_items_found)
                 binding.mediaEmptyTextPlaceholder.beVisible()
-                binding.mediaEmptyTextPlaceholder2.beGone()
             } else {
                 activity.finish()
             }
@@ -1443,10 +1426,8 @@ class MediaGridPane(
             binding.loadingIndicator.hide()
             binding.mediaRefreshLayout.isRefreshing = false
             binding.mediaEmptyTextPlaceholder.beVisibleIf(media.isEmpty() && !isFromCache)
-            binding.mediaEmptyTextPlaceholder2.beVisibleIf(media.isEmpty() && !isFromCache)
-
             if (binding.mediaEmptyTextPlaceholder.isVisible()) {
-                binding.mediaEmptyTextPlaceholder.text = activity.getString(R.string.no_media_with_filters)
+                binding.mediaEmptyTextPlaceholder.text = activity.getString(org.fossify.commons.R.string.no_items_found)
             }
             binding.mediaFastscroller.beVisibleIf(binding.mediaEmptyTextPlaceholder.isGone())
             setupAdapter()
