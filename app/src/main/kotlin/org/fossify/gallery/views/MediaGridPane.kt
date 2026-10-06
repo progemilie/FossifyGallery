@@ -76,6 +76,7 @@ import org.fossify.gallery.dialogs.ChangeViewTypeDialog
 import org.fossify.gallery.dialogs.GrantAllFilesDialog
 import org.fossify.gallery.extensions.applyEdgeFade
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.extensions.mediaFacts
 import org.fossify.gallery.extensions.deleteDBPath
 import org.fossify.gallery.extensions.directoryDB
 import org.fossify.gallery.extensions.emptyAndDisableTheRecycleBin
@@ -115,6 +116,10 @@ import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_FAVORITES
 import org.fossify.gallery.helpers.SHOW_RECYCLE_BIN
 import org.fossify.gallery.helpers.SelectionMark
+import org.fossify.gallery.helpers.SearchOptions
+import org.fossify.gallery.helpers.matches
+import org.fossify.gallery.helpers.searchOptionsOf
+import org.fossify.gallery.models.SearchFilter
 import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
 import org.fossify.gallery.helpers.SLIDESHOW_START_ON_ENTER
 import org.fossify.gallery.helpers.VIDEO_PLAYER_APP
@@ -220,6 +225,15 @@ class MediaGridPane(
     // what a search narrowed the grid down to, null when no search is open. Anything rebuilding the
     // grid has to work from this rather than mMedia, or it puts the whole library back on screen
     private var mSearchResults: ArrayList<ThumbnailItem>? = null
+
+    // the option picked under the search bar, which narrows the grid alongside anything typed
+    private var mFilter: SearchFilter? = null
+
+    // each narrowing is worked out off the main thread, and only the latest one asked for may land
+    private var mSearchGeneration = 0
+
+    /** Whether something typed or a filter has the grid showing less than the whole folder. */
+    private val isNarrowed get() = mLastSearchedText.isNotEmpty() || mFilter != null
 
     // built on first use rather than here, where there is no context to read yet, and dropped when
     // the scroll direction changes which axis it divides
@@ -445,6 +459,9 @@ class MediaGridPane(
         } else if (host.topBar.isSearchOpen) {
             host.topBar.closeSearch()
             true
+        } else if (mFilter != null) {
+            applyFilter(null)
+            true
         } else {
             false
         }
@@ -542,6 +559,27 @@ class MediaGridPane(
         binding.mediaRefreshLayout.isEnabled = text.isEmpty() && config.enablePullToRefresh
     }
 
+    override val activeFilter get() = mFilter
+
+    override fun loadSearchOptions(onLoaded: (SearchOptions) -> Unit) {
+        // taken here rather than on the worker, which a rescan landing in the meantime would race
+        val media = mMedia.filterIsInstance<Medium>()
+        ensureBackgroundThread {
+            val options = searchOptionsOf(media, activity.mediaFacts())
+            activity.runOnUiThread { onLoaded(options) }
+        }
+    }
+
+    override fun applyFilter(filter: SearchFilter?) {
+        if (filter == mFilter) {
+            return
+        }
+
+        mFilter = filter
+        searchQueryChanged(mLastSearchedText)
+        host.onPaneStateChanged()
+    }
+
     override fun onMenuItemClick(itemId: Int): Boolean {
         when (itemId) {
             R.id.sort -> showSortingDialog()
@@ -623,6 +661,10 @@ class MediaGridPane(
         if (host.topBar.isSearchOpen) {
             host.topBar.closeSearch()
         }
+
+        // as much as a search, a filter would leave part of the folder out of its own arrangement
+        mFilter = null
+        mSearchResults = null
 
         // arranging at a count where no single item can be picked out is not arranging anything
         if (mGridZoom.isSimplified(config.mediaColumnCnt)) {
@@ -745,15 +787,23 @@ class MediaGridPane(
     }
 
     private fun searchQueryChanged(text: String) {
+        val filter = mFilter
+        val generation = ++mSearchGeneration
         ensureBackgroundThread {
             try {
-                val filtered = mMedia
-                    .filter { it is Medium && it.name.contains(text, true) } as ArrayList
+                val facts = activity.mediaFacts()
+                val filtered = mMedia.filter {
+                    it is Medium && it.name.contains(text, true) && filter?.matches(it, facts) != false
+                } as ArrayList
                 filtered.sortBy { it is Medium && !it.name.startsWith(text, true) }
                 val grouped = MediaFetcher(activity.applicationContext).groupMedia(
                     media = filtered as ArrayList<Medium>, path = mPath
                 )
                 activity.runOnUiThread {
+                    if (generation != mSearchGeneration) {
+                        return@runOnUiThread
+                    }
+
                     if (mZoom.isActive) {
                         mMediaChangedWhileZooming = true
                         return@runOnUiThread
@@ -769,7 +819,7 @@ class MediaGridPane(
                         binding.mediaFastscroller.beVisible()
                     }
 
-                    mSearchResults = if (text.isEmpty()) null else grouped
+                    mSearchResults = if (text.isEmpty() && filter == null) null else grouped
                     val shown = mediaForGrid(grouped)
                     handleGridSpacing(shown)
                     getMediaAdapter()?.updateMedia(shown)
@@ -848,7 +898,7 @@ class MediaGridPane(
 
             setupLayoutManager()
             handleGridSpacing()
-        } else if (mLastSearchedText.isEmpty()) {
+        } else if (!isNarrowed) {
             (currAdapter as MediaAdapter).updateMedia(mediaForGrid())
             handleGridSpacing()
         } else {

@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.ColorFilter
 import android.graphics.LinearGradient
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.RectF
@@ -21,8 +22,9 @@ private const val FULL_ALPHA = 255
 
 /**
  * The edge a card stands out by - a folder's cover and a stack's cards, a thumbnail held in the
- * reorder mode, the reorder mode's Save: a fine line in the text colour, lit along the top and fading
- * down the sides. The defaults are the app's look; something edged differently passes its own.
+ * reorder mode, the reorder mode's Save, the search pill while a search is open: a fine line in the
+ * text colour, lit along the top and fading down the sides. The defaults are the app's look;
+ * something edged differently passes its own.
  */
 data class LitEdge(
     /** The line's opacity along the top, 0 to 1. */
@@ -42,6 +44,7 @@ class LitEdgePainter(context: Context, private val edge: LitEdge = LitEdge()) {
     }
 
     private val shape = RectF()
+    private val lightMatrix = Matrix()
     private var gradientHeight = 0f
 
     /** The line's colour before [LitEdge.opacity] - the text colour stands out from any theme's background. */
@@ -53,14 +56,28 @@ class LitEdgePainter(context: Context, private val edge: LitEdge = LitEdge()) {
             }
         }
 
+    /**
+     * Where the light falls, from 0 - along the top, where an edge keeps it - to 1, along the bottom.
+     * Anything else is an edge on its way in.
+     */
+    var lightAt = 0f
+
+    /** How much of the edge is drawn at all, 0 to 1. */
+    var strength = 1f
+
     fun draw(canvas: Canvas, bounds: RectF, cornerRadius: Float) {
-        val height = bounds.height()
-        if (paint.shader == null || height != gradientHeight) {
-            val top = colorAt(edge.opacity)
-            val bottom = colorAt(edge.opacity * (1 - edge.fade))
-            paint.shader = LinearGradient(0f, 0f, 0f, height, top, bottom, Shader.TileMode.CLAMP)
-            gradientHeight = height
+        if (strength <= 0f) {
+            return
         }
+
+        val height = bounds.height()
+        val shader = paint.shader?.takeIf { height == gradientHeight } ?: lightShader(height)
+
+        // the light's fall-off either side of it is laid out around 0 and slid down to where it is -
+        // resting at the top, the fall-off below it is exactly the fade down the sides
+        lightMatrix.setTranslate(0f, lightAt * height)
+        shader.setLocalMatrix(lightMatrix)
+        paint.alpha = (strength * FULL_ALPHA).roundToInt()
 
         // drawn from the origin so shapes of one height share a gradient, as a stack's cards do. A stroke
         // is centred on its path, so it is pulled in by half its width to stay inside the shape
@@ -70,6 +87,14 @@ class LitEdgePainter(context: Context, private val edge: LitEdge = LitEdge()) {
         canvas.withTranslation(bounds.left, bounds.top) {
             drawRoundRect(shape, radius, radius, paint)
         }
+    }
+
+    private fun lightShader(height: Float): Shader {
+        val lit = colorAt(edge.opacity)
+        val dim = colorAt(edge.opacity * (1 - edge.fade))
+        gradientHeight = height
+        return LinearGradient(0f, -height, 0f, height, intArrayOf(dim, lit, dim), null, Shader.TileMode.CLAMP)
+            .also { paint.shader = it }
     }
 
     private fun colorAt(opacity: Float) = ColorUtils.setAlphaComponent(color, (opacity * FULL_ALPHA).roundToInt())
@@ -88,6 +113,22 @@ class LitEdgeDrawable(context: Context, private val cornerRadius: Float, edge: L
                 painter.color = value
                 invalidateSelf()
             }
+        }
+
+    /** See [LitEdgePainter.lightAt]. */
+    var lightAt: Float
+        get() = painter.lightAt
+        set(value) {
+            painter.lightAt = value
+            invalidateSelf()
+        }
+
+    /** See [LitEdgePainter.strength]. */
+    var strength: Float
+        get() = painter.strength
+        set(value) {
+            painter.strength = value
+            invalidateSelf()
         }
 
     override fun draw(canvas: Canvas) {

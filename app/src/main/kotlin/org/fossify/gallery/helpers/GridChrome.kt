@@ -5,6 +5,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import org.fossify.commons.views.MySearchMenu
 import org.fossify.gallery.interfaces.GridPane
+import org.fossify.gallery.models.SearchFilter
 import org.fossify.gallery.views.GlassMenu
 import org.fossify.gallery.views.NavPill
 import org.fossify.gallery.views.TabChooser
@@ -24,6 +25,9 @@ class GridChrome(
     tabChooser: TabChooser? = null,
 ) {
     val floatingTopBar = FloatingTopBar(topBar, contentBehind)
+
+    /** The dim, the options and the chip an open search adds to the bar. */
+    val search = SearchChrome(topBar, contentBehind)
 
     /** The tab button worn on the end of the bar, where the screen has a chooser for it to open. */
     val tabBar = tabChooser?.let { TabBar(topBar, it) }
@@ -49,9 +53,22 @@ class GridChrome(
         menu.isOnToolbar = navPill?.isAvailable != true
         navPill?.onAvailabilityChanged = { menu.isOnToolbar = !it }
 
-        topBar.onSearchOpenListener = { this.pane?.onSearchToggled(true) }
-        topBar.onSearchClosedListener = { this.pane?.onSearchToggled(false) }
-        topBar.onSearchTextChangedListener = { text -> this.pane?.onSearchTextChanged(text) }
+        topBar.onSearchOpenListener = {
+            search.onSearchOpened()
+            this.pane?.onSearchToggled(true)
+        }
+
+        topBar.onSearchClosedListener = {
+            search.onSearchClosed()
+            this.pane?.onSearchToggled(false)
+        }
+
+        topBar.onSearchTextChangedListener = { text ->
+            search.onSearchTextChanged(text)
+            this.pane?.onSearchTextChanged(text)
+        }
+
+        search.onFilterChosen = ::chooseFilter
         topBar.requireToolbar().setOnMenuItemClickListener { item ->
             this.pane?.onMenuItemClick(item.itemId) == true
         }
@@ -98,6 +115,20 @@ class GridChrome(
 
         floatingTopBar.floatOver(pane.grid, pane.refreshLayout, pane::gridNeedsTopRoom)
         navPill?.panWith(pane.grid)
+        search.bind(pane)
+    }
+
+    /**
+     * Narrows the grid by what was picked and closes the search over it, in that order: closing
+     * empties the field, and the grid has to be narrowed already by the time it rebuilds for that.
+     */
+    private fun chooseFilter(filter: SearchFilter?) {
+        pane?.applyFilter(filter)
+        if (topBar.isSearchOpen) {
+            topBar.closeSearch()
+        }
+
+        search.refreshChip()
     }
 
     /** Asks the pane that is up for its menu entries again, whatever has just changed. */
@@ -115,6 +146,7 @@ class GridChrome(
         // behind the lifting above, which is what leaves the bar with room to hang a button off
         tabBar?.apply(contentBehind)
         navPill?.updateColors()
+        search.updateColors()
     }
 
     val isSearchOpen get() = topBar.isSearchOpen

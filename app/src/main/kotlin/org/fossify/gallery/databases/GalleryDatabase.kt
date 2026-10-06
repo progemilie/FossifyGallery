@@ -34,6 +34,8 @@ abstract class GalleryDatabase : RoomDatabase() {
 
     abstract fun MediaRatingsDao(): MediaRatingsDao
 
+    abstract fun SearchDao(): SearchDao
+
     companion object {
         private var db: GalleryDatabase? = null
 

@@ -218,6 +218,7 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
 
     // sideways scrolling has no room to pan the bar out of
     override fun onPaneStateChanged() {
+        chrome.search.refreshChip()
         chrome.floatingTopBar.isPanningEnabled = !config.scrollHorizontally
         // a selection and an arrangement both put pills up where the bar is, so the bar goes but
         // its room stays
@@ -226,8 +227,10 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
         // their pills float over the foot of a grid which, unlike the two top level ones, reserves
         // no room down there of its own - without this the last row could not be scrolled clear
         pane.reserveBottomRoom(hasPillsUp)
-        // nothing here may navigate away from a search, a selection or an arrangement it would drop
-        chrome.tabBar?.isAvailable = !chrome.isSearchOpen && !pane.isReordering && !pane.isSelecting
+        // nothing here may navigate away from a search, a filter, a selection or an arrangement it
+        // would drop
+        chrome.tabBar?.isAvailable = !chrome.isSearchOpen && pane.activeFilter == null &&
+            !pane.isReordering && !pane.isSelecting
     }
 
     // ----------------------------------------------------------------------- the tabs ----

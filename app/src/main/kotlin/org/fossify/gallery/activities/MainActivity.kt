@@ -102,6 +102,8 @@ import org.fossify.gallery.extensions.addTempFolderIfNeeded
 import org.fossify.gallery.extensions.applyEdgeFade
 import org.fossify.gallery.extensions.applyFolderGroups
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.extensions.libraryMedia
+import org.fossify.gallery.extensions.mediaFacts
 import org.fossify.gallery.extensions.createDirectoryFromMedia
 import org.fossify.gallery.extensions.currentTab
 import org.fossify.gallery.extensions.directoryDB
@@ -171,6 +173,9 @@ import org.fossify.gallery.helpers.TYPE_GIFS
 import org.fossify.gallery.helpers.TYPE_IMAGES
 import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
+import org.fossify.gallery.helpers.SearchOptions
+import org.fossify.gallery.helpers.searchOptionsOf
+import org.fossify.gallery.models.SearchFilter
 import org.fossify.gallery.helpers.TYPE_VIDEOS
 import org.fossify.gallery.helpers.TabSwitcher
 import org.fossify.gallery.helpers.ViewerOpening
@@ -757,6 +762,26 @@ class MainActivity :
     // the link, so while it is up the list has no room left to make for itself
     override fun gridNeedsTopRoom() = !binding.directoryPane.directoriesSwitchSearching.isVisible()
 
+    // a search that opens straight onto the separate file search screen has no use for options, and
+    // a picker has no Pictures pane for a picked one to narrow
+    override val offersSearchOptions get() = !config.searchAllFilesByDefault && !mIsThirdPartyIntent
+
+    override fun loadSearchOptions(onLoaded: (SearchOptions) -> Unit) {
+        val folders = mDirsIgnoringSearch.mapTo(HashSet()) { it.path }
+        ensureBackgroundThread {
+            val options = searchOptionsOf(libraryMedia(folders), mediaFacts())
+            runOnUiThread { onLoaded(options) }
+        }
+    }
+
+    /** The folder grid has no files of its own to narrow: a pill picked here is Pictures, narrowed by it. */
+    override fun applyFilter(filter: SearchFilter?) {
+        if (filter != null && offersSearchOptions) {
+            mediaPane().applyFilter(filter)
+            swapTo(NavDestination.PICTURES)
+        }
+    }
+
     override fun onMenuItemClick(itemId: Int): Boolean {
         when (itemId) {
             R.id.sort -> showSortingDialog()
@@ -803,6 +828,7 @@ class MainActivity :
      */
     override fun onPaneStateChanged() {
         val media = mMediaPane
+        chrome.search.refreshChip()
         chrome.floatingTopBar.isPanningEnabled = !config.scrollHorizontally
         // a selection and an arrangement both put pills up where the bar is, so the bar goes but
         // its room stays
@@ -811,16 +837,18 @@ class MainActivity :
             return
         }
 
+        // a filter narrows the grid as much as a search does, and goes with it the same way
+        val isNarrowed = binding.mainMenu.isSearchOpen || activePane.activeFilter != null
         navPill.isPanningEnabled = !config.scrollHorizontally
         navPill.isAvailable = mCurrentGroupId == 0L &&
-                !binding.mainMenu.isSearchOpen &&
+                !isNarrowed &&
                 !mIsSelecting &&
                 media?.isReordering != true &&
                 media?.isSelecting != true
 
         // a group stepped into is still somewhere a tab can be, so unlike the pill the button
         // survives that - what it cannot survive is a search or a selection it would drop
-        chrome.tabBar?.isAvailable = !binding.mainMenu.isSearchOpen &&
+        chrome.tabBar?.isAvailable = !isNarrowed &&
                 !mIsSelecting &&
                 media?.isReordering != true &&
                 media?.isSelecting != true
@@ -1032,6 +1060,7 @@ class MainActivity :
             chrome.closeSearch()
         }
 
+        mMediaPane?.applyFilter(null)
         chrome.tabBar?.refresh()
 
         val location = currentTab().location?.takeUnless { isTabLocationGone(it) }

@@ -16,7 +16,7 @@ import org.fossify.gallery.helpers.SELECTION_MENU
  * without the chrome moving. What is left is this: everything the screen has to ask whichever pane
  * is currently up.
  */
-interface GridPane {
+interface GridPane : SearchTarget {
     /** The whole pane, which is what a swap slides. */
     val root: View
 

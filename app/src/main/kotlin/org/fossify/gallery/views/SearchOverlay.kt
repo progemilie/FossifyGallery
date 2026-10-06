@@ -1,0 +1,91 @@
+package org.fossify.gallery.views
+
+import android.content.Context
+import android.graphics.Color
+import android.util.AttributeSet
+import android.view.View
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import org.fossify.gallery.R
+import org.fossify.gallery.helpers.SearchOptions
+import org.fossify.gallery.models.SearchFilter
+
+/** How dark the grid goes behind the options. */
+private const val DIM_ALPHA = 0.55f
+
+/**
+ * What an open search puts up under the bar: the grid dimmed behind it, and the options it can be
+ * narrowed by. Built into the screen just above the content the glass copies, so the search pill is
+ * neither dimmed nor frosting the dim - it looks exactly as it did. [org.fossify.gallery.helpers.SearchChrome]
+ * moves this, the blur and the bar's edge together.
+ */
+class SearchOverlay @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0
+) : FrameLayout(context, attrs, defStyleAttr) {
+
+    // takes every touch: the grid is not to be reached under it, and tapping it does nothing
+    private val dim = View(context).apply {
+        setBackgroundColor(Color.BLACK)
+        isClickable = true
+    }
+
+    private val column = LinearLayout(context).apply {
+        orientation = LinearLayout.VERTICAL
+    }
+
+    /** The options, which slide and fade in as one. */
+    val options = ScrollView(context).apply {
+        clipToPadding = false
+        isVerticalScrollBarEnabled = false
+        overScrollMode = OVER_SCROLL_NEVER
+        addView(column)
+    }
+
+    private val sections = SearchOverlaySections(column)
+    private val footRoom = resources.getDimensionPixelSize(R.dimen.search_options_foot_room)
+
+    var onChosen: ((SearchFilter) -> Unit)?
+        get() = sections.onChosen
+        set(value) {
+            sections.onChosen = value
+        }
+
+    /** How far the dim has come in, 0 to 1. */
+    var dimLevel = 0f
+        set(value) {
+            field = value
+            dim.alpha = value * DIM_ALPHA
+        }
+
+    init {
+        addView(dim, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        addView(options, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        val side = resources.getDimensionPixelSize(org.fossify.commons.R.dimen.activity_margin)
+        options.setPaddingRelative(side, 0, side, footRoom)
+        dimLevel = 0f
+
+        // the keyboard takes the bottom of the screen, so whatever does not fit above it scrolls
+        ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
+            val bottom = insets.getInsets(WindowInsetsCompat.Type.ime() or WindowInsetsCompat.Type.navigationBars())
+            options.updatePadding(bottom = bottom.bottom + footRoom)
+            insets
+        }
+    }
+
+    /** Puts the options below [height] of bar - which already carries the status bar inset. */
+    fun keepClearOfBar(height: Int) {
+        options.updatePadding(top = height)
+    }
+
+    /** Fills the options in from [options], [active] lit as the filter already on. */
+    fun fill(options: SearchOptions, active: SearchFilter?) {
+        sections.fill(options, active)
+        this.options.scrollTo(0, 0)
+    }
+}
