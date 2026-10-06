@@ -64,7 +64,9 @@ class SearchChrome(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) UntouchedSearchBack(topBar)::sync else ({})
 
     private var pane: GridPane? = null
-    private var dimming: ValueAnimator? = null
+
+    // photos the trait index reads while the options are up can call for pills of their own
+    private val traitsFound = TraitIndex.Listener { askOptions() }
 
     // what the options on show were filled from, so an answer that changes nothing leaves them be
     private var shownOptions: SearchOptions? = null
@@ -153,11 +155,15 @@ class SearchChrome(
         overlay.keepClearOfBar(topBar.height + barGap)
 
         // whatever a fade on its way out had left of the dim is where it comes back from
-        dimming?.cancel()
         overlay.options.animate().cancel()
         overlay.beVisible()
-        animateDim(to = 1f, DIM_IN_MS, dimCurve)
+        overlay.dimTo(1f, DIM_IN_MS, dimCurve)
+        TraitIndex.addListener(traitsFound)
+        askOptions()
+    }
 
+    private fun askOptions() {
+        val pane = pane?.takeIf { topBar.isSearchOpen && topBar.getCurrentQuery().isEmpty() } ?: return
         val asked = ++optionsAsked
         // answered again whenever what the pane counts them from changes under an open search
         pane.loadSearchOptions { options ->
@@ -191,27 +197,18 @@ class SearchChrome(
     /** Fades the dim, the blur and the options away as one. */
     private fun fadeOptions() {
         shownOptions = null
+        TraitIndex.removeListener(traitsFound)
         if (!overlay.isShown) {
             return
         }
 
-        dimming?.cancel()
         overlay.options.animate().alpha(0f).setDuration(OUT_MS).setInterpolator(leave).start()
-        animateDim(to = 0f, OUT_MS, leave).doOnEnd {
+        overlay.dimTo(0f, OUT_MS, leave).doOnEnd {
             if (overlay.dimLevel == 0f) {
                 overlay.beGone()
             }
         }
     }
-
-    private fun animateDim(to: Float, duration: Long, curve: Interpolator) =
-        ValueAnimator.ofFloat(overlay.dimLevel, to).apply {
-            this.duration = duration
-            interpolator = curve
-            addUpdateListener { overlay.dimLevel = it.animatedValue as Float }
-            dimming = this
-            start()
-        }
 }
 
 /**

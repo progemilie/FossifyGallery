@@ -111,6 +111,7 @@ import org.fossify.gallery.helpers.TYPE_IMAGES
 import org.fossify.gallery.helpers.TYPE_PORTRAITS
 import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
+import org.fossify.gallery.helpers.TraitIndex
 import org.fossify.gallery.helpers.TYPE_VIDEOS
 import org.fossify.gallery.interfaces.DateTakensDao
 import org.fossify.gallery.interfaces.DirectoryDao
@@ -1190,9 +1191,10 @@ fun Context.updateDBMediaPath(oldPath: String, newPath: String) {
     }
 
     // keyed by path, so a rename would otherwise drop a file out of its folder's hand made order
-    // and make the next scan read its rating again
+    // and make the next scan read its rating and its search traits again
     try {
         mediaOrderDB.renamePath(oldPath, newPath)
+        TraitIndex.renamed(this, oldPath, newPath)
         mediaRatingsDB.updatePath(
             newPath = newPath.lowercase(Locale.getDefault()),
             newParentPath = newParentPath.lowercase(Locale.getDefault()),

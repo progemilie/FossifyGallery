@@ -117,6 +117,7 @@ import org.fossify.gallery.helpers.SHOW_FAVORITES
 import org.fossify.gallery.helpers.SHOW_RECYCLE_BIN
 import org.fossify.gallery.helpers.SelectionMark
 import org.fossify.gallery.helpers.SearchOptions
+import org.fossify.gallery.helpers.TraitIndex
 import org.fossify.gallery.helpers.matches
 import org.fossify.gallery.helpers.searchOptionsOf
 import org.fossify.gallery.models.SearchFilter
@@ -1512,6 +1513,8 @@ class MediaGridPane(
                     activity.mediaDB.insertAll(mediaToInsert)
                 } catch (e: Exception) {
                 }
+
+                TraitIndex.refresh(activity)
             }.start()
         }
     }

@@ -1,5 +1,6 @@
 package org.fossify.gallery.views
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Color
 import android.graphics.RenderEffect
@@ -8,6 +9,7 @@ import android.os.Build
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.Interpolator
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -70,6 +72,8 @@ class SearchOverlay @JvmOverloads constructor(
             sections.onChosen = value
         }
 
+    private var dimming: ValueAnimator? = null
+
     /** How far the dim, and the blur with it, has come in, 0 to 1. */
     var dimLevel = 0f
         set(value) {
@@ -96,6 +100,18 @@ class SearchOverlay @JvmOverloads constructor(
     /** Puts the options below [height] of bar - which already carries the status bar inset. */
     fun keepClearOfBar(height: Int) {
         options.updatePadding(top = height)
+    }
+
+    /** Takes the dim to [level] from wherever it is, dropping whatever it was doing for this. */
+    fun dimTo(level: Float, duration: Long, curve: Interpolator): ValueAnimator {
+        dimming?.cancel()
+        return ValueAnimator.ofFloat(dimLevel, level).apply {
+            this.duration = duration
+            interpolator = curve
+            addUpdateListener { dimLevel = it.animatedValue as Float }
+            dimming = this
+            start()
+        }
     }
 
     /** Fills the options in from [options], [active] lit as the filter already on. */

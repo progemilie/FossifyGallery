@@ -174,6 +174,7 @@ import org.fossify.gallery.helpers.TYPE_IMAGES
 import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.SearchOptions
+import org.fossify.gallery.helpers.TraitIndex
 import org.fossify.gallery.helpers.searchOptionsOf
 import org.fossify.gallery.models.SearchFilter
 import org.fossify.gallery.helpers.TYPE_VIDEOS
@@ -2011,6 +2012,9 @@ class MainActivity :
             }
         } catch (ignored: Exception) {
         }
+
+        // every folder has just been read back in, which is when the search's traits catch up
+        TraitIndex.refresh(this)
 
         val foldersToScan = mLastMediaFetcher!!.getFoldersToScan()
         foldersToScan.remove(FAVORITES)

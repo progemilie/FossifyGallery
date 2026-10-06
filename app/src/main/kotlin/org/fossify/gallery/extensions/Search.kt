@@ -3,6 +3,7 @@ package org.fossify.gallery.extensions
 import android.content.Context
 import org.fossify.gallery.databases.GalleryDatabase
 import org.fossify.gallery.helpers.MediaFacts
+import org.fossify.gallery.helpers.TraitIndex
 import org.fossify.gallery.helpers.TraitLookup
 import org.fossify.gallery.interfaces.SearchDao
 import org.fossify.gallery.models.Medium
@@ -19,8 +20,8 @@ fun Context.libraryMedia(folders: Set<String>): List<Medium> = try {
     emptyList()
 }
 
-/** What the trait index has read so far, for the search's options and filters. */
-fun Context.traitLookup(): TraitLookup = TraitLookup.NONE
+/** What the trait index has read so far, for the search's options and filters. Blocking the first time. */
+fun Context.traitLookup(): TraitLookup = TraitIndex.lookup(this)
 
 /** Everything the search's options and filters ask of a file beyond its [Medium]. */
 fun Context.mediaFacts() = MediaFacts(applicationContext, traitLookup())

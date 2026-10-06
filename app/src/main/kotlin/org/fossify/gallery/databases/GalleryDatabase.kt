@@ -9,12 +9,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import org.fossify.gallery.interfaces.*
 import org.fossify.gallery.models.*
 
-private const val DB_VERSION = 12
+// the version the rating cache arrived in; the search's traits came after it
+private const val RATINGS_VERSION = 12
+private const val DB_VERSION = 13
 
 @Database(
     entities = [
         Directory::class, Medium::class, Widget::class, DateTaken::class, Favorite::class,
-        MediaOrder::class, MediaRating::class
+        MediaOrder::class, MediaRating::class, MediaTraits::class
     ],
     version = DB_VERSION
 )
@@ -53,6 +55,7 @@ abstract class GalleryDatabase : RoomDatabase() {
                             .addMigrations(MIGRATION_9_10)
                             .addMigrations(MIGRATION_10_11)
                             .addMigrations(MIGRATION_11_12)
+                            .addMigrations(MIGRATION_12_13)
                             .build()
                     }
                 }
@@ -122,7 +125,7 @@ abstract class GalleryDatabase : RoomDatabase() {
             }
         }
 
-        private val MIGRATION_11_12 = object : Migration(11, DB_VERSION) {
+        private val MIGRATION_11_12 = object : Migration(11, RATINGS_VERSION) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE media ADD COLUMN rating INTEGER default 0 NOT NULL")
                 database.execSQL(
@@ -134,6 +137,17 @@ abstract class GalleryDatabase : RoomDatabase() {
                 database.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_media_ratings_parent_path` " +
                         "ON `media_ratings` (`parent_path`)"
+                )
+            }
+        }
+
+        private val MIGRATION_12_13 = object : Migration(RATINGS_VERSION, DB_VERSION) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `media_traits` (`full_path` TEXT NOT NULL, " +
+                        "`parent_path` TEXT NOT NULL, `last_modified` INTEGER NOT NULL, " +
+                        "`size` INTEGER NOT NULL, `device` TEXT NOT NULL, `is_selfie` INTEGER NOT NULL, " +
+                        "`is_panorama` INTEGER NOT NULL, PRIMARY KEY(`full_path`))"
                 )
             }
         }
