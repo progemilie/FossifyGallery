@@ -40,6 +40,10 @@ class SearchOverlaySections(private val column: LinearLayout) {
         section(R.string.search_type, options.kinds.map(SearchFilter::Kind), active)
         section(R.string.search_device, options.devices.map(SearchFilter::Device), active, shown = DEVICES_SHOWN)
         section(R.string.search_file_size, options.sizes.map(SearchFilter::Size), active)
+        // said rather than left to an empty dim, which reads as the search not having opened at all
+        if (column.isEmpty()) {
+            column.addView(heading(R.string.search_nothing_to_filter, isBold = false))
+        }
     }
 
     fun clear() = column.removeAllViews()
@@ -99,9 +103,9 @@ class SearchOverlaySections(private val column: LinearLayout) {
         }
     }
 
-    private fun heading(@StringRes title: Int) = TextView(context).apply {
+    private fun heading(@StringRes title: Int, isBold: Boolean = true) = TextView(context).apply {
         text = context.getString(title)
-        setTypeface(typeface, Typeface.BOLD)
+        setTypeface(typeface, if (isBold) Typeface.BOLD else Typeface.NORMAL)
         setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimension(org.fossify.commons.R.dimen.normal_text_size))
         setTextColor(Color.WHITE.adjustAlpha(HEADING_ALPHA))
         updatePadding(top = if (column.isEmpty()) 0 else sectionGap, bottom = headingGap)

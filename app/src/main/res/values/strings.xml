@@ -465,6 +465,7 @@
     <string name="search_device">Device</string>
     <string name="search_file_size">File size</string>
     <string name="search_more">More</string>
+    <string name="search_nothing_to_filter">Nothing to filter by here</string>
     <string name="selfies">Selfies</string>
     <string name="panorama">Panorama</string>
     <string name="screenshots">Screenshots</string>

@@ -11,6 +11,8 @@ import android.view.inputmethod.EditorInfo
 import androidx.core.animation.doOnEnd
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.getProperTextColor
@@ -101,13 +103,9 @@ class SearchChrome(
         this.pane = pane
         refreshChip()
 
-        // a search carried over to another pane: it dresses the bar as it would a closed one, so the
-        // way back out has to be put back, and the options are the new pane's
-        if (isNewPane && topBar.isSearchOpen) {
-            topBar.binding.topToolbarSearchIcon.setImageResource(org.fossify.commons.R.drawable.ic_arrow_left_vector)
-            if (topBar.getCurrentQuery().isEmpty()) {
-                showOptions()
-            }
+        // a search carried over to another pane, whose options are the new pane's
+        if (isNewPane && topBar.isSearchOpen && topBar.getCurrentQuery().isEmpty()) {
+            showOptions()
         }
     }
 
@@ -294,6 +292,20 @@ private class SearchKeyboard(topBar: MySearchMenu) {
 
             insets
         }
+
+        // commons opens the search only as the field takes focus, and a tap on a field that holds it
+        // already is a click instead - so one somehow left focused with the search closed opens here
+        field.setOnClickListener {
+            if (!topBar.isSearchOpen) {
+                field.clearFocus()
+                field.requestFocus()
+            }
+        }
+
+        // the keyboard goes with the screen, and is not there to come back to
+        (field.context as? LifecycleOwner)?.lifecycle?.addObserver(object : DefaultLifecycleObserver {
+            override fun onStop(owner: LifecycleOwner) = field.clearFocus()
+        })
     }
 
     /** Puts the keyboard away and leaves the search up, without a cursor even where no keyboard showed. */

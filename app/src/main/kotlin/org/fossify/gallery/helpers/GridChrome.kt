@@ -87,7 +87,7 @@ class GridChrome(
         val toolbar = topBar.requireToolbar()
         toolbar.menu.clear()
         toolbar.inflateMenu(pane.menuRes)
-        pane.dressTopBar(topBar)
+        dress(pane)
         pane.refreshMenuItems(toolbar.menu)
         // a freshly inflated menu wears the icons' own colours, which are not the ones that read
         // against the pill - the tinting is part of what commons repaints here
@@ -96,6 +96,18 @@ class GridChrome(
         floatingTopBar.floatOver(pane.grid, pane.refreshLayout, pane::gridNeedsTopRoom)
         navPill?.panWith(pane.grid)
         search.bind(pane)
+    }
+
+    /** Has [pane] dress the bar - its hint and its icon - keeping the way back out of a search open over it. */
+    fun dress(pane: GridPane) {
+        pane.dressTopBar(topBar)
+        // commons' toggleForceArrowBackIcon(false) puts the magnifier on whether a search is open or not
+        if (topBar.isSearchOpen) {
+            topBar.binding.topToolbarSearchIcon.apply {
+                setImageResource(org.fossify.commons.R.drawable.ic_arrow_left_vector)
+                contentDescription = context.getString(org.fossify.commons.R.string.back)
+            }
+        }
     }
 
     /**

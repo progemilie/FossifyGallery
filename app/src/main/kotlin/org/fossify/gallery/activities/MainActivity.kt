@@ -268,6 +268,12 @@ class MainActivity :
     // filter an already filtered list down and lose the rest of the library with it
     private var mDirsIgnoringSearch = ArrayList<Directory>()
 
+    // the search's options as last counted, which an opening search is answered with at once while
+    // they are counted again; and the search asking, answered again once the folders are in when it
+    // opened before they were
+    private var mCountedOptions: SearchOptions? = null
+    private var mOptionsWanted: ((SearchOptions) -> Unit)? = null
+
     // the folder group whose contents the grid is showing, 0 while it is showing the root. Only
     // the view changes - the scan below keeps working on the real folders throughout. Written and
     // read on the main thread alone, so the grid can never be narrowed to a group it has left
@@ -522,7 +528,7 @@ class MainActivity :
         // straight into Pictures runs this screen's own startup with the other pane already showing,
         // and a swap in flight has not reached the frame where the bar changes over
         if (activePane === this && !mIsSwapping) {
-            dressTopBar(binding.mainMenu)
+            chrome.dress(this)
         }
 
         onPaneStateChanged()
@@ -747,6 +753,10 @@ class MainActivity :
 
     override fun onSearchToggled(isOpen: Boolean) {
         onPaneStateChanged()
+        if (!isOpen) {
+            mOptionsWanted = null
+        }
+
         if (isOpen && config.searchAllFilesByDefault) {
             if (mIsThirdPartyIntent) {
                 launchSearchActivity()
@@ -774,10 +784,23 @@ class MainActivity :
     override val offersSearchOptions get() = !config.searchAllFilesByDefault && !mIsThirdPartyIntent
 
     override fun loadSearchOptions(onLoaded: (SearchOptions) -> Unit) {
+        mCountedOptions?.let(onLoaded)
+        mOptionsWanted = onLoaded
+        countSearchOptions()
+    }
+
+    private fun countSearchOptions() {
         val folders = mDirsIgnoringSearch.mapTo(HashSet()) { it.path }
+        if (folders.isEmpty() || !offersSearchOptions) {
+            return
+        }
+
         ensureBackgroundThread {
             val options = searchOptionsOf(libraryMedia(folders), mediaFacts())
-            runOnUiThread { onLoaded(options) }
+            runOnUiThread {
+                mCountedOptions = options
+                mOptionsWanted?.invoke(options)
+            }
         }
     }
 
@@ -2245,7 +2268,12 @@ class MainActivity :
 
         // every caller hands the whole folder list in, so this is what a search or an open group
         // narrows down from - and what they are put back to when they are done
+        val hadFolders = mDirsIgnoringSearch.isNotEmpty()
         mDirsIgnoringSearch = distinctDirs
+        // counted as soon as there are folders, for the first search to open with its pills up
+        if (!hadFolders && distinctDirs.isNotEmpty()) {
+            countSearchOptions()
+        }
 
         val sortedDirs = getSortedDirectories(distinctDirs)
         val rootDirs = getDirsToShow(

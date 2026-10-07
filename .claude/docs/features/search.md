@@ -44,9 +44,10 @@ Typing hands the grid back for its live results: the dim and the options fade, t
 the search is open, and clearing the text brings them back. Closing fades everything at once.
 
 The field holds its focus, and so the cursor, only while the keyboard is up (`SearchKeyboard`):
-whatever puts the keyboard away — Back, a tap on the dim, opening a result — leaves the search open
-with nothing blinking in it. So Back takes the keyboard first, then closes the search, then takes
-the chip off.
+whatever puts the keyboard away — Back, a tap on the dim, opening a result, leaving the app — leaves
+the search open with nothing blinking in it. So Back takes the keyboard first, then closes the search,
+then takes the chip off. A tap on the field always opens the search: commons opens it only as the
+field takes focus, so a field somehow left focused with the search closed opens from its click.
 
 The field asks for no fullscreen editor (`IME_FLAG_NO_FULLSCREEN`, `IME_FLAG_NO_EXTRACT_UI`), which a
 landscape keyboard would otherwise put over the whole screen: the options stay in sight, scrolling in
@@ -57,8 +58,15 @@ what the keyboard leaves.
 Type (Videos, Selfies, Panorama, Screenshots, GIFs, RAW images, SVGs, Favourites), Device (the six
 cameras with the most photos, the rest behind More) and File size (under 1 MB, 1–10, 10–100, over 100).
 **Only what would change the grid is offered**: a pill nothing matches, or that everything already
-matches, is left out, and a section with nothing left goes. A pane counts them off the main thread
-from its own media; Albums counts the media table across the folders it shows (`libraryMedia`).
+matches, is left out, and a section with nothing left goes; with nothing at all to offer, the overlay
+says so rather than open as an empty dim. A pane counts them off the main thread from its own media;
+Albums counts the media table across the folders it shows (`libraryMedia`).
+
+**The pills come up with the dim.** A pane keeps what it counted last and answers an opening search
+with it at once, while it counts again, and it makes its first count as soon as it has something to
+count — its media in, or Albums' folders — so even the first search after launch opens with them.
+Counting itself can take a second or more on a large library, which used to leave the dim empty
+long enough for typing to fade it before any pill arrived.
 
 Screenshots also takes in screen recordings, by folder name or file name. Panorama is a photo at least
 2.5× wider than tall, a photo sphere by its XMP (`GPano:`), or a file the camera named `PANO_`.
@@ -107,9 +115,14 @@ and an open search listens (`TraitIndex.Listener`) so its pills fill in. On the 
 - **`Medium.size` is 0 from a folder scan unless it sorts by size.** Sizes go through `MediaFacts`:
   MediaStore in one query, then the file.
 - **A search can open onto a pane still loading** — one carried over by "Search all files by default"
-  — so a pane answers its options again once its media arrives (`mOptionsWanted`).
-- **Commons' `toggleForceArrowBackIcon(false)` puts the magnifier back with a search open**, so
-  `SearchChrome.bind()` puts the arrow back for a search carried across a swap.
+  — so a pane answers its options again once its media arrives (`mOptionsWanted`), and a grid still
+  loading is not counted as offering nothing.
+- **Commons' `toggleForceArrowBackIcon(false)` puts the magnifier back with a search open**, so a pane
+  dresses the bar only through `GridChrome.dress()`, which puts the arrow back - a swap and every
+  return to Albums dress it.
+- **Setting the field's hint drops its text layout**, wrapping its content as it does in the
+  `SearchLine`. `FilterChip` touches the hint only when it changes: it is refreshed as a tap opens the
+  search, and the tap would find no layout and put no keyboard up.
 - **Commons opens the search again every time the field takes focus**, open already or not, and
   commons' `hideKeyboard()` takes the focus away (opening a result does). `GridChrome` lets only the
   first opening through: another would bring the dim back over typed results, the faded pills under it.

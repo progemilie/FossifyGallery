@@ -241,6 +241,10 @@ class MediaGridPane(
     // from changes - a search can open onto a grid that has not finished loading
     private var mOptionsWanted: ((SearchOptions) -> Unit)? = null
 
+    // the last count, which an opening search is answered with at once while it is counted again. The
+    // first is made as soon as there is media, so even the first opening has its pills up with the dim
+    private var mCountedOptions: SearchOptions? = null
+
     // built on first use rather than here, where there is no context to read yet, and dropped when
     // the scroll direction changes which axis it divides
     private var mCachedGridZoom: GridZoom? = null
@@ -568,17 +572,25 @@ class MediaGridPane(
     override val activeFilter get() = mFilter
 
     override fun loadSearchOptions(onLoaded: (SearchOptions) -> Unit) {
+        mCountedOptions?.let(onLoaded)
         mOptionsWanted = onLoaded
         countSearchOptions()
     }
 
     private fun countSearchOptions() {
-        val onLoaded = mOptionsWanted ?: return
+        // a grid still loading is counted once its media arrives, rather than found to offer nothing
+        if (mMedia.isEmpty() && mIsGettingMedia) {
+            return
+        }
+
         // taken here rather than on the worker, which a rescan landing in the meantime would race
         val media = mMedia.filterIsInstance<Medium>()
         ensureBackgroundThread {
             val options = searchOptionsOf(media, activity.mediaFacts())
-            activity.runOnUiThread { onLoaded(options) }
+            activity.runOnUiThread {
+                mCountedOptions = options
+                mOptionsWanted?.invoke(options)
+            }
         }
     }
 
@@ -1496,10 +1508,12 @@ class MediaGridPane(
             }
             binding.mediaFastscroller.beVisibleIf(binding.mediaEmptyTextPlaceholder.isGone())
             setupAdapter()
-            if (host.topBar.isSearchOpen) {
-                countSearchOptions()
-            } else {
+            if (!host.topBar.isSearchOpen) {
                 mOptionsWanted = null
+            }
+
+            if (mOptionsWanted != null || mCountedOptions == null) {
+                countSearchOptions()
             }
         }
 
