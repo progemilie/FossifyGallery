@@ -1,12 +1,7 @@
 package org.fossify.gallery.helpers
 
-import android.content.Context
-import android.provider.MediaStore
 import org.fossify.commons.extensions.getFilenameFromPath
-import org.fossify.commons.extensions.getLongValue
 import org.fossify.commons.extensions.getParentPath
-import org.fossify.commons.extensions.getStringValue
-import org.fossify.commons.extensions.queryCursor
 import org.fossify.gallery.models.MediaKind
 import org.fossify.gallery.models.Medium
 import org.fossify.gallery.models.SearchFilter
@@ -41,11 +36,11 @@ fun interface TraitLookup {
 /**
  * What the options and filters need to know of a file beyond what a scan put in its [Medium]: what
  * the trait index has read out of it, and its size - which a folder scan only fills in when sorting
- * by size, leaving the rest at 0. Those come out of MediaStore in one query, the first time a size is
- * asked for. Blocking, use it off the main thread.
+ * by size, leaving the rest at 0. Those come from [storeSizes], every size MediaStore knows, asked
+ * for the first time a size is wanted. Blocking, use it off the main thread.
  */
-class MediaFacts(private val context: Context, private val traits: TraitLookup) {
-    private val storeSizes by lazy { context.mediaStoreSizes() }
+class MediaFacts(private val traits: TraitLookup, storeSizes: () -> Map<String, Long>) {
+    private val storeSizes by lazy(storeSizes)
 
     fun traitsOf(medium: Medium) = traits[medium.path]
 
@@ -114,26 +109,3 @@ private val PANORAMA_NAME = Regex("^pano_|[._]pano\\.|[._]photosphere\\.", Regex
 
 /** A panorama the camera said was one in the name it gave the file. */
 fun String.isPanoramaName() = PANORAMA_NAME.containsMatchIn(this)
-
-/** Every photo's and video's size MediaStore knows, by path. Blocking. */
-private fun Context.mediaStoreSizes(): Map<String, Long> {
-    val sizes = HashMap<String, Long>()
-    val projection = arrayOf(MediaStore.MediaColumns.DATA, MediaStore.MediaColumns.SIZE)
-    val selection = "${MediaStore.Files.FileColumns.MEDIA_TYPE} IN (?, ?)"
-    val selectionArgs = arrayOf(
-        MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE.toString(),
-        MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO.toString()
-    )
-
-    queryCursor(MediaStore.Files.getContentUri("external"), projection, selection, selectionArgs) { cursor ->
-        try {
-            val size = cursor.getLongValue(MediaStore.MediaColumns.SIZE)
-            if (size > 0) {
-                sizes[cursor.getStringValue(MediaStore.MediaColumns.DATA)] = size
-            }
-        } catch (ignored: Exception) {
-        }
-    }
-
-    return sizes
-}
