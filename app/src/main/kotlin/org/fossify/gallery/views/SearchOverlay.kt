@@ -26,7 +26,7 @@ import org.fossify.gallery.models.SearchFilter
 
 /** How dark the grid goes behind the options. */
 private const val DIM_ALPHA = 0.55f
-private const val DIM_ALPHA_NO_BLUR = 0.75f
+private const val DIM_ALPHA_NO_BLUR = 0.9f
 
 /** Below this a blur is not worth the offscreen pass it costs. */
 private const val MIN_BLUR_PX = 0.5f
