@@ -122,7 +122,7 @@ timed by that reads as a slow drag.
 The close people make most is a photo looked at and flicked away, and it comes while the viewer is
 still setting up: the pages either side and the zoomable layer load once the flight lands, and
 `GetMediaAsynctask` reads the whole library back in — later the bigger the library — and rebuilds the
-pager if the list has changed. All of it runs on the main thread, and whatever lands during a shrink
+pager if the list has changed, onto the photo swiped to rather than the one it opened on. All of it runs on the main thread, and whatever lands during a shrink
 freezes it for as long as it takes. So a close has the viewer do nothing more (`stopStage()` in
 `TileFlight.kt`):
 

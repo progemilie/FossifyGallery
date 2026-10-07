@@ -1966,7 +1966,7 @@ class ViewPagerActivity :
             it is Medium && !mIgnoredPaths.contains(it.path) && mNarrowing.keeps(it.path)
         }.map { it as Medium }.toMutableList() as ArrayList<Medium>
 
-        if (isDirEmpty(media) || media.hashCode() == mPrevHashcode) {
+        if (isDirEmpty(media) || media.contentHash() == mPrevHashcode) {
             return
         }
 
@@ -1978,8 +1978,16 @@ class ViewPagerActivity :
         refreshUI(media, refetchViewPagerPosition)
     }
 
+    // gridPosition is the grid's decoration, which a search rewrites on the very media handed over here
+    private fun List<Medium>.contentHash() = map { it.copy(gridPosition = 0) }.hashCode()
+
     private fun refreshUI(media: ArrayList<Medium>, refetchViewPagerPosition: Boolean) {
-        mPrevHashcode = media.hashCode()
+        // a pager rebuilt under the viewer keeps to the medium swiped to, not the one it opened on
+        if (binding.viewPager.adapter != null) {
+            getCurrentMedium()?.let { mPath = it.path }
+        }
+
+        mPrevHashcode = media.contentHash()
         mMediaFiles = media
 
         if (refetchViewPagerPosition || mPos == -1) {

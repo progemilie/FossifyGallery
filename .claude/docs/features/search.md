@@ -101,6 +101,10 @@ A photo opened from a narrowed grid swipes through the results only: the grid ha
 results' paths (`ViewerNarrowing`, with an intent extra saying so), and every list the viewer reads
 in keeps to them. A rename in the viewer carries the path along.
 
+The search groups its results on the grid's own `Medium` objects, rewriting their `gridPosition`, so
+the viewer compares the lists it reads in without it (`contentHash()`). Compared with it, every
+narrowed viewer rebuilt its pager a second after opening, and landed back on the photo it opened on.
+
 ## The trait index
 
 `TraitIndex` reads each photo's make, model, lens name, dimensions and XMP in one open of the file
