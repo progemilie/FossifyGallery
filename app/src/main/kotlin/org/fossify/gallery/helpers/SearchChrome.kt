@@ -52,14 +52,15 @@ class SearchChrome(
 ) {
     private val context = topBar.context
     private val resources = context.resources
-    private val overlay = SearchOverlay(context)
-    private val chip = FilterChip(topBar, SearchLine.around(topBar))
-    private val edge = SearchEdge(topBar)
-    private val keyboard = SearchKeyboard(topBar)
-
     private val dimCurve = context.curve(R.interpolator.search_dim)
     private val settle = context.curve(R.interpolator.search_settle)
     private val leave = context.curve(R.interpolator.search_leave)
+
+    private val overlay = SearchOverlay(context)
+    private val chip = FilterChip(topBar, SearchLine.around(topBar))
+    private val edge = SearchEdge(topBar, settle, leave)
+    private val keyboard = SearchKeyboard(topBar)
+
     private val rise = resources.getDimension(R.dimen.search_options_rise)
     private val barGap = resources.getDimensionPixelSize(R.dimen.search_options_top_gap)
 
@@ -210,7 +211,7 @@ class SearchChrome(
  * comes up with its light along the bottom of the pill and the light rises to rest along the top; out,
  * it fades with everything else.
  */
-private class SearchEdge(topBar: MySearchMenu) {
+private class SearchEdge(topBar: MySearchMenu, private val settle: Interpolator, private val leave: Interpolator) {
     private val context = topBar.context
     private val edge = LitEdgeDrawable(
         context,
@@ -219,8 +220,6 @@ private class SearchEdge(topBar: MySearchMenu) {
         LitEdge(opacity = SEARCH_EDGE_OPACITY)
     ).apply { strength = 0f }
 
-    private val settle = context.curve(R.interpolator.search_settle)
-    private val leave = context.curve(R.interpolator.search_leave)
     private var running: ValueAnimator? = null
 
     init {
