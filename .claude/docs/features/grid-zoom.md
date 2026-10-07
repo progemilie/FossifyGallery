@@ -11,6 +11,7 @@ Read these before changing this feature — each can break silently if this one 
 - [floating-chrome](floating-chrome.md) — `GridZoomLayout` mirrors the grid's padding, which `FloatingTopBar.keepGridClear()` sets; the glass panels copy the overlay in software every frame.
 - [selection](selection.md) — `MediaGridPane.reserveBottomRoom()` changes the grid's padding, which `GridZoomLayout` has to mirror.
 - [custom-media-order](custom-media-order.md) — reordering steps a simplified grid in to `largestInteractive`, and its list must not change during a zoom.
+- [search](search.md) — a filter narrows `gridSource()` as much as a search does.
 
 ## Where it lives
 
@@ -84,8 +85,8 @@ nearest 80dp (five on a phone). A stored count can be past it, so the grid and t
 
 ## What breaks silently
 
-- **The grid's source is `gridSource()`, never `mMedia`** — a search narrows it, and rebuilding from
-  `mMedia` puts the whole library back on screen.
+- **The grid's source is `gridSource()`, never `mMedia`** — a search or a filter narrows it, and
+  rebuilding from `mMedia` puts the whole library back on screen.
 - **Screens with no pinch of their own** (search, the picker dialog) read
   `interactiveMediaColumnCnt()` rather than `Config.mediaColumnCnt`, or they inherit a count whose
   items cannot be tapped.

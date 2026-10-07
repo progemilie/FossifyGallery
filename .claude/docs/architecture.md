@@ -38,8 +38,9 @@ of whichever grid is up; `helpers/GridChrome.kt` is the search bar and navigatio
 
 **Screens hand each other state in memory, not through intents.** A folder runs to thousands of
 paths, past what a binder transaction carries, so the viewer reads the grid's list from
-`MediaActivity.mMedia`, the peek from `PeekSession`, and a flight's bitmap from `ViewerTransition`.
-All three are process-wide statics that the receiving screen reads once it is up.
+`MediaActivity.mMedia` (and a narrowed grid's results from `ViewerNarrowing`), the peek from
+`PeekSession`, and a flight's bitmap from `ViewerTransition`. All of them are process-wide statics
+that the receiving screen reads once it is up.
 
 ## Where state lives
 
@@ -48,12 +49,14 @@ All three are process-wide statics that the receiving screen reads once it is up
 | Media and folders as last scanned | Room, `media` / `directories` | upstream's; rows are dropped and reinserted on every rescan |
 | A folder's hand made media order | Room, `media_order` (v11) | outlives rescans; `Config.customMediaOrderFolders` indexes it for the main thread |
 | Ratings, as a cache | Room, `media_ratings` (v12) | the file's XMP is the authority; this spares a scan opening every file |
+| What the search reads out of each photo, as a cache | Room, `media_traits` (v13) | the file's EXIF and XMP are the authority; this spares the search opening every photo |
 | Folder groups, tabs, folder order, bottom action order | `Config`, as JSON or joined strings | read on the main thread, where Room throws |
 | Rating, description, every metadata field | the file itself | travels with the photo to other apps |
 
-Room migrations are written by hand (`databases/GalleryDatabase.kt`, v4→v12). The two fork tables
+Room migrations are written by hand (`databases/GalleryDatabase.kt`, v4→v13). The fork's three tables
 are keyed by lowercased path, so **a rename must carry them along**: `updateDBMediaPath()` updates
-both, or a renamed file leaves its folder's order and has its rating read again.
+them all, or a renamed file leaves its folder's order and has its rating and its search traits read
+again.
 
 Anything keyed by path must also survive the synthetic paths the fork invents: `folder_group:<id>`
 for a group tile, and upstream's sentinels `SHOW_ALL`, `FAVORITES`, `RECYCLE_BIN`, none of which can
@@ -73,6 +76,14 @@ The browsing screens draw content edge to edge with frosted glass chrome floatin
 pill at the top, a navigation pill at the foot, and selection pills in place of an action bar. Every
 panel is a `GlassPanel`, comes and goes through `PanelAnim`, and takes its colours from `Glass`. See
 [floating chrome and glass](features/floating-chrome.md).
+
+**No screen shows the status bar in landscape** (multi-window aside). `LandscapeStatusBar`, registered
+in `App`, hides it as every activity starts and takes it out of the insets at `android.R.id.content` -
+below commons' listener on the decor view, which reads it whether it shows or not - so everything
+laid out from there down moves up into its room, commons' bars and Compose screens included. Views a
+screen pads at the top that are not one of commons' bars go through `fitSystemBars` rather than
+commons' `setupEdgeToEdge`, or they keep the room empty. The viewers put the bar with their chrome
+(`ViewerSystemBars`), and a dialog filling the screen asks for it too (`LandscapeStatusBar.follow`).
 
 ## Conventions
 
@@ -101,6 +112,8 @@ Browsing
 - [Peeking while selecting](features/peek-viewer.md) — a fullscreen look without dropping the
   selection.
 - [Sort by dialog](features/sort-dialog.md) — sorting and grouping in one dialog of dropdowns.
+- [The search's options](features/search.md) — the dim and pills an open search puts under the bar,
+  the filter chip, and the trait index behind Selfies, Panorama and Device.
 - [Tabs](features/tabs.md) — up to three remembered places.
 - [Startup screen](features/startup-screen.md) — what the app opens on.
 

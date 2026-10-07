@@ -248,9 +248,12 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(BLACK_BACKGROUND, true)
         set(blackBackground) = prefs.edit().putBoolean(BLACK_BACKGROUND, blackBackground).apply()
 
+    // the Filter media dialog is gone - the search's pills narrow a grid instead - so this is fixed at
+    // the default: a value saved before, or brought back by an old settings import, would hide types
+    // with nothing left to show them again
     var filterMedia: Int
-        get() = prefs.getInt(FILTER_MEDIA, getDefaultFileFilter())
-        set(filterMedia) = prefs.edit().putInt(FILTER_MEDIA, filterMedia).apply()
+        get() = getDefaultFileFilter()
+        set(value) = Unit
 
     var dirColumnCnt: Int
         get() = prefs.getInt(getDirectoryColumnsField(), getDefaultDirectoryColumnCount())

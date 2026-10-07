@@ -12,6 +12,7 @@ Read these before changing this feature — each can break silently if this one 
 - [metadata-sheet](metadata-sheet.md) — descriptions share the same XMP packet.
 - [custom-media-order](custom-media-order.md) — both Room tables are keyed by path and move together on a rename.
 - [sort-dialog](sort-dialog.md) — rating is offered as a sorting and as a grouping, and a scan has to read ratings for either.
+- [search](search.md) — `media_traits` is a cache of the same shape, and moves with this one on a rename.
 
 ## Where it lives
 

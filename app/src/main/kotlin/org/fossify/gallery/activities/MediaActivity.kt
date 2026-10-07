@@ -28,6 +28,7 @@ import org.fossify.gallery.helpers.TAB_SCROLL_OFFSET
 import org.fossify.gallery.helpers.TAB_SCROLL_PATH
 import org.fossify.gallery.helpers.TabSwitcher
 import org.fossify.gallery.helpers.ViewerOpening
+import org.fossify.gallery.helpers.fitSystemBars
 import org.fossify.gallery.models.TabLocation
 import org.fossify.gallery.models.TabScreen
 import org.fossify.gallery.models.ThumbnailItem
@@ -218,6 +219,7 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
 
     // sideways scrolling has no room to pan the bar out of
     override fun onPaneStateChanged() {
+        chrome.search.refreshChip()
         chrome.floatingTopBar.isPanningEnabled = !config.scrollHorizontally
         // a selection and an arrangement both put pills up where the bar is, so the bar goes but
         // its room stays
@@ -226,8 +228,10 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
         // their pills float over the foot of a grid which, unlike the two top level ones, reserves
         // no room down there of its own - without this the last row could not be scrolled clear
         pane.reserveBottomRoom(hasPillsUp)
-        // nothing here may navigate away from a search, a selection or an arrangement it would drop
-        chrome.tabBar?.isAvailable = !chrome.isSearchOpen && !pane.isReordering && !pane.isSelecting
+        // nothing here may navigate away from a search, a filter, a selection or an arrangement it
+        // would drop
+        chrome.tabBar?.isAvailable = !chrome.isSearchOpen && pane.activeFilter == null &&
+            !pane.isReordering && !pane.isSelecting
     }
 
     // ----------------------------------------------------------------------- the tabs ----
@@ -261,7 +265,7 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
     /** Keeps the grid clear of the navigation bar, and the pills floating over it clear of both system bars. */
     private fun setupInsetPadding() {
         val reorderPills = binding.mediaPane.mediaReorderPills
-        setupEdgeToEdge(
+        fitSystemBars(
             // the grid gets no top inset of its own - keepGridClear() pads it by the whole height
             // of the bar, which already carries this inset
             padTopSystem = listOf(

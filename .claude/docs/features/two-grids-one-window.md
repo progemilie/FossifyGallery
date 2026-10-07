@@ -15,6 +15,7 @@ Read these before changing this feature — each can break silently if this one 
 - [folder-groups](folder-groups.md) — an open group changes the bar that belongs to the pane that is up.
 - [glass-menu](glass-menu.md) — the navigation pill opens the drop-down, and its spec is asked again on every open because panes swap.
 - [peek-viewer](peek-viewer.md) — the pane's request codes, `REQUEST_PEEK` among them, sit clear of each host's own.
+- [search](search.md) — the chip and the options follow the bar to whichever pane is up, a pill picked in Albums swaps to Pictures, and a search can be carried across a swap.
 
 ## Where it lives
 
@@ -40,18 +41,19 @@ menu and re-aims the listeners and the panning; nothing about the bar itself mov
 is in.
 
 The pill is for the two top level grids only. `onPaneStateChanged()` takes it away while a folder
-group is stepped into, a search narrows the grid, an arrangement or a selection is on, a picker is
-asking for a picture, or the grid scrolls sideways (no room to pan it out of). A tap on the segment
-already showing scrolls that pane back to the top — jumping to a few rows down first
+group is stepped into, a search or a filter narrows the grid, an arrangement or a selection is on, a
+picker is asking for a picture, or the grid scrolls sideways (no room to pan it out of). A tap on the
+segment already showing scrolls that pane back to the top — jumping to a few rows down first
 (`RecyclerView.smoothScrollToTop()`), since a smooth scroll from thousands of items crawls.
 
 `ScrollPanner` is shared by the bar and the pill so both agree about what counts as scrolling away.
 `panWith(grid)` lets go of the previous grid first; during a swap both grids are on screen, and
 chrome still following the one leaving would pan away with it.
 
-Search: the bar names the open folder (or group) rather than saying "Search in …", and Back with
-the keyboard up on an empty search closes the search with the keyboard
-(`GridChrome.closeEmptySearchWithKeyboard`).
+Search: the bar names the open folder (or group) rather than saying "Search in …", and Back puts
+the keyboard away before it closes the search (see [search](search.md)). With "Search all files by
+default" on, opening the search in Albums swaps to Pictures with the search still open
+(`swapTo(keepSearch = true)`).
 
 ## What breaks silently
 

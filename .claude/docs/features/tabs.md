@@ -66,8 +66,8 @@ does not cover it.
   `MediaActivity` opens the viewer again. `takeTabScroll()` clears what it hands back.
 - Only an actual launch resets the first tab — not another app's picker, and not a switch that had to
   build `MainActivity` fresh in a task it was not in (`resetFirstTabIfLaunched`).
-- A tab landing closes any open search: the bar belongs to the screen, and a search left in the
-  tab being left would narrow the one arriving.
+- A tab landing closes any open search and takes a filter off: the bar belongs to the screen, and a
+  search left in the tab being left would narrow the one arriving.
 - `isTabLocationGone` checks a deep tab's folder or file is still there; sentinel targets and the
   recycle bin are not stat'd.
 - `restart()` empties `MediaActivity.mMedia`, or the incoming pane reads the old tab's list as its

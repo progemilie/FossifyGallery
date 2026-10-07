@@ -47,7 +47,6 @@ val FOLDER_GRID_MENU = MenuSpec(
     listOf(
         listOf(
             row(R.id.sort),
-            row(R.id.filter),
             row(R.id.change_view_type),
             row(R.id.column_count),
         ),
@@ -70,7 +69,6 @@ val MEDIA_GRID_MENU = MenuSpec(
     listOf(
         listOf(
             row(R.id.sort),
-            row(R.id.filter),
             row(R.id.custom_order),
             row(R.id.reset_custom_order),
             row(R.id.change_view_type),

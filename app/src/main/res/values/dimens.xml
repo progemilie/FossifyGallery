@@ -317,4 +317,20 @@
     <!-- a column of the style preview, which a sample tile's spacing is taken out of -->
     <dimen name="folder_style_sample_column">152dp</dimen>
     <dimen name="viewer_details_max_line_width">300dp</dimen>
+    <!-- the options an open search puts up under the bar: pills under headings, rising this far into place -->
+    <dimen name="search_pill_height">36dp</dimen>
+    <dimen name="search_pill_padding">16dp</dimen>
+    <dimen name="search_pill_gap">8dp</dimen>
+    <dimen name="search_section_gap">20dp</dimen>
+    <dimen name="search_heading_gap">10dp</dimen>
+    <dimen name="search_options_top_gap">8dp</dimen>
+    <dimen name="search_options_foot_room">16dp</dimen>
+    <dimen name="search_options_rise">24dp</dimen>
+    <dimen name="search_blur_radius">18dp</dimen>
+    <!-- the chip a picked option becomes, on the bar between the magnifier and the field -->
+    <dimen name="filter_chip_height">32dp</dimen>
+    <dimen name="filter_chip_padding">12dp</dimen>
+    <dimen name="filter_chip_gap">8dp</dimen>
+    <dimen name="filter_chip_cross_inset">9dp</dimen>
+    <dimen name="filter_chip_max_label_width">140dp</dimen>
 </resources>

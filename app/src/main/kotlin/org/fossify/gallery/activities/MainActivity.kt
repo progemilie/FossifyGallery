@@ -97,12 +97,13 @@ import org.fossify.gallery.databases.GalleryDatabase
 import org.fossify.gallery.databinding.ActivityMainBinding
 import org.fossify.gallery.dialogs.ChangeSortingDialog
 import org.fossify.gallery.dialogs.ChangeViewTypeDialog
-import org.fossify.gallery.dialogs.FilterMediaDialog
 import org.fossify.gallery.dialogs.GrantAllFilesDialog
 import org.fossify.gallery.extensions.addTempFolderIfNeeded
 import org.fossify.gallery.extensions.applyEdgeFade
 import org.fossify.gallery.extensions.applyFolderGroups
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.extensions.libraryMedia
+import org.fossify.gallery.extensions.mediaFacts
 import org.fossify.gallery.extensions.createDirectoryFromMedia
 import org.fossify.gallery.extensions.currentTab
 import org.fossify.gallery.extensions.directoryDB
@@ -172,10 +173,16 @@ import org.fossify.gallery.helpers.TYPE_GIFS
 import org.fossify.gallery.helpers.TYPE_IMAGES
 import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
+import org.fossify.gallery.helpers.OptionsCount
+import org.fossify.gallery.helpers.SearchOptions
+import org.fossify.gallery.helpers.SearchOptionsCounter
+import org.fossify.gallery.helpers.TraitIndex
+import org.fossify.gallery.helpers.fitSystemBars
+import org.fossify.gallery.helpers.searchOptionsOf
+import org.fossify.gallery.models.SearchFilter
 import org.fossify.gallery.helpers.TYPE_VIDEOS
 import org.fossify.gallery.helpers.TabSwitcher
 import org.fossify.gallery.helpers.ViewerOpening
-import org.fossify.gallery.helpers.getDefaultFileFilter
 import org.fossify.gallery.helpers.getPermissionToRequest
 import org.fossify.gallery.helpers.getPermissionsToRequest
 import org.fossify.gallery.interfaces.DirectoryOperationsListener
@@ -262,6 +269,9 @@ class MainActivity :
     // narrowed it. Anything rebuilding the grid starts here - handing it what is on screen would
     // filter an already filtered list down and lose the rest of the library with it
     private var mDirsIgnoringSearch = ArrayList<Directory>()
+
+    // the search's options, counted across the library the folders hold
+    private val searchOptions = SearchOptionsCounter(::prepareOptionsCount)
 
     // the folder group whose contents the grid is showing, 0 while it is showing the root. Only
     // the view changes - the scan below keeps working on the real folders throughout. Written and
@@ -517,7 +527,7 @@ class MainActivity :
         // straight into Pictures runs this screen's own startup with the other pane already showing,
         // and a swap in flight has not reached the frame where the bar changes over
         if (activePane === this && !mIsSwapping) {
-            dressTopBar(binding.mainMenu)
+            chrome.dress(this)
         }
 
         onPaneStateChanged()
@@ -743,7 +753,12 @@ class MainActivity :
     override fun onSearchToggled(isOpen: Boolean) {
         onPaneStateChanged()
         if (isOpen && config.searchAllFilesByDefault) {
-            launchSearchActivity()
+            if (mIsThirdPartyIntent) {
+                launchSearchActivity()
+            } else {
+                // Pictures already searches every file, and the search goes over with the bar
+                swapTo(NavDestination.PICTURES, keepSearch = true)
+            }
         }
     }
 
@@ -759,10 +774,33 @@ class MainActivity :
     // the link, so while it is up the list has no room left to make for itself
     override fun gridNeedsTopRoom() = !binding.directoryPane.directoriesSwitchSearching.isVisible()
 
+    // a search that opens straight onto the separate file search screen has no use for options, and
+    // a picker has no Pictures pane for a picked one to narrow
+    override val offersSearchOptions get() = !config.searchAllFilesByDefault && !mIsThirdPartyIntent
+
+    override fun loadSearchOptions(onLoaded: (SearchOptions) -> Unit) = searchOptions.load(onLoaded)
+
+    private fun prepareOptionsCount(): OptionsCount? {
+        val folders = mDirsIgnoringSearch.mapTo(HashSet()) { it.path }
+        if (folders.isEmpty() || !offersSearchOptions) {
+            return null
+        }
+
+        val context = applicationContext
+        return { searchOptionsOf(context.libraryMedia(folders), context.mediaFacts()) }
+    }
+
+    /** The folder grid has no files of its own to narrow: a pill picked here is Pictures, narrowed by it. */
+    override fun applyFilter(filter: SearchFilter?) {
+        if (filter != null && offersSearchOptions) {
+            mediaPane().applyFilter(filter)
+            swapTo(NavDestination.PICTURES)
+        }
+    }
+
     override fun onMenuItemClick(itemId: Int): Boolean {
         when (itemId) {
             R.id.sort -> showSortingDialog()
-            R.id.filter -> showFilterMediaDialog()
             // no menu offers this any more, the id lives in ids.xml - kept so it can be put back
             R.id.open_camera -> launchCamera()
             R.id.change_view_type -> changeViewType()
@@ -806,6 +844,7 @@ class MainActivity :
      */
     override fun onPaneStateChanged() {
         val media = mMediaPane
+        chrome.search.refreshChip()
         chrome.floatingTopBar.isPanningEnabled = !config.scrollHorizontally
         // a selection and an arrangement both put pills up where the bar is, so the bar goes but
         // its room stays
@@ -814,16 +853,18 @@ class MainActivity :
             return
         }
 
+        // a filter narrows the grid as much as a search does, and goes with it the same way
+        val isNarrowed = binding.mainMenu.isSearchOpen || activePane.activeFilter != null
         navPill.isPanningEnabled = !config.scrollHorizontally
         navPill.isAvailable = mCurrentGroupId == 0L &&
-                !binding.mainMenu.isSearchOpen &&
+                !isNarrowed &&
                 !mIsSelecting &&
                 media?.isReordering != true &&
                 media?.isSelecting != true
 
         // a group stepped into is still somewhere a tab can be, so unlike the pill the button
         // survives that - what it cannot survive is a search or a selection it would drop
-        chrome.tabBar?.isAvailable = !binding.mainMenu.isSearchOpen &&
+        chrome.tabBar?.isAvailable = !isNarrowed &&
                 !mIsSelecting &&
                 media?.isReordering != true &&
                 media?.isSelecting != true
@@ -870,7 +911,7 @@ class MainActivity :
     /** Keeps the grids clear of the navigation bar, and the pills floating over them clear of both system bars. */
     private fun setupInsetPadding() {
         val reorderPills = binding.mediaPane.mediaReorderPills
-        setupEdgeToEdge(
+        fitSystemBars(
             // the grids get no top inset of their own - keepGridClear() pads whichever is up by the
             // whole height of the bar, which already carries this inset
             padTopSystem = listOf(
@@ -920,14 +961,17 @@ class MainActivity :
      * The swap the pill asks for. Both grids are children of the one holder, so neither the pill nor
      * the search bar is part of what moves - the two panes are, one out and one in.
      */
-    private fun swapTo(destination: NavDestination) {
+    private fun swapTo(destination: NavDestination, keepSearch: Boolean = false) {
         val toPictures = destination == NavDestination.PICTURES
         val incoming: GridPane = if (toPictures) mediaPane() else this
         if (mIsSwapping || incoming === activePane) {
             return
         }
 
-        hideKeyboard()
+        if (!keepSearch) {
+            hideKeyboard()
+        }
+
         // held from here rather than from the slide below, so the activation in between knows the
         // bar is not this pane's to dress yet - the hand-over is halfway through the slide
         mIsSwapping = true
@@ -1035,6 +1079,7 @@ class MainActivity :
             chrome.closeSearch()
         }
 
+        mMediaPane?.applyFilter(null)
         chrome.tabBar?.refresh()
 
         val location = currentTab().location?.takeUnless { isTabLocationGone(it) }
@@ -1371,15 +1416,6 @@ class MainActivity :
             }
 
             getRecyclerAdapter()?.directorySorting = config.directorySorting
-        }
-    }
-
-    private fun showFilterMediaDialog() {
-        FilterMediaDialog(this) {
-            mShouldStopFetching = true
-            binding.directoryPane.directoriesRefreshLayout.isRefreshing = true
-            binding.directoryPane.directoriesGrid.adapter = null
-            getDirectories()
         }
     }
 
@@ -2079,6 +2115,11 @@ class MainActivity :
         // the throttle above may be holding the last folders back, so always finish on a full one
         setupAdapter(dirs)
 
+        // every folder has been read back in, new ones too: the search's traits catch up with them, and
+        // its options are counted ahead of the first search now that the scan is out of the way
+        TraitIndex.refresh(this)
+        runOnUiThread { searchOptions.onMediaChanged(binding.mainMenu.isSearchOpen, isSettled = true) }
+
         mLoadedInitialPhotos = true
         if (config.appRunCount > 1) {
             checkLastMediaChanged()
@@ -2165,7 +2206,7 @@ class MainActivity :
             binding.directoryPane.directoriesEmptyPlaceholder.text =
                 getString(org.fossify.commons.R.string.no_items_found)
             binding.directoryPane.directoriesEmptyPlaceholder2.beGone()
-        } else if (dirs.isEmpty() && config.filterMedia == getDefaultFileFilter()) {
+        } else if (dirs.isEmpty()) {
             if (isRPlus() && !isExternalStorageManager()) {
                 binding.directoryPane.directoriesEmptyPlaceholder.text =
                     getString(org.fossify.commons.R.string.no_items_found)
@@ -2179,14 +2220,6 @@ class MainActivity :
                 showAddIncludedFolderDialog {
                     refreshItems()
                 }
-            }
-        } else {
-            binding.directoryPane.directoriesEmptyPlaceholder.text = getString(R.string.no_media_with_filters)
-            binding.directoryPane.directoriesEmptyPlaceholder2.text =
-                getString(R.string.change_filters_underlined)
-
-            binding.directoryPane.directoriesEmptyPlaceholder2.setOnClickListener {
-                showFilterMediaDialog()
             }
         }
 
@@ -2223,7 +2256,12 @@ class MainActivity :
 
         // every caller hands the whole folder list in, so this is what a search or an open group
         // narrows down from - and what they are put back to when they are done
+        val hadFolders = mDirsIgnoringSearch.isNotEmpty()
         mDirsIgnoringSearch = distinctDirs
+        // a search opened before there were any folders is answered as they come in
+        if (!hadFolders && distinctDirs.isNotEmpty()) {
+            runOnUiThread { searchOptions.onMediaChanged(binding.mainMenu.isSearchOpen) }
+        }
 
         val sortedDirs = getSortedDirectories(distinctDirs)
         val rootDirs = getDirsToShow(

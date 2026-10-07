@@ -11,6 +11,7 @@ Notable fork-only changes.
 - **Redesigned video player**
 - **Added viewer landscape layout**: the viewer layout is now cleaner in landscape mode.
 - **Redesigned folder picker screen** for copying and moving files.
+- **Redesigned search bar**: tapping the search bar brings up options to filter by.
 ### Changed
 - Pinching the photo grid zooms smoothly.
 - The details at the top of a photo are more compact.
@@ -24,12 +25,12 @@ Notable fork-only changes.
 - **Custom order mode is restyled** to match the rest of the app.
 - Outlines on folder covers and in custom order mode are finer, and fade towards the bottom.
 - The menu opened from a pill at the bottom opens in the middle of the screen.
-- Going back from a search with nothing typed closes the search, rather than only the keyboard.
 - The metadata sheet no longer shows a date created, which only ever repeated another date.
 - The folder grid offers only as many columns as fit the screen — five on a phone — rather than up to twenty.
 - Sorting and grouping by rating works like any other sorting now.
 - The thumbnail strip under a photo marks videos with a small triangle.
 - The metadata sheet shows the camera a photo was taken with near the top.
+- The status bar is hidden in landscape mode.
 ### Fixed
 - Fixed a photo or video opening soft — the picture the tile grows into is now the photo itself, or the video's own frame, rather than a thumbnail of it, so it is sharp the moment the viewer arrives.
 - Fixed swiping and zooming not working for a while after a photo opened — the longer, the bigger the library.

@@ -1,10 +1,9 @@
 package org.fossify.gallery.helpers
 
 import android.view.ViewGroup
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import org.fossify.commons.views.MySearchMenu
 import org.fossify.gallery.interfaces.GridPane
+import org.fossify.gallery.models.SearchFilter
 import org.fossify.gallery.views.GlassMenu
 import org.fossify.gallery.views.NavPill
 import org.fossify.gallery.views.TabChooser
@@ -25,10 +24,16 @@ class GridChrome(
 ) {
     val floatingTopBar = FloatingTopBar(topBar, contentBehind)
 
+    /** The dim, the options and the chip an open search adds to the bar. */
+    val search = SearchChrome(topBar, contentBehind)
+
     /** The tab button worn on the end of the bar, where the screen has a chooser for it to open. */
     val tabBar = tabChooser?.let { TabBar(topBar, it) }
 
     private var pane: GridPane? = null
+
+    // commons opens the search again every time the field takes focus, while it is open as much as not
+    private var isSearchUp = false
 
     /**
      * The wiring that outlives any one pane. Commons' [MySearchMenu.setupMenu] hangs listeners on
@@ -49,39 +54,31 @@ class GridChrome(
         menu.isOnToolbar = navPill?.isAvailable != true
         navPill?.onAvailabilityChanged = { menu.isOnToolbar = !it }
 
-        topBar.onSearchOpenListener = { this.pane?.onSearchToggled(true) }
-        topBar.onSearchClosedListener = { this.pane?.onSearchToggled(false) }
-        topBar.onSearchTextChangedListener = { text -> this.pane?.onSearchTextChanged(text) }
+        topBar.onSearchOpenListener = {
+            if (!isSearchUp) {
+                isSearchUp = true
+                search.onSearchOpened()
+                this.pane?.onSearchToggled(true)
+            }
+        }
+
+        topBar.onSearchClosedListener = {
+            isSearchUp = false
+            search.onSearchClosed()
+            this.pane?.onSearchToggled(false)
+        }
+
+        topBar.onSearchTextChangedListener = { text ->
+            search.onSearchTextChanged(text)
+            this.pane?.onSearchTextChanged(text)
+        }
+
+        search.onFilterChosen = ::chooseFilter
         topBar.requireToolbar().setOnMenuItemClickListener { item ->
             this.pane?.onMenuItemClick(item.itemId) == true
         }
 
-        closeEmptySearchWithKeyboard()
         bind(pane)
-    }
-
-    /**
-     * Back with the keyboard up only puts the keyboard away, which leaves a search with nothing typed
-     * into it open for no reason - so an empty one goes with the keyboard. Only while the screen keeps
-     * its focus, as a dialog or the drop-down taking it sends the keyboard away too.
-     */
-    private fun closeEmptySearchWithKeyboard() {
-        val field = topBar.binding.topToolbarSearch
-        var keyboardShown = false
-        ViewCompat.setOnApplyWindowInsetsListener(field) { _, insets ->
-            val shown = insets.isVisible(WindowInsetsCompat.Type.ime())
-            if (keyboardShown && !shown) {
-                // closing reshapes the chrome, which is not something to do in the middle of insets
-                field.post {
-                    if (topBar.isSearchOpen && topBar.getCurrentQuery().isEmpty() && field.hasWindowFocus()) {
-                        topBar.closeSearch()
-                    }
-                }
-            }
-
-            keyboardShown = shown
-            insets
-        }
     }
 
     /** Points the bar, the drop-down and the panning at [pane]. */
@@ -90,7 +87,7 @@ class GridChrome(
         val toolbar = topBar.requireToolbar()
         toolbar.menu.clear()
         toolbar.inflateMenu(pane.menuRes)
-        pane.dressTopBar(topBar)
+        dress(pane)
         pane.refreshMenuItems(toolbar.menu)
         // a freshly inflated menu wears the icons' own colours, which are not the ones that read
         // against the pill - the tinting is part of what commons repaints here
@@ -98,6 +95,32 @@ class GridChrome(
 
         floatingTopBar.floatOver(pane.grid, pane.refreshLayout, pane::gridNeedsTopRoom)
         navPill?.panWith(pane.grid)
+        search.bind(pane)
+    }
+
+    /** Has [pane] dress the bar - its hint and its icon - keeping the way back out of a search open over it. */
+    fun dress(pane: GridPane) {
+        pane.dressTopBar(topBar)
+        // commons' toggleForceArrowBackIcon(false) puts the magnifier on whether a search is open or not
+        if (topBar.isSearchOpen) {
+            topBar.binding.topToolbarSearchIcon.apply {
+                setImageResource(org.fossify.commons.R.drawable.ic_arrow_left_vector)
+                contentDescription = context.getString(org.fossify.commons.R.string.back)
+            }
+        }
+    }
+
+    /**
+     * Narrows the grid by what was picked and closes the search over it, in that order: closing
+     * empties the field, and the grid has to be narrowed already by the time it rebuilds for that.
+     */
+    private fun chooseFilter(filter: SearchFilter?) {
+        pane?.applyFilter(filter)
+        if (topBar.isSearchOpen) {
+            topBar.closeSearch()
+        }
+
+        search.refreshChip()
     }
 
     /** Asks the pane that is up for its menu entries again, whatever has just changed. */
@@ -115,6 +138,7 @@ class GridChrome(
         // behind the lifting above, which is what leaves the bar with room to hang a button off
         tabBar?.apply(contentBehind)
         navPill?.updateColors()
+        search.updateColors()
     }
 
     val isSearchOpen get() = topBar.isSearchOpen

@@ -462,4 +462,18 @@
     <string name="settings_section_password_protection">Password protection</string>
     <string name="settings_section_order_groups">Order &amp; groups</string>
     <string name="settings_search_clear">Clear search</string>
+    <!-- Search: the options an open search offers under the bar, and the chip a picked one becomes -->
+    <string name="search_type">Type</string>
+    <string name="search_device">Device</string>
+    <string name="search_file_size">File size</string>
+    <string name="search_more">More</string>
+    <string name="search_nothing_to_filter">Nothing to filter by here</string>
+    <string name="selfies">Selfies</string>
+    <string name="panorama">Panorama</string>
+    <string name="screenshots">Screenshots</string>
+    <string name="size_under_1_mb">Under 1 MB</string>
+    <string name="size_1_to_10_mb">1–10 MB</string>
+    <string name="size_10_to_100_mb">10–100 MB</string>
+    <string name="size_over_100_mb">Over 100 MB</string>
+    <string name="remove_filter">Remove filter</string>
 </resources>

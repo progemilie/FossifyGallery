@@ -72,11 +72,9 @@ import org.fossify.gallery.extensions.config
 import org.fossify.gallery.extensions.getActionBarHeight
 import org.fossify.gallery.extensions.getFormattedDuration
 import org.fossify.gallery.extensions.getFriendlyMessage
-import org.fossify.gallery.extensions.hideSystemUI
 import org.fossify.gallery.extensions.openPath
 import org.fossify.gallery.extensions.screenRect
 import org.fossify.gallery.extensions.shareMediumPath
-import org.fossify.gallery.extensions.showSystemUI
 import org.fossify.gallery.fragments.PlaybackSpeedFragment
 import org.fossify.gallery.helpers.TileFlight
 import org.fossify.gallery.helpers.DRAG_THRESHOLD
@@ -143,6 +141,9 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
 
     override val appBarLayout: AppBarLayout
         get() = binding.videoAppbar
+
+    override val isChromeShown: Boolean
+        get() = !mIsFullscreen
 
     /** The tile this player grew out of, and the tile it shrinks back into. */
     private val flight by lazy {
@@ -315,9 +316,10 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
         }
         initTimeHolder()
 
-        showSystemUI()
+        systemBars.update(chromeShown = true)
         window.decorView.setOnSystemUiVisibilityChangeListener { visibility ->
-            val isFullscreen = visibility and View.SYSTEM_UI_FLAG_FULLSCREEN != 0
+            // the navigation bar rather than the status bar, which stays away in landscape either way
+            val isFullscreen = visibility and View.SYSTEM_UI_FLAG_HIDE_NAVIGATION != 0
             fullscreenToggled(isFullscreen)
         }
 
@@ -701,11 +703,7 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
 
     private fun fullscreenToggled(isFullScreen: Boolean) {
         mIsFullscreen = isFullScreen
-        if (isFullScreen) {
-            hideSystemUI()
-        } else {
-            showSystemUI()
-        }
+        systemBars.update(chromeShown = !isFullScreen)
 
         val newAlpha = if (isFullScreen) 0f else 1f
         arrayOf(

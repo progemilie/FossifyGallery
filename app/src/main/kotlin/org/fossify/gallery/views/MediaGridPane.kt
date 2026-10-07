@@ -73,10 +73,10 @@ import org.fossify.gallery.asynctasks.GetMediaAsynctask
 import org.fossify.gallery.databinding.PaneMediaGridBinding
 import org.fossify.gallery.dialogs.ChangeSortingDialog
 import org.fossify.gallery.dialogs.ChangeViewTypeDialog
-import org.fossify.gallery.dialogs.FilterMediaDialog
 import org.fossify.gallery.dialogs.GrantAllFilesDialog
 import org.fossify.gallery.extensions.applyEdgeFade
 import org.fossify.gallery.extensions.config
+import org.fossify.gallery.extensions.mediaFacts
 import org.fossify.gallery.extensions.deleteDBPath
 import org.fossify.gallery.extensions.directoryDB
 import org.fossify.gallery.extensions.emptyAndDisableTheRecycleBin
@@ -116,11 +116,20 @@ import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_FAVORITES
 import org.fossify.gallery.helpers.SHOW_RECYCLE_BIN
 import org.fossify.gallery.helpers.SelectionMark
+import org.fossify.gallery.helpers.MediaFacts
+import org.fossify.gallery.helpers.OptionsCount
+import org.fossify.gallery.helpers.SearchOptions
+import org.fossify.gallery.helpers.SearchOptionsCounter
+import org.fossify.gallery.helpers.TraitIndex
+import org.fossify.gallery.helpers.matches
+import org.fossify.gallery.helpers.searchOptionsOf
+import org.fossify.gallery.models.SearchFilter
 import org.fossify.gallery.helpers.SKIP_AUTHENTICATION
 import org.fossify.gallery.helpers.SLIDESHOW_START_ON_ENTER
 import org.fossify.gallery.helpers.VIDEO_PLAYER_APP
 import org.fossify.gallery.helpers.VIDEO_PLAYER_SYSTEM
 import org.fossify.gallery.helpers.ViewerLaunchGuard
+import org.fossify.gallery.helpers.ViewerNarrowing
 import org.fossify.gallery.helpers.ViewerReturn
 import org.fossify.gallery.interfaces.GridPane
 import org.fossify.gallery.interfaces.MediaOperationsListener
@@ -221,6 +230,24 @@ class MediaGridPane(
     // what a search narrowed the grid down to, null when no search is open. Anything rebuilding the
     // grid has to work from this rather than mMedia, or it puts the whole library back on screen
     private var mSearchResults: ArrayList<ThumbnailItem>? = null
+
+    // the option picked under the search bar, which narrows the grid alongside anything typed
+    private var mFilter: SearchFilter? = null
+
+    // each narrowing is worked out off the main thread, and only the latest one asked for may land
+    @Volatile
+    private var mSearchGeneration = 0
+
+    /** Whether something typed or a filter has the grid showing less than the whole folder. */
+    private val isNarrowed get() = mLastSearchedText.isNotEmpty() || mFilter != null
+
+    // what the options and the filters read of the media beyond each Medium, for as long as the media
+    // last - a size filter would otherwise ask MediaStore for every size again on every keystroke
+    private var mFacts: MediaFacts? = null
+
+    // answered again whenever the media change under an open search: it can open onto a grid that has
+    // not finished loading
+    private val searchOptions = SearchOptionsCounter(::prepareOptionsCount)
 
     // built on first use rather than here, where there is no context to read yet, and dropped when
     // the scroll direction changes which axis it divides
@@ -340,9 +367,6 @@ class MediaGridPane(
         // here as well as in the adapter: a grid simplified at startup hands the adapter no animator
         // to settle, and this one is due back the moment it is pinched in again
         SelectionMark.settleChangeAnimations(binding.mediaGrid)
-        binding.mediaEmptyTextPlaceholder2.setOnClickListener {
-            showFilterMediaDialog()
-        }
     }
 
     override fun onActivated() {
@@ -404,8 +428,6 @@ class MediaGridPane(
         binding.loadingIndicator.setIndicatorColor(activity.getProperPrimaryColor())
         reorderPills.updateColors()
         binding.mediaEmptyTextPlaceholder.setTextColor(activity.getProperTextColor())
-        binding.mediaEmptyTextPlaceholder2.setTextColor(activity.getProperPrimaryColor())
-        binding.mediaEmptyTextPlaceholder2.bringToFront()
 
         // the grid still holds what it had when the viewer was opened, so point the item out now
         // rather than only once the refresh below comes back. it stays pending if it is not there
@@ -450,6 +472,9 @@ class MediaGridPane(
             true
         } else if (host.topBar.isSearchOpen) {
             host.topBar.closeSearch()
+            true
+        } else if (mFilter != null) {
+            applyFilter(null)
             true
         } else {
             false
@@ -548,10 +573,39 @@ class MediaGridPane(
         binding.mediaRefreshLayout.isEnabled = text.isEmpty() && config.enablePullToRefresh
     }
 
+    override val activeFilter get() = mFilter
+
+    override fun loadSearchOptions(onLoaded: (SearchOptions) -> Unit) = searchOptions.load(onLoaded)
+
+    private fun prepareOptionsCount(): OptionsCount? {
+        // a grid still loading is counted once its media arrives, rather than found to offer nothing
+        if (mMedia.isEmpty() && mIsGettingMedia) {
+            return null
+        }
+
+        // taken here rather than on the worker, which a rescan landing in the meantime would race
+        val media = mMedia.filterIsInstance<Medium>()
+        val facts = facts()
+        return { searchOptionsOf(media, facts) }
+    }
+
+    private fun facts() = mFacts ?: activity.mediaFacts(
+        folder = mPath.takeUnless { mShowAll || it.isEmpty() || it == FAVORITES || it == RECYCLE_BIN }
+    ).also { mFacts = it }
+
+    override fun applyFilter(filter: SearchFilter?) {
+        if (filter == mFilter) {
+            return
+        }
+
+        mFilter = filter
+        searchQueryChanged(mLastSearchedText)
+        host.onPaneStateChanged()
+    }
+
     override fun onMenuItemClick(itemId: Int): Boolean {
         when (itemId) {
             R.id.sort -> showSortingDialog()
-            R.id.filter -> showFilterMediaDialog()
             R.id.empty_recycle_bin -> emptyRecycleBin()
             R.id.empty_disable_recycle_bin -> emptyAndDisableRecycleBin()
             R.id.restore_all_files -> restoreAllFiles()
@@ -579,7 +633,8 @@ class MediaGridPane(
         if (mMedia.isNotEmpty()) {
             activity.hideKeyboard()
             Intent(activity, ViewPagerActivity::class.java).apply {
-                val item = mMedia.firstOrNull { it is Medium } as? Medium ?: return
+                val item = gridSource().firstOrNull { it is Medium } as? Medium ?: return
+                ViewerNarrowing.handOver(this, mSearchResults)
                 putExtra(SKIP_AUTHENTICATION, shouldSkipAuthentication())
                 putExtra(PATH, item.path)
                 putExtra(SHOW_ALL, mShowAll)
@@ -630,6 +685,10 @@ class MediaGridPane(
         if (host.topBar.isSearchOpen) {
             host.topBar.closeSearch()
         }
+
+        // as much as a search, a filter would leave part of the folder out of its own arrangement
+        mFilter = null
+        mSearchResults = null
 
         // arranging at a count where no single item can be picked out is not arranging anything
         if (mGridZoom.isSimplified(config.mediaColumnCnt)) {
@@ -752,15 +811,28 @@ class MediaGridPane(
     }
 
     private fun searchQueryChanged(text: String) {
+        val filter = mFilter
+        val facts = facts()
+        val generation = ++mSearchGeneration
         ensureBackgroundThread {
             try {
-                val filtered = mMedia
-                    .filter { it is Medium && it.name.contains(text, true) } as ArrayList
+                val filtered = mMedia.filter {
+                    it is Medium && it.name.contains(text, true) && filter?.matches(it, facts) != false
+                } as ArrayList
+                // overtaken by the next keystroke already, so not worth grouping
+                if (generation != mSearchGeneration) {
+                    return@ensureBackgroundThread
+                }
+
                 filtered.sortBy { it is Medium && !it.name.startsWith(text, true) }
                 val grouped = MediaFetcher(activity.applicationContext).groupMedia(
                     media = filtered as ArrayList<Medium>, path = mPath
                 )
                 activity.runOnUiThread {
+                    if (generation != mSearchGeneration) {
+                        return@runOnUiThread
+                    }
+
                     if (mZoom.isActive) {
                         mMediaChangedWhileZooming = true
                         return@runOnUiThread
@@ -776,7 +848,7 @@ class MediaGridPane(
                         binding.mediaFastscroller.beVisible()
                     }
 
-                    mSearchResults = if (text.isEmpty()) null else grouped
+                    mSearchResults = if (text.isEmpty() && filter == null) null else grouped
                     val shown = mediaForGrid(grouped)
                     handleGridSpacing(shown)
                     getMediaAdapter()?.updateMedia(shown)
@@ -855,7 +927,7 @@ class MediaGridPane(
 
             setupLayoutManager()
             handleGridSpacing()
-        } else if (mLastSearchedText.isEmpty()) {
+        } else if (!isNarrowed) {
             (currAdapter as MediaAdapter).updateMedia(mediaForGrid())
             handleGridSpacing()
         } else {
@@ -916,15 +988,6 @@ class MediaGridPane(
     private fun showSortingDialog() {
         ChangeSortingDialog(activity, isDirectorySorting = false, path = mPath) {
             reloadMedia()
-        }
-    }
-
-    private fun showFilterMediaDialog() {
-        FilterMediaDialog(activity) {
-            mLoadedInitialPhotos = false
-            binding.mediaRefreshLayout.isRefreshing = true
-            binding.mediaGrid.adapter = null
-            getMedia()
         }
     }
 
@@ -1063,7 +1126,6 @@ class MediaGridPane(
             if (mPath == RECYCLE_BIN) {
                 binding.mediaEmptyTextPlaceholder.setText(org.fossify.commons.R.string.no_items_found)
                 binding.mediaEmptyTextPlaceholder.beVisible()
-                binding.mediaEmptyTextPlaceholder2.beGone()
             } else {
                 activity.finish()
             }
@@ -1413,6 +1475,8 @@ class MediaGridPane(
 
     private fun openInViewPager(path: String) {
         Intent(activity, ViewPagerActivity::class.java).apply {
+            // a narrowed grid's viewer swipes through its results rather than the whole folder
+            ViewerNarrowing.handOver(this, mSearchResults)
             putExtra(SKIP_AUTHENTICATION, shouldSkipAuthentication())
             putExtra(PATH, path)
             putExtra(SHOW_ALL, mShowAll)
@@ -1443,13 +1507,13 @@ class MediaGridPane(
             binding.loadingIndicator.hide()
             binding.mediaRefreshLayout.isRefreshing = false
             binding.mediaEmptyTextPlaceholder.beVisibleIf(media.isEmpty() && !isFromCache)
-            binding.mediaEmptyTextPlaceholder2.beVisibleIf(media.isEmpty() && !isFromCache)
-
             if (binding.mediaEmptyTextPlaceholder.isVisible()) {
-                binding.mediaEmptyTextPlaceholder.text = activity.getString(R.string.no_media_with_filters)
+                binding.mediaEmptyTextPlaceholder.text = activity.getString(org.fossify.commons.R.string.no_items_found)
             }
             binding.mediaFastscroller.beVisibleIf(binding.mediaEmptyTextPlaceholder.isGone())
+            mFacts = null
             setupAdapter()
+            searchOptions.onMediaChanged(host.topBar.isSearchOpen, isSettled = !isFromCache)
         }
 
         mLatestMediaId = activity.getLatestMediaId()
@@ -1462,6 +1526,8 @@ class MediaGridPane(
                     activity.mediaDB.insertAll(mediaToInsert)
                 } catch (e: Exception) {
                 }
+
+                TraitIndex.refresh(activity)
             }.start()
         }
     }
