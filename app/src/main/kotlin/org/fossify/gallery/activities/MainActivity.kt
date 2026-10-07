@@ -173,7 +173,9 @@ import org.fossify.gallery.helpers.TYPE_GIFS
 import org.fossify.gallery.helpers.TYPE_IMAGES
 import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
+import org.fossify.gallery.helpers.OptionsCount
 import org.fossify.gallery.helpers.SearchOptions
+import org.fossify.gallery.helpers.SearchOptionsCounter
 import org.fossify.gallery.helpers.TraitIndex
 import org.fossify.gallery.helpers.fitSystemBars
 import org.fossify.gallery.helpers.searchOptionsOf
@@ -268,11 +270,8 @@ class MainActivity :
     // filter an already filtered list down and lose the rest of the library with it
     private var mDirsIgnoringSearch = ArrayList<Directory>()
 
-    // the search's options as last counted, which an opening search is answered with at once while
-    // they are counted again; and the search asking, answered again once the folders are in when it
-    // opened before they were
-    private var mCountedOptions: SearchOptions? = null
-    private var mOptionsWanted: ((SearchOptions) -> Unit)? = null
+    // the search's options, counted across the library the folders hold
+    private val searchOptions = SearchOptionsCounter(::prepareOptionsCount)
 
     // the folder group whose contents the grid is showing, 0 while it is showing the root. Only
     // the view changes - the scan below keeps working on the real folders throughout. Written and
@@ -753,10 +752,6 @@ class MainActivity :
 
     override fun onSearchToggled(isOpen: Boolean) {
         onPaneStateChanged()
-        if (!isOpen) {
-            mOptionsWanted = null
-        }
-
         if (isOpen && config.searchAllFilesByDefault) {
             if (mIsThirdPartyIntent) {
                 launchSearchActivity()
@@ -783,25 +778,16 @@ class MainActivity :
     // a picker has no Pictures pane for a picked one to narrow
     override val offersSearchOptions get() = !config.searchAllFilesByDefault && !mIsThirdPartyIntent
 
-    override fun loadSearchOptions(onLoaded: (SearchOptions) -> Unit) {
-        mCountedOptions?.let(onLoaded)
-        mOptionsWanted = onLoaded
-        countSearchOptions()
-    }
+    override fun loadSearchOptions(onLoaded: (SearchOptions) -> Unit) = searchOptions.load(onLoaded)
 
-    private fun countSearchOptions() {
+    private fun prepareOptionsCount(): OptionsCount? {
         val folders = mDirsIgnoringSearch.mapTo(HashSet()) { it.path }
         if (folders.isEmpty() || !offersSearchOptions) {
-            return
+            return null
         }
 
-        ensureBackgroundThread {
-            val options = searchOptionsOf(libraryMedia(folders), mediaFacts())
-            runOnUiThread {
-                mCountedOptions = options
-                mOptionsWanted?.invoke(options)
-            }
-        }
+        val context = applicationContext
+        return { searchOptionsOf(context.libraryMedia(folders), context.mediaFacts()) }
     }
 
     /** The folder grid has no files of its own to narrow: a pill picked here is Pictures, narrowed by it. */
@@ -2037,9 +2023,6 @@ class MainActivity :
         } catch (ignored: Exception) {
         }
 
-        // every folder has just been read back in, which is when the search's traits catch up
-        TraitIndex.refresh(this)
-
         val foldersToScan = mLastMediaFetcher!!.getFoldersToScan()
         foldersToScan.remove(FAVORITES)
         foldersToScan.add(0, FAVORITES)
@@ -2131,6 +2114,11 @@ class MainActivity :
 
         // the throttle above may be holding the last folders back, so always finish on a full one
         setupAdapter(dirs)
+
+        // every folder has been read back in, new ones too: the search's traits catch up with them, and
+        // its options are counted ahead of the first search now that the scan is out of the way
+        TraitIndex.refresh(this)
+        runOnUiThread { searchOptions.onMediaChanged(binding.mainMenu.isSearchOpen, isSettled = true) }
 
         mLoadedInitialPhotos = true
         if (config.appRunCount > 1) {
@@ -2270,9 +2258,9 @@ class MainActivity :
         // narrows down from - and what they are put back to when they are done
         val hadFolders = mDirsIgnoringSearch.isNotEmpty()
         mDirsIgnoringSearch = distinctDirs
-        // counted as soon as there are folders, for the first search to open with its pills up
+        // a search opened before there were any folders is answered as they come in
         if (!hadFolders && distinctDirs.isNotEmpty()) {
-            countSearchOptions()
+            runOnUiThread { searchOptions.onMediaChanged(binding.mainMenu.isSearchOpen) }
         }
 
         val sortedDirs = getSortedDirectories(distinctDirs)

@@ -20,6 +20,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import org.fossify.commons.extensions.beGone
 import org.fossify.gallery.R
+import org.fossify.gallery.helpers.Perf
 import org.fossify.gallery.helpers.SearchOptions
 import org.fossify.gallery.models.SearchFilter
 
@@ -136,7 +137,7 @@ class SearchOverlay @JvmOverloads constructor(
 
     /** Fills the options in from [options], [active] lit as the filter already on. */
     fun fill(options: SearchOptions, active: SearchFilter?) {
-        sections.fill(options, active)
+        Perf.section("search.fill") { sections.fill(options, active) }
         this.options.scrollTo(0, 0)
     }
 

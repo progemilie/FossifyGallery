@@ -36,10 +36,11 @@ fun interface TraitLookup {
 /**
  * What the options and filters need to know of a file beyond what a scan put in its [Medium]: what
  * the trait index has read out of it, and its size - which a folder scan only fills in when sorting
- * by size, leaving the rest at 0. Those come from [storeSizes], every size MediaStore knows, asked
- * for the first time a size is wanted. Blocking, use it off the main thread.
+ * by size, leaving the rest at 0. Those come from [storeSizes], the sizes MediaStore knows. Each is
+ * read the first time it is wanted, which blocks, so ask them off the main thread.
  */
-class MediaFacts(private val traits: TraitLookup, storeSizes: () -> Map<String, Long>) {
+class MediaFacts(traits: () -> TraitLookup, storeSizes: () -> Map<String, Long>) {
+    private val traits by lazy(traits)
     private val storeSizes by lazy(storeSizes)
 
     fun traitsOf(medium: Medium) = traits[medium.path]
@@ -85,7 +86,7 @@ private fun Medium.isOfKind(kind: MediaKind, photo: PhotoTraits?) = when (kind) 
     MediaKind.VIDEOS -> isVideo()
     MediaKind.SELFIES -> photo?.isSelfie == true
     MediaKind.PANORAMAS -> photo?.isPanorama == true || name.isPanoramaName()
-    MediaKind.SCREENSHOTS -> path.isScreenshotPath()
+    MediaKind.SCREENSHOTS -> isScreenshot(parentPath.getFilenameFromPath(), name)
     MediaKind.GIFS -> isGIF()
     MediaKind.RAWS -> isRaw()
     MediaKind.SVGS -> isSVG()
@@ -99,13 +100,21 @@ private val SCREENSHOT_FOLDER =
 // and the names they are given wherever they end up: Screenshot_…, AOSP's screen-…, Screen_Recording_…
 private val SCREENSHOT_NAME = Regex("^(screenshot|screen[-_ ]?(record|capture)|screen-\\d)", RegexOption.IGNORE_CASE)
 
+// every folder and file name above starts with it, so it is looked for first: a regex costs many times
+// more on Android, and these are asked of every file in every count
+private const val SCREEN = "screen"
+
 /** A screenshot or a screen recording, by where it was saved or what it was called. */
-fun String.isScreenshotPath() =
-    SCREENSHOT_FOLDER.matches(getParentPath().getFilenameFromPath()) ||
-        SCREENSHOT_NAME.containsMatchIn(getFilenameFromPath())
+fun String.isScreenshotPath() = isScreenshot(getParentPath().getFilenameFromPath(), getFilenameFromPath())
+
+private fun isScreenshot(folder: String, name: String) =
+    folder.startsWith(SCREEN, ignoreCase = true) && SCREENSHOT_FOLDER.matches(folder) ||
+        name.startsWith(SCREEN, ignoreCase = true) && SCREENSHOT_NAME.containsMatchIn(name)
 
 // Google Camera's PANO_…, and the Pixel's …PANO.jpg and …PHOTOSPHERE.jpg
 private val PANORAMA_NAME = Regex("^pano_|[._]pano\\.|[._]photosphere\\.", RegexOption.IGNORE_CASE)
 
 /** A panorama the camera said was one in the name it gave the file. */
-fun String.isPanoramaName() = PANORAMA_NAME.containsMatchIn(this)
+fun String.isPanoramaName() =
+    (contains("pano", ignoreCase = true) || contains("photosphere", ignoreCase = true)) &&
+        PANORAMA_NAME.containsMatchIn(this)

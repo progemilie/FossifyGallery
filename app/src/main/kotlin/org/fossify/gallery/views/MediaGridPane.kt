@@ -116,7 +116,10 @@ import org.fossify.gallery.helpers.SHOW_ALL
 import org.fossify.gallery.helpers.SHOW_FAVORITES
 import org.fossify.gallery.helpers.SHOW_RECYCLE_BIN
 import org.fossify.gallery.helpers.SelectionMark
+import org.fossify.gallery.helpers.MediaFacts
+import org.fossify.gallery.helpers.OptionsCount
 import org.fossify.gallery.helpers.SearchOptions
+import org.fossify.gallery.helpers.SearchOptionsCounter
 import org.fossify.gallery.helpers.TraitIndex
 import org.fossify.gallery.helpers.matches
 import org.fossify.gallery.helpers.searchOptionsOf
@@ -232,18 +235,19 @@ class MediaGridPane(
     private var mFilter: SearchFilter? = null
 
     // each narrowing is worked out off the main thread, and only the latest one asked for may land
+    @Volatile
     private var mSearchGeneration = 0
 
     /** Whether something typed or a filter has the grid showing less than the whole folder. */
     private val isNarrowed get() = mLastSearchedText.isNotEmpty() || mFilter != null
 
-    // what an open search asked the options of, answered again whenever the media they are counted
-    // from changes - a search can open onto a grid that has not finished loading
-    private var mOptionsWanted: ((SearchOptions) -> Unit)? = null
+    // what the options and the filters read of the media beyond each Medium, for as long as the media
+    // last - a size filter would otherwise ask MediaStore for every size again on every keystroke
+    private var mFacts: MediaFacts? = null
 
-    // the last count, which an opening search is answered with at once while it is counted again. The
-    // first is made as soon as there is media, so even the first opening has its pills up with the dim
-    private var mCountedOptions: SearchOptions? = null
+    // answered again whenever the media change under an open search: it can open onto a grid that has
+    // not finished loading
+    private val searchOptions = SearchOptionsCounter(::prepareOptionsCount)
 
     // built on first use rather than here, where there is no context to read yet, and dropped when
     // the scroll direction changes which axis it divides
@@ -571,28 +575,23 @@ class MediaGridPane(
 
     override val activeFilter get() = mFilter
 
-    override fun loadSearchOptions(onLoaded: (SearchOptions) -> Unit) {
-        mCountedOptions?.let(onLoaded)
-        mOptionsWanted = onLoaded
-        countSearchOptions()
-    }
+    override fun loadSearchOptions(onLoaded: (SearchOptions) -> Unit) = searchOptions.load(onLoaded)
 
-    private fun countSearchOptions() {
+    private fun prepareOptionsCount(): OptionsCount? {
         // a grid still loading is counted once its media arrives, rather than found to offer nothing
         if (mMedia.isEmpty() && mIsGettingMedia) {
-            return
+            return null
         }
 
         // taken here rather than on the worker, which a rescan landing in the meantime would race
         val media = mMedia.filterIsInstance<Medium>()
-        ensureBackgroundThread {
-            val options = searchOptionsOf(media, activity.mediaFacts())
-            activity.runOnUiThread {
-                mCountedOptions = options
-                mOptionsWanted?.invoke(options)
-            }
-        }
+        val facts = facts()
+        return { searchOptionsOf(media, facts) }
     }
+
+    private fun facts() = mFacts ?: activity.mediaFacts(
+        folder = mPath.takeUnless { mShowAll || it.isEmpty() || it == FAVORITES || it == RECYCLE_BIN }
+    ).also { mFacts = it }
 
     override fun applyFilter(filter: SearchFilter?) {
         if (filter == mFilter) {
@@ -813,13 +812,18 @@ class MediaGridPane(
 
     private fun searchQueryChanged(text: String) {
         val filter = mFilter
+        val facts = facts()
         val generation = ++mSearchGeneration
         ensureBackgroundThread {
             try {
-                val facts = activity.mediaFacts()
                 val filtered = mMedia.filter {
                     it is Medium && it.name.contains(text, true) && filter?.matches(it, facts) != false
                 } as ArrayList
+                // overtaken by the next keystroke already, so not worth grouping
+                if (generation != mSearchGeneration) {
+                    return@ensureBackgroundThread
+                }
+
                 filtered.sortBy { it is Medium && !it.name.startsWith(text, true) }
                 val grouped = MediaFetcher(activity.applicationContext).groupMedia(
                     media = filtered as ArrayList<Medium>, path = mPath
@@ -1507,14 +1511,9 @@ class MediaGridPane(
                 binding.mediaEmptyTextPlaceholder.text = activity.getString(org.fossify.commons.R.string.no_items_found)
             }
             binding.mediaFastscroller.beVisibleIf(binding.mediaEmptyTextPlaceholder.isGone())
+            mFacts = null
             setupAdapter()
-            if (!host.topBar.isSearchOpen) {
-                mOptionsWanted = null
-            }
-
-            if (mOptionsWanted != null || mCountedOptions == null) {
-                countSearchOptions()
-            }
+            searchOptions.onMediaChanged(host.topBar.isSearchOpen, isSettled = !isFromCache)
         }
 
         mLatestMediaId = activity.getLatestMediaId()

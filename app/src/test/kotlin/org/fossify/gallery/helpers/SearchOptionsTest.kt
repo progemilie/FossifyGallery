@@ -22,7 +22,7 @@ class SearchOptionsTest {
         )
 
     private fun facts(traits: Map<String, PhotoTraits> = emptyMap(), storeSizes: Map<String, Long> = emptyMap()) =
-        MediaFacts(TraitLookup { traits[it] }) { storeSizes }
+        MediaFacts({ TraitLookup { traits[it] } }) { storeSizes }
 
     @Test
     fun `a kind is offered only where it would narrow the grid`() {
@@ -101,6 +101,26 @@ class SearchOptionsTest {
         assertTrue("/storage/emulated/0/Movies/screen-20260101-120000.mp4".isScreenshotPath())
         assertFalse("/storage/emulated/0/DCIM/Camera/20260101_120000.jpg".isScreenshotPath())
         assertFalse("/storage/emulated/0/Pictures/Screensavers/beach.jpg".isScreenshotPath())
+    }
+
+    @Test
+    fun `a filter tells a screenshot by its folder or its name`() {
+        val screenshots = SearchFilter.Kind(MediaKind.SCREENSHOTS)
+        assertTrue(screenshots.matches(medium("/storage/emulated/0/Pictures/Screenshots/a.png"), facts()))
+        assertTrue(screenshots.matches(medium("/storage/emulated/0/Movies/screen-20260101-120000.mp4"), facts()))
+        assertFalse(screenshots.matches(medium("/storage/emulated/0/Pictures/Screensavers/beach.jpg"), facts()))
+    }
+
+    @Test
+    fun `facts read nothing until they are asked, so they can be made on the main thread`() {
+        var reads = 0
+        val facts = MediaFacts({ reads++; TraitLookup.NONE }) { reads++; emptyMap() }
+        facts.sizeOf(medium("/dcim/a.jpg"))
+        assertEquals(0, reads)
+
+        facts.traitsOf(medium("/dcim/a.jpg"))
+        facts.sizeOf(medium("/dcim/b.jpg", size = 0L))
+        assertEquals(2, reads)
     }
 
     @Test

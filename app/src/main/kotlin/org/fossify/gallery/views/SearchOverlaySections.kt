@@ -6,10 +6,8 @@ import android.util.TypedValue
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.StringRes
-import androidx.core.view.children
 import androidx.core.view.descendants
 import androidx.core.view.isEmpty
-import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.gallery.R
@@ -75,31 +73,29 @@ class SearchOverlaySections(private val column: LinearLayout) {
             verticalGap = gap
         }
 
-        choices.forEachIndexed { index, filter ->
-            row.addView(
-                SearchPill(context).apply {
-                    text = filter.label(context)
-                    isLit = filter == active
-                    // the filter already on stays in sight wherever it falls in the list
-                    isVisible = index < shown || isLit
-                    setOnClickListener { onChosen?.invoke(filter) }
-                }
-            )
-        }
-
-        if (row.children.any { !it.isVisible }) {
-            row.addView(morePill(row))
+        // the filter already on stays in sight wherever it falls in the list. The rest are only built
+        // once asked for: every opening builds its pills, in the frame it starts moving in
+        val inSight = choices.filterIndexed { index, filter -> index < shown || filter == active }
+        inSight.forEach { row.addView(pill(it, active)) }
+        if (inSight.size < choices.size) {
+            row.addView(morePill(row, choices, active))
         }
 
         column.addView(row)
     }
 
-    /** Puts up every pill the row was holding back, in its own place. */
-    private fun morePill(row: FlowRow) = SearchPill(context).apply {
+    private fun pill(filter: SearchFilter, active: SearchFilter?) = SearchPill(context).apply {
+        text = filter.label(context)
+        isLit = filter == active
+        setOnClickListener { onChosen?.invoke(filter) }
+    }
+
+    /** Puts up every pill the row was holding back, each in its own place. */
+    private fun morePill(row: FlowRow, choices: List<SearchFilter>, active: SearchFilter?) = SearchPill(context).apply {
         text = context.getString(R.string.search_more)
         setOnClickListener {
-            row.removeView(this)
-            row.children.forEach { it.isVisible = true }
+            row.removeAllViews()
+            choices.forEach { row.addView(pill(it, active)) }
         }
     }
 

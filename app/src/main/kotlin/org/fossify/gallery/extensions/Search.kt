@@ -8,7 +8,6 @@ import org.fossify.commons.extensions.queryCursor
 import org.fossify.gallery.databases.GalleryDatabase
 import org.fossify.gallery.helpers.MediaFacts
 import org.fossify.gallery.helpers.TraitIndex
-import org.fossify.gallery.helpers.TraitLookup
 import org.fossify.gallery.interfaces.SearchDao
 import org.fossify.gallery.models.Medium
 
@@ -24,26 +23,33 @@ fun Context.libraryMedia(folders: Set<String>): List<Medium> = try {
     emptyList()
 }
 
-/** What the trait index has read so far, for the search's options and filters. Blocking the first time. */
-fun Context.traitLookup(): TraitLookup = TraitIndex.lookup(this)
-
-/** Everything the search's options and filters ask of a file beyond its [Medium]. Blocking the first time. */
-fun Context.mediaFacts(): MediaFacts {
+/**
+ * Everything the search's options and filters ask of a file beyond its [Medium]. Media that are one
+ * [folder]'s have their sizes asked of MediaStore for that folder alone, rather than for every file on
+ * the device. Nothing is read until it is first asked for, which blocks.
+ */
+fun Context.mediaFacts(folder: String? = null): MediaFacts {
     val context = applicationContext
-    return MediaFacts(traitLookup()) { context.mediaStoreSizes() }
+    return MediaFacts({ TraitIndex.lookup(context) }) { context.mediaStoreSizes(folder) }
 }
 
-/** Every photo's and video's size MediaStore knows, by path. Blocking. */
-private fun Context.mediaStoreSizes(): Map<String, Long> {
+/** The size MediaStore knows of every photo and video, by path - in [folder] alone, given one. Blocking. */
+private fun Context.mediaStoreSizes(folder: String?): Map<String, Long> {
     val sizes = HashMap<String, Long>()
     val projection = arrayOf(MediaStore.MediaColumns.DATA, MediaStore.MediaColumns.SIZE)
-    val selection = "${MediaStore.Files.FileColumns.MEDIA_TYPE} IN (?, ?)"
-    val selectionArgs = arrayOf(
+    var selection = "${MediaStore.Files.FileColumns.MEDIA_TYPE} IN (?, ?)"
+    val selectionArgs = arrayListOf(
         MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE.toString(),
         MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO.toString()
     )
 
-    queryCursor(MediaStore.Files.getContentUri("external"), projection, selection, selectionArgs) { cursor ->
+    if (folder != null) {
+        selection += " AND ${MediaStore.MediaColumns.DATA} LIKE ?"
+        selectionArgs.add("$folder/%")
+    }
+
+    val uri = MediaStore.Files.getContentUri("external")
+    queryCursor(uri, projection, selection, selectionArgs.toTypedArray()) { cursor ->
         try {
             val size = cursor.getLongValue(MediaStore.MediaColumns.SIZE)
             if (size > 0) {

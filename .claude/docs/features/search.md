@@ -25,10 +25,11 @@ Read these before changing this feature — each can break silently if this one 
 | `views/SearchLine.kt` | The chip and commons' field, moved into one line that scrolls sideways |
 | `models/SearchFilter.kt` | `SearchFilter`, `MediaKind`, `SizeRange` |
 | `helpers/SearchOptions.kt` | What a grid can offer (`searchOptionsOf`), what a filter lets through (`matches`), `MediaFacts` |
+| `helpers/SearchOptionsCounter.kt` | A pane's options counted: the last count kept, one count at a time, again only once something changed |
 | `interfaces/SearchTarget.kt` | What the options ask of a pane: `loadSearchOptions`, `applyFilter`, `activeFilter` |
 | `helpers/TraitIndex.kt`, `TraitReader.kt`, `models/MediaTraits.kt`, `interfaces/SearchDao.kt` | The `media_traits` cache (DB v13); the media table, whole for Albums' count and as photo paths for a pass |
 | `helpers/ViewerNarrowing.kt` | The results a narrowed grid hands the viewer |
-| `extensions/Search.kt` | `searchDB`, `libraryMedia`, `traitLookup`, `mediaFacts` |
+| `extensions/Search.kt` | `searchDB`, `libraryMedia`, `mediaFacts` |
 | `res/interpolator/search_*.xml` | The curves the overlay and the edge move on |
 
 ## Opening and closing
@@ -62,11 +63,14 @@ matches, is left out, and a section with nothing left goes; with nothing at all 
 says so rather than open as an empty dim. A pane counts them off the main thread from its own media;
 Albums counts the media table across the folders it shows (`libraryMedia`).
 
-**The pills come up with the dim.** A pane keeps what it counted last and answers an opening search
-with it at once, while it counts again, and it makes its first count as soon as it has something to
-count — its media in, or Albums' folders — so even the first search after launch opens with them.
-Counting itself can take a second or more on a large library, which used to leave the dim empty
-long enough for typing to fade it before any pill arrived.
+**The pills come up with the dim.** A pane's `SearchOptionsCounter` keeps what it counted last and
+answers an opening search with it at once, counting again only if the pane's media, or the traits
+read of them (`TraitIndex.version`), have changed since — so opening, typing and clearing the text
+again recount nothing. It makes its first count once a scan has settled — a pane's fresh load, the
+end of Albums' rescan — so even the first search after launch opens with its pills, and the count is
+not fighting the scan for the CPU. One count runs at a time: asked for meanwhile, it counts once more
+when done. On the emulator a count over ~16,000 files takes about 0.2s, which an empty dim waiting on
+it would still show.
 
 Screenshots also takes in screen recordings, by folder name or file name. Panorama is a photo at least
 2.5× wider than tall, a photo sphere by its XMP (`GPano:`), or a file the camera named `PANO_`.
@@ -124,13 +128,19 @@ about 0.5s and one that does not about 0.08s; a photo takes about 2.5ms to read 
 - **A filter goes on before the search closes.** Closing empties the field, and the grid has to be
   narrowed already when it rebuilds for that.
 - **`Medium.size` is 0 from a folder scan unless it sorts by size.** Sizes go through `MediaFacts`:
-  MediaStore in one query, then the file.
+  MediaStore in one query — for the folder alone, in a pane showing one — then the file. A pane keeps
+  its `MediaFacts` for as long as its media, or a size filter asks MediaStore again on every keystroke.
+- **Every kind is checked for every file in every count.** Keep the checks to plain string tests: a
+  regex costs many times more on Android, so the screenshot and panorama ones only run past a
+  `startsWith`/`contains` that every name they match passes. Run per file, they were half a count.
 - **A trait pass trusts MediaStore between rechecks**, so an edit in place has to call
   `TransformedMedia.onTransformed` — as every cache already requires — or the photo keeps its old traits
   for up to `RECHECK_MS`.
+- **`SearchOptionsCounter` is the main thread's alone.** `MainActivity.setupAdapter` runs on the scan
+  thread as often as not, so it posts; counted there, the first launch's scan used to wait on the count.
 - **A search can open onto a pane still loading** — one carried over by "Search all files by default"
-  — so a pane answers its options again once its media arrives (`mOptionsWanted`), and a grid still
-  loading is not counted as offering nothing.
+  — so a pane answers its options again once its media arrives (`SearchOptionsCounter.onMediaChanged`),
+  and a grid still loading is not counted as offering nothing.
 - **Commons' `toggleForceArrowBackIcon(false)` puts the magnifier back with a search open**, so a pane
   dresses the bar only through `GridChrome.dress()`, which puts the arrow back - a swap and every
   return to Albums dress it.
