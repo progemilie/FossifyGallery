@@ -67,9 +67,10 @@ writes none, so its selfies are not found.
 ## Filtering
 
 One filter at a time, lasting as long as a search: leaving the folder, a pane swap or a tab landing
-takes it off. While one is on, the bar carries it as a chip (the cross takes it off), and the pill and
-the tab button go as they do for a search. Opening the search with a chip on keeps it, lit among the
-pills — picked again, it comes off — and typing narrows within it.
+takes it off. While one is on, the bar carries it as a chip (the cross takes it off) in place of the
+bar's hint, which `FilterChip` puts aside and hands back - unless a pane has named the bar again in
+the meantime - and the pill and the tab button go as they do for a search. Opening the search with a
+chip on keeps it, lit among the pills — picked again, it comes off — and typing narrows within it.
 
 `MediaGridPane.searchQueryChanged()` narrows by the filter and the text together, off the main thread,
 and drops any answer a later one has overtaken (`mSearchGeneration`). `mSearchResults` is set whenever

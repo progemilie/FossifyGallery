@@ -29,8 +29,9 @@ private const val CROSS_ALPHA = 0.8f
 /**
  * The filter a grid is narrowed by, carried on the search bar between the magnifier and the field:
  * its name, and a cross that takes it off. Built into commons' bar the way the tab button is, with the
- * field moved along to start after it, so the hint and anything typed follow the chip. Tapping the
- * chip itself is tapping the bar - the search opens with the filter still on, to narrow it further.
+ * field moved along to start after it, so anything typed follows the chip - which stands in for the
+ * bar's hint while it is up. Tapping the chip itself is tapping the bar - the search opens with the
+ * filter still on, to narrow it further.
  */
 class FilterChip(private val topBar: MySearchMenu) {
     private val context = topBar.context
@@ -45,16 +46,27 @@ class FilterChip(private val topBar: MySearchMenu) {
 
     var onClear: (() -> Unit)? = null
 
+    // the bar's hint, put aside while the chip says what is being searched instead
+    private var hint: CharSequence? = null
+
     /** Puts [filter] on the bar, or takes the chip off it for null. */
     fun show(filter: SearchFilter?) {
+        val field = topBar.binding.topToolbarSearch
         if (filter == null) {
             chip?.beGone()
+            // unless the bar has been named again since
+            if (field.hint == null) {
+                field.hint = hint
+            }
+
             return
         }
 
         build()
         label?.text = filter.label(context)
         chip?.beVisible()
+        field.hint?.let { hint = it }
+        field.hint = null
     }
 
     /** Repainted with the bar, since every colour here is the theme's. */
