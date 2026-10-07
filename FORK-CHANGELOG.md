@@ -11,7 +11,7 @@ Notable fork-only changes.
 - **Redesigned video player**
 - **Added viewer landscape layout**: the viewer layout is now cleaner in landscape mode.
 - **Redesigned folder picker screen** for copying and moving files.
-- **Search options**: tapping the search bar brings up pills to filter by type (videos, selfies, panoramas, screenshots, GIFs, RAW images, SVGs, favourites), by the camera a photo was taken with, or by file size.
+- **Redesigned search bar**: tapping the search bar brings up options to filter by.
 ### Changed
 - Pinching the photo grid zooms smoothly.
 - The details at the top of a photo are more compact.
@@ -30,10 +30,7 @@ Notable fork-only changes.
 - Sorting and grouping by rating works like any other sorting now.
 - The thumbnail strip under a photo marks videos with a small triangle.
 - The metadata sheet shows the camera a photo was taken with near the top.
-- The Filter media button is gone; the search's options replace it.
-- A photo opened from search results swipes through the results only.
-- With "Search all files by default" on, searching in Albums opens Pictures' search instead of a separate screen.
-- The status bar is hidden in landscape on every screen, not only in the viewer.
+- The status bar is hidden in landscape mode.
 ### Fixed
 - Fixed a photo or video opening soft — the picture the tile grows into is now the photo itself, or the video's own frame, rather than a thumbnail of it, so it is sharp the moment the viewer arrives.
 - Fixed swiping and zooming not working for a while after a photo opened — the longer, the bigger the library.
@@ -48,8 +45,6 @@ Notable fork-only changes.
 - Fixed a renamed photo losing its place in a folder arranged by hand.
 - Fixed photos with the same rating not being in date taken order when sorting by rating.
 - Fixed removing metadata from an unusually built file possibly saving only part of the photo. Files that cannot be read to the end are now left untouched.
-- Fixed the keyboard covering the whole screen when searching in landscape.
-- Fixed the search bar keeping a blinking cursor after the keyboard was closed, or its text after the screen was turned.
 
 ## [v1.19.0] - 2026.09.01 — UI
 
