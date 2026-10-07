@@ -17,7 +17,8 @@ import org.fossify.commons.views.MySearchMenu
  * The search bar's line - the filter chip, when there is one, and commons' field after it - scrolling
  * sideways as one. The field takes whatever room the chip leaves, where its hint is cut short as it
  * always was; typed text that would not fit there widens it instead, and the line follows the cursor
- * as the field asks it to, so what is being typed always shows and the chip gives way to it.
+ * as the field asks it to, so what is being typed always shows and the chip gives way to it. Even
+ * empty, the field keeps room for its cursor beside a chip as wide as the line.
  */
 @SuppressLint("ViewConstructor")
 class SearchLine private constructor(context: Context, private val field: EditText) : HorizontalScrollView(context) {
@@ -46,13 +47,32 @@ class SearchLine private constructor(context: Context, private val field: EditTe
         heightUsed: Int,
     ) {
         super.measureChildWithMargins(child, parentWidthMeasureSpec, widthUsed, parentHeightMeasureSpec, heightUsed)
-        val typed = if (field.text.isEmpty()) 0 else field.measuredWidth + cursorRoom
+        // with nothing typed, still an empty field's room for the cursor: beside a chip as wide as the
+        // line it would have no width at all, and so take no focus - which is what opens the search
+        val typed = if (field.text.isEmpty()) field.paddingLeft + field.paddingRight else field.measuredWidth
         val ahead = child.measuredWidth - field.measuredWidth
         val room = MeasureSpec.getSize(parentWidthMeasureSpec) - paddingLeft - paddingRight
         child.measure(
-            MeasureSpec.makeMeasureSpec(maxOf(room, ahead + typed), MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(maxOf(room, ahead + typed + cursorRoom), MeasureSpec.EXACTLY),
             MeasureSpec.makeMeasureSpec(child.measuredHeight, MeasureSpec.EXACTLY)
         )
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        super.onLayout(changed, l, t, r, b)
+        restIfIdle()
+    }
+
+    override fun clearChildFocus(child: View?) {
+        super.clearChildFocus(child)
+        restIfIdle()
+    }
+
+    /** With no cursor to follow and nothing typed, the line goes back to its start and the chip shows whole. */
+    private fun restIfIdle() {
+        if (scrollX != 0 && !field.isFocused && field.text.isEmpty()) {
+            smoothScrollTo(0, 0)
+        }
     }
 
     companion object {

@@ -84,7 +84,9 @@ chip on keeps it, lit among the pills — picked again, it comes off — and typ
 The chip and the field share a `SearchLine`, which commons' field is moved into from its place in the
 bar. The field takes the room the chip leaves - where the hint is cut short as it always was - and text
 typed past that widens it, the line following the cursor, so the chip scrolls away rather than leave
-no room to see what is typed. A drag scrolls it back.
+no room to see what is typed. A drag scrolls it back. Empty, the field still keeps room for its cursor,
+which a chip as wide as the line pushes out of sight; the line follows the cursor when it comes, and
+goes back to the start, the chip whole, once there is no cursor and nothing typed.
 
 `MediaGridPane.searchQueryChanged()` narrows by the filter and the text together, off the main thread,
 and drops any answer a later one has overtaken (`mSearchGeneration`). `mSearchResults` is set whenever
@@ -123,6 +125,9 @@ and an open search listens (`TraitIndex.Listener`) so its pills fill in. On the 
 - **Setting the field's hint drops its text layout**, wrapping its content as it does in the
   `SearchLine`. `FilterChip` touches the hint only when it changes: it is refreshed as a tap opens the
   search, and the tap would find no layout and put no keyboard up.
+- **The field must never be measured to nothing.** A view of no width takes no focus, and the search
+  opens only as the field takes it: beside a chip as wide as the line, a tap put the keyboard up over
+  a closed search.
 - **Commons opens the search again every time the field takes focus**, open already or not, and
   commons' `hideKeyboard()` takes the focus away (opening a result does). `GridChrome` lets only the
   first opening through: another would bring the dim back over typed results, the faded pills under it.
