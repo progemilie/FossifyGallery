@@ -38,8 +38,9 @@ of whichever grid is up; `helpers/GridChrome.kt` is the search bar and navigatio
 
 **Screens hand each other state in memory, not through intents.** A folder runs to thousands of
 paths, past what a binder transaction carries, so the viewer reads the grid's list from
-`MediaActivity.mMedia`, the peek from `PeekSession`, and a flight's bitmap from `ViewerTransition`.
-All three are process-wide statics that the receiving screen reads once it is up.
+`MediaActivity.mMedia` (and a narrowed grid's results from `ViewerNarrowing`), the peek from
+`PeekSession`, and a flight's bitmap from `ViewerTransition`. All of them are process-wide statics
+that the receiving screen reads once it is up.
 
 ## Where state lives
 
@@ -48,12 +49,14 @@ All three are process-wide statics that the receiving screen reads once it is up
 | Media and folders as last scanned | Room, `media` / `directories` | upstream's; rows are dropped and reinserted on every rescan |
 | A folder's hand made media order | Room, `media_order` (v11) | outlives rescans; `Config.customMediaOrderFolders` indexes it for the main thread |
 | Ratings, as a cache | Room, `media_ratings` (v12) | the file's XMP is the authority; this spares a scan opening every file |
+| What the search reads out of each photo, as a cache | Room, `media_traits` (v13) | the file's EXIF and XMP are the authority; this spares the search opening every photo |
 | Folder groups, tabs, folder order, bottom action order | `Config`, as JSON or joined strings | read on the main thread, where Room throws |
 | Rating, description, every metadata field | the file itself | travels with the photo to other apps |
 
-Room migrations are written by hand (`databases/GalleryDatabase.kt`, v4→v12). The two fork tables
+Room migrations are written by hand (`databases/GalleryDatabase.kt`, v4→v13). The fork's three tables
 are keyed by lowercased path, so **a rename must carry them along**: `updateDBMediaPath()` updates
-both, or a renamed file leaves its folder's order and has its rating read again.
+them all, or a renamed file leaves its folder's order and has its rating and its search traits read
+again.
 
 Anything keyed by path must also survive the synthetic paths the fork invents: `folder_group:<id>`
 for a group tile, and upstream's sentinels `SHOW_ALL`, `FAVORITES`, `RECYCLE_BIN`, none of which can
@@ -101,6 +104,8 @@ Browsing
 - [Peeking while selecting](features/peek-viewer.md) — a fullscreen look without dropping the
   selection.
 - [Sort by dialog](features/sort-dialog.md) — sorting and grouping in one dialog of dropdowns.
+- [The search's options](features/search.md) — the dim and pills an open search puts under the bar,
+  the filter chip, and the trait index behind Selfies, Panorama and Device.
 - [Tabs](features/tabs.md) — up to three remembered places.
 - [Startup screen](features/startup-screen.md) — what the app opens on.
 

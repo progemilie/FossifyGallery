@@ -13,6 +13,7 @@ Read these before changing this feature — each can break silently if this one 
 - [selection](selection.md) — a selection covers the bar (`isCovered`) while keeping its room, so the grid does not jump.
 - [hold-choosers](hold-choosers.md) — choosers place themselves with translation, which is why `PanelAnim` never touches it.
 - [folder-picker](folder-picker.md) — the picker's search pill sits at the foot of the screen and is frosted by `FloatingTopBar.makeFloating()` alone, so that can assume nothing about being at the top.
+- [search](search.md) — an open search's dim goes in just above the content the glass copies, and its edge is the pill's `foreground`.
 
 ## Where it lives
 
@@ -61,9 +62,11 @@ against its anchor with it.
 
 A card that has to stand out wears `LitEdge`: a fine line in the text colour, lit along the top and
 fading down the sides. Folder covers (all but Square), stack cards, a thumbnail held in the reorder
-mode and a glass panel set `isEdged` (the reorder mode's Save) wear it. `LitEdge`'s defaults are the
-look, so applying it names none of them: `LitEdgeDrawable` is it as a foreground or background,
-`LitEdgePainter` for a view drawing its own shapes. A drop-down's surface keeps the plain `Hairline`,
+mode and a glass panel set `isEdged` (the reorder mode's Save) wear it, and so does the search pill
+while a search is open, at twice the opacity. `LitEdge`'s defaults are the look, so applying it names
+none of them: `LitEdgeDrawable` is it as a foreground or background, `LitEdgePainter` for a view
+drawing its own shapes. Both can move the light (`lightAt`, 1 along the bottom to 0 along the top,
+where it rests) and fade the whole edge (`strength`), which is how the search's comes in. A drop-down's surface keeps the plain `Hairline`,
 weighted by `R.dimen.hairline_width`.
 
 ## What breaks silently

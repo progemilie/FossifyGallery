@@ -12,6 +12,7 @@ Read these before changing this feature — each can break silently if this one 
 - [ratings](ratings.md) — `media_order` and `media_ratings` are both keyed by path and move together in `updateDBMediaPath()` on a rename.
 - [sort-dialog](sort-dialog.md) — a hand made order is drawn flat whatever the grouping, which is why the dialog greys grouping out.
 - [order-groups-export](order-groups-export.md) — export and import carry every folder's media order, never the all media grid's.
+- [search](search.md) — arranging takes a filter off along with the search.
 
 ## Where it lives
 
@@ -38,8 +39,9 @@ arrangement.
 
 ## Arranging
 
-`startReordering()` closes any search (an arrangement covers the whole folder), steps a simplified
-grid in to `largestInteractive`, and flattens the list — headers have no place in a hand made order.
+`startReordering()` closes any search and takes any filter off (an arrangement covers the whole
+folder), steps a simplified grid in to `largestInteractive`, and flattens the list — headers have no
+place in a hand made order.
 While the mode is on it owns the grid's gestures: **a tap marks** an item to travel with the next
 drag, **a long press picks it up**. Dragging any marked item carries the whole group: the others
 leave the grid for the length of the drag, so what is on screen is what the arrangement will look
