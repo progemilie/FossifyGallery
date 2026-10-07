@@ -36,7 +36,8 @@ Read these before changing this feature — each can break silently if this one 
 
 `SearchChrome` is built by `GridChrome` and puts a `SearchOverlay` into the screen at `content_holder`'s
 index + 1: under the bar, over everything the glass copies. Opening is one entrance — the dim (and with
-it a `RenderEffect` blur on `content_holder`, Android 12+ with Glass UI on) comes in on a curve, the
+it a `RenderEffect` blur on `content_holder`, Android 12+ with Glass UI on; without the blur the dim is
+darker, so the pills still stand out) comes in on a curve, the
 pill's edge comes up with its light along the bottom and the light rises to rest along the top, and
 the options rise the last 24dp into place as they fade in. The edge is the Save button's at twice the
 opacity. The dim takes every touch, and a tap anywhere a pill is not puts the keyboard away.

@@ -27,6 +27,9 @@ import org.fossify.gallery.models.SearchFilter
 /** How dark the grid goes behind the options. */
 private const val DIM_ALPHA = 0.55f
 
+/** Unblurred, the grid stays sharp enough to fight the pills, so it goes darker. */
+private const val DIM_ALPHA_NO_BLUR = 0.75f
+
 /** Below this a blur is not worth the offscreen pass it costs. */
 private const val MIN_BLUR_PX = 0.5f
 
@@ -99,7 +102,7 @@ class SearchOverlay @JvmOverloads constructor(
     var dimLevel = 0f
         set(value) {
             field = value
-            dim.alpha = value * DIM_ALPHA
+            dim.alpha = value * if (canBlur) DIM_ALPHA else DIM_ALPHA_NO_BLUR
             blur(value)
         }
 
