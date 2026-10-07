@@ -47,6 +47,10 @@ whatever puts the keyboard away — Back, a tap on the dim, opening a result —
 with nothing blinking in it. So Back takes the keyboard first, then closes the search, then takes
 the chip off.
 
+The field asks for no fullscreen editor (`IME_FLAG_NO_FULLSCREEN`, `IME_FLAG_NO_EXTRACT_UI`), which a
+landscape keyboard would otherwise put over the whole screen: the options stay in sight, scrolling in
+what the keyboard leaves.
+
 ## The options
 
 Type (Videos, Selfies, Panorama, Screenshots, GIFs, RAW images, SVGs, Favourites), Device (the six
@@ -102,6 +106,9 @@ and an open search listens (`TraitIndex.Listener`) so its pills fill in. On the 
 - **Commons opens the search again every time the field takes focus**, open already or not, and
   commons' `hideKeyboard()` takes the focus away (opening a result does). `GridChrome` lets only the
   first opening through: another would bring the dim back over typed results, the faded pills under it.
+- **Turning the screen rebuilds both browsing screens with the search closed** (`configChanges` is
+  only `orientation`), so the field keeps neither its text nor its focus: handed back, they came up
+  in a closed bar, the grid narrowed by the text and a cursor blinking.
 - **Nothing faded may be pressed.** The overlay lets touches through from the moment it starts to leave
   (`dimTo(0f)`), and drops its pills once gone, so the next opening has none waiting unseen while its
   own are counted.

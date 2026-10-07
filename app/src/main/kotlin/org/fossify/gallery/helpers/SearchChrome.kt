@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import android.view.animation.Interpolator
 import android.view.animation.LinearInterpolator
+import android.view.inputmethod.EditorInfo
 import androidx.core.animation.doOnEnd
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -258,12 +259,26 @@ private class SearchEdge(topBar: MySearchMenu) {
  * The search field holds its focus, and with it the cursor, only while the keyboard is up. Whatever
  * puts the keyboard away - Back, a tap on the dim, anything else - leaves the search open with nothing
  * blinking in it, so Back takes the keyboard first and closes the search the time after.
+ *
+ * The field never asks for the fullscreen editor a landscape keyboard puts up, which would cover the
+ * options with a box of its own.
  */
 private class SearchKeyboard(topBar: MySearchMenu) {
     private val field = topBar.binding.topToolbarSearch
     private var isUp = false
 
     init {
+        field.imeOptions = field.imeOptions or EditorInfo.IME_FLAG_NO_EXTRACT_UI or EditorInfo.IME_FLAG_NO_FULLSCREEN
+
+        // turning the screen rebuilds it with the search closed - commons opens it only for focus
+        // taken once the screen is up - so the field is not to be handed back its text or its focus
+        field.isSaveEnabled = false
+        field.post {
+            if (!topBar.isSearchOpen) {
+                field.clearFocus()
+            }
+        }
+
         ViewCompat.setOnApplyWindowInsetsListener(field) { _, insets ->
             val wasUp = isUp
             isUp = insets.isVisible(WindowInsetsCompat.Type.ime())

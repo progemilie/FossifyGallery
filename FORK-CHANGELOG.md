@@ -47,6 +47,8 @@ Notable fork-only changes.
 - Fixed a renamed photo losing its place in a folder arranged by hand.
 - Fixed photos with the same rating not being in date taken order when sorting by rating.
 - Fixed removing metadata from an unusually built file possibly saving only part of the photo. Files that cannot be read to the end are now left untouched.
+- Fixed the keyboard covering the whole screen when searching in landscape.
+- Fixed the search bar keeping a blinking cursor after the keyboard was closed, or its text after the screen was turned.
 
 ## [v1.19.0] - 2026.09.01 — UI
 
