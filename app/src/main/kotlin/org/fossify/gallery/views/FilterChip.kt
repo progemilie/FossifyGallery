@@ -49,11 +49,13 @@ class FilterChip(private val topBar: MySearchMenu, private val line: SearchLine)
 
     /** Puts [filter] on the bar, or takes the chip off it for null. */
     fun show(filter: SearchFilter?) {
+        // the hint touched only when it changes: setting it has the field drop its text layout, and
+        // this runs as a tap opens the search, which then finds no layout and puts no keyboard up
         val field = topBar.binding.topToolbarSearch
         if (filter == null) {
             chip?.beGone()
             // unless the bar has been named again since
-            if (field.hint == null) {
+            if (field.hint == null && hint != null) {
                 field.hint = hint
             }
 
@@ -63,8 +65,10 @@ class FilterChip(private val topBar: MySearchMenu, private val line: SearchLine)
         build()
         label?.text = filter.label(context)
         chip?.beVisible()
-        field.hint?.let { hint = it }
-        field.hint = null
+        if (field.hint != null) {
+            hint = field.hint
+            field.hint = null
+        }
     }
 
     /** Repainted with the bar, since every colour here is the theme's. */
