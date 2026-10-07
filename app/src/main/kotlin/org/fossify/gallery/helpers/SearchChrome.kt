@@ -3,18 +3,17 @@ package org.fossify.gallery.helpers
 import android.animation.ValueAnimator
 import android.app.Activity
 import android.content.Context
-import android.os.Build
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import android.view.animation.Interpolator
 import android.view.animation.LinearInterpolator
-import android.window.OnBackInvokedCallback
-import android.window.OnBackInvokedDispatcher
-import androidx.annotation.RequiresApi
 import androidx.core.animation.doOnEnd
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.getProperTextColor
+import org.fossify.commons.extensions.hideKeyboard
 import org.fossify.commons.helpers.isSPlus
 import org.fossify.commons.views.MySearchMenu
 import org.fossify.gallery.R
@@ -52,16 +51,13 @@ class SearchChrome(
     private val overlay = SearchOverlay(context)
     private val chip = FilterChip(topBar)
     private val edge = SearchEdge(topBar)
+    private val keyboard = SearchKeyboard(topBar)
 
     private val dimCurve = context.curve(R.interpolator.search_dim)
     private val settle = context.curve(R.interpolator.search_settle)
     private val leave = context.curve(R.interpolator.search_leave)
     private val rise = resources.getDimension(R.dimen.search_options_rise)
     private val barGap = resources.getDimensionPixelSize(R.dimen.search_options_top_gap)
-
-    // what keeps Back with nothing typed for closing the search, where the platform can be asked
-    private val syncUntouchedBack: () -> Unit =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) UntouchedSearchBack(topBar)::sync else ({})
 
     private var pane: GridPane? = null
 
@@ -93,6 +89,7 @@ class SearchChrome(
             onFilterChosen?.invoke(filter.takeUnless { it == pane?.activeFilter })
         }
 
+        overlay.onDimTapped = keyboard::putAway
         chip.onClear = { onFilterChosen?.invoke(null) }
     }
 
@@ -123,20 +120,17 @@ class SearchChrome(
     }
 
     fun onSearchOpened() {
-        syncUntouchedBack()
         edge.light(on = true)
         showOptions()
     }
 
     fun onSearchClosed() {
         optionsAsked++
-        syncUntouchedBack()
         edge.light(on = false)
         fadeOptions()
     }
 
     fun onSearchTextChanged(text: String) {
-        syncUntouchedBack()
         if (!topBar.isSearchOpen) {
             return
         }
@@ -261,28 +255,35 @@ private class SearchEdge(topBar: MySearchMenu) {
 }
 
 /**
- * Back while a search is open and nothing has been typed closes it at once, keyboard and all. Left to
- * itself the keyboard takes that Back to put itself away, and the search only follows once it has
- * gone - so for as long as there is nothing to lose, a callback above the keyboard's own takes it.
+ * The search field holds its focus, and with it the cursor, only while the keyboard is up. Whatever
+ * puts the keyboard away - Back, a tap on the dim, anything else - leaves the search open with nothing
+ * blinking in it, so Back takes the keyboard first and closes the search the time after.
  */
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
-private class UntouchedSearchBack(private val topBar: MySearchMenu) {
-    private val callback = OnBackInvokedCallback { topBar.closeSearch() }
-    private var isRegistered = false
+private class SearchKeyboard(topBar: MySearchMenu) {
+    private val field = topBar.binding.topToolbarSearch
+    private var isUp = false
 
-    fun sync() {
-        val dispatcher = (topBar.context as? Activity)?.onBackInvokedDispatcher ?: return
-        val wanted = topBar.isSearchOpen && topBar.getCurrentQuery().isEmpty()
-        if (wanted == isRegistered) {
-            return
-        }
+    init {
+        ViewCompat.setOnApplyWindowInsetsListener(field) { _, insets ->
+            val wasUp = isUp
+            isUp = insets.isVisible(WindowInsetsCompat.Type.ime())
+            if (wasUp && !isUp) {
+                // not in the middle of insets: losing focus has the field let go of the keyboard
+                field.post {
+                    if (!isUp) {
+                        field.clearFocus()
+                    }
+                }
+            }
 
-        isRegistered = wanted
-        if (wanted) {
-            dispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_OVERLAY, callback)
-        } else {
-            dispatcher.unregisterOnBackInvokedCallback(callback)
+            insets
         }
+    }
+
+    /** Puts the keyboard away and leaves the search up, without a cursor even where no keyboard showed. */
+    fun putAway() {
+        (field.context as? Activity)?.hideKeyboard(field)
+        field.clearFocus()
     }
 }
 

@@ -19,7 +19,7 @@ Read these before changing this feature — each can break silently if this one 
 
 | File | Job |
 |---|---|
-| `helpers/SearchChrome.kt` | The dim, the options, the chip and the edge an open search adds to the bar, moved together; Back with nothing typed |
+| `helpers/SearchChrome.kt` | The dim, the options, the chip and the edge an open search adds to the bar, moved together; the field's focus, which follows the keyboard |
 | `views/SearchOverlay.kt`, `SearchOverlaySections.kt`, `SearchPill.kt`, `FlowRow.kt` | The dim and the blur, and the options as headed rows of pills |
 | `views/FilterChip.kt` | The chip, built into commons' bar |
 | `models/SearchFilter.kt` | `SearchFilter`, `MediaKind`, `SizeRange` |
@@ -37,15 +37,15 @@ index + 1: under the bar, over everything the glass copies. Opening is one entra
 it a `RenderEffect` blur on `content_holder`, Android 12+ with Glass UI on) comes in on a curve, the
 pill's edge comes up with its light along the bottom and the light rises to rest along the top, and
 the options rise the last 24dp into place as they fade in. The edge is the Save button's at twice the
-opacity. The dim takes every touch and does nothing with it.
+opacity. The dim takes every touch, and a tap anywhere a pill is not puts the keyboard away.
 
 Typing hands the grid back for its live results: the dim and the options fade, the edge stays while
 the search is open, and clearing the text brings them back. Closing fades everything at once.
 
-Back while the search is open with nothing typed closes it, keyboard and all, in one press:
-`UntouchedSearchBack` registers a callback above the keyboard's own (`PRIORITY_OVERLAY`, Android 13+)
-for exactly as long as there is nothing to lose. Once something is typed the keyboard takes Back
-first again, then Back closes the search, then Back takes the chip off.
+The field holds its focus, and so the cursor, only while the keyboard is up (`SearchKeyboard`):
+whatever puts the keyboard away — Back, a tap on the dim, opening a result — leaves the search open
+with nothing blinking in it. So Back takes the keyboard first, then closes the search, then takes
+the chip off.
 
 ## The options
 

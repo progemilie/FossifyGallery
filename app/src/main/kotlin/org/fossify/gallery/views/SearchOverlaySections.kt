@@ -7,6 +7,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.core.view.children
+import androidx.core.view.descendants
 import androidx.core.view.isEmpty
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
@@ -42,6 +43,17 @@ class SearchOverlaySections(private val column: LinearLayout) {
     }
 
     fun clear() = column.removeAllViews()
+
+    /** Whether the point [x], [y] of the screen falls on a pill on show. */
+    fun hasPillAt(x: Float, y: Float): Boolean {
+        val at = IntArray(2)
+        return column.descendants.any { pill ->
+            pill is SearchPill && pill.isShown && run {
+                pill.getLocationOnScreen(at)
+                x >= at[0] && x < at[0] + pill.width && y >= at[1] && y < at[1] + pill.height
+            }
+        }
+    }
 
     private fun section(
         @StringRes title: Int,

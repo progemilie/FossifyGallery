@@ -25,7 +25,6 @@ Notable fork-only changes.
 - **Custom order mode is restyled** to match the rest of the app.
 - Outlines on folder covers and in custom order mode are finer, and fade towards the bottom.
 - The menu opened from a pill at the bottom opens in the middle of the screen.
-- Going back from a search with nothing typed closes the search, rather than only the keyboard.
 - The metadata sheet no longer shows a date created, which only ever repeated another date.
 - The folder grid offers only as many columns as fit the screen — five on a phone — rather than up to twenty.
 - Sorting and grouping by rating works like any other sorting now.

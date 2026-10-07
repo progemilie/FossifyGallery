@@ -50,11 +50,10 @@ segment already showing scrolls that pane back to the top — jumping to a few r
 `panWith(grid)` lets go of the previous grid first; during a swap both grids are on screen, and
 chrome still following the one leaving would pan away with it.
 
-Search: the bar names the open folder (or group) rather than saying "Search in …", and Back with
-the keyboard up on an empty search closes the search with the keyboard - in the same press on
-Android 13+ (see [search](search.md)), and below that once the keyboard has gone
-(`GridChrome.closeEmptySearchWithKeyboard`). With "Search all files by default" on, opening the search
-in Albums swaps to Pictures with the search still open (`swapTo(keepSearch = true)`).
+Search: the bar names the open folder (or group) rather than saying "Search in …", and Back puts
+the keyboard away before it closes the search (see [search](search.md)). With "Search all files by
+default" on, opening the search in Albums swaps to Pictures with the search still open
+(`swapTo(keepSearch = true)`).
 
 ## What breaks silently
 

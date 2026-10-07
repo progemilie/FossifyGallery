@@ -7,6 +7,7 @@ import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.os.Build
 import android.util.AttributeSet
+import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -40,7 +41,7 @@ class SearchOverlay @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
-    // takes every touch: the grid is not to be reached under it, and tapping it does nothing
+    // takes every touch: the grid is not to be reached under it
     private val dim = View(context).apply {
         setBackgroundColor(Color.BLACK)
         isClickable = true
@@ -73,6 +74,19 @@ class SearchOverlay @JvmOverloads constructor(
         set(value) {
             sections.onChosen = value
         }
+
+    /** A tap no pill takes: on the dim, or anywhere around and between the options. */
+    var onDimTapped: (() -> Unit)? = null
+
+    private val taps = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+        override fun onSingleTapUp(e: MotionEvent): Boolean {
+            if (!sections.hasPillAt(e.rawX, e.rawY)) {
+                onDimTapped?.invoke()
+            }
+
+            return false
+        }
+    })
 
     private var dimming: ValueAnimator? = null
 
@@ -132,9 +146,15 @@ class SearchOverlay @JvmOverloads constructor(
         sections.clear()
     }
 
-    // a gesture that began while the overlay was staying is let finish
-    override fun dispatchTouchEvent(event: MotionEvent) =
-        !(isLeaving && event.actionMasked == MotionEvent.ACTION_DOWN) && super.dispatchTouchEvent(event)
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        // a gesture that began while the overlay was staying is let finish
+        if (isLeaving && event.actionMasked == MotionEvent.ACTION_DOWN) {
+            return false
+        }
+
+        taps.onTouchEvent(event)
+        return super.dispatchTouchEvent(event)
+    }
 
     private fun blur(level: Float) {
         val content = blurred
