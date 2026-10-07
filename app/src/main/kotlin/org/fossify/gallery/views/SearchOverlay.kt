@@ -92,7 +92,8 @@ class SearchOverlay @JvmOverloads constructor(
     private var dimming: ValueAnimator? = null
 
     // fading away, nothing on the overlay may be pressed: touches go through to the grid it uncovers
-    private var isLeaving = false
+    var isLeaving = false
+        private set
 
     /** How far the dim, and the blur with it, has come in, 0 to 1. */
     var dimLevel = 0f

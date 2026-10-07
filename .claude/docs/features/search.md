@@ -42,7 +42,8 @@ the options rise the last 24dp into place as they fade in. The edge is the Save 
 opacity. The dim takes every touch, and a tap anywhere a pill is not puts the keyboard away.
 
 Typing hands the grid back for its live results: the dim and the options fade, the edge stays while
-the search is open, and clearing the text brings them back. Closing fades everything at once.
+the search is open, and clearing the text brings them back. Closing fades everything at once. A fade
+under way is left to finish: restarted by every keystroke, it would begin its curve over each time.
 
 The field holds its focus, and so the cursor, only while the keyboard is up (`SearchKeyboard`):
 whatever puts the keyboard away — Back, a tap on the dim, opening a result, leaving the app — leaves

@@ -193,7 +193,8 @@ class SearchChrome(
     private fun fadeOptions() {
         shownOptions = null
         TraitIndex.removeListener(traitsFound)
-        if (!overlay.isShown) {
+        // every keystroke asks again: restarted, the fade would begin its curve over each time
+        if (!overlay.isShown || overlay.isLeaving) {
             return
         }
 
