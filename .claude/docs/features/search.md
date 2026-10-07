@@ -26,7 +26,7 @@ Read these before changing this feature — each can break silently if this one 
 | `models/SearchFilter.kt` | `SearchFilter`, `MediaKind`, `SizeRange` |
 | `helpers/SearchOptions.kt` | What a grid can offer (`searchOptionsOf`), what a filter lets through (`matches`), `MediaFacts` |
 | `interfaces/SearchTarget.kt` | What the options ask of a pane: `loadSearchOptions`, `applyFilter`, `activeFilter` |
-| `helpers/TraitIndex.kt`, `TraitReader.kt`, `models/MediaTraits.kt`, `interfaces/SearchDao.kt` | The `media_traits` cache (DB v13), and the media table read whole |
+| `helpers/TraitIndex.kt`, `TraitReader.kt`, `models/MediaTraits.kt`, `interfaces/SearchDao.kt` | The `media_traits` cache (DB v13); the media table, whole for Albums' count and as photo paths for a pass |
 | `helpers/ViewerNarrowing.kt` | The results a narrowed grid hands the viewer |
 | `extensions/Search.kt` | `searchDB`, `libraryMedia`, `traitLookup`, `mediaFacts` |
 | `res/interpolator/search_*.xml` | The curves the overlay and the edge move on |
@@ -99,11 +99,20 @@ in keeps to them. A rename in the viewer carries the path along.
 ## The trait index
 
 `TraitIndex` reads each photo's make, model, lens name, dimensions and XMP in one open of the file
-(`TraitReader`), and keeps what the search needs in `media_traits`. It runs after a scan, never in
-one — at the end of the folder grid's rescan and after a pane's fresh load — one pass at a time on a
-minimum-priority thread, opening only what is new or changed. A first pass hands over every 200 photos,
-and an open search listens (`TraitIndex.Listener`) so its pills fill in. On the emulator a pass over
-~16,000 files takes 0.9s once read, and a photo takes about 2.5ms to read the first time.
+(`TraitReader`), and keeps what the search needs in `media_traits`, held in memory once first asked
+for. It runs after a scan, never in one — at the end of the folder grid's rescan and after a pane's
+fresh load — one pass at a time on a minimum-priority thread, opening only what is new or changed. A
+first pass hands over every 200 photos, and an open search listens (`TraitIndex.Listener`) so its
+pills fill in.
+
+Only a photo's last-modified and size tell that it changed, and reading those for every photo is most
+of what a pass costs — while scans, and so passes, come with every return to a grid. So a pass reads
+them only when something may have changed: MediaStore's generation has moved (a file added or changed
+through it), the app has edited a file in place (`TransformedMedia.generation`), it is the process's
+first pass, or `RECHECK_MS` (five minutes) has gone by since the last that did — which is what catches
+a change MediaStore never saw, as it does not see a file overwritten from the shell. Otherwise a pass
+looks only for photos it has not read. On the emulator, over ~16,000 photos, a pass that rechecks takes
+about 0.5s and one that does not about 0.08s; a photo takes about 2.5ms to read the first time.
 
 ## What breaks silently
 
@@ -116,6 +125,9 @@ and an open search listens (`TraitIndex.Listener`) so its pills fill in. On the 
   narrowed already when it rebuilds for that.
 - **`Medium.size` is 0 from a folder scan unless it sorts by size.** Sizes go through `MediaFacts`:
   MediaStore in one query, then the file.
+- **A trait pass trusts MediaStore between rechecks**, so an edit in place has to call
+  `TransformedMedia.onTransformed` — as every cache already requires — or the photo keeps its old traits
+  for up to `RECHECK_MS`.
 - **A search can open onto a pane still loading** — one carried over by "Search all files by default"
   — so a pane answers its options again once its media arrives (`mOptionsWanted`), and a grid still
   loading is not counted as offering nothing.
