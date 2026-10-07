@@ -205,7 +205,7 @@ class SearchChrome(
         overlay.options.animate().alpha(0f).setDuration(OUT_MS).setInterpolator(leave).start()
         overlay.dimTo(0f, OUT_MS, leave).doOnEnd {
             if (overlay.dimLevel == 0f) {
-                overlay.beGone()
+                overlay.hide()
             }
         }
     }

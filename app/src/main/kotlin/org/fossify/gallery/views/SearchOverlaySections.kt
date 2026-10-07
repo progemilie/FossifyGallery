@@ -41,6 +41,8 @@ class SearchOverlaySections(private val column: LinearLayout) {
         section(R.string.search_file_size, options.sizes.map(SearchFilter::Size), active)
     }
 
+    fun clear() = column.removeAllViews()
+
     private fun section(
         @StringRes title: Int,
         choices: List<SearchFilter>,

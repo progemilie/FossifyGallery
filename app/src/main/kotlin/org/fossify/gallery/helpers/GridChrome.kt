@@ -34,6 +34,9 @@ class GridChrome(
 
     private var pane: GridPane? = null
 
+    // commons opens the search again every time the field takes focus, while it is open as much as not
+    private var isSearchUp = false
+
     /**
      * The wiring that outlives any one pane. Commons' [MySearchMenu.setupMenu] hangs listeners on
      * the search field rather than on the menu, so it belongs here and must not be run again by
@@ -54,11 +57,15 @@ class GridChrome(
         navPill?.onAvailabilityChanged = { menu.isOnToolbar = !it }
 
         topBar.onSearchOpenListener = {
-            search.onSearchOpened()
-            this.pane?.onSearchToggled(true)
+            if (!isSearchUp) {
+                isSearchUp = true
+                search.onSearchOpened()
+                this.pane?.onSearchToggled(true)
+            }
         }
 
         topBar.onSearchClosedListener = {
+            isSearchUp = false
             search.onSearchClosed()
             this.pane?.onSearchToggled(false)
         }

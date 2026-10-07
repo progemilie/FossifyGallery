@@ -7,6 +7,7 @@ import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.os.Build
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.Interpolator
@@ -16,6 +17,7 @@ import android.widget.ScrollView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import org.fossify.commons.extensions.beGone
 import org.fossify.gallery.R
 import org.fossify.gallery.helpers.SearchOptions
 import org.fossify.gallery.models.SearchFilter
@@ -74,6 +76,9 @@ class SearchOverlay @JvmOverloads constructor(
 
     private var dimming: ValueAnimator? = null
 
+    // fading away, nothing on the overlay may be pressed: touches go through to the grid it uncovers
+    private var isLeaving = false
+
     /** How far the dim, and the blur with it, has come in, 0 to 1. */
     var dimLevel = 0f
         set(value) {
@@ -105,6 +110,7 @@ class SearchOverlay @JvmOverloads constructor(
     /** Takes the dim to [level] from wherever it is, dropping whatever it was doing for this. */
     fun dimTo(level: Float, duration: Long, curve: Interpolator): ValueAnimator {
         dimming?.cancel()
+        isLeaving = level == 0f
         return ValueAnimator.ofFloat(dimLevel, level).apply {
             this.duration = duration
             interpolator = curve
@@ -119,6 +125,16 @@ class SearchOverlay @JvmOverloads constructor(
         sections.fill(options, active)
         this.options.scrollTo(0, 0)
     }
+
+    /** Takes the faded overlay off the screen, and its pills with it: unseen, they are not to be pressed. */
+    fun hide() {
+        beGone()
+        sections.clear()
+    }
+
+    // a gesture that began while the overlay was staying is let finish
+    override fun dispatchTouchEvent(event: MotionEvent) =
+        !(isLeaving && event.actionMasked == MotionEvent.ACTION_DOWN) && super.dispatchTouchEvent(event)
 
     private fun blur(level: Float) {
         val content = blurred

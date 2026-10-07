@@ -99,5 +99,11 @@ and an open search listens (`TraitIndex.Listener`) so its pills fill in. On the 
   — so a pane answers its options again once its media arrives (`mOptionsWanted`).
 - **Commons' `toggleForceArrowBackIcon(false)` puts the magnifier back with a search open**, so
   `SearchChrome.bind()` puts the arrow back for a search carried across a swap.
+- **Commons opens the search again every time the field takes focus**, open already or not, and
+  commons' `hideKeyboard()` takes the focus away (opening a result does). `GridChrome` lets only the
+  first opening through: another would bring the dim back over typed results, the faded pills under it.
+- **Nothing faded may be pressed.** The overlay lets touches through from the moment it starts to leave
+  (`dimTo(0f)`), and drops its pills once gone, so the next opening has none waiting unseen while its
+  own are counted.
 - **Every list the viewer reads in must go through `mNarrowing`**, and only a viewer the narrowed grid
   opened takes the results — a shortcut or another app sees the whole folder.
