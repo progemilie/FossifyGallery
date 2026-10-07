@@ -3,6 +3,7 @@
     <string name="fix_date_taken">Corrigir data de captura</string>
     <string name="images">Imagens</string>
     <string name="share_resized">Partilhar foto redimensionada</string>
+    <string name="filter_media">Filtrar multimédia</string>
     <string name="no_media_with_filters">Não foram encontrados ficheiros que cumpram os requisitos.</string>
     <string name="lock_orientation">Bloquear orientação</string>
     <string name="force_landscape">Impor modo horizontal</string>
@@ -25,6 +26,7 @@
     <string name="unpin_folder">Desafixar pasta</string>
     <string name="portraits">Retratos</string>
     <string name="pin_folder">Fixar pasta</string>
+    <string name="change_filters_underlined"><u>Alterar filtros</u></string>
     <string name="dates_fixed_successfully">Dados corrigidos com sucesso</string>
     <string name="show_on_map">Mostrar no mapa</string>
     <string name="folder_view">Alternar para a vista de pastas</string>

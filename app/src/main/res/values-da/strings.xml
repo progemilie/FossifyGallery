@@ -31,6 +31,7 @@
     <string name="reorder_by_dragging">Omarranger mapper ved at trække</string>
     <string name="reorder_by_dragging_pro">Omarranger mapper ved at trække (Pro)</string>
     <string name="restore_to_path">Gendanner til \'%s\'</string>
+    <string name="filter_media">Filtrér medier</string>
     <string name="images">Billeder</string>
     <string name="videos">Videoer</string>
     <string name="gifs">GIF\'er</string>
@@ -38,6 +39,7 @@
     <string name="svgs">SVG\'er</string>
     <string name="portraits">Portrætter</string>
     <string name="no_media_with_filters">Ingen mediefiler fundet med de valgte filtre.</string>
+    <string name="change_filters_underlined"><u>Skift filter</u></string>
     <string name="hide_folder_description">Denne funktion skjuler mappen ved at lægge en \".nomedia\"-fil i den, hvilket også skjuler alle undermapper. Du kan vise dem igen via \"Vis skjulte elementer\" i Indstillinger. Fortsæt?</string>
     <string name="exclude_folder_parent">Ekskluder en overordnet mappe i stedet?</string>
     <string name="hidden_folders">Skjulte mapper</string>

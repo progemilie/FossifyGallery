@@ -19,10 +19,12 @@
     <string name="lock_orientation">Užrakinti orientaciją</string>
     <string name="unlock_orientation">Atrakinti orientaciją</string>
     <string name="change_orientation">Keisti orientaciją</string>
+    <string name="filter_media">Filtruoti mediją</string>
     <string name="images">Vaizdai</string>
     <string name="videos">Vaizdo įrašai</string>
     <string name="gifs">GIF\'ai</string>
     <string name="no_media_with_filters">Su pasirinktais filtrais nerasta medijos bylų.</string>
+    <string name="change_filters_underlined"><u>Pakeisti filtrus</u></string>
     <string name="hide_folder_description">Ši funkcija slepia aplanką, pridedant į jį \'. Nomedia \' bylą, jis taip pat slėps visus subaplankus. Galite juos peržiūrėti, perjunkite parinktį Rodyti paslėptus elementus \" skiltyje Nustatymai. Tęsti\?</string>
     <string name="exclude_folder_parent">Vietoj to išskirti tėvinį\?</string>
     <string name="hidden_folders">Paslėpti aplankai</string>

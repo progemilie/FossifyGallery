@@ -31,6 +31,7 @@
     <string name="reorder_by_dragging">Promijeni redoslijed mapa povlačenjem</string>
     <string name="reorder_by_dragging_pro">Promijeni redoslijed mapa povlačenjem (Pro)</string>
     <string name="restore_to_path">Obnavlja se u „%s”</string>
+    <string name="filter_media">Filtar medija</string>
     <string name="images">Slike</string>
     <string name="videos">Videa</string>
     <string name="gifs">GIF-ovi</string>
@@ -38,6 +39,7 @@
     <string name="svgs">SVG-ovi</string>
     <string name="portraits">Portreti</string>
     <string name="no_media_with_filters">Nije pronađena nijedna datoteka s odabranim filtrom.</string>
+    <string name="change_filters_underlined"><u>Promijeni filtre</u></string>
     <string name="hide_folder_description">Ova funkcija skriva mapu dodavanjem „.nomedia” datoteke u mapu. Također će sakriti i sve podmape. Možeš ih vidjeti uključivanjem opcije „Prikaži skrivene mape” u postavkama. Nastaviti\?</string>
     <string name="exclude_folder_parent">Isključiti glavnu mapu umjesto toga\?</string>
     <string name="hidden_folders">Skrivene mape</string>

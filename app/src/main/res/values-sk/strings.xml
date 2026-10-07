@@ -31,6 +31,7 @@
     <string name="reorder_by_dragging">Zmeniť poradie priečinkov presunutím</string>
     <string name="reorder_by_dragging_pro">Zmeniť poradie priečinkov presunutím (Pro)</string>
     <string name="restore_to_path">Obnovuje sa do \'%s\'</string>
+    <string name="filter_media">Filter médií</string>
     <string name="images">Obrázky</string>
     <string name="videos">Videá</string>
     <string name="gifs">GIF</string>
@@ -38,6 +39,7 @@
     <string name="svgs">SVG</string>
     <string name="portraits">Portréty</string>
     <string name="no_media_with_filters">So zvolenými filtrami sa nenašli žiadne média súbory.</string>
+    <string name="change_filters_underlined"><u>Zmeniť filtre</u></string>
     <string name="hide_folder_description">Táto funkcia skryje priečinok pridaním súboru \'.nomedia\', skryté budú aj podpriečinky. Môžete ich vidieť zvolením možnosti \'Zobraziť skryté priečinky\' v nastaveniach. Pokračovať\?</string>
     <string name="exclude_folder_parent">Chcete vylúčiť nadpriečinok\?</string>
     <string name="hidden_folders">Skryté priečinky</string>

@@ -31,6 +31,7 @@
     <string name="reorder_by_dragging">Seřadit složky přetažením</string>
     <string name="reorder_by_dragging_pro">Seřadit složky přetažením (Pro)</string>
     <string name="restore_to_path">Obnovuje se do \'%s\'</string>
+    <string name="filter_media">Filtr médií</string>
     <string name="images">Obrázky</string>
     <string name="videos">Videa</string>
     <string name="gifs">Soubory GIF</string>
@@ -38,6 +39,7 @@
     <string name="svgs">Soubory SVG</string>
     <string name="portraits">Portréty</string>
     <string name="no_media_with_filters">Se zvolenými filtry nebyly nalezeny žádné mediální soubory.</string>
+    <string name="change_filters_underlined"><u>Změnit filtry</u></string>
     <string name="hide_folder_description">Tato funkce skryje složku včetně podsložek přidáním souboru \'.nomedia\'. Zobrazíte je zvolením možnosti \'Zobrazit skryté položky\' v nastavení. Pokračovat\?</string>
     <string name="exclude_folder_parent">Chcete vyloučit nadřazenou složku\?</string>
     <string name="hidden_folders">Skryté složky</string>
