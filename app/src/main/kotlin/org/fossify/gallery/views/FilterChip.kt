@@ -6,11 +6,9 @@ import android.graphics.drawable.GradientDrawable
 import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
-import android.view.View
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.RelativeLayout
 import android.widget.TextView
 import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.applyColorFilter
@@ -28,12 +26,12 @@ private const val CROSS_ALPHA = 0.8f
 
 /**
  * The filter a grid is narrowed by, carried on the search bar between the magnifier and the field:
- * its name, and a cross that takes it off. Built into commons' bar the way the tab button is, with the
- * field moved along to start after it, so anything typed follows the chip - which stands in for the
- * bar's hint while it is up. Tapping the chip itself is tapping the bar - the search opens with the
- * filter still on, to narrow it further.
+ * its name, and a cross that takes it off. It goes into the bar's [SearchLine] ahead of the field, so
+ * anything typed follows the chip and scrolls it away once there is too much to fit beside it; and it
+ * stands in for the bar's hint while it is up. Tapping the chip itself is tapping the bar - the search
+ * opens with the filter still on, to narrow it further.
  */
-class FilterChip(private val topBar: MySearchMenu) {
+class FilterChip(private val topBar: MySearchMenu, private val line: SearchLine) {
     private val context = topBar.context
     private val resources = context.resources
 
@@ -82,7 +80,6 @@ class FilterChip(private val topBar: MySearchMenu) {
             return
         }
 
-        val field = topBar.binding.topToolbarSearch
         val height = resources.getDimensionPixelSize(R.dimen.filter_chip_height)
         val padding = resources.getDimensionPixelSize(R.dimen.filter_chip_padding)
         val text = TextView(context).apply {
@@ -105,7 +102,6 @@ class FilterChip(private val topBar: MySearchMenu) {
         }
 
         val holder = LinearLayout(context).apply {
-            id = View.generateViewId()
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             background = fill
@@ -114,19 +110,13 @@ class FilterChip(private val topBar: MySearchMenu) {
             setOnClickListener { reopenSearch() }
         }
 
-        topBar.binding.toolbarContainer.addView(
+        line.row.addView(
             holder,
-            RelativeLayout.LayoutParams(WRAP_CONTENT, height).apply {
-                addRule(RelativeLayout.END_OF, topBar.binding.topToolbarSearchIcon.id)
-                addRule(RelativeLayout.CENTER_VERTICAL)
+            0,
+            LinearLayout.LayoutParams(WRAP_CONTENT, height).apply {
                 marginStart = resources.getDimensionPixelSize(R.dimen.filter_chip_gap)
             }
         )
-
-        // a chip that is gone hands the field back to the magnifier: RelativeLayout follows a gone
-        // anchor's own rule to the next one along
-        (field.layoutParams as RelativeLayout.LayoutParams).addRule(RelativeLayout.END_OF, holder.id)
-        field.requestLayout()
 
         chip = holder
         label = text

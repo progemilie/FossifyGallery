@@ -22,6 +22,7 @@ Read these before changing this feature — each can break silently if this one 
 | `helpers/SearchChrome.kt` | The dim, the options, the chip and the edge an open search adds to the bar, moved together; the field's focus, which follows the keyboard |
 | `views/SearchOverlay.kt`, `SearchOverlaySections.kt`, `SearchPill.kt`, `FlowRow.kt` | The dim and the blur, and the options as headed rows of pills |
 | `views/FilterChip.kt` | The chip, built into commons' bar |
+| `views/SearchLine.kt` | The chip and commons' field, moved into one line that scrolls sideways |
 | `models/SearchFilter.kt` | `SearchFilter`, `MediaKind`, `SizeRange` |
 | `helpers/SearchOptions.kt` | What a grid can offer (`searchOptionsOf`), what a filter lets through (`matches`), `MediaFacts` |
 | `interfaces/SearchTarget.kt` | What the options ask of a pane: `loadSearchOptions`, `applyFilter`, `activeFilter` |
@@ -71,6 +72,11 @@ takes it off. While one is on, the bar carries it as a chip (the cross takes it 
 bar's hint, which `FilterChip` puts aside and hands back - unless a pane has named the bar again in
 the meantime - and the pill and the tab button go as they do for a search. Opening the search with a
 chip on keeps it, lit among the pills — picked again, it comes off — and typing narrows within it.
+
+The chip and the field share a `SearchLine`, which commons' field is moved into from its place in the
+bar. The field takes the room the chip leaves - where the hint is cut short as it always was - and text
+typed past that widens it, the line following the cursor, so the chip scrolls away rather than leave
+no room to see what is typed. A drag scrolls it back.
 
 `MediaGridPane.searchQueryChanged()` narrows by the filter and the text together, off the main thread,
 and drops any answer a later one has overtaken (`mSearchGeneration`). `mSearchResults` is set whenever

@@ -21,6 +21,7 @@ import org.fossify.gallery.R
 import org.fossify.gallery.interfaces.GridPane
 import org.fossify.gallery.models.SearchFilter
 import org.fossify.gallery.views.FilterChip
+import org.fossify.gallery.views.SearchLine
 import org.fossify.gallery.views.SearchOverlay
 
 private const val DIM_IN_MS = 300L
@@ -50,7 +51,7 @@ class SearchChrome(
     private val context = topBar.context
     private val resources = context.resources
     private val overlay = SearchOverlay(context)
-    private val chip = FilterChip(topBar)
+    private val chip = FilterChip(topBar, SearchLine.around(topBar))
     private val edge = SearchEdge(topBar)
     private val keyboard = SearchKeyboard(topBar)
 
