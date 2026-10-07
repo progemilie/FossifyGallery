@@ -77,6 +77,14 @@ pill at the top, a navigation pill at the foot, and selection pills in place of 
 panel is a `GlassPanel`, comes and goes through `PanelAnim`, and takes its colours from `Glass`. See
 [floating chrome and glass](features/floating-chrome.md).
 
+**No screen shows the status bar in landscape** (multi-window aside). `LandscapeStatusBar`, registered
+in `App`, hides it as every activity starts and takes it out of the insets at `android.R.id.content` -
+below commons' listener on the decor view, which reads it whether it shows or not - so everything
+laid out from there down moves up into its room, commons' bars and Compose screens included. Views a
+screen pads at the top that are not one of commons' bars go through `fitSystemBars` rather than
+commons' `setupEdgeToEdge`, or they keep the room empty. The viewers put the bar with their chrome
+(`ViewerSystemBars`), and a dialog filling the screen asks for it too (`LandscapeStatusBar.follow`).
+
 ## Conventions
 
 - **Blocking work says so.** Functions that touch the file, Room or MediaStore are documented

@@ -33,6 +33,7 @@ Notable fork-only changes.
 - The Filter media button is gone; the search's options replace it.
 - A photo opened from search results swipes through the results only.
 - With "Search all files by default" on, searching in Albums opens Pictures' search instead of a separate screen.
+- The status bar is hidden in landscape on every screen, not only in the viewer.
 ### Fixed
 - Fixed a photo or video opening soft — the picture the tile grows into is now the photo itself, or the video's own frame, rather than a thumbnail of it, so it is sharp the moment the viewer arrives.
 - Fixed swiping and zooming not working for a while after a photo opened — the longer, the bigger the library.

@@ -20,13 +20,16 @@ Read these before changing this feature — each can break silently if this one 
 | File | Job |
 |---|---|
 | `helpers/ViewerSystemBars.kt` | Whether the window is in the landscape layout; the bars' visibility; the insets everything is laid out by |
+| `helpers/LandscapeStatusBar.kt` | Where the status bar is hidden, for every screen; the other screens' side of it |
 | `activities/BaseViewerActivity.kt` | `hasLandscapeLayout`, the opt-in; `onLandscapeLayoutChanged()`, the hook a viewer re-arranges in |
 | `helpers/BottomActionsPlacement.kt` | Moves the bar between the foot and the top row, and fits the row to the room it has |
 | `views/BottomActionButton.kt` | A bar button the row can squeeze out without undoing what the viewer asked of it |
 | `views/VideoControlsLayout.kt` | The video's controls in a row of their own, or sharing the frames' row |
 
 The main viewer, the viewer for files opened from other apps and the peek viewer opt in. The separate
-video player does not, and keeps upstream's chrome.
+video player does not, and keeps upstream's chrome - but not the status bar, which no screen shows in
+landscape (see [architecture](../architecture.md#chrome)). Its controls follow the navigation bar
+instead, which comes and goes with them.
 
 ## How it works
 
@@ -36,12 +39,14 @@ A rotation or a change of window mode is checked from both `onConfigurationChang
 `onMultiWindowModeChanged`, since which comes first differs, and only a change of layout acts: the
 bars are put the way the chrome is, the viewer re-arranges, and the insets are asked for again.
 
-**The status bar is hidden for good, not with the chrome.** With the chrome up only the navigation
-bar shows, and a swipe from the top brings the status bar back as a transient bar over the top row,
-which the system takes away again. `layoutInsets()` leaves the status bar out, so the top bar, the
-video's speed pill and the metadata sheet's highest point all move up into its room - and do not move
-when a dialog or the swipe brings the bar back for a moment. It is asked for before the first frame,
-so the bar is already leaving as the photo grows in.
+**The status bar is hidden for good, not with the chrome** - in every viewer, the separate video
+player too, as on every other screen (`LandscapeStatusBar.isHidden`). With the chrome up only the
+navigation bar shows, and a swipe from the top brings the status bar back as a transient bar over the
+top row, which the system takes away again. `layoutInsets()` leaves the status bar out, so the top
+bar, the video's speed pill and the metadata sheet's highest point all move up into its room - and do
+not move when a dialog or the swipe brings the bar back for a moment. It is asked for before the first
+frame, so the bar is already leaving as the photo grows in. A rotation acts on the status bar coming or
+going; only a viewer with the landscape layout re-arranges for it.
 
 **The bar is moved, not doubled.** `BottomActionsPlacement` takes it out of its place at the foot and
 puts it in the toolbar as a custom view with end gravity, ahead of the heading in child order - the

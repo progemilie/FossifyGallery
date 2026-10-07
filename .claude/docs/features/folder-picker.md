@@ -32,7 +32,9 @@ Settings "Open on startup", and the rest keep "Select destination".
 what the window needs. `directories_content` - the grid, the header, Other folder and the fades - is
 what every pill frosts; the top bar and the search pill float over it. The top bar is padded by the
 status bar and cutout, the search pill by the navigation bar and keyboard, and the grid by the two
-of them.
+of them. Being the window on top, the picker asks for the status bar itself, the way the screen
+under it does - hidden in landscape (`LandscapeStatusBar.follow`), and back as it turns to portrait,
+when a grid at its top is kept there as the bar grows.
 
 **The header** - the title, and the "No items found" a search can leave under it - sits over the
 grid rather than in it, and `FolderPickerLayout.followGrid()` moves it with the grid's first row on

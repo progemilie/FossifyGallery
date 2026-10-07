@@ -1,6 +1,5 @@
 package org.fossify.gallery.helpers
 
-import android.content.res.Configuration
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.Insets
@@ -14,8 +13,9 @@ import org.fossify.gallery.extensions.showSystemUI
 import kotlin.math.max
 
 /**
- * The system bars following a viewer's chrome, except in the landscape layout, where the status bar
- * stays hidden. Split off BaseViewerActivity for detekt's function-count threshold.
+ * The system bars following a viewer's chrome, except the status bar in landscape, which stays hidden
+ * as it does on every screen ([LandscapeStatusBar]). Split off BaseViewerActivity for detekt's
+ * function-count threshold.
  */
 class ViewerSystemBars(
     private val activity: AppCompatActivity,
@@ -23,30 +23,34 @@ class ViewerSystemBars(
     private val isChromeShown: () -> Boolean,
     private val onLandscapeLayoutChanged: () -> Unit,
 ) {
+    private val isStatusBarHidden get() = LandscapeStatusBar.isHidden(activity)
+
     /** Never in multi-window mode, where the system bars are not the app's to hide. */
     val isInLandscapeLayout: Boolean
-        get() = hasLandscapeLayout() && !activity.isInMultiWindowMode &&
-            activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        get() = hasLandscapeLayout() && isStatusBarHidden
 
-    private var wasInLandscapeLayout = false
+    private var wasStatusBarHidden = false
 
     /** Called from onCreate, so the status bar is already leaving as the photo grows in. */
     fun attach() {
-        wasInLandscapeLayout = isInLandscapeLayout
-        if (wasInLandscapeLayout) {
+        wasStatusBarHidden = isStatusBarHidden
+        if (wasStatusBarHidden) {
             update(chromeShown = true)
         }
     }
 
-    /** Called on configuration and multi-window changes, in either order; acts only on a change of layout. */
+    /** Called on configuration and multi-window changes, in either order; acts only as the status bar comes or goes. */
     fun onWindowChanged() {
-        if (isInLandscapeLayout == wasInLandscapeLayout) {
+        if (isStatusBarHidden == wasStatusBarHidden) {
             return
         }
 
-        wasInLandscapeLayout = isInLandscapeLayout
+        wasStatusBarHidden = isStatusBarHidden
         update(isChromeShown())
-        onLandscapeLayoutChanged()
+        if (hasLandscapeLayout()) {
+            onLandscapeLayoutChanged()
+        }
+
         activity.findViewById<View>(android.R.id.content).requestApplyInsets()
     }
 
@@ -57,7 +61,7 @@ class ViewerSystemBars(
     fun update(chromeShown: Boolean) {
         when {
             !chromeShown -> activity.hideSystemUI()
-            isInLandscapeLayout -> WindowInsetsControllerCompat(activity.window, activity.window.decorView).apply {
+            isStatusBarHidden -> WindowInsetsControllerCompat(activity.window, activity.window.decorView).apply {
                 systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 show(Type.navigationBars())
                 hide(Type.statusBars())
@@ -70,7 +74,7 @@ class ViewerSystemBars(
     /** Ignoring visibility, so nothing jumps as the bars come and go, and without the landscape status bar. */
     fun layoutInsets(insets: WindowInsetsCompat): Insets {
         val bars = insets.getInsetsIgnoringVisibility(Type.systemBars())
-        return if (isInLandscapeLayout) Insets.of(bars.left, 0, bars.right, bars.bottom) else bars
+        return if (isStatusBarHidden) Insets.of(bars.left, 0, bars.right, bars.bottom) else bars
     }
 
     /**

@@ -28,6 +28,7 @@ import org.fossify.gallery.helpers.TAB_SCROLL_OFFSET
 import org.fossify.gallery.helpers.TAB_SCROLL_PATH
 import org.fossify.gallery.helpers.TabSwitcher
 import org.fossify.gallery.helpers.ViewerOpening
+import org.fossify.gallery.helpers.fitSystemBars
 import org.fossify.gallery.models.TabLocation
 import org.fossify.gallery.models.TabScreen
 import org.fossify.gallery.models.ThumbnailItem
@@ -264,7 +265,7 @@ class MediaActivity : SimpleActivity(), MediaGridPane.Host, TabSwitcher.Locatabl
     /** Keeps the grid clear of the navigation bar, and the pills floating over it clear of both system bars. */
     private fun setupInsetPadding() {
         val reorderPills = binding.mediaPane.mediaReorderPills
-        setupEdgeToEdge(
+        fitSystemBars(
             // the grid gets no top inset of its own - keepGridClear() pads it by the whole height
             // of the bar, which already carries this inset
             padTopSystem = listOf(

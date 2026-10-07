@@ -60,11 +60,19 @@ class FolderPickerLayout(private val binding: DialogDirectoryPickerBinding) {
             if (isVisible) marginTop + height + marginBottom else 0
         }
 
+        // a grid at its top stays there as the bar grows - as it does when the status bar comes back
+        // with a turn to portrait - rather than keeping its first row where it was, under the header
+        val wasAtTop = directoriesGrid.layoutManager?.canScrollVertically() == true &&
+            !directoriesGrid.canScrollVertically(-1)
         directoriesHeader.updatePadding(top = barHeight)
         directoriesGrid.updatePadding(
             top = barHeight + headerContent,
             bottom = folderSearchView.height + otherFolderRoom
         )
+
+        if (wasAtTop) {
+            directoriesGrid.scrollToPosition(0)
+        }
     }
 
     private fun applyInsets(insets: Insets) = with(binding) {

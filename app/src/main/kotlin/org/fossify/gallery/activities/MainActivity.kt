@@ -175,6 +175,7 @@ import org.fossify.gallery.helpers.TYPE_RAWS
 import org.fossify.gallery.helpers.TYPE_SVGS
 import org.fossify.gallery.helpers.SearchOptions
 import org.fossify.gallery.helpers.TraitIndex
+import org.fossify.gallery.helpers.fitSystemBars
 import org.fossify.gallery.helpers.searchOptionsOf
 import org.fossify.gallery.models.SearchFilter
 import org.fossify.gallery.helpers.TYPE_VIDEOS
@@ -901,7 +902,7 @@ class MainActivity :
     /** Keeps the grids clear of the navigation bar, and the pills floating over them clear of both system bars. */
     private fun setupInsetPadding() {
         val reorderPills = binding.mediaPane.mediaReorderPills
-        setupEdgeToEdge(
+        fitSystemBars(
             // the grids get no top inset of their own - keepGridClear() pads whichever is up by the
             // whole height of the bar, which already carries this inset
             padTopSystem = listOf(

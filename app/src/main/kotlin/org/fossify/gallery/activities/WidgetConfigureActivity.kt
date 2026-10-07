@@ -18,6 +18,7 @@ import org.fossify.gallery.dialogs.PickDirectoryDialog
 import org.fossify.gallery.extensions.*
 import org.fossify.gallery.helpers.MyWidgetProvider
 import org.fossify.gallery.helpers.ROUNDED_CORNERS_NONE
+import org.fossify.gallery.helpers.fitSystemBars
 import org.fossify.gallery.models.Directory
 import org.fossify.gallery.models.Widget
 
@@ -37,7 +38,7 @@ class WidgetConfigureActivity : SimpleActivity() {
         super.onCreate(savedInstanceState)
         setResult(RESULT_CANCELED)
         setContentView(binding.root)
-        setupEdgeToEdge(padTopSystem = listOf(binding.configHolder), padBottomSystem = listOf(binding.root))
+        fitSystemBars(padTopSystem = listOf(binding.configHolder), padBottomSystem = listOf(binding.root))
         initVariables()
 
         mWidgetId = intent.extras?.getInt(AppWidgetManager.EXTRA_APPWIDGET_ID) ?: AppWidgetManager.INVALID_APPWIDGET_ID

@@ -34,6 +34,7 @@ import org.fossify.gallery.databinding.DialogDirectoryPickerBinding
 import org.fossify.gallery.extensions.config
 import org.fossify.gallery.helpers.FloatingTopBar
 import org.fossify.gallery.helpers.Glass
+import org.fossify.gallery.helpers.LandscapeStatusBar
 import org.fossify.gallery.views.GlassPanel
 import org.fossify.gallery.views.NavPillSegment
 
@@ -78,6 +79,7 @@ class FolderPickerScreen(
 
         dialog.setContentView(binding.root)
         dialog.window?.fillScreen(activity.getProperBackgroundColor())
+        LandscapeStatusBar.follow(dialog, activity)
         if (!activity.isDestroyed && !activity.isFinishing) {
             dialog.show()
         }
