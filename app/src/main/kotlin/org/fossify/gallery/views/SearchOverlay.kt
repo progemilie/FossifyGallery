@@ -26,8 +26,6 @@ import org.fossify.gallery.models.SearchFilter
 
 /** How dark the grid goes behind the options. */
 private const val DIM_ALPHA = 0.55f
-
-/** Unblurred, the grid stays sharp enough to fight the pills, so it goes darker. */
 private const val DIM_ALPHA_NO_BLUR = 0.75f
 
 /** Below this a blur is not worth the offscreen pass it costs. */
