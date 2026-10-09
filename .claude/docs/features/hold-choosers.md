@@ -42,7 +42,7 @@ sorting, up to `MAX_QUICK_CHOOSER_FOLDERS`. Built most-recent-last and opened sc
 which is nearest the finger. Folders the operation could only fail on are left out — the chooser has
 nowhere to explain a refusal. Dragging up past the list keeps the top row and keeps scrolling;
 sliding down off it or off a side clears the pick, so a hold that never moved does nothing. Both paths
-still run through commons' `CopyMoveTask`.
+still run through commons' `CopyMoveTask`, started by the fork's port (see [copy-move](copy-move.md)).
 
 **Hanging under a button** (`dropsBelow`): a chooser is translated to stand a gap under its button
 rather than where its layout put it, and grows out of its top edge. The folder list is the mirror of
