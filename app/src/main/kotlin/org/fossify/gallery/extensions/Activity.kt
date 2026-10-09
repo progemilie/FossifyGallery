@@ -345,7 +345,7 @@ fun BaseSimpleActivity.copyMoveFilesToFolder(
     val source = fileDirItems.first().getParentPath()
     handleSAFDialog(source) { granted ->
         if (granted) {
-            copyMoveFilesTo(
+            copyMoveFiles(
                 fileDirItems, source.trimEnd('/'), destination, isCopyOperation, true, config.shouldShowHidden
             ) { destinationPath ->
                 config.addRecentCopyMoveDestination(destinationPath)

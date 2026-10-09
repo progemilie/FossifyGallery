@@ -390,6 +390,10 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(DELETE_EMPTY_FOLDERS, false)
         set(deleteEmptyFolders) = prefs.edit().putBoolean(DELETE_EMPTY_FOLDERS, deleteEmptyFolders).apply()
 
+    var showCopyMoveToasts: Boolean
+        get() = prefs.getBoolean(SHOW_COPY_MOVE_TOASTS, false)
+        set(showCopyMoveToasts) = prefs.edit().putBoolean(SHOW_COPY_MOVE_TOASTS, showCopyMoveToasts).apply()
+
     var keepScreenOn: Boolean
         get() = prefs.getBoolean(KEEP_SCREEN_ON, true)
         set(keepScreenOn) = prefs.edit().putBoolean(KEEP_SCREEN_ON, keepScreenOn).apply()
