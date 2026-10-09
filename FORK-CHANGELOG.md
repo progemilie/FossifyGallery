@@ -31,6 +31,7 @@ Notable fork-only changes.
 - The thumbnail strip under a photo marks videos with a small triangle.
 - The metadata sheet shows the camera a photo was taken with near the top.
 - The status bar is hidden in landscape mode.
+- Copying and moving no longer shows "Copying…" and "Copied successfully" messages. A new setting in Files & recycle bin turns them back on.
 ### Fixed
 - Fixed a photo or video opening soft — the picture the tile grows into is now the photo itself, or the video's own frame, rather than a thumbnail of it, so it is sharp the moment the viewer arrives.
 - Fixed swiping and zooming not working for a while after a photo opened — the longer, the bigger the library.

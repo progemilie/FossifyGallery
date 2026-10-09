@@ -439,6 +439,7 @@
     <string name="settings_security_summary">Password protection</string>
     <string name="settings_files">Files &amp; recycle bin</string>
     <string name="settings_files_summary">Deleting and the recycle bin</string>
+    <string name="show_copy_move_toasts">Show messages when copying or moving</string>
     <string name="settings_backup">Storage &amp; backup</string>
     <string name="settings_backup_summary">Cache, export and import</string>
     <!-- Settings: the headings over groups of settings within a category -->

@@ -145,6 +145,8 @@ Files
   the caches.
 - [The folder picker](features/folder-picker.md) — the fullscreen screen a copy or move picks its
   folder on, making a new folder from it, and the eye for hidden folders.
+- [Copying and moving](features/copy-move.md) — the fork's port of commons' copy/move, and the
+  setting that silences its toasts.
 
 Look & feel
 - [Floating chrome and glass](features/floating-chrome.md) — the search pill, glass panels, their

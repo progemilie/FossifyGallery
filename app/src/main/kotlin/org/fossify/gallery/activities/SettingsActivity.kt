@@ -232,6 +232,7 @@ class SettingsActivity : SimpleActivity() {
         setupShowExtendedDetails()
         setupManageExtendedDetails()
         setupSkipDeleteConfirmation()
+        setupShowCopyMoveToasts()
         setupManageBottomActions()
         setupUseRecycleBin()
         setupShowRecycleBin()
@@ -951,6 +952,14 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
+    private fun setupShowCopyMoveToasts() {
+        binding.settingsShowCopyMoveToasts.isChecked = config.showCopyMoveToasts
+        binding.settingsShowCopyMoveToastsHolder.setOnClickListener {
+            binding.settingsShowCopyMoveToasts.toggle()
+            config.showCopyMoveToasts = binding.settingsShowCopyMoveToasts.isChecked
+        }
+    }
+
     private fun setupScreenRotation() {
         binding.settingsScreenRotation.text = getScreenRotationText()
         binding.settingsScreenRotationHolder.setOnClickListener {
@@ -1371,6 +1380,7 @@ class SettingsActivity : SimpleActivity() {
                 put(DELETE_EMPTY_FOLDERS, config.deleteEmptyFolders)
                 put(KEEP_LAST_MODIFIED, config.keepLastModified)
                 put(SKIP_DELETE_CONFIRMATION, config.skipDeleteConfirmation)
+                put(SHOW_COPY_MOVE_TOASTS, config.showCopyMoveToasts)
                 put(BOTTOM_ACTIONS, config.bottomActions)
                 put(VISIBLE_BOTTOM_ACTIONS, config.visibleBottomActions)
                 put(USE_RECYCLE_BIN, config.useRecycleBin)
@@ -1530,6 +1540,7 @@ class SettingsActivity : SimpleActivity() {
                 DELETE_EMPTY_FOLDERS -> config.deleteEmptyFolders = value.toBoolean()
                 KEEP_LAST_MODIFIED -> config.keepLastModified = value.toBoolean()
                 SKIP_DELETE_CONFIRMATION -> config.skipDeleteConfirmation = value.toBoolean()
+                SHOW_COPY_MOVE_TOASTS -> config.showCopyMoveToasts = value.toBoolean()
                 BOTTOM_ACTIONS -> config.bottomActions = value.toBoolean()
                 VISIBLE_BOTTOM_ACTIONS -> config.visibleBottomActions = value.toInt()
                 USE_RECYCLE_BIN -> config.useRecycleBin = value.toBoolean()
